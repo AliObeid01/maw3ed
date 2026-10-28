@@ -40,8 +40,21 @@ function getClient(): PrismaClient {
  */
 export const db: PrismaClient = new Proxy({} as PrismaClient, {
   get(_target, prop) {
+    // `await db` / Promise.resolve(db) probe `then`, and runtimes probe symbols (inspect, toPrimitive):
+    // answer those without building a client so they neither need DATABASE_URL nor open a pool.
+    if (prop === 'then' || typeof prop === 'symbol') return undefined;
     const client = getClient();
     const value = Reflect.get(client, prop, client) as unknown;
-    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+    return typeof value === 'function'
+      ? (value as (...args: unknown[]) => unknown).bind(client)
+      : value;
   },
+  has: (_target, prop) => Reflect.has(getClient(), prop),
+  ownKeys: () => Reflect.ownKeys(getClient()),
+  getOwnPropertyDescriptor: (_target, prop) => {
+    const descriptor = Reflect.getOwnPropertyDescriptor(getClient(), prop);
+    // Proxy invariants: a reported property must be configurable because the target lacks it.
+    return descriptor ? { ...descriptor, configurable: true } : undefined;
+  },
+  getPrototypeOf: () => Reflect.getPrototypeOf(getClient()),
 });
