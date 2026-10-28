@@ -39,7 +39,7 @@ describe('tokens', () => {
   });
 
   it('rejects wrong secret', () => {
-    expect(verifyToken(signToken(payload, SECRET), 'other-secret', before, 'confirm')).toEqual({
+    expect(verifyToken(signToken(payload, SECRET), 'other-secret-other-secret-other-secret', before, 'confirm')).toEqual({
       ok: false,
       reason: 'bad_signature',
     });
@@ -78,6 +78,44 @@ describe('tokens', () => {
       JSON.stringify({ a: 'x', act: 'confirm', exp: 'soon' }),
     ]) {
       expect(verifyToken(sign(raw), SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'malformed' });
+    }
+  });
+});
+
+describe('tokens hardening', () => {
+  it('treats an invalid clock as expired (fails closed)', () => {
+    const t = signToken(payload, SECRET);
+    expect(verifyToken(t, SECRET, new Date(Number.NaN), 'confirm')).toEqual({ ok: false, reason: 'expired' });
+  });
+
+  it('ties the subject to the action: only claim uses an offer id', () => {
+    expect(() => signToken({ o: 'offer_1', act: 'cancel', exp }, SECRET)).toThrow();
+    expect(() => signToken({ a: 'appt_1', act: 'claim', exp }, SECRET)).toThrow();
+    // A correctly signed token with a mismatched shape is rejected on verify as well.
+    const body = b64(JSON.stringify({ o: 'offer_1', act: 'cancel', exp }));
+    const sig = createHmac('sha256', SECRET).update(body).digest().toString('base64url');
+    expect(verifyToken(`${body}.${sig}`, SECRET, before, 'cancel')).toEqual({ ok: false, reason: 'malformed' });
+  });
+
+  it('refuses to sign or verify with a short secret', () => {
+    expect(() => signToken(payload, 'short')).toThrow();
+    expect(() => verifyToken('a.b', 'short', before, 'confirm')).toThrow();
+  });
+
+  it('rejects oversized tokens before doing any crypto', () => {
+    const long = `${'a'.repeat(600)}.${'b'.repeat(10)}`;
+    expect(verifyToken(long, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'malformed' });
+  });
+
+  it('rejects a signature with non-canonical base64url padding bits', () => {
+    const t = signToken(payload, SECRET);
+    const [body, sig] = t.split('.') as [string, string];
+    // The last base64url char of a 32-byte MAC carries 2 unused bits; flip them to a different but decodable char.
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    const last = sig.at(-1)!;
+    const altered = alphabet[(alphabet.indexOf(last) + 1) % 4 === 0 ? alphabet.indexOf(last) + 1 : alphabet.indexOf(last) ^ 1]!;
+    if (altered !== last) {
+      expect(verifyToken(`${body}.${sig.slice(0, -1)}${altered}`, SECRET, before, 'confirm').ok).toBe(false);
     }
   });
 });

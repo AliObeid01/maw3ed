@@ -59,14 +59,29 @@ const MIN_MS = 60_000;
 
 type Range = [number, number];
 
+/** Locale-independent ordering so output is deterministic everywhere. */
+function compareIds(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function parseHm(value: string): { hour: number; minute: number } {
   const m = /^(\d{1,2}):(\d{2})$/.exec(value);
   if (!m) throw new Error(`Invalid local time: ${value}`);
-  return { hour: Number(m[1]), minute: Number(m[2]) };
+  const hour = Number(m[1]);
+  const minute = Number(m[2]);
+  if (hour > 24 || minute > 59 || (hour === 24 && minute !== 0)) throw new Error(`Invalid local time: ${value}`);
+  return { hour, minute };
 }
 
+const zoneCache = new Map<string, IANAZone>();
+
 function offsetMs(zone: string, ms: number): number {
-  return IANAZone.create(zone).offset(ms) * MIN_MS;
+  let z = zoneCache.get(zone);
+  if (!z) {
+    z = IANAZone.create(zone);
+    zoneCache.set(zone, z);
+  }
+  return z.offset(ms) * MIN_MS;
 }
 
 /**
@@ -102,6 +117,7 @@ export function localToUtcMs(
 }
 
 function subtract(free: Range[], cut: Range): Range[] {
+  if (cut[1] <= cut[0]) return free; // empty or inverted ranges block nothing
   const out: Range[] = [];
   for (const [s, e] of free) {
     if (cut[1] <= s || cut[0] >= e) {
@@ -124,6 +140,10 @@ function alignToLocalGrid(ms: number, stepMin: number, zone: string): number {
 /** Generates bookable slots for each staff member (pure; `now` is injected). */
 export function generateSlots(input: GenerateSlotsInput): Slot[] {
   const { service, slotStepMin, minNoticeMin, timezone, now } = input;
+  // The step grid is anchored at local midnight; a step that does not divide the day would drift between days.
+  if (!Number.isInteger(slotStepMin) || slotStepMin <= 0 || 1440 % slotStepMin !== 0) {
+    throw new Error('slotStepMin must be a positive integer that divides 1440');
+  }
   if (slotStepMin <= 0) throw new Error('slotStepMin must be positive');
   const needMs = (service.durationMin + service.bufferMin) * MIN_MS;
   const earliest = now.getTime() + minNoticeMin * MIN_MS;
@@ -173,7 +193,7 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
       }
     }
   }
-  return result.sort((a, b) => a.startAt.getTime() - b.startAt.getTime() || a.staffId.localeCompare(b.staffId));
+  return result.sort((a, b) => a.startAt.getTime() - b.startAt.getTime() || compareIds(a.staffId, b.staffId));
 }
 
 /** "Anyone": each distinct start time once, with every staff member who can take it. */
@@ -194,7 +214,7 @@ export function mergeAnyone(slotsByStaff: Slot[]): AnyoneSlot[] {
     }
   }
   const merged = [...byStart.values()].sort((a, b) => a.startAt.getTime() - b.startAt.getTime());
-  for (const m of merged) m.candidateStaffIds.sort();
+  for (const m of merged) m.candidateStaffIds.sort(compareIds);
   return merged;
 }
 
@@ -205,7 +225,7 @@ export function mergeAnyone(slotsByStaff: Slot[]): AnyoneSlot[] {
 export function pickStaff(candidates: string[], bookingsThatLocalDay: Record<string, number>): string | null {
   let best: string | null = null;
   let bestCount = Infinity;
-  for (const id of [...candidates].sort()) {
+  for (const id of [...candidates].sort(compareIds)) {
     const count = bookingsThatLocalDay[id] ?? 0;
     if (count < bestCount) {
       best = id;

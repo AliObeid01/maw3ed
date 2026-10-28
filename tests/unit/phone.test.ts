@@ -42,3 +42,19 @@ describe('formatInternational', () => {
     expect(formatInternational('garbage')).toBe('garbage');
   });
 });
+
+describe('normalizePhone rejects text around a number', () => {
+  it.each(['abc 71234567', 'call 71234567 now', '71234567 ext 12', '+96171234567x', '71 234 567; DROP'])(
+    'rejects %j',
+    (input) => {
+      expect(normalizePhone(input)).toBeNull();
+    },
+  );
+
+  it('still accepts separators and Arabic-Indic digits', () => {
+    expect(normalizePhone('(71) 234-567')).toBe('+96171234567');
+    expect(normalizePhone('71.234.567')).toBe('+96171234567');
+    expect(normalizePhone('٧١٢٣٤٥٦٧')).toBe('+96171234567');
+    expect(normalizePhone('۷۱۲۳۴۵۶۷')).toBe('+96171234567');
+  });
+});

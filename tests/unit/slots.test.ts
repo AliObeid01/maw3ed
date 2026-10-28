@@ -287,3 +287,28 @@ describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
     expect(starts(slotsOn(day(spring), 30, 30, s))).toEqual(['09:00', '10:00', '10:30']);
   });
 });
+
+describe('input validation', () => {
+  const a = staff('a', allWeek('09:00', '10:00'));
+
+  it.each(['24:30', '09:99', '25:00', '9:5'])('rejects invalid working hours %j', (bad) => {
+    const s = staff('a', [{ weekday: 1, startLocal: '09:00', endLocal: bad }]);
+    expect(() => generateSlots(input({ staff: [s] }))).toThrow();
+  });
+
+  it.each([0, -15, 7, 25, 1.5, 1441])('rejects slotStepMin %j (must be a positive integer dividing 1440)', (step) => {
+    expect(() => generateSlots(input({ staff: [a], slotStepMin: step }))).toThrow();
+  });
+
+  it('ignores inverted busy ranges instead of freeing time', () => {
+    const s = staff('a', allWeek('09:00', '10:00'), {
+      busy: [{ startAt: local('2026-06-01T09:30:00'), blockedUntil: local('2026-06-01T09:00:00') }],
+    });
+    expect(starts(generateSlots(input({ staff: [s] })))).toEqual(['09:00', '09:30']);
+  });
+
+  it('orders equal-time slots by staff id independent of locale', () => {
+    const slots = generateSlots(input({ staff: [staff('b', allWeek('09:00', '09:30')), staff('B', allWeek('09:00', '09:30'))] }));
+    expect(slots.map((x) => x.staffId)).toEqual(['B', 'b']);
+  });
+});
