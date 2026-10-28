@@ -1,3 +1,5 @@
+import { RESERVED_SLUGS } from '@/server/contracts/slug';
+
 export const SLUG_MIN = 3;
 export const SLUG_MAX = 40;
 
@@ -31,6 +33,11 @@ export function normalizeSlugInput(raw: string): string {
 /** Light client-side format check; the server (`/api/auth/slug-check`) stays authoritative. */
 export function isValidSlugFormat(slug: string): boolean {
   return slug.length >= SLUG_MIN && slug.length <= SLUG_MAX && SLUG_RE.test(slug);
+}
+
+/** Same list as the server (imported from its pure contract module, so it cannot drift). */
+export function isReservedSlug(slug: string): boolean {
+  return RESERVED_SLUGS.has(slug);
 }
 
 /** Host shown in the live link preview: configured app URL, else the page's own host, else the brand host. */

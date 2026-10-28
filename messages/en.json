@@ -122,7 +122,7 @@
       "expires": "This invite expires {when}.",
       "email": "Email",
       "name": "Your name",
-      "password": "Choose a password",
+      "password": "Password",
       "passwordPlaceholder": "{min}+ characters",
       "submit": "Accept and join",
       "haveAccount": "Already have an account?",
@@ -133,7 +133,9 @@
       "expiredAction": "Go to sign in",
       "loadFailedTitle": "We couldn't load this invite",
       "loadFailedBody": "Check your connection and try again.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "passwordHint": "Choose a password, or enter your current one if you already have a Maw3ed account.",
+      "goToSignIn": "Go to sign in"
     },
     "role": {
       "owner": "Owner",
@@ -153,7 +155,7 @@
       "preview": "Your page: {url}",
       "checking": "Checking availability…",
       "available": "Available",
-      "invalid": "Use 3 to 40 letters, numbers or hyphens.",
+      "invalid": "Use {slugMin} to {slugMax} letters, numbers or hyphens.",
       "reserved": "That link is reserved. Try another.",
       "taken": "That link is already taken."
     },
@@ -161,14 +163,19 @@
       "required": "This field is required.",
       "email": "Enter a valid email address.",
       "passwordShort": "Use at least {min} characters.",
-      "slugFormat": "Use 3 to 40 letters, numbers or hyphens.",
+      "slugFormat": "Use {slugMin} to {slugMax} letters, numbers or hyphens.",
       "slugTaken": "That link is already taken.",
       "emailTaken": "An account with this email already exists.",
       "invalidCredentials": "That email or password is not right. Please try again.",
       "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
       "network": "We can't reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again.",
-      "fixFields": "Please fix the highlighted fields."
+      "fixFields": "Please fix the highlighted fields.",
+      "slugReserved": "That link is reserved. Try another.",
+      "passwordLong": "Use at most {max} characters.",
+      "invalidField": "This doesn't look right.",
+      "alreadyMember": "You are already a member of this business.",
+      "inviteWrongPassword": "Incorrect password. If you already have a Maw3ed account, enter that account's password."
     }
   },
   "dev": {

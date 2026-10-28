@@ -2,27 +2,23 @@
 
 import { AlertCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, type RefObject } from 'react';
+import { useEffect, type ReactNode, type RefObject } from 'react';
 import { Callout } from '@/components/ui/Callout';
-import { PASSWORD_MIN } from '@/lib/auth/password';
+import { PASSWORD_MAX, PASSWORD_MIN } from '@/lib/auth/password';
+import { SLUG_MAX, SLUG_MIN } from '@/lib/auth/slug';
 import type { BannerKey, FieldMessage } from '@/lib/auth/errors';
 import type { FieldErrorKey } from '@/lib/auth/validation';
 
 export type FieldError = FieldErrorKey | FieldMessage;
 
-/** Resolves error keys and server text into the visible, translated message. */
+/** Resolves error keys into the visible, translated message (server text is never shown raw). */
 export function useErrorText() {
   const t = useTranslations('auth.errors');
-  const key = (k: string) => t(k, { min: PASSWORD_MIN });
+  const key = (k: string) =>
+    t(k, { min: PASSWORD_MIN, max: PASSWORD_MAX, slugMin: SLUG_MIN, slugMax: SLUG_MAX });
   return {
     field: (e: FieldError | undefined) =>
-      e === undefined
-        ? undefined
-        : typeof e === 'string'
-          ? key(e)
-          : 'key' in e
-            ? key(e.key)
-            : e.text,
+      e === undefined ? undefined : key(typeof e === 'string' ? e : e.key),
     banner: (b: BannerKey | undefined) => (b ? key(b) : undefined),
   };
 }
@@ -44,7 +40,7 @@ export function useFocusFirstInvalid(formRef: RefObject<HTMLFormElement | null>,
 }
 
 /** Top-level error for problems that belong to no single field. Focusable so it can receive focus on submit. */
-export function FormBanner({ message }: { message?: string }) {
+export function FormBanner({ message, action }: { message?: string; action?: ReactNode }) {
   if (!message) return null;
   return (
     <div
@@ -55,6 +51,7 @@ export function FormBanner({ message }: { message?: string }) {
     >
       <Callout tone="danger" icon={<AlertCircle />}>
         {message}
+        {action ? <div className="mt-3">{action}</div> : null}
       </Callout>
     </div>
   );

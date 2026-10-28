@@ -3,42 +3,47 @@
 import { Check, Loader2, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { checkSlug } from '@/lib/api/auth';
-import { isValidSlugFormat, previewHost } from '@/lib/auth/slug';
 import { FieldShell } from '@/components/ui/Field';
+import { checkSlug } from '@/lib/api/auth';
+import { SLUG_MAX, SLUG_MIN, previewHost } from '@/lib/auth/slug';
+import {
+  deriveSlugStatus,
+  needsServerCheck,
+  scheduleSlugCheck,
+  type SlugStatus,
+} from '@/lib/auth/slugAvailability';
 import { cn } from '@/lib/cn';
 
-export type SlugStatus =
-  'idle' | 'checking' | 'available' | 'invalid' | 'reserved' | 'taken' | 'unknown';
+export type { SlugStatus };
 
-const DEBOUNCE_MS = 400;
 const noopSubscribe = () => () => {};
+/** "Checking" is only shown (and announced) when the server is slow. */
+const CHECKING_VISIBLE_AFTER_MS = 600;
 
-/** Debounced availability check. Local format problems never hit the network; a failed check is `unknown` (the server re-checks on submit). */
 export function useSlugAvailability(slug: string): SlugStatus {
   const [result, setResult] = useState<{ slug: string; status: SlugStatus } | null>(null);
-  const valid = isValidSlugFormat(slug);
+  const shouldCheck = needsServerCheck(slug);
 
   useEffect(() => {
-    if (!slug || !valid) return;
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      checkSlug(slug, controller.signal)
-        .then((r) => setResult({ slug, status: r.available ? 'available' : (r.reason ?? 'taken') }))
-        .catch(() => {
-          if (!controller.signal.aborted) setResult({ slug, status: 'unknown' });
-        });
-    }, DEBOUNCE_MS);
+    if (!shouldCheck) return;
+    return scheduleSlugCheck(slug, checkSlug, (s, status) => setResult({ slug: s, status }));
+  }, [slug, shouldCheck]);
+
+  return deriveSlugStatus(slug, result);
+}
+
+/** True once `active` has been continuously true for `ms`. */
+function useAfterDelay(active: boolean, ms: number) {
+  const [elapsed, setElapsed] = useState(false);
+  useEffect(() => {
+    if (!active) return;
+    const timer = setTimeout(() => setElapsed(true), ms);
     return () => {
       clearTimeout(timer);
-      controller.abort();
+      setElapsed(false);
     };
-  }, [slug, valid]);
-
-  if (!slug) return 'idle';
-  if (!valid) return 'invalid';
-  // A result for an older slug is stale: show "checking" until the new one lands.
-  return result && result.slug === slug ? result.status : 'checking';
+  }, [active, ms]);
+  return active && elapsed;
 }
 
 type SlugFieldProps = {
@@ -50,6 +55,7 @@ type SlugFieldProps = {
   status: SlugStatus;
   /** Validation or server error; takes priority over the live status. */
   error?: string;
+  readOnly?: boolean;
 };
 
 export function SlugField({
@@ -60,6 +66,7 @@ export function SlugField({
   placeholder,
   status,
   error,
+  readOnly,
 }: SlugFieldProps) {
   const t = useTranslations('auth');
   // Configured app URL first; without one the page's own host is the best preview (browser only).
@@ -69,19 +76,25 @@ export function SlugField({
     () => previewHost(appUrl, window.location.host),
     () => previewHost(appUrl),
   );
+  const showChecking = useAfterDelay(status === 'checking', CHECKING_VISIBLE_AFTER_MS);
 
-  const bad = status === 'invalid' || status === 'reserved' || status === 'taken';
+  const bad = status === 'reserved' || status === 'taken';
   const statusId = `${id}-status`;
-  const statusText: Record<SlugStatus, string | null> = {
-    idle: null,
-    checking: t('slugStatus.checking'),
-    available: t('slugStatus.available'),
-    invalid: t('slugStatus.invalid'),
-    reserved: t('slugStatus.reserved'),
-    taken: t('slugStatus.taken'),
-    unknown: null,
-  };
-  const text = statusText[status];
+  const bounds = { slugMin: SLUG_MIN, slugMax: SLUG_MAX };
+  const text =
+    status === 'checking'
+      ? showChecking
+        ? t('slugStatus.checking')
+        : null
+      : status === 'available'
+        ? t('slugStatus.available')
+        : status === 'invalid'
+          ? t('slugStatus.invalid', bounds)
+          : status === 'reserved'
+            ? t('slugStatus.reserved')
+            : status === 'taken'
+              ? t('slugStatus.taken')
+              : null;
 
   return (
     <FieldShell id={id} label={label} error={error}>
@@ -99,39 +112,38 @@ export function SlugField({
         </span>
         <input
           id={id}
+          name="slug"
           type="text"
           dir="ltr"
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          readOnly={readOnly}
           placeholder={placeholder}
           autoComplete="off"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
           inputMode="url"
-          maxLength={40}
+          maxLength={SLUG_MAX}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error ${statusId}` : statusId}
           className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-start text-base text-ink outline-none placeholder:text-subtle"
         />
       </div>
-      <div
-        id={statusId}
-        aria-live="polite"
-        className="flex min-h-[38px] flex-col gap-0.5 text-[13px]"
-      >
-        {value ? (
-          <span className="text-muted">
-            {/* U+2066/U+2069 isolate the LTR address inside an RTL sentence. */}
-            {t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })}
-          </span>
-        ) : null}
+      {/* The preview changes on every keystroke, so it stays OUT of the live region. */}
+      <p className="m-0 min-h-[19px] text-[13px] text-muted">
+        {value
+          ? // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
+            t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })
+          : null}
+      </p>
+      {/* Only the status text is announced (polite), and "checking" only if it is slow. */}
+      <div id={statusId} aria-live="polite" className="min-h-[19px] text-[13px]">
         {text && !error ? (
           <span
             className={cn(
               'flex items-center gap-1.5 font-medium',
-              bad ? (status === 'invalid' ? 'text-muted' : 'text-danger') : 'text-muted',
-              status === 'available' && 'text-success',
+              bad ? 'text-danger' : status === 'available' ? 'text-success' : 'text-muted',
             )}
           >
             {status === 'checking' ? (
@@ -142,7 +154,7 @@ export function SlugField({
               />
             ) : status === 'available' ? (
               <Check size={14} aria-hidden="true" />
-            ) : bad && status !== 'invalid' ? (
+            ) : bad ? (
               <X size={14} aria-hidden="true" />
             ) : null}
             {text}

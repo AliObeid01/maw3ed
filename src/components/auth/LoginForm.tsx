@@ -6,6 +6,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { login } from '@/lib/api/auth';
+import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { validateLogin, type LoginField } from '@/lib/auth/validation';
 import { FormBanner, useErrorText, useFocusFirstInvalid, type FieldError } from './formKit';
@@ -18,7 +19,7 @@ export function LoginForm() {
   const router = useRouter();
   const text = useErrorText();
   const formRef = useRef<HTMLFormElement>(null);
-  const submitting = useRef(false);
+  const guard = useRef(createSubmitGuard());
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +34,6 @@ export function LoginForm() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (submitting.current) return;
 
     const found: Partial<Record<LoginField, FieldError>> = validateLogin({ email, password });
     setBanner(undefined);
@@ -43,18 +43,18 @@ export function LoginForm() {
       return;
     }
 
-    submitting.current = true;
+    if (!guard.current.tryStart()) return;
     setPending(true);
     setErrors({});
     try {
       await login({ email: email.trim(), password });
-      router.push('/app');
+      router.replace('/app');
     } catch (error) {
       const result = classifyAuthError(error, FIELDS);
       setErrors(result.fields as Partial<Record<LoginField, FieldError>>);
       setBanner(result.banner);
       setTick((n) => n + 1);
-      submitting.current = false;
+      guard.current.release();
       setPending(false);
     }
   }
@@ -78,7 +78,7 @@ export function LoginForm() {
         autoCapitalize="none"
         spellCheck={false}
         error={text.field(errors.email)}
-        disabled={pending}
+        readOnly={pending}
       />
 
       <PasswordField
@@ -91,7 +91,7 @@ export function LoginForm() {
         }}
         autoComplete="current-password"
         error={text.field(errors.password)}
-        disabled={pending}
+        readOnly={pending}
       />
 
       <Button type="submit" size="lg" block loading={pending} className="mt-1 h-[54px] text-base">

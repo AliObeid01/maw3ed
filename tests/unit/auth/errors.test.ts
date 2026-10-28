@@ -41,18 +41,65 @@ describe('classifyAuthError', () => {
     expect(classifyAuthError(new ApiError(500, 'HTTP_500', 'x'), []).banner).toBe('generic');
   });
 
-  it('routes VALIDATION_FAILED fields to inputs', () => {
-    const error = new ApiError(400, 'VALIDATION_FAILED', 'x', { password: 'Too short' });
+  it('routes VALIDATION_FAILED fields to translated keys, never the raw server text', () => {
+    const error = new ApiError(400, 'VALIDATION_FAILED', 'x', {
+      email: 'Email domain not allowed',
+    });
     expect(classifyAuthError(error, SIGNUP_FIELDS)).toEqual({
-      fields: { password: { text: 'Too short' } },
+      fields: { email: { key: 'invalidField' } },
+      banner: 'fixFields',
+    });
+  });
+
+  it('maps a server password problem to the translated minimum-length message', () => {
+    const error = new ApiError(400, 'VALIDATION_FAILED', 'x', {
+      password: 'Use at least 10 characters.',
+    });
+    expect(classifyAuthError(error, SIGNUP_FIELDS).fields).toEqual({
+      password: { key: 'passwordShort' },
     });
   });
 });
 
+describe('classifyAuthError for the invite accept form', () => {
+  const fields = ['name', 'password'];
+
+  it('401 INVALID_CREDENTIALS gets the invite-specific wrong-password banner', () => {
+    const e = new ApiError(401, 'INVALID_CREDENTIALS', 'x');
+    expect(classifyAuthError(e, fields, 'invite')).toEqual({
+      fields: {},
+      banner: 'inviteWrongPassword',
+    });
+    expect(classifyAuthError(e, fields).banner).toBe('invalidCredentials');
+  });
+
+  it('409 ALREADY_MEMBER gets its own banner', () => {
+    expect(classifyAuthError(new ApiError(409, 'ALREADY_MEMBER', 'x'), fields, 'invite')).toEqual({
+      fields: {},
+      banner: 'alreadyMember',
+    });
+  });
+
+  it('404 means the invite is gone, so the view can switch to the expired state', () => {
+    expect(classifyAuthError(new ApiError(404, 'NOT_FOUND', 'x'), fields, 'invite').gone).toBe(
+      true,
+    );
+    expect(
+      classifyAuthError(new ApiError(500, 'HTTP_500', 'x'), fields, 'invite').gone,
+    ).toBeUndefined();
+  });
+
+  it('429 maps to the rate limit banner', () => {
+    expect(
+      classifyAuthError(new ApiError(429, 'TOO_MANY_ATTEMPTS', 'x'), fields, 'invite').banner,
+    ).toBe('tooManyAttempts');
+  });
+});
+
 describe('mapServerFields', () => {
-  it('keeps known fields and adds the banner when some fields have no input', () => {
+  it('keeps known fields and shows the banner even when some fields have no input', () => {
     expect(mapServerFields({ email: 'Invalid', unknownField: 'Nope' }, ['email'])).toEqual({
-      fields: { email: { text: 'Invalid' } },
+      fields: { email: { key: 'invalidField' } },
       banner: 'fixFields',
     });
   });

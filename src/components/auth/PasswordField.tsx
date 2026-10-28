@@ -4,7 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Input, type InputProps } from '@/components/ui/Field';
-import { PASSWORD_MIN, passwordStrength, strengthLevel } from '@/lib/auth/password';
+import { PASSWORD_MAX, PASSWORD_MIN, passwordStrength, strengthLevel } from '@/lib/auth/password';
 import { cn } from '@/lib/cn';
 
 type PasswordFieldProps = Omit<InputProps, 'type' | 'endAdornment'>;
@@ -15,6 +15,7 @@ export function PasswordField({ className, ...props }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   return (
     <Input
+      maxLength={PASSWORD_MAX}
       {...props}
       type={visible ? 'text' : 'password'}
       dir="ltr"
@@ -43,26 +44,43 @@ const segmentTone = {
 } as const;
 
 /** Three-segment length meter plus a polite text status. Length only: no composition rules. */
-export function PasswordStrength({ password, id }: { password: string; id: string }) {
+export function PasswordStrength({
+  password,
+  id,
+  quiet = false,
+}: {
+  password: string;
+  id: string;
+  /** Meter only, hidden from assistive tech and without text (invite: an existing account may have a shorter password). */
+  quiet?: boolean;
+}) {
   const t = useTranslations('auth.password');
   const strength = passwordStrength(password);
   const level = strengthLevel(strength);
   return (
-    <div id={id} className="flex flex-col gap-1.5" role="group" aria-label={t('strengthLabel')}>
+    <div
+      id={id}
+      className="flex flex-col gap-1.5"
+      role={quiet ? undefined : 'group'}
+      aria-label={quiet ? undefined : t('strengthLabel')}
+      aria-hidden={quiet || undefined}
+    >
       <div className="flex gap-1.5" aria-hidden="true">
         {[1, 2, 3].map((n) => (
           <span
             key={n}
             className={cn(
               'h-1 flex-1 rounded-pill bg-divider transition-colors duration-200 ease-out',
-              strength !== 'empty' && n <= level && segmentTone[strength],
+              strength !== 'empty' && n <= level && (quiet ? 'bg-brand' : segmentTone[strength]),
             )}
           />
         ))}
       </div>
-      <p className="m-0 min-h-[19px] text-[13px] text-muted" aria-live="polite">
-        {t(strength === 'empty' ? 'hint' : strength, { min: PASSWORD_MIN })}
-      </p>
+      {quiet ? null : (
+        <p className="m-0 min-h-[19px] text-[13px] text-muted" aria-live="polite">
+          {t(strength === 'empty' ? 'hint' : strength, { min: PASSWORD_MIN })}
+        </p>
+      )}
     </div>
   );
 }

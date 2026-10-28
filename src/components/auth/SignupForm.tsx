@@ -6,6 +6,7 @@ import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'r
 import { Button } from '@/components/ui/Button';
 import { Input, Select } from '@/components/ui/Field';
 import { signup } from '@/lib/api/auth';
+import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { PASSWORD_MIN } from '@/lib/auth/password';
 import { normalizeSlugInput, suggestSlug } from '@/lib/auth/slug';
@@ -41,7 +42,7 @@ export function SignupForm() {
   const text = useErrorText();
   const ids = useId();
   const formRef = useRef<HTMLFormElement>(null);
-  const submitting = useRef(false);
+  const guard = useRef(createSubmitGuard());
 
   const [businessName, setBusinessName] = useState('');
   const [slug, setSlug] = useState('');
@@ -67,7 +68,6 @@ export function SignupForm() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (submitting.current) return;
 
     const found: Partial<Record<SignupField, FieldError>> = validateSignup({
       businessName,
@@ -76,9 +76,8 @@ export function SignupForm() {
       email,
       password,
     });
-    if (!found.slug && (slugStatus === 'taken' || slugStatus === 'reserved')) {
-      found.slug = { key: 'slugTaken' };
-    }
+    if (!found.slug && slugStatus === 'taken') found.slug = { key: 'slugTaken' };
+    if (!found.slug && slugStatus === 'reserved') found.slug = { key: 'slugReserved' };
     setBanner(undefined);
     if (Object.values(found).some(Boolean)) {
       setErrors(found);
@@ -86,7 +85,7 @@ export function SignupForm() {
       return;
     }
 
-    submitting.current = true;
+    if (!guard.current.tryStart()) return;
     setPending(true);
     setErrors({});
     try {
@@ -99,13 +98,13 @@ export function SignupForm() {
         password,
       });
       // Keep the button busy until the navigation lands.
-      router.push('/app/setup');
+      router.replace('/app/setup');
     } catch (error) {
       const result = classifyAuthError(error, FIELDS);
       setErrors(result.fields as Partial<Record<SignupField, FieldError>>);
       setBanner(result.banner);
       setTick((n) => n + 1);
-      submitting.current = false;
+      guard.current.release();
       setPending(false);
     }
   }
@@ -126,7 +125,7 @@ export function SignupForm() {
         placeholder={t('businessNamePlaceholder')}
         autoComplete="organization"
         error={text.field(errors.businessName)}
-        disabled={pending}
+        readOnly={pending}
       />
 
       <SlugField
@@ -142,6 +141,7 @@ export function SignupForm() {
         placeholder={t('slugPlaceholder')}
         status={slugStatus}
         error={text.field(errors.slug)}
+        readOnly={pending}
       />
 
       <Input
@@ -154,7 +154,7 @@ export function SignupForm() {
         }}
         autoComplete="name"
         error={text.field(errors.ownerName)}
-        disabled={pending}
+        readOnly={pending}
       />
 
       <Input
@@ -172,7 +172,7 @@ export function SignupForm() {
         autoCapitalize="none"
         spellCheck={false}
         error={text.field(errors.email)}
-        disabled={pending}
+        readOnly={pending}
       />
 
       <div className="flex flex-col gap-2">
@@ -186,8 +186,9 @@ export function SignupForm() {
           }}
           placeholder={t('passwordPlaceholder', { min: PASSWORD_MIN })}
           autoComplete="new-password"
+          aria-describedby={`${ids}-strength`}
           error={text.field(errors.password)}
-          disabled={pending}
+          readOnly={pending}
         />
         <PasswordStrength id={`${ids}-strength`} password={password} />
       </div>
@@ -197,12 +198,13 @@ export function SignupForm() {
         name="timezone"
         value={timezone}
         onChange={(e) => {
+          if (guard.current.isBusy()) return;
           setTimezone(e.target.value);
           clear('timezone');
         }}
         hint={t('timezoneHint')}
         error={text.field(errors.timezone)}
-        disabled={pending}
+        aria-disabled={pending || undefined}
       >
         <optgroup label={t('timezoneCommon')}>
           {zones.common.map((z) => (

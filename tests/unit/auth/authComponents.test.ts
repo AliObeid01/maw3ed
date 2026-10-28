@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
 import { PasswordField, PasswordStrength } from '@/components/auth/PasswordField';
 import { AuthTabs } from '@/components/auth/AuthTabs';
+import { SlugField } from '@/components/auth/SlugField';
 import { Input } from '@/components/ui/Field';
 import { render } from '../ui/helpers';
 
@@ -72,5 +73,65 @@ describe('AuthTabs', () => {
     expect(out).toContain('href="/signup"');
     expect(out.match(/aria-current="page"/g)).toHaveLength(1);
     expect(out).toMatch(/aria-current="page"[^>]*>Sign up</);
+  });
+});
+
+describe('SlugField live region', () => {
+  const html = render(
+    createElement(SlugField, {
+      id: 'slug',
+      label: 'Link',
+      value: 'studio-nour',
+      onChange: () => {},
+      placeholder: 'x',
+      status: 'taken',
+    }),
+  );
+  const live =
+    html.match(/<div id="slug-status" aria-live="polite"[^>]*>([\s\S]*?)<\/div>/)?.[1] ?? '';
+
+  it('announces only the status text, never the changing URL preview', () => {
+    expect(live).toContain('That link is already taken.');
+    expect(live).not.toContain('/b/studio-nour');
+    expect(html).toContain('/b/studio-nour');
+  });
+
+  it('has name="slug" and is readOnly when pending', () => {
+    expect(html).toContain('name="slug"');
+    expect(
+      render(
+        createElement(SlugField, {
+          id: 's',
+          label: 'L',
+          value: '',
+          onChange: () => {},
+          placeholder: 'x',
+          status: 'idle',
+          readOnly: true,
+        }),
+      ),
+    ).toContain('readOnly');
+  });
+
+  it('does not show "checking" before the slow-network delay', () => {
+    const checking = render(
+      createElement(SlugField, {
+        id: 's',
+        label: 'L',
+        value: 'abc',
+        onChange: () => {},
+        placeholder: 'x',
+        status: 'checking',
+      }),
+    );
+    expect(checking).not.toContain('Checking availability');
+  });
+});
+
+describe('PasswordStrength quiet', () => {
+  it('renders only the meter, hidden from assistive tech', () => {
+    const out = render(createElement(PasswordStrength, { id: 'q', password: 'abc', quiet: true }));
+    expect(out).toContain('aria-hidden="true"');
+    expect(out).not.toContain('Too short');
   });
 });

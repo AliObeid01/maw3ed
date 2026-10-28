@@ -49,11 +49,30 @@ describe('validateLogin', () => {
 });
 
 describe('validateAccept', () => {
-  it('requires a name and a long enough password', () => {
-    expect(validateAccept({ name: '', password: 'short' })).toEqual({
+  it('requires a name and a password but no minimum (an existing account may have a shorter one)', () => {
+    expect(validateAccept({ name: '', password: '' })).toEqual({
       name: 'required',
-      password: 'passwordShort',
+      password: 'required',
     });
-    expect(validateAccept({ name: 'Rana', password: 'correct horse' })).toEqual({});
+    expect(validateAccept({ name: 'Rana', password: 'short' })).toEqual({});
+  });
+
+  it('caps the password at 128 characters', () => {
+    expect(validateAccept({ name: 'Rana', password: 'a'.repeat(129) })).toEqual({
+      password: 'passwordLong',
+    });
+  });
+});
+
+describe('password and slug limits', () => {
+  it('rejects a signup password over 128 characters', () => {
+    expect(validateSignup({ ...validSignup, password: 'a'.repeat(129) }).password).toBe(
+      'passwordLong',
+    );
+    expect(validateSignup({ ...validSignup, password: 'a'.repeat(128) }).password).toBeUndefined();
+  });
+
+  it('gives a reserved slug its own message, not the taken or format one', () => {
+    expect(validateSignup({ ...validSignup, slug: 'admin' }).slug).toBe('slugReserved');
   });
 });

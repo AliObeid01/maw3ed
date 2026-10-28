@@ -10,8 +10,8 @@ import { Input } from '@/components/ui/Field';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { monogram } from '@/components/public/monogram';
 import { ApiError, acceptInvite, getInvite, type Invite } from '@/lib/api/auth';
+import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
-import { PASSWORD_MIN } from '@/lib/auth/password';
 import { validateAccept, type AcceptField } from '@/lib/auth/validation';
 import { AuthCard, AuthHeading } from './AuthCard';
 import { FormBanner, useErrorText, useFocusFirstInvalid, type FieldError } from './formKit';
@@ -48,7 +48,13 @@ export function InviteView({ token }: { token: string }) {
     <>
       <div data-auth-mirror hidden />
       {state.status === 'loading' ? <InviteSkeleton label={t('loading')} /> : null}
-      {state.status === 'ready' ? <AcceptCard token={token} invite={state.invite} /> : null}
+      {state.status === 'ready' ? (
+        <AcceptCard
+          token={token}
+          invite={state.invite}
+          onGone={() => setState({ status: 'expired' })}
+        />
+      ) : null}
       {state.status === 'expired' ? (
         <AuthCard className="items-center text-center">
           <span className="flex size-14 items-center justify-center rounded-[18px] bg-brand-soft text-brand">
@@ -118,14 +124,23 @@ function InviteSkeleton({ label }: { label: string }) {
   );
 }
 
-function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
+function AcceptCard({
+  token,
+  invite,
+  onGone,
+}: {
+  token: string;
+  invite: Invite;
+  /** The invite was used or expired after the page loaded (404 on accept). */
+  onGone: () => void;
+}) {
   const t = useTranslations('auth.invite');
   const roles = useTranslations('auth.role');
   const format = useFormatter();
   const router = useRouter();
   const text = useErrorText();
   const formRef = useRef<HTMLFormElement>(null);
-  const submitting = useRef(false);
+  const guard = useRef(createSubmitGuard());
 
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -149,7 +164,6 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    if (submitting.current) return;
 
     const found: Partial<Record<AcceptField, FieldError>> = validateAccept({ name, password });
     setBanner(undefined);
@@ -159,18 +173,22 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
       return;
     }
 
-    submitting.current = true;
+    if (!guard.current.tryStart()) return;
     setPending(true);
     setErrors({});
     try {
       await acceptInvite(token, { name: name.trim(), password });
-      router.push('/app');
+      router.replace('/app');
     } catch (error) {
-      const result = classifyAuthError(error, FIELDS);
+      const result = classifyAuthError(error, FIELDS, 'invite');
+      if (result.gone) {
+        onGone();
+        return;
+      }
       setErrors(result.fields as Partial<Record<AcceptField, FieldError>>);
       setBanner(result.banner);
       setTick((n) => n + 1);
-      submitting.current = false;
+      guard.current.release();
       setPending(false);
     }
   }
@@ -186,7 +204,12 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm text-muted">{t('invitedTo')}</span>
-          <span className="truncate text-xl font-semibold">{invite.businessName}</span>
+          <span
+            title={invite.businessName}
+            className="line-clamp-2 text-xl leading-tight font-semibold break-words"
+          >
+            {invite.businessName}
+          </span>
         </span>
         <span className="rounded-pill bg-brand-soft px-2.5 py-[5px] text-xs font-semibold text-brand">
           {roleLabel}
@@ -196,7 +219,16 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
       <AuthHeading title={t('title')} subtitle={expiry} />
 
       <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-        <FormBanner message={text.banner(banner)} />
+        <FormBanner
+          message={text.banner(banner)}
+          action={
+            banner === 'alreadyMember' ? (
+              <ButtonLink href="/login" variant="secondary">
+                {t('goToSignIn')}
+              </ButtonLink>
+            ) : undefined
+          }
+        />
 
         <Input
           label={t('email')}
@@ -204,7 +236,7 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
           name="email"
           value={invite.email}
           readOnly
-          autoComplete="email"
+          autoComplete="username"
           className="bg-canvas text-muted"
         />
 
@@ -218,7 +250,7 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
           }}
           autoComplete="name"
           error={text.field(errors.name)}
-          disabled={pending}
+          readOnly={pending}
         />
 
         <div className="flex flex-col gap-2">
@@ -230,12 +262,13 @@ function AcceptCard({ token, invite }: { token: string; invite: Invite }) {
               setPassword(e.target.value);
               clear('password');
             }}
-            placeholder={t('passwordPlaceholder', { min: PASSWORD_MIN })}
+            hint={t('passwordHint')}
             autoComplete="new-password"
             error={text.field(errors.password)}
-            disabled={pending}
+            readOnly={pending}
           />
-          <PasswordStrength id="invite-password-strength" password={password} />
+          {/* Hint only: an existing account may enter a current password shorter than the new-account minimum. */}
+          <PasswordStrength id="invite-password-strength" password={password} quiet />
         </div>
 
         <Button
