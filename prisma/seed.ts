@@ -1,21 +1,40 @@
 import 'dotenv/config';
+import { randomBytes } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 
 /**
  * Demo data: "Studio Nour" (Hamra, Beirut) and a second business "Clinic Rida" for isolation tests.
  * Idempotent: every row is found or upserted by a natural key, so re-running never duplicates.
- * Refuses to run in production.
+ *
+ * Safety (NODE_ENV alone is not a guard, so seeding is opt-in):
+ *   - ALLOW_SEED=1 is required.
+ *   - The database host must be localhost/127.0.0.1 unless ALLOW_SEED_REMOTE=1 is also set.
+ *     The shared dev Neon branch therefore needs both:  ALLOW_SEED=1 ALLOW_SEED_REMOTE=1 pnpm db:seed
+ *   - Refuses outright when NODE_ENV=production, whatever the flags.
+ *
+ * Passwords: set SEED_USER_PASSWORD, or one is generated and printed once. Hashing needs argon2; until
+ * it is installed (auth, P1.7) seeded users are password-less and no password is generated.
  */
-if (process.env.NODE_ENV === 'production') {
-  console.error('Refusing to seed: NODE_ENV=production.');
+function fail(message: string): never {
+  console.error(`Refusing to seed: ${message}`);
   process.exit(1);
 }
 
+if (process.env.NODE_ENV === 'production') fail('NODE_ENV=production.');
+if (process.env.ALLOW_SEED !== '1') fail('set ALLOW_SEED=1 to opt in.');
+
 const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
-if (!connectionString) {
-  console.error('DIRECT_URL or DATABASE_URL must be set.');
-  process.exit(1);
+if (!connectionString) fail('DIRECT_URL or DATABASE_URL must be set.');
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
+const hosts = [process.env.DIRECT_URL, process.env.DATABASE_URL]
+  .filter((u): u is string => Boolean(u))
+  .map((u) => new URL(u).hostname);
+if (!hosts.every((h) => LOCAL_HOSTS.has(h)) && process.env.ALLOW_SEED_REMOTE !== '1') {
+  fail(
+    `database host is not local (${hosts.join(', ')}); also set ALLOW_SEED_REMOTE=1 if that is intended.`,
+  );
 }
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
@@ -133,9 +152,11 @@ const clinicRida: SeedBusiness = {
   hours: { weekdays: [1, 2, 3, 4, 5], intervals: [['09:00', '17:00']] },
 };
 
-async function seedBusiness(spec: SeedBusiness, hash?: (plain: string) => Promise<string>) {
-  const password = process.env.SEED_USER_PASSWORD ?? 'maw3ed-dev-password';
-
+async function seedBusiness(
+  spec: SeedBusiness,
+  hash: ((plain: string) => Promise<string>) | undefined,
+  password: string,
+) {
   const business = await prisma.business.upsert({
     where: { slug: spec.slug },
     update: {
@@ -233,10 +254,13 @@ async function seedBusiness(spec: SeedBusiness, hash?: (plain: string) => Promis
 
 async function main() {
   const hash = await makeHasher();
+  const generated = !process.env.SEED_USER_PASSWORD;
+  const password = process.env.SEED_USER_PASSWORD ?? randomBytes(12).toString('base64url');
+  if (hash && generated) console.log(`Generated seed password (shown once): ${password}`);
   if (!hash)
     console.log('argon2 is not installed: seeded users are password-less until auth lands (P1.7).');
   for (const spec of [studioNour, clinicRida]) {
-    const b = await seedBusiness(spec, hash);
+    const b = await seedBusiness(spec, hash, password);
     console.log(`seeded ${b.name} (${b.slug})`);
   }
 }
