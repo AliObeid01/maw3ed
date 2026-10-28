@@ -50,6 +50,30 @@
   --animate-sheet-in: sheet-in 220ms ease-out;
   --animate-dialog-in: dialog-in 180ms ease-out;
   --animate-fade-in: fade-in 180ms ease-out;
+  --animate-rise-in: rise-in 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-drift-1: drift-1 9s ease-in-out infinite;
+  --animate-drift-2: drift-2 11s ease-in-out infinite;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes drift-1 {
+    50% {
+      transform: translate(120px, 80px) scale(1.2);
+    }
+  }
+  @keyframes drift-2 {
+    50% {
+      transform: translate(-120px, 70px) scale(1.15);
+    }
+  }
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-arabic: var(--font-plex-arabic), var(--font-outfit), ui-sans-serif, system-ui, sans-serif;

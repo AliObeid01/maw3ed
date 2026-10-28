@@ -18,7 +18,8 @@ type FieldShellProps = {
   children: ReactNode;
 };
 
-function FieldShell({ id, label, error, hint, className, children }: FieldShellProps) {
+/** Label above, control, then hint or error below. Exported for composite controls (slug, password). */
+export function FieldShell({ id, label, error, hint, className, children }: FieldShellProps) {
   return (
     <div className={cn('flex flex-col gap-1.5', className)}>
       <label htmlFor={id} className="text-sm font-medium">
@@ -59,6 +60,8 @@ export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
   hint?: string;
   /** Wrapper class; use `className` for the input itself. */
   wrapperClassName?: string;
+  /** Control rendered inside the input at the end edge (for example a show/hide password button, 44 px max). */
+  endAdornment?: ReactNode;
 };
 
 /** Always pass `autoComplete` and, for numeric fields, `inputMode` (e.g. type="tel" + autoComplete="tel"). */
@@ -69,23 +72,36 @@ export function Input({
   hint,
   className,
   wrapperClassName,
+  endAdornment,
   'aria-describedby': extraDescribedBy,
   ...props
 }: InputProps) {
   const auto = useId();
   const fieldId = id ?? auto;
   const ltrData = props.type === 'tel' || props.type === 'email' || props.type === 'url';
+  // Phones, emails and URLs are LTR data even inside Arabic UI (keeps "+961" and "@" in order).
+  const dir = props.dir ?? (ltrData ? 'ltr' : undefined);
+  const input = (
+    <input
+      {...props}
+      id={fieldId}
+      aria-invalid={error ? true : undefined}
+      aria-describedby={describedByIds(fieldId, error, hint, extraDescribedBy)}
+      dir={dir}
+      className={cn(control, borderFor(error), endAdornment && 'pe-14', className)}
+    />
+  );
   return (
     <FieldShell id={fieldId} label={label} error={error} hint={hint} className={wrapperClassName}>
-      <input
-        {...props}
-        id={fieldId}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedByIds(fieldId, error, hint, extraDescribedBy)}
-        // Phones, emails and URLs are LTR data even inside Arabic UI (keeps "+961" and "@" in order).
-        dir={props.dir ?? (ltrData ? 'ltr' : undefined)}
-        className={cn(control, borderFor(error), className)}
-      />
+      {endAdornment ? (
+        // The wrapper shares the input's direction so "end" is the same edge for both.
+        <div className="relative" dir={dir}>
+          {input}
+          <div className="absolute end-1 top-1/2 -translate-y-1/2">{endAdornment}</div>
+        </div>
+      ) : (
+        input
+      )}
     </FieldShell>
   );
 }

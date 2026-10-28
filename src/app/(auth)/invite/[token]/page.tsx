@@ -1,0 +1,14 @@
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
+import { InviteView } from '@/components/auth/InviteView';
+
+// The token is a bearer secret: keep it out of Referer headers and search indexes.
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('auth.invite');
+  return { title: t('title'), robots: { index: false, follow: false }, referrer: 'no-referrer' };
+}
+
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  return <InviteView token={token} />;
+}
