@@ -18,8 +18,8 @@ gold as the single action accent. Generous radius, pill buttons, no heavy shadow
 | `canvas` | `#F7F5F0` | page background |
 | `surface` | `#FFFFFF` | cards, header, sidebar |
 | `ink` | `#252D2D` | primary text |
-| `muted` | `#737C79` | secondary text, labels, eyebrows |
-| `subtle` | `#8A918E` | placeholders, empty values |
+| `muted` | `#626967` | secondary text, labels, eyebrows. Darkened from the board `#737C79` (3.9:1 on canvas, 3.5:1 on the chip) so it passes AA on canvas, white and divider (5.2 / 5.6 / 4.6:1); same warm hue |
+| `subtle` | `#8A918E` | placeholders and disabled text only (3:1); never real copy |
 | `line` | `#E3DED2` | card and input borders |
 | `divider` | `#ECE8DF` | header/footer borders, neutral chip bg, row dividers (`#EFECE4`) |
 | `brand` | `#174C4F` | primary buttons, active step, links |
@@ -31,7 +31,7 @@ gold as the single action accent. Generous radius, pill buttons, no heavy shadow
 | `warning` / `warning-soft` / `warning-line` | `#9A5800` / `#FFF0D6` / `#F6D49A` | "needs you", outcome badge (deep text `#6B3D00`) |
 | `amber` / `amber-soft` | `#6B4A10` / `#F3E3C4` | waitlist, offered |
 | `danger` / `danger-soft` / `danger-line` | `#C21F3A` / `#FFE1E4` / `#F5B3BD` | no-show badge, 2 h urgency, red count badge |
-| hero text | `#E4EEEC`, `#C9D6D4`, `#BCD2D0` | text on the teal hero band |
+| hero text | `#E4EEEC`, `#D4DFDD`, `#D0E0DE` | text on the teal hero band (the last two lightened from the board `#C9D6D4` / `#BCD2D0` to reach 4.5:1 at the teal glow) |
 
 **Hero band** (public header strip, "Do this first" card):
 `background: radial-gradient(circle at 85% -40%, rgb(232 184 109 / .24), transparent 50%), radial-gradient(circle at 0% 140%, rgb(46 125 128 / .64), transparent 55%), #174C4F` → utility class `bg-hero`.
@@ -56,7 +56,7 @@ stat tiles `18px`; cards `22–24px`; monogram `20px` (64 px) / `12px` (36 px).
 - **Card**: white, 1 px `line`, radius 24 (22 for side cards), padding 20–24.
 - **StatTile**: white card radius 18, padding 16, number 28/600 (tone colour optional) + 14 px muted label.
 - **Chip/StatusChip**: pill, 12 px 500–600, padding 4×10. Map: Booked → divider/muted; Confirmed → brand-soft/brand;
-  Attended → success-soft/success; No-show → danger-soft/danger; Late cancel → warning-soft/warning; Cancelled → divider/subtle;
+  Attended → success-soft/success; No-show → danger-soft/danger; Late cancel → warning-soft/warning; Cancelled → divider/muted with strike-through;
   Waitlist/Offered → amber-soft/amber; Claimed → success-soft/success; reminder "2 h" → danger-soft/danger, "24 h" → divider/muted.
 - **NoShowBadge** (`src/components/app`): white pill, 1 px `danger-line`, danger text, 11 px 600, "● N no-shows". Shows on every booking of a repeat no-shower.
 - **CountBadge**: min 22 px circle, 12 px 700; red (`danger` bg, white) for reminders due, amber (`warning-soft`/`warning`) for outcomes.
@@ -65,7 +65,7 @@ stat tiles `18px`; cards `22–24px`; monogram `20px` (64 px) / `12px` (36 px).
 - **ServiceCard**: button, min-height 112, radius 22, name 18/600, duration 14 muted, price 20/600.
 - **SlotGrid**: pill buttons of times, selected = brand; day strip of date pills above.
 - **Callout**: brand-soft bg, radius 20, padding 16, icon + 14 px `brand-deep` text.
-- **BookingSummary** (`public`): "Your booking" card with a 2-column grid of label/value (muted/subtle when empty).
+- **BookingSummary** (`public`): "Your booking" card with a 2-column grid of label/value (muted when empty).
 - **PublicHeader + BusinessHero** (`public`): white header with logo; hero band with a 64 px gold monogram, name 26/600, meta line, pill facts.
 - **AppShell** (`app`): see responsive rules. Sidebar nav item: min-height 44, radius 12, active = brand-soft bg + brand text 600.
 - **DataRow list**: on `md+` a grid table (uppercase 13 px header, `#EFECE4` row dividers); on mobile, stacked cards with the action full width.

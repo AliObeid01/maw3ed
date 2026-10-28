@@ -28,9 +28,12 @@ describe('normalizePhone', () => {
     expect(normalizePhone('07911 123456', 'GB')).toBe('+447911123456');
   });
 
-  it.each(['', '   ', 'abc', '123', '71', '+961', '71 234', '0000000000000000000'])('rejects %j', (input) => {
-    expect(normalizePhone(input)).toBeNull();
-  });
+  it.each(['', '   ', 'abc', '123', '71', '+961', '71 234', '0000000000000000000'])(
+    'rejects %j',
+    (input) => {
+      expect(normalizePhone(input)).toBeNull();
+    },
+  );
 });
 
 describe('formatInternational', () => {
@@ -44,12 +47,15 @@ describe('formatInternational', () => {
 });
 
 describe('normalizePhone rejects text around a number', () => {
-  it.each(['abc 71234567', 'call 71234567 now', '71234567 ext 12', '+96171234567x', '71 234 567; DROP'])(
-    'rejects %j',
-    (input) => {
-      expect(normalizePhone(input)).toBeNull();
-    },
-  );
+  it.each([
+    'abc 71234567',
+    'call 71234567 now',
+    '71234567 ext 12',
+    '+96171234567x',
+    '71 234 567; DROP',
+  ])('rejects %j', (input) => {
+    expect(normalizePhone(input)).toBeNull();
+  });
 
   it('still accepts separators and Arabic-Indic digits', () => {
     expect(normalizePhone('(71) 234-567')).toBe('+96171234567');

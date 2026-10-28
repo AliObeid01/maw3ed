@@ -1,6 +1,12 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { expiryFor, offerExpiryFor, signToken, verifyToken, type TokenPayload } from '@/server/domain/tokens';
+import {
+  expiryFor,
+  offerExpiryFor,
+  signToken,
+  verifyToken,
+  type TokenPayload,
+} from '@/server/domain/tokens';
 
 const SECRET = 'test-secret-test-secret-test-secret';
 const start = new Date('2026-06-10T12:00:00Z');
@@ -18,8 +24,15 @@ describe('tokens', () => {
   });
 
   it('round-trips an offer token', () => {
-    const p: TokenPayload = { o: 'offer_1', act: 'claim', exp: offerExpiryFor(new Date('2026-06-10T11:30:00Z')) };
-    expect(verifyToken(signToken(p, SECRET), SECRET, before, 'claim')).toEqual({ ok: true, payload: p });
+    const p: TokenPayload = {
+      o: 'offer_1',
+      act: 'claim',
+      exp: offerExpiryFor(new Date('2026-06-10T11:30:00Z')),
+    };
+    expect(verifyToken(signToken(p, SECRET), SECRET, before, 'claim')).toEqual({
+      ok: true,
+      payload: p,
+    });
   });
 
   it('expiryFor / offerExpiryFor give epoch seconds', () => {
@@ -31,15 +44,28 @@ describe('tokens', () => {
     const t = signToken(payload, SECRET);
     expect(verifyToken(t, SECRET, new Date(start.getTime() - 1000), 'confirm').ok).toBe(true);
     expect(verifyToken(t, SECRET, start, 'confirm')).toEqual({ ok: false, reason: 'expired' });
-    expect(verifyToken(t, SECRET, new Date(start.getTime() + 1), 'confirm')).toEqual({ ok: false, reason: 'expired' });
+    expect(verifyToken(t, SECRET, new Date(start.getTime() + 1), 'confirm')).toEqual({
+      ok: false,
+      reason: 'expired',
+    });
   });
 
   it('rejects wrong action', () => {
-    expect(verifyToken(signToken(payload, SECRET), SECRET, before, 'cancel')).toEqual({ ok: false, reason: 'wrong_action' });
+    expect(verifyToken(signToken(payload, SECRET), SECRET, before, 'cancel')).toEqual({
+      ok: false,
+      reason: 'wrong_action',
+    });
   });
 
   it('rejects wrong secret', () => {
-    expect(verifyToken(signToken(payload, SECRET), 'other-secret-other-secret-other-secret', before, 'confirm')).toEqual({
+    expect(
+      verifyToken(
+        signToken(payload, SECRET),
+        'other-secret-other-secret-other-secret',
+        before,
+        'confirm',
+      ),
+    ).toEqual({
       ok: false,
       reason: 'bad_signature',
     });
@@ -48,20 +74,38 @@ describe('tokens', () => {
   it('rejects a tampered payload', () => {
     const [, sig] = signToken(payload, SECRET).split('.');
     const forged = b64(JSON.stringify({ a: 'appt_2', act: 'confirm', exp }));
-    expect(verifyToken(`${forged}.${sig}`, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'bad_signature' });
+    expect(verifyToken(`${forged}.${sig}`, SECRET, before, 'confirm')).toEqual({
+      ok: false,
+      reason: 'bad_signature',
+    });
   });
 
   it('rejects a tampered, truncated or empty signature without throwing', () => {
     const [body, sig] = signToken(payload, SECRET).split('.') as [string, string];
     const flipped = (sig.startsWith('A') ? 'B' : 'A') + sig.slice(1);
-    expect(verifyToken(`${body}.${flipped}`, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'bad_signature' });
-    expect(verifyToken(`${body}.${sig.slice(0, 10)}`, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'bad_signature' });
-    expect(verifyToken(`${body}.${sig}${sig}`, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'bad_signature' });
+    expect(verifyToken(`${body}.${flipped}`, SECRET, before, 'confirm')).toEqual({
+      ok: false,
+      reason: 'bad_signature',
+    });
+    expect(verifyToken(`${body}.${sig.slice(0, 10)}`, SECRET, before, 'confirm')).toEqual({
+      ok: false,
+      reason: 'bad_signature',
+    });
+    expect(verifyToken(`${body}.${sig}${sig}`, SECRET, before, 'confirm')).toEqual({
+      ok: false,
+      reason: 'bad_signature',
+    });
   });
 
-  it.each(['', 'abc', 'a.b.c', '.', 'abc.', '.abc', 'not base64!.sig'])('rejects malformed %j', (bad) => {
-    expect(verifyToken(bad, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'malformed' });
-  });
+  it.each(['', 'abc', 'a.b.c', '.', 'abc.', '.abc', 'not base64!.sig'])(
+    'rejects malformed %j',
+    (bad) => {
+      expect(verifyToken(bad, SECRET, before, 'confirm')).toEqual({
+        ok: false,
+        reason: 'malformed',
+      });
+    },
+  );
 
   it('correctly signed but structurally invalid payloads are malformed', () => {
     const sign = (raw: string) => {
@@ -77,7 +121,10 @@ describe('tokens', () => {
       JSON.stringify({ a: 'x', act: 'delete', exp }),
       JSON.stringify({ a: 'x', act: 'confirm', exp: 'soon' }),
     ]) {
-      expect(verifyToken(sign(raw), SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'malformed' });
+      expect(verifyToken(sign(raw), SECRET, before, 'confirm')).toEqual({
+        ok: false,
+        reason: 'malformed',
+      });
     }
   });
 });
@@ -85,7 +132,10 @@ describe('tokens', () => {
 describe('tokens hardening', () => {
   it('treats an invalid clock as expired (fails closed)', () => {
     const t = signToken(payload, SECRET);
-    expect(verifyToken(t, SECRET, new Date(Number.NaN), 'confirm')).toEqual({ ok: false, reason: 'expired' });
+    expect(verifyToken(t, SECRET, new Date(Number.NaN), 'confirm')).toEqual({
+      ok: false,
+      reason: 'expired',
+    });
   });
 
   it('ties the subject to the action: only claim uses an offer id', () => {
@@ -94,7 +144,10 @@ describe('tokens hardening', () => {
     // A correctly signed token with a mismatched shape is rejected on verify as well.
     const body = b64(JSON.stringify({ o: 'offer_1', act: 'cancel', exp }));
     const sig = createHmac('sha256', SECRET).update(body).digest().toString('base64url');
-    expect(verifyToken(`${body}.${sig}`, SECRET, before, 'cancel')).toEqual({ ok: false, reason: 'malformed' });
+    expect(verifyToken(`${body}.${sig}`, SECRET, before, 'cancel')).toEqual({
+      ok: false,
+      reason: 'malformed',
+    });
   });
 
   it('refuses to sign or verify with a short secret', () => {
@@ -104,7 +157,10 @@ describe('tokens hardening', () => {
 
   it('rejects oversized tokens before doing any crypto', () => {
     const long = `${'a'.repeat(600)}.${'b'.repeat(10)}`;
-    expect(verifyToken(long, SECRET, before, 'confirm')).toEqual({ ok: false, reason: 'malformed' });
+    expect(verifyToken(long, SECRET, before, 'confirm')).toEqual({
+      ok: false,
+      reason: 'malformed',
+    });
   });
 
   it('rejects a signature with non-canonical base64url padding bits', () => {
@@ -113,9 +169,16 @@ describe('tokens hardening', () => {
     // The last base64url char of a 32-byte MAC carries 2 unused bits; flip them to a different but decodable char.
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
     const last = sig.at(-1)!;
-    const altered = alphabet[(alphabet.indexOf(last) + 1) % 4 === 0 ? alphabet.indexOf(last) + 1 : alphabet.indexOf(last) ^ 1]!;
+    const altered =
+      alphabet[
+        (alphabet.indexOf(last) + 1) % 4 === 0
+          ? alphabet.indexOf(last) + 1
+          : alphabet.indexOf(last) ^ 1
+      ]!;
     if (altered !== last) {
-      expect(verifyToken(`${body}.${sig.slice(0, -1)}${altered}`, SECRET, before, 'confirm').ok).toBe(false);
+      expect(
+        verifyToken(`${body}.${sig.slice(0, -1)}${altered}`, SECRET, before, 'confirm').ok,
+      ).toBe(false);
     }
   });
 });

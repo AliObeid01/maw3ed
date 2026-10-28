@@ -69,7 +69,8 @@ function parseHm(value: string): { hour: number; minute: number } {
   if (!m) throw new Error(`Invalid local time: ${value}`);
   const hour = Number(m[1]);
   const minute = Number(m[2]);
-  if (hour > 24 || minute > 59 || (hour === 24 && minute !== 0)) throw new Error(`Invalid local time: ${value}`);
+  if (hour > 24 || minute > 59 || (hour === 24 && minute !== 0))
+    throw new Error(`Invalid local time: ${value}`);
   return { hour, minute };
 }
 
@@ -107,7 +108,10 @@ export function localToUtcMs(
   const base = DateTime.fromObject({ year, month, day, hour, minute }, { zone });
   const luxonMs = base.toMillis();
   const localAsUtc = Date.UTC(base.year, base.month - 1, base.day, base.hour, base.minute);
-  const offsets = new Set([offsetMs(zone, luxonMs - 86_400_000), offsetMs(zone, luxonMs + 86_400_000)]);
+  const offsets = new Set([
+    offsetMs(zone, luxonMs - 86_400_000),
+    offsetMs(zone, luxonMs + 86_400_000),
+  ]);
   let best: number | null = null;
   for (const o of offsets) {
     const t = localAsUtc - o;
@@ -193,7 +197,9 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
       }
     }
   }
-  return result.sort((a, b) => a.startAt.getTime() - b.startAt.getTime() || compareIds(a.staffId, b.staffId));
+  return result.sort(
+    (a, b) => a.startAt.getTime() - b.startAt.getTime() || compareIds(a.staffId, b.staffId),
+  );
 }
 
 /** "Anyone": each distinct start time once, with every staff member who can take it. */
@@ -203,7 +209,8 @@ export function mergeAnyone(slotsByStaff: Slot[]): AnyoneSlot[] {
     const key = slot.startAt.getTime();
     const existing = byStart.get(key);
     if (existing) {
-      if (!existing.candidateStaffIds.includes(slot.staffId)) existing.candidateStaffIds.push(slot.staffId);
+      if (!existing.candidateStaffIds.includes(slot.staffId))
+        existing.candidateStaffIds.push(slot.staffId);
     } else {
       byStart.set(key, {
         startAt: slot.startAt,
@@ -222,7 +229,10 @@ export function mergeAnyone(slotsByStaff: Slot[]): AnyoneSlot[] {
  * Fairness pick: the candidate with the fewest bookings that local day; ties -> lowest staff id.
  * `bookingsThatLocalDay` maps staffId -> count (missing = 0).
  */
-export function pickStaff(candidates: string[], bookingsThatLocalDay: Record<string, number>): string | null {
+export function pickStaff(
+  candidates: string[],
+  bookingsThatLocalDay: Record<string, number>,
+): string | null {
   let best: string | null = null;
   let bestCount = Infinity;
   for (const id of [...candidates].sort(compareIds)) {

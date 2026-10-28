@@ -10,7 +10,7 @@ The full component recipes, tokens and responsive rules are in the `maw3ed-desig
 
 ## At a glance
 - **Font** Outfit (Latin) + IBM Plex Sans Arabic (RTL). Body 15 px; inputs 16 px.
-- **Palette** canvas `#F7F5F0` · surface `#FFFFFF` · ink `#252D2D` · muted `#737C79` · line `#E3DED2` ·
+- **Palette** canvas `#F7F5F0` · surface `#FFFFFF` · ink `#252D2D` · muted `#626967` (board `#737C79` darkened for AA, see `scripts/design/contrast.mjs`) · line `#E3DED2` ·
   brand teal `#174C4F` · accent gold `#E8B86D` · success `#2D6A4F` · warning `#9A5800` · danger `#C21F3A`.
 - **Shape** pill buttons (44–50 px), 14 px inputs (52 px tall), 18–24 px cards, hairline borders, almost no shadow.
 - **Signature** the teal hero band with gold and teal radial glows; gold monogram; gold "send" actions.

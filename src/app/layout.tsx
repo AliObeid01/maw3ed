@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Outfit, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages, getTranslations } from 'next-intl/server';
@@ -18,6 +18,14 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   variable: '--font-plex-arabic',
   display: 'swap',
 });
+
+// viewport-fit=cover lets env(safe-area-inset-*) work for the tab bar and sticky CTAs.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#F7F5F0',
+};
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('common');

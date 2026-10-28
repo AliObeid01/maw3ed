@@ -12,8 +12,10 @@ export interface PlannedReminder {
 export function reminderPlan(startAt: Date, bookedAt: Date): PlannedReminder[] {
   const lead = startAt.getTime() - bookedAt.getTime();
   const plan: PlannedReminder[] = [];
-  if (lead >= 24 * HOUR_MS) plan.push({ kind: 'H24', dueAt: new Date(startAt.getTime() - 24 * HOUR_MS) });
-  if (lead >= 2 * HOUR_MS) plan.push({ kind: 'H2', dueAt: new Date(startAt.getTime() - 2 * HOUR_MS) });
+  if (lead >= 24 * HOUR_MS)
+    plan.push({ kind: 'H24', dueAt: new Date(startAt.getTime() - 24 * HOUR_MS) });
+  if (lead >= 2 * HOUR_MS)
+    plan.push({ kind: 'H2', dueAt: new Date(startAt.getTime() - 2 * HOUR_MS) });
   return plan;
 }
 

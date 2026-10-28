@@ -1,6 +1,159 @@
 {
   "common": {
     "appName": "موعد",
-    "tagline": "غياب أقل. وقت أكثر."
+    "tagline": "غياب أقل. وقت أكثر.",
+    "language": {
+      "name": "English"
+    }
+  },
+  "ui": {
+    "status": {
+      "booked": "محجوز",
+      "confirmed": "مؤكد",
+      "attended": "حضر",
+      "noShow": "لم يحضر",
+      "lateCancel": "إلغاء متأخر",
+      "cancelled": "ملغى",
+      "waitlist": "قائمة الانتظار",
+      "offered": "تم العرض",
+      "claimed": "تم الحجز",
+      "reminder2h": "ساعتان",
+      "reminder24h": "24 ساعة"
+    }
+  },
+  "public": {
+    "header": {
+      "home": "الصفحة الرئيسية لموعد",
+      "navLabel": "الموقع",
+      "forBusinesses": "للأعمال",
+      "pricing": "الأسعار",
+      "help": "المساعدة",
+      "signIn": "دخول الأعمال",
+      "menu": "فتح القائمة",
+      "close": "إغلاق"
+    },
+    "steps": {
+      "navLabel": "خطوات الحجز",
+      "title": "احجز في {count} خطوات",
+      "progress": "الخطوة {current} من {total}",
+      "progressLabel": "تقدم الحجز",
+      "back": "رجوع",
+      "done": "تمت"
+    },
+    "summary": {
+      "title": "حجزك",
+      "empty": "—",
+      "open": "عرض الملخص",
+      "close": "إغلاق"
+    }
+  },
+  "app": {
+    "nav": {
+      "main": "الرئيسية",
+      "business": "العمل",
+      "today": "اليوم",
+      "reminders": "التذكيرات",
+      "outcomes": "تسجيل النتيجة",
+      "clients": "العملاء",
+      "pilot": "تقرير التجربة",
+      "setup": "الإعداد",
+      "services": "الخدمات",
+      "staff": "الفريق",
+      "hours": "الدوام والإجازات",
+      "settings": "الإعدادات",
+      "share": "رابط الحجز",
+      "newBooking": "حجز جديد",
+      "badge": {
+        "reminders": "{count, plural, =0 {لا تذكيرات مستحقة} one {تذكير واحد مستحق} two {تذكيران مستحقان} few {# تذكيرات مستحقة} many {# تذكيرًا مستحقًا} other {# تذكير مستحق}}",
+        "outcomes": "{count, plural, =0 {لا نتائج للتسجيل} one {نتيجة واحدة للتسجيل} two {نتيجتان للتسجيل} few {# نتائج للتسجيل} many {# نتيجة للتسجيل} other {# نتيجة للتسجيل}}"
+      }
+    },
+    "tabs": {
+      "label": "التبويبات الرئيسية",
+      "today": "اليوم",
+      "reminders": "التذكيرات",
+      "outcomes": "النتائج",
+      "clients": "العملاء",
+      "more": "المزيد"
+    },
+    "more": {
+      "title": "المزيد",
+      "close": "إغلاق",
+      "signOut": "تسجيل الخروج"
+    }
+  },
+  "dev": {
+    "ui": {
+      "pageTitle": "معاينة الواجهة",
+      "date": "الخميس، 29 تشرين الأول",
+      "greeting": "صباح الخير، {name}",
+      "businessName": "ستوديو نور",
+      "businessRole": "لينا · المالكة",
+      "stats": {
+        "appointments": "مواعيد اليوم",
+        "confirmed": "مؤكدة",
+        "noReply": "بلا رد بعد",
+        "refilled": "عُبئت من الانتظار"
+      },
+      "doFirst": "ابدأ بهذا",
+      "remindersDue": "{count} تذكيرات واتساب مستحقة",
+      "sendNow": "أرسل الآن",
+      "needsYou": "بانتظارك",
+      "outcomesToMark": "{count} نتائج للتسجيل",
+      "sections": {
+        "buttons": "الأزرار",
+        "fields": "الحقول",
+        "chips": "الشارات والعدادات",
+        "feedback": "التنبيه والهيكل والنافذة",
+        "logo": "الشعار"
+      },
+      "button": {
+        "primary": "أساسي",
+        "accent": "أرسل الآن",
+        "secondary": "ثانوي",
+        "ghost": "شفاف",
+        "danger": "إلغاء الحجز",
+        "loading": "جارٍ الحفظ",
+        "disabled": "معطّل",
+        "row": "إجراء الصف",
+        "large": "متابعة",
+        "prev": "اليوم السابق",
+        "next": "اليوم التالي",
+        "todayButton": "اليوم"
+      },
+      "fields": {
+        "name": "الاسم الكامل",
+        "namePlaceholder": "مايا حداد",
+        "phone": "رقم الموبايل",
+        "countryCode": "رمز الدولة",
+        "email": "البريد الإلكتروني (اختياري)",
+        "emailError": "أدخل بريدًا إلكترونيًا صحيحًا",
+        "service": "الخدمة",
+        "serviceHint": "يمكنك تغيير هذا لاحقًا",
+        "haircut": "قص الشعر",
+        "blowDry": "تجفيف"
+      },
+      "noShowBadge": "{count, plural, one {● غياب واحد} two {● غيابان} few {● # غيابات} many {● # غيابًا} other {● # غياب}}",
+      "callout": "لا حاجة لحساب. أكّد أو ألغِ من التذكير بنقرة واحدة.",
+      "openSheet": "فتح النافذة",
+      "sheetTitle": "نافذة تجريبية",
+      "sheetBody": "نافذة سفلية على الهاتف وحوار في الوسط من 768 بكسل. زر Esc يغلقها.",
+      "sheetClose": "إغلاق",
+      "heroMeta": "صالون شعر · الحمرا، بيروت · مفتوح اليوم 9:00 – 19:00",
+      "heroFact1": "تذكيرات قبل 24 ساعة وساعتين",
+      "heroFact2": "إلغاء مجاني حتى 24 ساعة",
+      "step1": "الخدمة",
+      "step2": "الموظف",
+      "step3": "اليوم والوقت",
+      "step4": "بياناتك",
+      "summaryService": "الخدمة",
+      "summaryWith": "مع",
+      "summaryWhen": "الموعد",
+      "summaryPrice": "السعر",
+      "continue": "متابعة",
+      "publicTitle": "مكونات الصفحة العامة",
+      "serviceNotChosen": "لم تُحدد بعد",
+      "gallery": "المكونات"
+    }
   }
 }

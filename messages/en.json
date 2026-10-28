@@ -1,6 +1,159 @@
 {
   "common": {
     "appName": "Maw3ed",
-    "tagline": "Fewer no-shows. More time."
+    "tagline": "Fewer no-shows. More time.",
+    "language": {
+      "name": "عربي"
+    }
+  },
+  "ui": {
+    "status": {
+      "booked": "Booked",
+      "confirmed": "Confirmed",
+      "attended": "Attended",
+      "noShow": "No-show",
+      "lateCancel": "Late cancel",
+      "cancelled": "Cancelled",
+      "waitlist": "Waitlist",
+      "offered": "Offered",
+      "claimed": "Claimed",
+      "reminder2h": "2 h",
+      "reminder24h": "24 h"
+    }
+  },
+  "public": {
+    "header": {
+      "home": "Maw3ed home",
+      "navLabel": "Site",
+      "forBusinesses": "For businesses",
+      "pricing": "Pricing",
+      "help": "Help",
+      "signIn": "Business sign in",
+      "menu": "Open menu",
+      "close": "Close"
+    },
+    "steps": {
+      "navLabel": "Booking steps",
+      "title": "Book in {count} steps",
+      "progress": "Step {current} of {total}",
+      "progressLabel": "Booking progress",
+      "back": "Back",
+      "done": "done"
+    },
+    "summary": {
+      "title": "Your booking",
+      "empty": "—",
+      "open": "View summary",
+      "close": "Close"
+    }
+  },
+  "app": {
+    "nav": {
+      "main": "Main",
+      "business": "Business",
+      "today": "Today",
+      "reminders": "Reminders",
+      "outcomes": "Mark outcome",
+      "clients": "Clients",
+      "pilot": "Pilot report",
+      "setup": "Setup",
+      "services": "Services",
+      "staff": "Staff",
+      "hours": "Hours and time off",
+      "settings": "Settings",
+      "share": "Booking link",
+      "newBooking": "New booking",
+      "badge": {
+        "reminders": "{count, plural, =0 {No reminders due} one {# reminder due} other {# reminders due}}",
+        "outcomes": "{count, plural, =0 {No outcomes to mark} one {# outcome to mark} other {# outcomes to mark}}"
+      }
+    },
+    "tabs": {
+      "label": "Main tabs",
+      "today": "Today",
+      "reminders": "Reminders",
+      "outcomes": "Outcomes",
+      "clients": "Clients",
+      "more": "More"
+    },
+    "more": {
+      "title": "More",
+      "close": "Close",
+      "signOut": "Sign out"
+    }
+  },
+  "dev": {
+    "ui": {
+      "pageTitle": "UI preview",
+      "date": "Thursday, 29 October",
+      "greeting": "Good morning, {name}",
+      "businessName": "Studio Nour",
+      "businessRole": "Lina · Owner",
+      "stats": {
+        "appointments": "Appointments today",
+        "confirmed": "Confirmed",
+        "noReply": "No reply yet",
+        "refilled": "Refilled from waitlist"
+      },
+      "doFirst": "Do this first",
+      "remindersDue": "{count} WhatsApp reminders due",
+      "sendNow": "Send now",
+      "needsYou": "Needs you",
+      "outcomesToMark": "{count} outcomes to mark",
+      "sections": {
+        "buttons": "Buttons",
+        "fields": "Inputs",
+        "chips": "Chips and badges",
+        "feedback": "Callout, skeleton, sheet",
+        "logo": "Logo"
+      },
+      "button": {
+        "primary": "Primary",
+        "accent": "Send now",
+        "secondary": "Secondary",
+        "ghost": "Ghost",
+        "danger": "Cancel booking",
+        "loading": "Saving",
+        "disabled": "Disabled",
+        "row": "Row action",
+        "large": "Continue",
+        "prev": "Previous day",
+        "next": "Next day",
+        "todayButton": "Today"
+      },
+      "fields": {
+        "name": "Full name",
+        "namePlaceholder": "Maya Haddad",
+        "phone": "Mobile number",
+        "countryCode": "Country code",
+        "email": "Email (optional)",
+        "emailError": "Enter a valid email address",
+        "service": "Service",
+        "serviceHint": "You can change this later",
+        "haircut": "Haircut",
+        "blowDry": "Blow-dry"
+      },
+      "noShowBadge": "{count, plural, one {● # no-show} other {● # no-shows}}",
+      "callout": "No account needed. Confirm or cancel from the reminder in one tap.",
+      "openSheet": "Open sheet",
+      "sheetTitle": "Example sheet",
+      "sheetBody": "Bottom sheet on phones, centred dialog from 768 px. Esc closes it.",
+      "sheetClose": "Close",
+      "heroMeta": "Hair salon · Hamra, Beirut · Open today 9:00 – 19:00",
+      "heroFact1": "Reminders 24 h and 2 h before",
+      "heroFact2": "Free cancellation up to 24 h",
+      "step1": "Service",
+      "step2": "Staff",
+      "step3": "Day and time",
+      "step4": "Your details",
+      "summaryService": "Service",
+      "summaryWith": "With",
+      "summaryWhen": "When",
+      "summaryPrice": "Price",
+      "continue": "Continue",
+      "publicTitle": "Public components",
+      "serviceNotChosen": "Not chosen yet",
+      "gallery": "Components"
+    }
   }
 }
