@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { randomBytes } from 'node:crypto';
+import { hash as argon2Hash } from '@node-rs/argon2';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client';
 
@@ -13,8 +14,8 @@ import { PrismaClient } from '../src/generated/prisma/client';
  *     The shared dev Neon branch therefore needs both:  ALLOW_SEED=1 ALLOW_SEED_REMOTE=1 pnpm db:seed
  *   - Refuses outright when NODE_ENV=production, whatever the flags.
  *
- * Passwords: set SEED_USER_PASSWORD, or one is generated and printed once. Hashing needs argon2; until
- * it is installed (auth, P1.7) seeded users are password-less and no password is generated.
+ * Passwords: set SEED_USER_PASSWORD, or one is generated and printed once. Hashed with argon2id (the same
+ * library and defaults as the app), so seeded users can sign in. Existing hashes are never overwritten.
  */
 function fail(message: string): never {
   console.error(`Refusing to seed: ${message}`);
@@ -38,17 +39,6 @@ if (!hosts.every((h) => LOCAL_HOSTS.has(h)) && process.env.ALLOW_SEED_REMOTE !==
 }
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
-
-/** Seeded users get a password only if argon2 is installed (auth lands in P1.7). Otherwise they are password-less. */
-async function makeHasher(): Promise<((plain: string) => Promise<string>) | undefined> {
-  try {
-    const moduleName = 'argon2';
-    const argon2 = (await import(moduleName)) as { hash: (plain: string) => Promise<string> };
-    return argon2.hash;
-  } catch {
-    return undefined;
-  }
-}
 
 type SeedUser = { email: string; name: string; role: 'OWNER' | 'STAFF' };
 type SeedStaff = {
@@ -154,7 +144,7 @@ const clinicRida: SeedBusiness = {
 
 async function seedBusiness(
   spec: SeedBusiness,
-  hash: ((plain: string) => Promise<string>) | undefined,
+  hash: (plain: string) => Promise<string>,
   password: string,
 ) {
   const business = await prisma.business.upsert({
@@ -179,7 +169,7 @@ async function seedBusiness(
     const email = u.email.toLowerCase();
     const existing = await prisma.user.findUnique({ where: { email } });
     // Never overwrite an existing password hash on re-run.
-    const passwordHash = existing?.passwordHash ?? (hash ? await hash(password) : null);
+    const passwordHash = existing?.passwordHash ?? (await hash(password));
     const user = await prisma.user.upsert({
       where: { email },
       update: { name: u.name, passwordHash },
@@ -253,12 +243,10 @@ async function seedBusiness(
 }
 
 async function main() {
-  const hash = await makeHasher();
+  const hash = argon2Hash;
   const generated = !process.env.SEED_USER_PASSWORD;
   const password = process.env.SEED_USER_PASSWORD ?? randomBytes(12).toString('base64url');
-  if (hash && generated) console.log(`Generated seed password (shown once): ${password}`);
-  if (!hash)
-    console.log('argon2 is not installed: seeded users are password-less until auth lands (P1.7).');
+  if (generated) console.log(`Generated seed password (shown once): ${password}`);
   for (const spec of [studioNour, clinicRida]) {
     const b = await seedBusiness(spec, hash, password);
     console.log(`seeded ${b.name} (${b.slug})`);
