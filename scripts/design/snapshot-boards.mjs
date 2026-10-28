@@ -30,6 +30,11 @@ for (const board of boards) {
   n += 1;
   const file = path.join(outDir, `${String(n).padStart(2, '0')}-${slugify(title)}.png`);
   await frame.scrollIntoViewIfNeeded();
+  // Wait for the nested bundle to unpack: the frame body needs real content and loaded fonts.
+  const content = await frame.contentFrame();
+  await content?.waitForFunction(() => document.body && document.body.innerText.trim().length > 20 && document.querySelectorAll('*').length > 30, null, { timeout: 30_000 });
+  await content?.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(500);
   await frame.screenshot({ path: file });
   console.log(`✓ ${file}`);
 }

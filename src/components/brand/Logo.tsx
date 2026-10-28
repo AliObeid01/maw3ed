@@ -22,6 +22,8 @@ export function Logo({ label, className, width = 130, height = 30 }: LogoProps) 
       role="img"
       aria-label={label}
       className={className}
+      // The wordmark is Latin text positioned in absolute SVG coordinates; under dir=rtl its text-anchor flips and it overlaps the icon.
+      style={{ direction: 'ltr' }}
     >
       <defs>
         <linearGradient id={g1} gradientUnits="userSpaceOnUse" x1="467" y1="0" x2="637" y2="0">
