@@ -1,45 +1,11 @@
+'use client';
+
 import Link from 'next/link';
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/cn';
+import { buttonClasses, type ButtonSize, type ButtonVariant } from './buttonStyles';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger';
-export type ButtonSize = 'md' | 'row' | 'lg';
-
-const variants: Record<ButtonVariant, string> = {
-  primary: 'bg-brand text-white hover:bg-brand-hover',
-  accent: 'bg-accent text-ink hover:brightness-95',
-  secondary: 'border border-line bg-surface text-ink hover:bg-canvas',
-  ghost: 'bg-transparent text-brand hover:bg-brand-soft',
-  danger: 'border border-danger-line bg-danger-soft text-danger hover:brightness-95',
-};
-
-// 44 default, 46 for row actions, 50 for the main call to action.
-const sizes: Record<ButtonSize, string> = {
-  md: 'h-11 px-[18px] text-[15px]',
-  row: 'h-[46px] px-5 text-[15px]',
-  lg: 'h-[50px] px-6 text-[15px]',
-};
-
-export function buttonClasses({
-  variant = 'primary',
-  size = 'md',
-  block = false,
-  className,
-}: {
-  variant?: ButtonVariant;
-  size?: ButtonSize;
-  block?: boolean;
-  className?: string;
-} = {}) {
-  return cn(
-    'inline-flex shrink-0 select-none items-center justify-center gap-2 rounded-pill font-semibold whitespace-nowrap no-underline transition-colors duration-200 ease-out',
-    'disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60',
-    variants[variant],
-    sizes[size],
-    block && 'w-full',
-    className,
-  );
-}
+export { buttonClasses, type ButtonSize, type ButtonVariant };
 
 export function Spinner({ className }: { className?: string }) {
   return (
@@ -77,15 +43,20 @@ export function Button({
   type = 'button',
   disabled,
   children,
+  onClick,
   ...props
 }: ButtonProps) {
   return (
     <button
+      {...props}
       type={type}
       className={buttonClasses({ variant, size, block, className })}
-      disabled={disabled || loading}
+      // Plain `disabled` is native. While loading we keep the button focusable (aria-disabled) so a
+      // keyboard user does not lose their place, and swallow clicks to block a double submit.
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
-      {...props}
+      onClick={loading ? (e) => e.preventDefault() : onClick}
     >
       {loading ? <Spinner /> : null}
       {children}
@@ -100,6 +71,22 @@ export type ButtonLinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   block?: boolean;
 };
 
-export function ButtonLink({ variant, size, block, className, ...props }: ButtonLinkProps) {
-  return <Link className={buttonClasses({ variant, size, block, className })} {...props} />;
+export function ButtonLink({
+  variant,
+  size,
+  block,
+  className,
+  onClick,
+  ...props
+}: ButtonLinkProps) {
+  const disabled = props['aria-disabled'] === true || props['aria-disabled'] === 'true';
+  return (
+    <Link
+      {...props}
+      className={buttonClasses({ variant, size, block, className })}
+      // A disabled link must not navigate or be tabbable.
+      tabIndex={disabled ? -1 : props.tabIndex}
+      onClick={disabled ? (e) => e.preventDefault() : onClick}
+    />
+  );
 }

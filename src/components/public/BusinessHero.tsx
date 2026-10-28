@@ -1,3 +1,4 @@
+import { monogram } from './monogram';
 import { cn } from '@/lib/cn';
 
 export type BusinessHeroProps = {
@@ -8,18 +9,6 @@ export type BusinessHeroProps = {
   facts?: string[];
   className?: string;
 };
-
-/** Two-letter monogram from the business name. */
-export function monogram(name: string) {
-  const words = name.trim().split(/\s+/).filter(Boolean);
-  const letters =
-    words.length > 1
-      ? words[0]![0]! + words[1]![0]!
-      : Array.from(words[0] ?? '')
-          .slice(0, 2)
-          .join('');
-  return letters.toUpperCase();
-}
 
 /** Teal hero band with the gold monogram (board 02). */
 export function BusinessHero({ name, meta, facts = [], className }: BusinessHeroProps) {

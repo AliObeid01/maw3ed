@@ -16,6 +16,8 @@ import { SheetDemo } from './SheetDemo';
 
 export const dynamic = 'force-dynamic';
 
+const COUNTRY_CODES = ['+961', '+971'];
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card as="section" className="flex flex-col gap-4">
@@ -123,11 +125,13 @@ export default async function UiPreviewPage() {
                 label={t('fields.countryCode')}
                 wrapperClassName="[&>label]:sr-only w-28"
                 autoComplete="tel-country-code"
-                dir="ltr"
                 defaultValue="+961"
               >
-                <option>+961</option>
-                <option>+971</option>
+                {COUNTRY_CODES.map((code) => (
+                  <option key={code} value={code}>
+                    {`‎${code}`}
+                  </option>
+                ))}
               </Select>
               <Input
                 id="ui-phone"

@@ -39,10 +39,17 @@ function FieldShell({ id, label, error, hint, className, children }: FieldShellP
   );
 }
 
-function describedBy(id: string, error?: string, hint?: string) {
-  if (error) return `${id}-error`;
-  if (hint) return `${id}-hint`;
-  return undefined;
+/** Our error/hint ids first, then any ids the caller already supplied (never dropped). */
+export function describedByIds(
+  id: string,
+  error: string | undefined,
+  hint: string | undefined,
+  extra: string | undefined,
+) {
+  const ids = [error ? `${id}-error` : hint ? `${id}-hint` : undefined, extra]
+    .filter(Boolean)
+    .join(' ');
+  return ids || undefined;
 }
 
 export type InputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> & {
@@ -62,22 +69,22 @@ export function Input({
   hint,
   className,
   wrapperClassName,
+  'aria-describedby': extraDescribedBy,
   ...props
 }: InputProps) {
   const auto = useId();
   const fieldId = id ?? auto;
+  const ltrData = props.type === 'tel' || props.type === 'email' || props.type === 'url';
   return (
     <FieldShell id={fieldId} label={label} error={error} hint={hint} className={wrapperClassName}>
       <input
+        {...props}
         id={fieldId}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy(fieldId, error, hint)}
+        aria-describedby={describedByIds(fieldId, error, hint, extraDescribedBy)}
         // Phones, emails and URLs are LTR data even inside Arabic UI (keeps "+961" and "@" in order).
-        dir={
-          props.type === 'tel' || props.type === 'email' || props.type === 'url' ? 'ltr' : undefined
-        }
+        dir={props.dir ?? (ltrData ? 'ltr' : undefined)}
         className={cn(control, borderFor(error), className)}
-        {...props}
       />
     </FieldShell>
   );
@@ -99,19 +106,20 @@ export function Select({
   className,
   wrapperClassName,
   children,
+  'aria-describedby': extraDescribedBy,
   ...props
 }: SelectProps) {
   const auto = useId();
   const fieldId = id ?? auto;
   return (
     <FieldShell id={fieldId} label={label} error={error} hint={hint} className={wrapperClassName}>
-      <div className="relative" dir={props.dir}>
+      <div className="relative">
         <select
+          {...props}
           id={fieldId}
           aria-invalid={error ? true : undefined}
-          aria-describedby={describedBy(fieldId, error, hint)}
+          aria-describedby={describedByIds(fieldId, error, hint, extraDescribedBy)}
           className={cn(control, borderFor(error), 'appearance-none pe-10', className)}
-          {...props}
         >
           {children}
         </select>

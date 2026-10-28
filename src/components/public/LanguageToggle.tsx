@@ -19,10 +19,10 @@ export function LanguageToggle({ className }: { className?: string }) {
     <button
       type="button"
       lang={next}
-      aria-label={t('switchTo')}
       disabled={pending}
       onClick={() => {
-        document.cookie = `locale=${next}; path=/; max-age=${ONE_YEAR}; samesite=lax`;
+        const secure = window.location.protocol === 'https:' ? '; secure' : '';
+        document.cookie = `locale=${next}; path=/; max-age=${ONE_YEAR}; samesite=lax${secure}`;
         startTransition(() => router.refresh());
       }}
       className={cn(

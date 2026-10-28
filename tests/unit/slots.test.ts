@@ -19,13 +19,19 @@ function localHm(d: Date): string {
   return DateTime.fromJSDate(d, { zone: ZONE }).toFormat('HH:mm');
 }
 
-function staff(id: string, weeklyHours: WeeklyInterval[], extra: Partial<StaffAvailability> = {}): StaffAvailability {
+function staff(
+  id: string,
+  weeklyHours: WeeklyInterval[],
+  extra: Partial<StaffAvailability> = {},
+): StaffAvailability {
   return { id, weeklyHours, timeOff: [], busy: [], ...extra };
 }
 const allWeek = (startLocal: string, endLocal: string): WeeklyInterval[] =>
   ([0, 1, 2, 3, 4, 5, 6] as const).map((weekday) => ({ weekday, startLocal, endLocal }));
 
-function input(over: Partial<GenerateSlotsInput> & { staff: StaffAvailability[] }): GenerateSlotsInput {
+function input(
+  over: Partial<GenerateSlotsInput> & { staff: StaffAvailability[] },
+): GenerateSlotsInput {
   return {
     service: { durationMin: 30, bufferMin: 0 },
     slotStepMin: 30,
@@ -43,14 +49,18 @@ describe('generateSlots basics', () => {
   it('uses weekday 0 = Sunday', () => {
     // 2026-06-07 is a Sunday
     const s = staff('a', [{ weekday: 0, startLocal: '10:00', endLocal: '11:00' }]);
-    const slots = generateSlots(input({ staff: [s], range: { from: '2026-06-01', to: '2026-06-07' } }));
+    const slots = generateSlots(
+      input({ staff: [s], range: { from: '2026-06-01', to: '2026-06-07' } }),
+    );
     expect(starts(slots)).toEqual(['10:00', '10:30']);
     expect(DateTime.fromJSDate(slots[0]!.startAt, { zone: ZONE }).toISODate()).toBe('2026-06-07');
   });
 
   it('returns slot shape with endAt and blockedUntil', () => {
     const s = staff('a', allWeek('09:00', '10:00'));
-    const [first] = generateSlots(input({ staff: [s], service: { durationMin: 30, bufferMin: 10 } }));
+    const [first] = generateSlots(
+      input({ staff: [s], service: { durationMin: 30, bufferMin: 10 } }),
+    );
     expect(first!.staffId).toBe('a');
     expect(first!.endAt.getTime() - first!.startAt.getTime()).toBe(30 * 60_000);
     expect(first!.blockedUntil.getTime() - first!.startAt.getTime()).toBe(40 * 60_000);
@@ -61,13 +71,17 @@ describe('generateSlots basics', () => {
       { weekday: 1, startLocal: '09:00', endLocal: '12:00' },
       { weekday: 1, startLocal: '14:00', endLocal: '16:00' },
     ]);
-    const slots = generateSlots(input({ staff: [s], service: { durationMin: 60, bufferMin: 0 }, slotStepMin: 60 }));
+    const slots = generateSlots(
+      input({ staff: [s], service: { durationMin: 60, bufferMin: 0 }, slotStepMin: 60 }),
+    );
     expect(starts(slots)).toEqual(['09:00', '10:00', '11:00', '14:00', '15:00']);
   });
 
   it('emits nothing when the service is longer than the interval', () => {
     const s = staff('a', allWeek('09:00', '10:00'));
-    expect(generateSlots(input({ staff: [s], service: { durationMin: 90, bufferMin: 0 } }))).toEqual([]);
+    expect(
+      generateSlots(input({ staff: [s], service: { durationMin: 90, bufferMin: 0 } })),
+    ).toEqual([]);
   });
 
   it('only fits a slot when duration + buffer fits the remaining interval', () => {
@@ -81,7 +95,12 @@ describe('generateSlots basics', () => {
     const s = staff('a', allWeek('09:00', '12:00'), {
       timeOff: [{ startAt: local('2026-06-01T10:00'), endAt: local('2026-06-01T11:00') }],
     });
-    expect(starts(generateSlots(input({ staff: [s] })))).toEqual(['09:00', '09:30', '11:00', '11:30']);
+    expect(starts(generateSlots(input({ staff: [s] })))).toEqual([
+      '09:00',
+      '09:30',
+      '11:00',
+      '11:30',
+    ]);
   });
 
   it('a busy interval blocks its buffer; the next slot starts at blockedUntil', () => {
@@ -141,7 +160,12 @@ describe('minimum notice and booking window', () => {
   it('excludes starts at or after now + bookingWindowDays', () => {
     const now = local('2026-06-01T10:00');
     const slots = generateSlots(
-      input({ staff: [s], now, bookingWindowDays: 1, range: { from: '2026-06-02', to: '2026-06-02' } }),
+      input({
+        staff: [s],
+        now,
+        bookingWindowDays: 1,
+        range: { from: '2026-06-02', to: '2026-06-02' },
+      }),
     );
     // window end = 2026-06-02T10:00 -> 09:00, 09:30 in; 10:00 excluded
     expect(starts(slots)).toEqual(['09:00', '09:30']);
@@ -172,11 +196,14 @@ describe('anyone merge and fairness', () => {
 
 describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
   const offsetAt = (iso: string) => DateTime.fromISO(iso, { zone: ZONE }).offset;
-  const dayStartOffset = (ymd: string) => DateTime.fromISO(ymd, { zone: ZONE }).startOf('day').offset;
+  const dayStartOffset = (ymd: string) =>
+    DateTime.fromISO(ymd, { zone: ZONE }).startOf('day').offset;
 
   // Find the transition days from the zone data: the last Sunday of March / October.
   function lastSunday(month: number): DateTime {
-    let d = DateTime.fromObject({ year: 2026, month }, { zone: ZONE }).endOf('month').startOf('day');
+    let d = DateTime.fromObject({ year: 2026, month }, { zone: ZONE })
+      .endOf('month')
+      .startOf('day');
     while (d.weekday !== 7) d = d.minus({ days: 1 });
     return d;
   }
@@ -199,7 +226,14 @@ describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
   const hours = allWeek('00:00', '24:00');
   const fullDay = staff('a', hours);
   const slotsOn = (ymd: string, step = 60, dur = 60, s = fullDay) =>
-    generateSlots(input({ staff: [s], service: { durationMin: dur, bufferMin: 0 }, slotStepMin: step, range: { from: ymd, to: ymd } }));
+    generateSlots(
+      input({
+        staff: [s],
+        service: { durationMin: dur, bufferMin: 0 },
+        slotStepMin: step,
+        range: { from: ymd, to: ymd },
+      }),
+    );
 
   it('normal day: 24 hourly slots, wall times 00:00..23:00', () => {
     const slots = slotsOn('2026-03-28');
@@ -226,7 +260,9 @@ describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
 
   it('day before spring (+02) 09:00 is 07:00Z', () => {
     const s = staff('a', allWeek('09:00', '10:00'));
-    expect(slotsOn('2026-03-28', 30, 30, s)[0]!.startAt.toISOString()).toBe('2026-03-28T07:00:00.000Z');
+    expect(slotsOn('2026-03-28', 30, 30, s)[0]!.startAt.toISOString()).toBe(
+      '2026-03-28T07:00:00.000Z',
+    );
   });
 
   it('shift spanning the nonexistent hour moves forward, never emits a phantom wall time', () => {
@@ -259,9 +295,15 @@ describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
 
   it('autumn: morning hours are +02 after the change and +03 before', () => {
     const s = staff('a', allWeek('09:00', '10:00'));
-    expect(slotsOn('2026-10-24', 30, 30, s)[0]!.startAt.toISOString()).toBe('2026-10-24T06:00:00.000Z');
-    expect(slotsOn('2026-10-25', 30, 30, s)[0]!.startAt.toISOString()).toBe('2026-10-25T07:00:00.000Z');
-    expect(slotsOn('2026-10-26', 30, 30, s)[0]!.startAt.toISOString()).toBe('2026-10-26T07:00:00.000Z');
+    expect(slotsOn('2026-10-24', 30, 30, s)[0]!.startAt.toISOString()).toBe(
+      '2026-10-24T06:00:00.000Z',
+    );
+    expect(slotsOn('2026-10-25', 30, 30, s)[0]!.startAt.toISOString()).toBe(
+      '2026-10-25T07:00:00.000Z',
+    );
+    expect(slotsOn('2026-10-26', 30, 30, s)[0]!.startAt.toISOString()).toBe(
+      '2026-10-26T07:00:00.000Z',
+    );
   });
 
   it('every slot across 2 weeks around both transitions has wall time inside working hours', () => {
@@ -282,7 +324,9 @@ describe('DST - Asia/Beirut 2026 (rules computed, not assumed)', () => {
 
   it('time off expressed in UTC subtracts correctly on a transition day', () => {
     const s = staff('a', allWeek('09:00', '11:00'), {
-      timeOff: [{ startAt: new Date('2026-03-29T06:30:00Z'), endAt: new Date('2026-03-29T07:00:00Z') }], // 09:30-10:00 +03
+      timeOff: [
+        { startAt: new Date('2026-03-29T06:30:00Z'), endAt: new Date('2026-03-29T07:00:00Z') },
+      ], // 09:30-10:00 +03
     });
     expect(starts(slotsOn(day(spring), 30, 30, s))).toEqual(['09:00', '10:00', '10:30']);
   });
@@ -296,9 +340,12 @@ describe('input validation', () => {
     expect(() => generateSlots(input({ staff: [s] }))).toThrow();
   });
 
-  it.each([0, -15, 7, 25, 1.5, 1441])('rejects slotStepMin %j (must be a positive integer dividing 1440)', (step) => {
-    expect(() => generateSlots(input({ staff: [a], slotStepMin: step }))).toThrow();
-  });
+  it.each([0, -15, 7, 25, 1.5, 1441])(
+    'rejects slotStepMin %j (must be a positive integer dividing 1440)',
+    (step) => {
+      expect(() => generateSlots(input({ staff: [a], slotStepMin: step }))).toThrow();
+    },
+  );
 
   it('ignores inverted busy ranges instead of freeing time', () => {
     const s = staff('a', allWeek('09:00', '10:00'), {
@@ -308,7 +355,11 @@ describe('input validation', () => {
   });
 
   it('orders equal-time slots by staff id independent of locale', () => {
-    const slots = generateSlots(input({ staff: [staff('b', allWeek('09:00', '09:30')), staff('B', allWeek('09:00', '09:30'))] }));
+    const slots = generateSlots(
+      input({
+        staff: [staff('b', allWeek('09:00', '09:30')), staff('B', allWeek('09:00', '09:30'))],
+      }),
+    );
     expect(slots.map((x) => x.staffId)).toEqual(['B', 'b']);
   });
 });

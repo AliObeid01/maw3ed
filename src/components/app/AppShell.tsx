@@ -58,7 +58,7 @@ export function AppShell({
           {children}
         </main>
       </div>
-      <NewBookingFab href={hrefs.book} />
+      <NewBookingFab href={hrefs.book} active={activeId === 'book'} />
       <AppTabBar
         activeId={activeId}
         badges={badges}

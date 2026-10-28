@@ -61,7 +61,13 @@ export function PublicHeader({
           <ButtonLink href={signInHref} className="hidden md:inline-flex">
             {t('signIn')}
           </ButtonLink>
-          <IconButton label={t('menu')} onClick={() => setOpen(true)} className="md:hidden">
+          <IconButton
+            label={t('menu')}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={() => setOpen(true)}
+            className="md:hidden"
+          >
             <Menu size={20} aria-hidden="true" />
           </IconButton>
         </div>

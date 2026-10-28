@@ -4,8 +4,8 @@ import { LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
-import { NavLink } from './AppSidebar';
-import { businessNav, type ActiveId, type NavBadges } from './nav';
+import { BusinessSection, NavLink } from './AppSidebar';
+import type { ActiveId, NavBadges } from './nav';
 
 type Props = {
   open: boolean;
@@ -28,24 +28,20 @@ export function MoreSheet({
   signingOut,
 }: Props) {
   const t = useTranslations('app.more');
-  const businessLabel = useTranslations('app.nav')('business');
   const close = () => onOpenChange(false);
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={t('title')} closeLabel={t('close')}>
-      <nav aria-label={t('title')} className="flex flex-col gap-0.5">
-        <NavLink
-          id="pilot"
-          active={activeId === 'pilot'}
-          href={hrefs.pilot}
-          badges={badges}
-          onNavigate={close}
-        />
-        <span className="mx-3 mt-3.5 mb-1.5 text-xs font-semibold tracking-[0.08em] text-subtle uppercase">
-          {businessLabel}
-        </span>
-        {businessNav.map((id) => (
-          <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} onNavigate={close} />
-        ))}
+      <nav aria-label={t('title')}>
+        <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+          <NavLink
+            id="pilot"
+            active={activeId === 'pilot'}
+            href={hrefs.pilot}
+            badges={badges}
+            onNavigate={close}
+          />
+        </ul>
+        <BusinessSection activeId={activeId} hrefs={hrefs} onNavigate={close} />
       </nav>
       {onSignOut ? (
         <Button

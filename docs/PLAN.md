@@ -82,3 +82,5 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
 - [ ] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
+- [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.
+- [ ] **F12 FE** Narrow `use client` boundaries: `AppShell` and `StepRail` are fully client components; split the interactive parts (More sheet trigger, back button) so the rest renders on the server.

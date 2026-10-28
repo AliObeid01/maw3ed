@@ -1,10 +1,11 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { useId } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
-import { monogram } from '@/components/public/BusinessHero';
+import { monogram } from '@/components/public/monogram';
 import { ButtonLink } from '@/components/ui/Button';
 import { CountBadge } from '@/components/ui/CountBadge';
 import { cn } from '@/lib/cn';
@@ -46,23 +47,60 @@ export function NavLink({
   const Icon = navIcons[id];
   const count = id === 'reminders' || id === 'outcomes' ? (badges?.[id] ?? 0) : 0;
   return (
-    <Link
-      href={href}
-      onClick={onNavigate}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'flex min-h-11 items-center gap-3 rounded-nav px-3 text-[15px] no-underline transition-colors duration-200 ease-out',
-        active
-          ? 'bg-brand-soft font-semibold text-brand'
-          : 'font-medium text-muted hover:bg-canvas hover:text-ink',
-      )}
-    >
-      <Icon size={20} aria-hidden="true" />
-      <span className="flex-1">{t(id)}</span>
-      {id === 'reminders' || id === 'outcomes' ? (
-        <CountBadge count={count} tone={badgeTone[id]} label={t(`badge.${id}`, { count })} />
-      ) : null}
-    </Link>
+    <li>
+      <Link
+        href={href}
+        onClick={onNavigate}
+        aria-current={active ? 'page' : undefined}
+        className={cn(
+          'flex min-h-11 items-center gap-3 rounded-nav px-3 text-[15px] no-underline transition-colors duration-200 ease-out',
+          active
+            ? 'bg-brand-soft font-semibold text-brand'
+            : 'font-medium text-muted hover:bg-canvas hover:text-ink',
+        )}
+      >
+        <Icon size={20} aria-hidden="true" />
+        <span className="flex-1">{t(id)}</span>
+        {id === 'reminders' || id === 'outcomes' ? (
+          <CountBadge count={count} tone={badgeTone[id]} label={t(`badge.${id}`, { count })} />
+        ) : null}
+      </Link>
+    </li>
+  );
+}
+
+/** "Business" heading plus its list, labelled for assistive tech. Shared by the sidebar and the More sheet. */
+export function BusinessSection({
+  activeId,
+  hrefs,
+  onNavigate,
+}: {
+  activeId: ActiveId;
+  hrefs: Record<ActiveId, string>;
+  onNavigate?: () => void;
+}) {
+  const heading = useTranslations('app.nav')('business');
+  const headingId = useId();
+  return (
+    <>
+      <span
+        id={headingId}
+        className="mx-3 mt-3.5 mb-1.5 block text-xs font-semibold tracking-[0.08em] text-muted uppercase"
+      >
+        {heading}
+      </span>
+      <ul aria-labelledby={headingId} className="m-0 flex list-none flex-col gap-0.5 p-0">
+        {businessNav.map((id) => (
+          <NavLink
+            key={id}
+            id={id}
+            active={activeId === id}
+            href={hrefs[id]}
+            onNavigate={onNavigate}
+          />
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -98,16 +136,13 @@ export function AppSidebar({ business, activeId, badges, hrefs, className }: Pro
         </span>
       </div>
 
-      <nav aria-label={t('main')} className="flex flex-col gap-0.5">
-        {mainNav.map((id) => (
-          <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} badges={badges} />
-        ))}
-        <span className="mx-3 mt-3.5 mb-1.5 text-xs font-semibold tracking-[0.08em] text-subtle uppercase">
-          {t('business')}
-        </span>
-        {businessNav.map((id) => (
-          <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} />
-        ))}
+      <nav aria-label={t('main')}>
+        <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+          {mainNav.map((id) => (
+            <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} badges={badges} />
+          ))}
+        </ul>
+        <BusinessSection activeId={activeId} hrefs={hrefs} />
       </nav>
 
       <ButtonLink

@@ -4,18 +4,7 @@ import { Check, ChevronLeft } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { IconButton } from '@/components/ui/IconButton';
 import { cn } from '@/lib/cn';
-
-enum StepState {
-  Done,
-  Current,
-  Todo,
-}
-
-function stepState(n: number, current: number): StepState {
-  if (n < current) return StepState.Done;
-  if (n === current) return StepState.Current;
-  return StepState.Todo;
-}
+import { StepState, stepState } from './stepState';
 
 export type Step = {
   id: string;
@@ -117,6 +106,7 @@ export function StepRail({ steps, current, onBack, className }: StepRailProps) {
           </div>
           <div
             role="progressbar"
+            aria-label={t('progressLabel')}
             aria-valuemin={1}
             aria-valuemax={total}
             aria-valuenow={current}

@@ -3,8 +3,7 @@
     "appName": "Maw3ed",
     "tagline": "Fewer no-shows. More time.",
     "language": {
-      "name": "عربي",
-      "switchTo": "Switch to Arabic"
+      "name": "عربي"
     }
   },
   "ui": {
@@ -37,6 +36,7 @@
       "navLabel": "Booking steps",
       "title": "Book in {count} steps",
       "progress": "Step {current} of {total}",
+      "progressLabel": "Booking progress",
       "back": "Back",
       "done": "done"
     },

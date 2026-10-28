@@ -3,8 +3,7 @@
     "appName": "موعد",
     "tagline": "غياب أقل. وقت أكثر.",
     "language": {
-      "name": "English",
-      "switchTo": "التبديل إلى الإنجليزية"
+      "name": "English"
     }
   },
   "ui": {
@@ -37,6 +36,7 @@
       "navLabel": "خطوات الحجز",
       "title": "احجز في {count} خطوات",
       "progress": "الخطوة {current} من {total}",
+      "progressLabel": "تقدم الحجز",
       "back": "رجوع",
       "done": "تمت"
     },
