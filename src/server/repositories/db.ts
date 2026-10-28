@@ -29,4 +29,19 @@ function createClient(): PrismaClient {
 
 const globalForDb = globalThis as unknown as { __maw3edDb?: PrismaClient };
 
-export const db: PrismaClient = (globalForDb.__maw3edDb ??= createClient());
+function getClient(): PrismaClient {
+  return (globalForDb.__maw3edDb ??= createClient());
+}
+
+/**
+ * Created lazily on first use, so importing this module (for example during `next build` or in a
+ * preview without database variables) does not need DATABASE_URL; a missing URL still fails with a
+ * clear error the first time a query runs.
+ */
+export const db: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getClient();
+    const value = Reflect.get(client, prop, client) as unknown;
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(client) : value;
+  },
+});
