@@ -82,6 +82,95 @@
       "signOut": "Sign out"
     }
   },
+  "auth": {
+    "tabs": {
+      "label": "Account",
+      "signIn": "Sign in",
+      "signUp": "Sign up"
+    },
+    "home": "Maw3ed home",
+    "signup": {
+      "title": "Create your business",
+      "subtitle": "Your booking page is ready in minutes.",
+      "businessName": "Business name",
+      "businessNamePlaceholder": "e.g. Studio Nour",
+      "slug": "Booking page link",
+      "slugPlaceholder": "studio-nour",
+      "slugPrefix": "/b/",
+      "ownerName": "Your name",
+      "email": "Your email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "passwordPlaceholder": "{min}+ characters",
+      "timezone": "Timezone",
+      "timezoneHint": "You can change it later.",
+      "timezoneCommon": "Common",
+      "timezoneAll": "All timezones",
+      "submit": "Create account"
+    },
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your business.",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "password": "Password",
+      "submit": "Sign in"
+    },
+    "invite": {
+      "invitedTo": "You're invited to",
+      "title": "Set up your account",
+      "expires": "This invite expires {when}.",
+      "email": "Email",
+      "name": "Your name",
+      "password": "Choose a password",
+      "passwordPlaceholder": "{min}+ characters",
+      "submit": "Accept and join",
+      "haveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "loading": "Loading your invite",
+      "expiredTitle": "This invite link has expired or was already used",
+      "expiredBody": "Ask the person who invited you to send a new one.",
+      "expiredAction": "Go to sign in",
+      "loadFailedTitle": "We couldn't load this invite",
+      "loadFailedBody": "Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "role": {
+      "owner": "Owner",
+      "staff": "Staff",
+      "other": "Team member"
+    },
+    "password": {
+      "show": "Show password",
+      "hide": "Hide password",
+      "strengthLabel": "Password strength",
+      "hint": "Use at least {min} characters.",
+      "weak": "Too short: use at least {min} characters",
+      "fair": "Good",
+      "strong": "Strong"
+    },
+    "slugStatus": {
+      "preview": "Your page: {url}",
+      "checking": "Checking availability…",
+      "available": "Available",
+      "invalid": "Use 3 to 40 letters, numbers or hyphens.",
+      "reserved": "That link is reserved. Try another.",
+      "taken": "That link is already taken."
+    },
+    "errors": {
+      "required": "This field is required.",
+      "email": "Enter a valid email address.",
+      "passwordShort": "Use at least {min} characters.",
+      "slugFormat": "Use 3 to 40 letters, numbers or hyphens.",
+      "slugTaken": "That link is already taken.",
+      "emailTaken": "An account with this email already exists.",
+      "invalidCredentials": "That email or password is not right. Please try again.",
+      "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
+      "network": "We can't reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again.",
+      "fixFields": "Please fix the highlighted fields."
+    }
+  },
   "dev": {
     "ui": {
       "pageTitle": "UI preview",
