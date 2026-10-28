@@ -1,0 +1,443 @@
+// Maw3ed data model. See docs/DATA_MODEL.md.
+// Rules: every tenant table has businessId and businessId-first indexes; times are UTC Timestamptz(3);
+// money is Decimal(10,2); NO free-text notes columns (NFR-04).
+// The appointment_no_overlap exclusion constraint, CHECKs and the ReminderJob partial index live in a
+// hand-written migration (Prisma cannot express them). Never use `prisma db push`.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum Role {
+  OWNER
+  STAFF
+}
+
+enum TimeOffReason {
+  VACATION
+  SICK
+  OTHER
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  PENDING_PAYMENT
+  ATTENDED
+  NO_SHOW
+  CANCELLED
+  LATE_CANCEL
+}
+
+enum AppointmentSource {
+  PUBLIC
+  FRONT_DESK
+  WAITLIST
+}
+
+enum CancelledVia {
+  LINK
+  STAFF
+  SYSTEM
+}
+
+enum ReminderKind {
+  BOOKING
+  H24
+  H2
+}
+
+enum ReminderChannel {
+  EMAIL
+  WHATSAPP
+}
+
+enum ReminderStatus {
+  PENDING
+  SENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+enum WaitlistStatus {
+  OPEN
+  FULFILLED
+  CANCELLED
+}
+
+enum OfferStatus {
+  OPEN
+  CLAIMED
+  EXPIRED
+  SUPERSEDED
+}
+
+enum PaymentPurpose {
+  DEPOSIT
+  PLAN
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+}
+
+model Business {
+  id                String   @id @default(cuid(2))
+  slug              String   @unique
+  name              String
+  category          String?
+  address           String?
+  timezone          String   @default("Asia/Beirut")
+  locale            String   @default("en")
+  currency          String   @default("USD")
+  slotStepMin       Int      @default(15)
+  bookingWindowDays Int      @default(30)
+  minNoticeMin      Int      @default(60)
+  cancelCutoffMin   Int      @default(1440)
+  plan              Plan     @default(FREE)
+  depositThreshold  Int      @default(1)
+  depositAmount     Decimal  @default(5.00) @db.Decimal(10, 2)
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+
+  memberships   Membership[]
+  sessions      Session[]
+  invites       Invite[]
+  staff         StaffMember[]
+  services      Service[]
+  staffServices StaffService[]
+  workingHours  WorkingHours[]
+  timeOff       TimeOff[]
+  clients       Client[]
+  appointments  Appointment[]
+  reminderJobs  ReminderJob[]
+  waitlist      WaitlistEntry[]
+  offers        WaitlistOffer[]
+  baseline      PilotBaseline?
+  payments      Payment[]
+}
+
+model User {
+  id           String   @id @default(cuid(2))
+  email        String   @unique // stored lowercased
+  passwordHash String?
+  name         String
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  memberships Membership[]
+  sessions    Session[]
+  staff       StaffMember[]
+  outcomes    Appointment[] @relation("OutcomeMarkedBy")
+  sentJobs    ReminderJob[] @relation("ReminderSentBy")
+}
+
+model Session {
+  id         String   @id @default(cuid(2))
+  businessId String
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime @db.Timestamptz(3)
+  lastSeenAt DateTime @default(now()) @db.Timestamptz(3)
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id])
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, userId])
+  @@index([expiresAt])
+}
+
+model Membership {
+  id         String   @id @default(cuid(2))
+  businessId String
+  userId     String
+  role       Role
+  createdAt  DateTime @default(now()) @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, businessId])
+  @@index([businessId, role])
+}
+
+model Invite {
+  id         String    @id @default(cuid(2))
+  businessId String
+  email      String
+  role       Role      @default(STAFF)
+  tokenHash  String    @unique
+  expiresAt  DateTime  @db.Timestamptz(3)
+  acceptedAt DateTime? @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id])
+
+  @@index([businessId, email])
+}
+
+model StaffMember {
+  id          String   @id @default(cuid(2))
+  businessId  String
+  userId      String?
+  displayName String
+  bookable    Boolean  @default(true)
+  active      Boolean  @default(true)
+  colour      String   @default("#0E7C66")
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  business     Business        @relation(fields: [businessId], references: [id])
+  user         User?           @relation(fields: [userId], references: [id])
+  services     StaffService[]
+  workingHours WorkingHours[]
+  timeOff      TimeOff[]
+  appointments Appointment[]
+  offers       WaitlistOffer[]
+  waitlist     WaitlistEntry[]
+
+  @@index([businessId, active, bookable])
+  @@index([businessId, userId])
+}
+
+model Service {
+  id          String   @id @default(cuid(2))
+  businessId  String
+  name        String
+  durationMin Int
+  bufferMin   Int      @default(0)
+  price       Decimal  @default(0) @db.Decimal(10, 2)
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  business     Business        @relation(fields: [businessId], references: [id])
+  staff        StaffService[]
+  appointments Appointment[]
+  waitlist     WaitlistEntry[]
+
+  @@index([businessId, active, sortOrder])
+}
+
+model StaffService {
+  staffId    String
+  serviceId  String
+  businessId String // denormalised for scoping
+
+  business Business    @relation(fields: [businessId], references: [id])
+  staff    StaffMember @relation(fields: [staffId], references: [id])
+  service  Service     @relation(fields: [serviceId], references: [id])
+
+  @@id([staffId, serviceId])
+  @@index([businessId, serviceId])
+}
+
+model WorkingHours {
+  id         String @id @default(cuid(2))
+  businessId String
+  staffId    String
+  weekday    Int // 0 (Sunday) to 6 (Saturday); CHECK in migration
+  startLocal String // HH:mm in Business.timezone
+  endLocal   String // HH:mm, CHECK end > start in migration
+
+  business Business    @relation(fields: [businessId], references: [id])
+  staff    StaffMember @relation(fields: [staffId], references: [id])
+
+  @@index([businessId, staffId, weekday])
+}
+
+model TimeOff {
+  id         String        @id @default(cuid(2))
+  businessId String
+  staffId    String
+  startAt    DateTime      @db.Timestamptz(3)
+  endAt      DateTime      @db.Timestamptz(3)
+  reason     TimeOffReason @default(OTHER)
+
+  business Business    @relation(fields: [businessId], references: [id])
+  staff    StaffMember @relation(fields: [staffId], references: [id])
+
+  @@index([businessId, staffId, startAt])
+}
+
+model Client {
+  id          String   @id @default(cuid(2))
+  businessId  String
+  name        String
+  phone       String // E.164
+  email       String?
+  attended    Int      @default(0)
+  noShows     Int      @default(0)
+  lateCancels Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  business     Business        @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  waitlist     WaitlistEntry[]
+
+  @@unique([businessId, phone])
+  @@index([businessId, name])
+}
+
+model Appointment {
+  id                String            @id @default(cuid(2))
+  businessId        String
+  clientId          String
+  staffId           String
+  serviceId         String
+  startAt           DateTime          @db.Timestamptz(3)
+  endAt             DateTime          @db.Timestamptz(3)
+  blockedUntil      DateTime          @db.Timestamptz(3) // endAt + service buffer
+  status            AppointmentStatus @default(BOOKED)
+  source            AppointmentSource @default(PUBLIC)
+  idempotencyKey    String?
+  confirmedAt       DateTime?         @db.Timestamptz(3)
+  cancelledAt       DateTime?         @db.Timestamptz(3)
+  cancelledVia      CancelledVia?
+  outcomeMarkedById String?
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
+
+  business        Business        @relation(fields: [businessId], references: [id])
+  client          Client          @relation(fields: [clientId], references: [id])
+  staff           StaffMember     @relation(fields: [staffId], references: [id])
+  service         Service         @relation(fields: [serviceId], references: [id])
+  outcomeMarkedBy User?           @relation("OutcomeMarkedBy", fields: [outcomeMarkedById], references: [id])
+  reminderJobs    ReminderJob[]
+  claimedOffers   WaitlistOffer[] @relation("ClaimedAppointment")
+  freedOffers     WaitlistOffer[] @relation("FreedFromAppointment")
+  payments        Payment[]
+
+  // appointment_no_overlap (EXCLUDE USING gist) is added by hand in the appointment_no_overlap migration.
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId, staffId, startAt])
+  @@index([businessId, startAt])
+  @@index([businessId, clientId, startAt])
+  @@index([businessId, status, startAt])
+}
+
+model ReminderJob {
+  id                String          @id @default(cuid(2))
+  businessId        String
+  appointmentId     String
+  kind              ReminderKind
+  channel           ReminderChannel
+  dueAt             DateTime        @db.Timestamptz(3)
+  status            ReminderStatus  @default(PENDING)
+  attempts          Int             @default(0)
+  nextAttemptAt     DateTime?       @db.Timestamptz(3)
+  lockedAt          DateTime?       @db.Timestamptz(3)
+  sentAt            DateTime?       @db.Timestamptz(3)
+  sentById          String?
+  providerMessageId String?
+  lastError         String? // short machine/provider error, not user-entered text
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+
+  business    Business    @relation(fields: [businessId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  sentBy      User?       @relation("ReminderSentBy", fields: [sentById], references: [id])
+  // The partial index (status, dueAt) WHERE status = 'PENDING' is added in the hand-written migration.
+
+  // Guarantee 2: no duplicate reminder. NEVER remove or narrow.
+  @@unique([appointmentId, kind, channel])
+  @@index([businessId, status, dueAt])
+}
+
+model WaitlistEntry {
+  id         String         @id @default(cuid(2))
+  businessId String
+  clientId   String
+  serviceId  String
+  staffId    String?
+  fromDate   DateTime       @db.Timestamptz(3)
+  toDate     DateTime       @db.Timestamptz(3)
+  status     WaitlistStatus @default(OPEN)
+  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+
+  business Business        @relation(fields: [businessId], references: [id])
+  client   Client          @relation(fields: [clientId], references: [id])
+  service  Service         @relation(fields: [serviceId], references: [id])
+  staff    StaffMember?    @relation(fields: [staffId], references: [id])
+  offers   WaitlistOffer[]
+
+  @@index([businessId, status, serviceId])
+  @@index([businessId, clientId])
+}
+
+model WaitlistOffer {
+  id                     String      @id @default(cuid(2))
+  businessId             String
+  entryId                String
+  staffId                String
+  startAt                DateTime    @db.Timestamptz(3)
+  endAt                  DateTime    @db.Timestamptz(3)
+  expiresAt              DateTime    @db.Timestamptz(3)
+  status                 OfferStatus @default(OPEN)
+  claimedAppointmentId   String?
+  freedFromAppointmentId String
+  batch                  Int         @default(1)
+  createdAt              DateTime    @default(now()) @db.Timestamptz(3)
+
+  business           Business      @relation(fields: [businessId], references: [id])
+  entry              WaitlistEntry @relation(fields: [entryId], references: [id])
+  staff              StaffMember   @relation(fields: [staffId], references: [id])
+  claimedAppointment Appointment?  @relation("ClaimedAppointment", fields: [claimedAppointmentId], references: [id])
+  freedFrom          Appointment   @relation("FreedFromAppointment", fields: [freedFromAppointmentId], references: [id])
+
+  // One open offer per entry per freed slot.
+  @@unique([entryId, freedFromAppointmentId])
+  @@index([businessId, status, expiresAt])
+  @@index([businessId, entryId])
+}
+
+model PilotBaseline {
+  id           String   @id @default(cuid(2))
+  businessId   String   @unique
+  fromDate     DateTime @db.Timestamptz(3)
+  toDate       DateTime @db.Timestamptz(3)
+  appointments Int
+  noShows      Int
+  lateCancels  Int
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id])
+}
+
+model Payment {
+  id            String         @id @default(cuid(2))
+  businessId    String
+  purpose       PaymentPurpose
+  appointmentId String?
+  provider      String
+  externalId    String
+  amount        Decimal        @db.Decimal(10, 2)
+  currency      String         @default("USD")
+  status        PaymentStatus  @default(PENDING)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(3)
+  updatedAt     DateTime       @updatedAt @db.Timestamptz(3)
+
+  business    Business     @relation(fields: [businessId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+
+  @@unique([provider, externalId])
+  @@index([businessId, status])
+  @@index([businessId, appointmentId])
+}

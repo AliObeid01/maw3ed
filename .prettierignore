@@ -3,3 +3,6 @@ node_modules
 design/screens
 maw3ed-design.html
 pnpm-lock.yaml
+src/generated
+openapi.json
+prisma/migrations

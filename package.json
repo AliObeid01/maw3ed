@@ -11,6 +11,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "postinstall": "prisma generate",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:unit": "vitest run --project unit",
@@ -23,31 +24,43 @@
     "design:extract": "node scripts/design/extract-screens.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "i18n:check": "node scripts/i18n/check-keys.mjs"
+    "i18n:check": "node scripts/i18n/check-keys.mjs",
+    "db:deploy": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:check": "tsx scripts/db/run-sql.ts scripts/db/check-constraints.sql"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/luxon": "^3.7.6",
     "@types/node": "^26.6.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "dotenv": "^18.0.9",
     "eslint": "^10.13.0",
     "eslint-config-next": "^16.4.3",
     "eslint-plugin-i18next": "^6.1.5",
     "postcss": "^8.5.32",
     "prettier": "^3.9.10",
+    "prisma": "7.10.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "libphonenumber-js": "^1.13.15",
     "luxon": "^3.7.2",
     "next": "^16.4.3",
     "next-intl": "^4.14.9",
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   }
 }
