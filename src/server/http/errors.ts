@@ -1,4 +1,4 @@
-import { ZodError } from 'zod';
+import type { ZodError } from 'zod';
 
 export type ErrorCode =
   | 'VALIDATION_FAILED'
@@ -70,6 +70,9 @@ export class AppError extends Error {
   static gone(code: ErrorCode = 'LINK_EXPIRED', message = 'This link has expired.') {
     return new AppError(410, code, message);
   }
+  static payloadTooLarge(message = 'Request body is too large.') {
+    return new AppError(413, 'PAYLOAD_TOO_LARGE', message);
+  }
   static unavailable(message = 'Service temporarily unavailable.') {
     return new AppError(503, 'SERVICE_UNAVAILABLE', message);
   }
@@ -93,7 +96,7 @@ export function zodFields(error: ZodError): Fields {
   return fields;
 }
 
-const PG_CODE = /^[0-9A-Z]{5}$/;
+const PG_CODE = /^[0-9][0-9A-Z]{4}$/;
 
 /**
  * Find a Postgres SQLSTATE on a thrown value. Depending on the Prisma path (typed client, `$queryRaw`,
@@ -139,9 +142,19 @@ export function fromDbError(error: unknown): AppError | undefined {
   return undefined;
 }
 
+/** Log-safe view of an error: name, code and message only. */
+export function safeError(error: unknown): { name?: string; code?: string; message?: string } {
+  if (!error || typeof error !== 'object') return { message: String(error) };
+  const e = error as { name?: unknown; code?: unknown; message?: unknown };
+  return {
+    name: typeof e.name === 'string' ? e.name : undefined,
+    code: typeof e.code === 'string' ? e.code : undefined,
+    message: typeof e.message === 'string' ? e.message : undefined,
+  };
+}
+
 export function toAppError(error: unknown): AppError | undefined {
   if (error instanceof AppError) return error;
-  if (error instanceof ZodError) return AppError.validation(zodFields(error));
   return fromDbError(error);
 }
 

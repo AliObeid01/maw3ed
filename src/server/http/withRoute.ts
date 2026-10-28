@@ -7,7 +7,7 @@ import {
   type RoleName,
   type TokenIdentity,
 } from './auth';
-import { AppError, mapError, zodFields } from './errors';
+import { AppError, mapError, safeError, zodFields } from './errors';
 import { childLogger, type Logger } from './logger';
 
 export type AuthMode = 'public' | 'session' | 'token' | 'cron';
@@ -66,17 +66,44 @@ function parse<S extends z.ZodType | undefined>(schema: S, value: unknown, where
   return result.data;
 }
 
+const FORBIDDEN_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/** Null-prototype object, and prototype-ish keys are dropped, so a query cannot pollute anything. */
 function queryToObject(url: URL): Record<string, string | string[]> {
-  const out: Record<string, string | string[]> = {};
+  const out: Record<string, string | string[]> = Object.create(null);
   for (const key of new Set(url.searchParams.keys())) {
+    if (FORBIDDEN_KEYS.has(key)) continue;
     const all = url.searchParams.getAll(key);
     out[key] = all.length > 1 ? all : (all[0] ?? '');
   }
   return out;
 }
 
+export const MAX_BODY_BYTES = 64 * 1024;
+
+/** Read the body as text, refusing more than MAX_BODY_BYTES (content-length first, then the real bytes). */
+async function readLimitedText(req: Request): Promise<string> {
+  const declared = Number(req.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw AppError.payloadTooLarge();
+  if (!req.body) return '';
+  const reader = req.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw AppError.payloadTooLarge();
+    }
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 async function readBody(req: Request): Promise<unknown> {
-  const text = await req.text();
+  const text = await readLimitedText(req);
   if (!text.trim()) return undefined;
   try {
     return JSON.parse(text);
@@ -100,6 +127,7 @@ export function withRoute<C extends RouteConfig>(
     const url = new URL(req.url);
     const ctx: RouteContext = { requestId, logger: childLogger({ requestId }) };
 
+    /** Never log the raw error object: Prisma/pg messages can embed query parameters. */
     const finish = (res: Response, error?: unknown) => {
       res.headers.set('x-request-id', requestId);
       const entry = {
@@ -109,7 +137,7 @@ export function withRoute<C extends RouteConfig>(
         durationMs: Math.round(performance.now() - started),
         businessId: ctx.businessId,
       };
-      if (error) ctx.logger.error({ ...entry, err: error }, 'request failed');
+      if (error) ctx.logger.error({ ...entry, err: safeError(error) }, 'request failed');
       else ctx.logger.info(entry, 'request');
       return res;
     };

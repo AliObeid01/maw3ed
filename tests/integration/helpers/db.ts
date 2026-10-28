@@ -37,7 +37,7 @@ export function testConnectionString(): string {
 export function newClient(): Client {
   return new Client({
     connectionString: testConnectionString(),
-    options: `-c search_path=${TEST_SCHEMA},public`,
+    options: `-c search_path=${TEST_SCHEMA}`,
   });
 }
 
@@ -49,7 +49,7 @@ export async function setupSchema(): Promise<void> {
   try {
     await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`);
     await client.query(`CREATE SCHEMA ${TEST_SCHEMA}`);
-    await client.query(`SET search_path TO ${TEST_SCHEMA}, public`);
+    await client.query(`SET search_path TO ${TEST_SCHEMA}`);
     const dirs = readdirSync(MIGRATIONS_DIR, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
