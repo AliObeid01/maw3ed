@@ -68,3 +68,17 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [ ] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video; final DoD tick.
+
+---
+
+## Follow-ups from reviews (non-blocking, schedule alongside the phase that touches them)
+- [ ] **F1 FE** Focus ring is invisible on `bg-hero` and `primary` buttons: white outline on dark surfaces + `outline-offset-2` (before the public hero, P2.10).
+- [ ] **F2 FE** `Button`: add `ghost`/`danger` variants, 46 px row size, `loading` prop (spinner, `aria-busy`, disabled), `clsx`+`tailwind-merge` for className (P1.10).
+- [ ] **F3 FE** `Logo`: optional `label` (decorative = `aria-hidden`), fix the SVG `fontFamily` to use the next/font CSS variable, `tone` prop for a white logo on the hero, derive height from width (P1.10).
+- [ ] **F4 FE/BE** `?lang=` handoff: `src/proxy.ts` (Next 16) sets the `locale` cookie from `?lang=` and forwards `x-locale`/`x-business-locale`; export `LOCALE_COOKIE` from `src/i18n/config.ts`; resolution order per the `i18n-rtl` skill. Needed before the public booking page (P2.10).
+- [ ] **F5 FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
+- [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists. Unit-test `isLocale`/`dirFor` (P1.9).
+- [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
+- [ ] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
+- [ ] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
+- [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
