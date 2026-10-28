@@ -155,9 +155,9 @@ describe('withRoute auth modes', () => {
     expect(res2.status).toBe(401);
   });
 
-  it('answers 501 for session and token modes until auth lands', async () => {
+  it('answers 401 for session mode without a cookie and 501 for token mode until it lands', async () => {
     const session = withRoute({ auth: 'session' }, async () => ok({}));
-    expect((await session(new Request('http://localhost/x'))).status).toBe(501);
+    expect((await session(new Request('http://localhost/x'))).status).toBe(401);
     const token = withRoute({ auth: 'token' }, async () => ok({}));
     expect((await token(new Request('http://localhost/x'))).status).toBe(501);
   });

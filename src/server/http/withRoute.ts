@@ -7,6 +7,7 @@ import {
   type RoleName,
   type TokenIdentity,
 } from './auth';
+import { sessionCookie } from './cookies';
 import { AppError, mapError, safeError, zodFields } from './errors';
 import { childLogger, type Logger } from './logger';
 
@@ -19,11 +20,17 @@ export interface RouteContext {
   businessId?: string;
   userId?: string;
   role?: RoleName;
+  sessionId?: string;
   token?: TokenIdentity;
 }
 
 /** Context after a `session` guard: identity is guaranteed. */
-export type SessionContext = RouteContext & { businessId: string; userId: string; role: RoleName };
+export type SessionContext = RouteContext & {
+  businessId: string;
+  userId: string;
+  role: RoleName;
+  sessionId: string;
+};
 
 export interface RouteConfig {
   auth: AuthMode;
@@ -126,6 +133,7 @@ export function withRoute<C extends RouteConfig>(
     const requestId = incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
     const url = new URL(req.url);
     const ctx: RouteContext = { requestId, logger: childLogger({ requestId }) };
+    let refresh: { token: string; expiresAt: Date } | undefined;
 
     /** Never log the raw error object: Prisma/pg messages can embed query parameters. */
     const finish = (res: Response, error?: unknown) => {
@@ -148,7 +156,13 @@ export function withRoute<C extends RouteConfig>(
       } else if (config.auth === 'session') {
         const session = await resolveSession(req);
         if (config.roles && !config.roles.includes(session.role)) throw AppError.forbidden();
-        Object.assign(ctx, session);
+        refresh = session.refresh;
+        Object.assign(ctx, {
+          userId: session.userId,
+          businessId: session.businessId,
+          role: session.role,
+          sessionId: session.sessionId,
+        });
         ctx.logger = childLogger({
           requestId,
           businessId: session.businessId,
@@ -168,6 +182,9 @@ export function withRoute<C extends RouteConfig>(
       }
 
       const res = await handler({ req, ctx, params, query, body } as HandlerArgs<C>);
+      // Sliding session: re-issue the cookie so the browser expiry moves with the database one.
+      if (refresh && !res.headers.has('set-cookie'))
+        res.headers.append('set-cookie', sessionCookie(refresh.token, refresh.expiresAt));
       return finish(res);
     } catch (error) {
       const mapped = mapError(error);
