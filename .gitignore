@@ -13,3 +13,5 @@ coverage/
 .DS_Store
 next-env.d.ts
 design/shots-*/
+# Prisma generated client (rebuilt by postinstall)
+src/generated/
