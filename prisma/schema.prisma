@@ -202,8 +202,8 @@ model StaffMember {
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
-  business     Business       @relation(fields: [businessId], references: [id])
-  user         User?          @relation(fields: [userId], references: [id])
+  business     Business        @relation(fields: [businessId], references: [id])
+  user         User?           @relation(fields: [userId], references: [id])
   services     StaffService[]
   workingHours WorkingHours[]
   timeOff      TimeOff[]
@@ -277,16 +277,16 @@ model TimeOff {
 }
 
 model Client {
-  id         String   @id @default(cuid(2))
-  businessId String
-  name       String
-  phone      String // E.164
-  email      String?
-  attended   Int      @default(0)
-  noShows    Int      @default(0)
-  lateCancels Int     @default(0)
-  createdAt  DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime @updatedAt @db.Timestamptz(3)
+  id          String   @id @default(cuid(2))
+  businessId  String
+  name        String
+  phone       String // E.164
+  email       String?
+  attended    Int      @default(0)
+  noShows     Int      @default(0)
+  lateCancels Int      @default(0)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   business     Business        @relation(fields: [businessId], references: [id])
   appointments Appointment[]
@@ -297,23 +297,23 @@ model Client {
 }
 
 model Appointment {
-  id                  String            @id @default(cuid(2))
-  businessId          String
-  clientId            String
-  staffId             String
-  serviceId           String
-  startAt             DateTime          @db.Timestamptz(3)
-  endAt               DateTime          @db.Timestamptz(3)
-  blockedUntil        DateTime          @db.Timestamptz(3) // endAt + service buffer
-  status              AppointmentStatus @default(BOOKED)
-  source              AppointmentSource @default(PUBLIC)
-  idempotencyKey      String?
-  confirmedAt         DateTime?         @db.Timestamptz(3)
-  cancelledAt         DateTime?         @db.Timestamptz(3)
-  cancelledVia        CancelledVia?
-  outcomeMarkedById   String?
-  createdAt           DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt           DateTime          @updatedAt @db.Timestamptz(3)
+  id                String            @id @default(cuid(2))
+  businessId        String
+  clientId          String
+  staffId           String
+  serviceId         String
+  startAt           DateTime          @db.Timestamptz(3)
+  endAt             DateTime          @db.Timestamptz(3)
+  blockedUntil      DateTime          @db.Timestamptz(3) // endAt + service buffer
+  status            AppointmentStatus @default(BOOKED)
+  source            AppointmentSource @default(PUBLIC)
+  idempotencyKey    String?
+  confirmedAt       DateTime?         @db.Timestamptz(3)
+  cancelledAt       DateTime?         @db.Timestamptz(3)
+  cancelledVia      CancelledVia?
+  outcomeMarkedById String?
+  createdAt         DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @db.Timestamptz(3)
 
   business        Business        @relation(fields: [businessId], references: [id])
   client          Client          @relation(fields: [clientId], references: [id])
@@ -353,11 +353,11 @@ model ReminderJob {
   business    Business    @relation(fields: [businessId], references: [id])
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   sentBy      User?       @relation("ReminderSentBy", fields: [sentById], references: [id])
+  // The partial index (status, dueAt) WHERE status = 'PENDING' is added in the hand-written migration.
 
   // Guarantee 2: no duplicate reminder. NEVER remove or narrow.
   @@unique([appointmentId, kind, channel])
   @@index([businessId, status, dueAt])
-  // The partial index (status, dueAt) WHERE status = 'PENDING' is added in the hand-written migration.
 }
 
 model WaitlistEntry {
@@ -391,15 +391,15 @@ model WaitlistOffer {
   expiresAt              DateTime    @db.Timestamptz(3)
   status                 OfferStatus @default(OPEN)
   claimedAppointmentId   String?
-  freedFromAppointmentId String?
+  freedFromAppointmentId String
   batch                  Int         @default(1)
   createdAt              DateTime    @default(now()) @db.Timestamptz(3)
 
-  business           Business       @relation(fields: [businessId], references: [id])
-  entry              WaitlistEntry  @relation(fields: [entryId], references: [id])
-  staff              StaffMember    @relation(fields: [staffId], references: [id])
-  claimedAppointment Appointment?   @relation("ClaimedAppointment", fields: [claimedAppointmentId], references: [id])
-  freedFrom          Appointment?   @relation("FreedFromAppointment", fields: [freedFromAppointmentId], references: [id])
+  business           Business      @relation(fields: [businessId], references: [id])
+  entry              WaitlistEntry @relation(fields: [entryId], references: [id])
+  staff              StaffMember   @relation(fields: [staffId], references: [id])
+  claimedAppointment Appointment?  @relation("ClaimedAppointment", fields: [claimedAppointmentId], references: [id])
+  freedFrom          Appointment   @relation("FreedFromAppointment", fields: [freedFromAppointmentId], references: [id])
 
   // One open offer per entry per freed slot.
   @@unique([entryId, freedFromAppointmentId])
