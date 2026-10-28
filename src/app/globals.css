@@ -1,5 +1,85 @@
 @import 'tailwindcss';
 
-body {
-  margin: 0;
+@theme {
+  --color-canvas: #f7f5f0;
+  --color-surface: #ffffff;
+  --color-ink: #252d2d;
+  --color-muted: #737c79;
+  --color-subtle: #8a918e;
+  --color-line: #e3ded2;
+  --color-divider: #ece8df;
+  --color-row: #efece4;
+
+  --color-brand: #174c4f;
+  --color-brand-hover: #0f3638;
+  --color-brand-deep: #123f42;
+  --color-brand-soft: #e3edeb;
+  --color-brand-avatar: #dce9e7;
+
+  --color-accent: #e8b86d;
+
+  --color-success: #2d6a4f;
+  --color-success-soft: #dfefe3;
+  --color-success-deep: #1b4332;
+
+  --color-warning: #9a5800;
+  --color-warning-soft: #fff0d6;
+  --color-warning-line: #f6d49a;
+  --color-warning-deep: #6b3d00;
+
+  --color-amber: #6b4a10;
+  --color-amber-soft: #f3e3c4;
+
+  --color-danger: #c21f3a;
+  --color-danger-soft: #ffe1e4;
+  --color-danger-line: #f5b3bd;
+
+  --color-hero-ink: #e4eeec;
+  --color-hero-muted: #c9d6d4;
+  --color-hero-subtle: #bcd2d0;
+
+  --radius-input: 14px;
+  --radius-nav: 12px;
+  --radius-tile: 18px;
+  --radius-card: 24px;
+  --radius-card-sm: 22px;
+  --radius-pill: 999px;
+
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-plex-arabic), var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+@utility bg-hero {
+  background:
+    radial-gradient(circle at 85% -40%, rgb(232 184 109 / 0.24), transparent 50%),
+    radial-gradient(circle at 0% 140%, rgb(46 125 128 / 0.64), transparent 55%), #174c4f;
+}
+
+@layer base {
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+  }
+
+  :root[dir='rtl'] body {
+    font-family: var(--font-arabic);
+    line-height: 1.6;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

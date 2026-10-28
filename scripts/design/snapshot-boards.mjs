@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 
 const src = path.resolve(process.argv[2] ?? 'maw3ed-design.html');
 const outDir = process.argv[3] ?? 'design/boards';
