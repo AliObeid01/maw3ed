@@ -1,0 +1,92 @@
+<!-- Board: 3.1 Sign up · web · 1440x1000 · source id 5b861cd8-be9e-4de3-a5db-5eef25389f7f -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Maw3ed · Sign up (web)</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+body{margin:0;background:#F7F5F0}
+a{color:#174C4F}a:hover{color:#0F3638}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+@keyframes mwIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes mwDrift1{0%{transform:translate(0,0) scale(1)}50%{transform:translate(200px,130px) scale(1.25)}100%{transform:translate(0,0) scale(1)}}
+@keyframes mwDrift2{0%{transform:translate(0,0) scale(1)}50%{transform:translate(-220px,120px) scale(1.2)}100%{transform:translate(0,0) scale(1)}}
+@keyframes mwWhoosh{from{transform:translateX(-140px);opacity:0}to{transform:none;opacity:1}}
+.mw-input:focus{outline:none;border-color:#174C4F !important;box-shadow:0 0 0 4px rgba(23,76,79,0.14)}
+.mw-btn{transition:transform .15s ease, box-shadow .15s ease}
+.mw-btn:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(23,76,79,0.3)}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; position: relative; overflow: hidden; background: #F7F5F0; font-family: 'Outfit', sans-serif; color: #252D2D; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; box-sizing: border-box">
+<div aria-hidden="true" style="position: absolute; inset: 0; pointer-events: none">
+<div style="position: absolute; width: 680px; height: 680px; left: -200px; top: -260px; border-radius: 999px; background: #174C4F; opacity: 0.55; filter: blur(100px); animation: mwDrift1 7s ease-in-out infinite"></div>
+<div style="position: absolute; width: 580px; height: 580px; right: -180px; top: 8%; border-radius: 999px; background: #E8B86D; opacity: 0.55; filter: blur(100px); animation: mwDrift2 9s ease-in-out infinite"></div>
+<div style="position: absolute; width: 560px; height: 560px; left: 22%; bottom: -300px; border-radius: 999px; background: #E8B86D; opacity: 0.45; filter: blur(110px); animation: mwDrift1 11s ease-in-out infinite reverse"></div>
+<div style="position: absolute; inset: 0; background-image: linear-gradient(rgba(37,45,45,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(37,45,45,0.06) 1px, transparent 1px); background-size: 44px 44px; -webkit-mask-image: radial-gradient(ellipse at center, #000 25%, transparent 72%); mask-image: radial-gradient(ellipse at center, #000 25%, transparent 72%)"></div>
+</div>
+<div style="position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px">
+
+<svg viewBox="455 216 1360 318" width="160" height="37" role="img" aria-label="Maw3ed"><defs><linearGradient id="au1" gradientUnits="userSpaceOnUse" x1="467" y1="0" x2="637" y2="0"><stop offset="0" stop-color="#E8B86D"></stop><stop offset="1" stop-color="#174C4F"></stop></linearGradient><linearGradient id="au2" gradientUnits="userSpaceOnUse" x1="719" y1="470" x2="880" y2="350"><stop offset="0" stop-color="#123F42"></stop><stop offset="1" stop-color="#E8B86D"></stop></linearGradient></defs><path d="M578 335H630M481 386H623M542 438H616M579 488H609" fill="none" stroke="url(#au1)" stroke-width="28" stroke-linecap="round" style="animation: mwWhoosh .9s cubic-bezier(.2,.8,.2,1) .4s both"></path><g transform="translate(55.6 0) skewX(-8)"><rect x="665" y="277" width="285" height="238" rx="48" fill="none" stroke="#174C4F" stroke-width="30"></rect><path d="M746.5 439V353L807.5 408L868.5 353V439" fill="none" stroke="url(#au2)" stroke-width="38" stroke-linecap="round" stroke-linejoin="round"></path><rect x="727" y="230" width="20" height="62" rx="10" fill="#E8B86D" stroke="#F7F5F0" stroke-width="12" paint-order="stroke"></rect><rect x="862" y="230" width="20" height="62" rx="10" fill="#E8B86D" stroke="#F7F5F0" stroke-width="12" paint-order="stroke"></rect></g><text x="988" y="527" font-family="Outfit, sans-serif" font-weight="600" font-size="260" letter-spacing="-2.6" fill="#174C4F">aw3ed</text></svg>
+
+<section style="width: 100%; max-width: 440px; box-sizing: border-box; border-radius: 28px; background: #FFFFFF; border: 1px solid #E3DED2; box-shadow: 0 24px 60px rgba(37,45,45,0.08); padding: 24px; display: flex; flex-direction: column; gap: 22px; animation: mwIn .7s cubic-bezier(.2,.8,.2,1) .15s both">
+
+<div role="tablist" aria-label="Account" style="position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 4px; border-radius: 999px; background: #F7F5F0">
+<span aria-hidden="true" style="position: absolute; top: 4px; left: 4px; width: calc(50% - 4px); height: 44px; border-radius: 999px; background: #FFFFFF; box-shadow: 0 2px 8px rgba(37,45,45,0.12); transition: transform .28s cubic-bezier(.2,.8,.2,1); {{ indicator }}"></span>
+<button type="button" role="tab" aria-selected="{{ inSel }}" sc-camel-on-click="{{ toSignin }}" style="position: relative; height: 44px; border: 0; border-radius: 999px; background: transparent; font-size: 15px; font-weight: 600; {{ inColor }}">Sign in</button>
+<button type="button" role="tab" aria-selected="{{ upSel }}" sc-camel-on-click="{{ toSignup }}" style="position: relative; height: 44px; border: 0; border-radius: 999px; background: transparent; font-size: 15px; font-weight: 600; {{ upColor }}">Sign up</button>
+</div>
+
+<sc-if value="{{ isSignin }}" hint-placeholder-val="{{ true }}">
+<div style="display: flex; flex-direction: column; gap: 16px; animation: mwIn .3s ease both">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-size: 26px; font-weight: 600">Welcome back</h1><p style="margin: 0; font-size: 15px; color: #737C79">Sign in to your business.</p></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="si-email" style="font-size: 14px; font-weight: 500">Email</label><input id="si-email" class="mw-input" type="email" autocomplete="email" placeholder="you@example.com" style="height: 52px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="si-pass" style="font-size: 14px; font-weight: 500">Password</label><input id="si-pass" class="mw-input" type="password" autocomplete="current-password" style="height: 52px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<button type="button" class="mw-btn" style="height: 54px; border-radius: 999px; border: 0; background: #174C4F; color: #FFFFFF; font-size: 16px; font-weight: 600; margin-top: 4px">Sign in</button>
+</div>
+</sc-if>
+
+<sc-if value="{{ isSignup }}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; flex-direction: column; gap: 16px; animation: mwIn .3s ease both">
+<div style="display: flex; flex-direction: column; gap: 4px"><h1 style="margin: 0; font-size: 26px; font-weight: 600">Create your business</h1><p style="margin: 0; font-size: 15px; color: #737C79">Your booking page is ready in minutes.</p></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="su-biz" style="font-size: 14px; font-weight: 500">Business name</label><input id="su-biz" class="mw-input" type="text" placeholder="e.g. Studio Nour" style="height: 52px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="su-slug" style="font-size: 14px; font-weight: 500">Booking page link</label><div style="display: flex; align-items: center; height: 52px; border-radius: 14px; border: 1px solid #E3DED2; overflow: hidden"><span style="height: 100%; display: flex; align-items: center; padding: 0 12px; background: #F7F5F0; color: #737C79; font-size: 15px; border-right: 1px solid #E3DED2">/b/</span><input id="su-slug" class="mw-input" type="text" placeholder="studio-nour" style="flex: 1; min-width: 0; height: 100%; border: 0; padding: 0 14px; font-size: 16px; color: #252D2D"></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="su-email" style="font-size: 14px; font-weight: 500">Your email</label><input id="su-email" class="mw-input" type="email" autocomplete="email" placeholder="you@example.com" style="height: 52px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="su-pass" style="font-size: 14px; font-weight: 500">Password</label><input id="su-pass" class="mw-input" type="password" autocomplete="new-password" placeholder="8+ characters" style="height: 52px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<span style="font-size: 13px; color: #737C79">Timezone set to Asia/Beirut. You can change it later.</span>
+<button type="button" class="mw-btn" style="height: 54px; border-radius: 999px; border: 0; background: #174C4F; color: #FFFFFF; font-size: 16px; font-weight: 600">Create account</button>
+</div>
+</sc-if>
+</section>
+
+<p style="margin: 0; font-size: 14px; letter-spacing: 0.08em; color: #737C79">Fewer no-shows. More time.</p>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;signin&quot;,&quot;signup&quot;],&quot;default&quot;:&quot;signup&quot;},&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+renderVals() {
+const mode = (this.state && this.state.mode) || this.props.mode || 'signin';
+const isIn = mode === 'signin';
+return {
+isSignin: isIn,
+isSignup: !isIn,
+inSel: isIn ? 'true' : 'false',
+upSel: isIn ? 'false' : 'true',
+inColor: isIn ? 'color: #252D2D;' : 'color: #737C79;',
+upColor: isIn ? 'color: #737C79;' : 'color: #252D2D;',
+indicator: isIn ? 'transform: translateX(0);' : 'transform: translateX(100%);',
+toSignin: () => this.setState({ mode: 'signin' }),
+toSignup: () => this.setState({ mode: 'signup' })
+};
+}
+}
+</script>
+
+
+</body></html>
