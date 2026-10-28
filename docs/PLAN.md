@@ -25,12 +25,12 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P1.4 BE** `src/server/http`: `withRoute`, `AppError`, error mapper (23P01→409, 23505→409), request id + pino logger, OpenAPI registry + `openapi:generate/check`. (NFR-02, NFR-11)
 - [x] **P1.5 BE** `domain/slots.ts` `generateSlots` with TDD: split shifts, long service, buffers, time off, min notice, window edge, DST days (Asia/Beirut), "anyone" merge + least-booked pick. (FR-09, NFR-06)
 - [x] **P1.6 BE** `domain/tokens.ts` (HMAC sign/verify, scope, expiry), `domain/phone.ts` (E.164, default LB), `domain/reminderWindows.ts`. (NFR-03, FR-15, FR-17)
-- [ ] **P1.7 BE** Auth: `POST /api/auth/signup` (Business + User + Membership OWNER + owner StaffMember, slug check), login/logout, `Session` table, argon2, cookie flags, `requireRole`. (FR-01, FR-02, NFR-03)
-- [ ] **P1.8 BE** Invites: `POST /api/invites`, `POST /api/invites/{token}/accept` (hashed, single-use, expiring), invite email via `EmailProvider` + `FakeEmailProvider`. (FR-02)
-- [ ] **P1.9 QA** `tenant.isolation.test.ts` scaffold + `booking.concurrency.test.ts` (red until P2.3); unit tests for tokens/phone/windows/guards.
+- [x] **P1.7 BE** Auth: `POST /api/auth/signup` (Business + User + Membership OWNER + owner StaffMember, slug check), login/logout, `Session` table, argon2, cookie flags, `requireRole`. (FR-01, FR-02, NFR-03)
+- [x] **P1.8 BE** Invites: `POST /api/invites`, `POST /api/invites/{token}/accept` (hashed, single-use, expiring), invite email via `EmailProvider` + `FakeEmailProvider`. (FR-02)
+- [x] **P1.9 QA (tenant.isolation todos and the 10-parallel booking test move to P2.9)** `tenant.isolation.test.ts` scaffold + `booking.concurrency.test.ts` (red until P2.3); unit tests for tokens/phone/windows/guards.
 - [x] **P1.10 FE** `PublicHeader`, `BusinessHero`, `StepRail`, `Button`/`IconButton`/`Input`/`Card`/`Chip`/`StatTile`/`Sheet` primitives.
 - [x] **P1.11 FE** `AppShell`: sidebar (`lg+`), bottom tab bar + More sheet + FAB (< `lg`), badge slots, active state.
-- [ ] **P1.12 FE** Screens 3.1 sign up, 3.2 sign in, 3.3 accept invite → wired to P1.7/P1.8.
+- [x] **P1.12 FE** Screens 3.1 sign up, 3.2 sign in, 3.3 accept invite → wired to P1.7/P1.8.
 
 ## Phase 2 — Core flow live (31 Oct – 3 Nov) · gate: pilots go live 3 Nov
 - [ ] **P2.1 BE** Setup CRUD: `/api/services`, `/api/staff` (+ services performed, bookable, active), `/api/staff/{id}/hours`, `/api/staff/{id}/time-off`, `GET/PATCH /api/business`. (FR-04…07)
