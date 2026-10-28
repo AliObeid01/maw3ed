@@ -110,6 +110,19 @@ describe('generateSlots basics', () => {
   });
 });
 
+describe('overlapping working-hour rows', () => {
+  it('never lists the same start twice for one staff member', () => {
+    // An owner can enter overlapping intervals on the setup screen; the customer must not see duplicates.
+    const s = staff('a', [
+      { weekday: 1, startLocal: '09:00', endLocal: '11:00' },
+      { weekday: 1, startLocal: '10:00', endLocal: '12:00' },
+    ]);
+    const slots = generateSlots(input({ staff: [s] })); // 2026-06-01 is a Monday
+    expect(starts(slots)).toEqual(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30']);
+    expect(new Set(slots.map((x) => x.startAt.getTime())).size).toBe(slots.length);
+  });
+});
+
 describe('minimum notice and booking window', () => {
   const s = staff('a', allWeek('09:00', '12:00'));
   it('drops starts before now + minNotice (inclusive boundary kept)', () => {
