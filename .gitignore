@@ -11,3 +11,4 @@ coverage/
 *.tsbuildinfo
 .vercel/
 .DS_Store
+next-env.d.ts
