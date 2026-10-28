@@ -45,6 +45,10 @@
   --radius-card-sm: 22px;
   --radius-pill: 999px;
 
+  --animate-sheet-in: sheet-in 220ms ease-out;
+  --animate-dialog-in: dialog-in 180ms ease-out;
+  --animate-fade-in: fade-in 180ms ease-out;
+
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-arabic: var(--font-plex-arabic), var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
@@ -71,6 +75,15 @@
 
   :focus-visible {
     outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  /* F1: the brand ring vanishes on dark surfaces (hero band, primary buttons), so use white there. */
+  .bg-hero :focus-visible,
+  .bg-hero:focus-visible,
+  [data-surface='dark'] :focus-visible,
+  [data-surface='dark']:focus-visible {
+    outline-color: #fff;
     outline-offset: 2px;
   }
 
