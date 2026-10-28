@@ -1,0 +1,64 @@
+<!-- Board: 3.8 Business settings · web · 1440x1000 · source id c4271b69-820f-44b1-9c35-4118820afb6f -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Maw3ed · Business settings (web)</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style>
+body{margin:0;background:#F7F5F0}
+a{color:#174C4F}a:hover{color:#0F3638}
+button,input,select{font-family:inherit}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F7F5F0; font-family: 'Outfit', sans-serif; color: #252D2D; display: flex; flex-wrap: wrap">
+<div style="flex: 0 0 256px; background: #FFFFFF; border-right: 1px solid #ECE8DF; box-sizing: border-box"><dc-import name="WebSidebar" active="settings" hint-size="256px,900px"></dc-import></div>
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column">
+<header style="background: #FFFFFF; border-bottom: 1px solid #ECE8DF; padding: 14px 32px; display: flex; align-items: center; gap: 16px; min-height: 52px">
+<h1 style="flex: 1; margin: 0; font-size: 22px; font-weight: 600">Business settings</h1>
+<button type="button" style="height: 44px; padding: 0 22px; border-radius: 999px; border: 0; background: #174C4F; color: #FFFFFF; font-size: 15px; font-weight: 600">Save settings</button>
+</header>
+<main style="flex: 1; width: 100%; max-width: 1180px; padding: 28px 32px; box-sizing: border-box; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 20px; align-content: start">
+
+<section style="border-radius: 24px; background: #FFFFFF; border: 1px solid #E3DED2; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Business</h2>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="wbs-name" style="font-size: 15px; font-weight: 500">Name</label><input id="wbs-name" type="text" value="Studio Nour" style="height: 50px; border-radius: 14px; border: 1px solid #E3DED2; padding: 0 14px; font-size: 16px; color: #252D2D"></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="wbs-slug" style="font-size: 15px; font-weight: 500">Booking page link</label><div style="display: flex; align-items: center; height: 50px; border-radius: 14px; border: 1px solid #E3DED2; overflow: hidden"><span style="height: 100%; display: flex; align-items: center; padding: 0 12px; background: #F7F5F0; color: #737C79; font-size: 15px; border-right: 1px solid #E3DED2">/b/</span><input id="wbs-slug" type="text" value="studio-nour" style="flex: 1; min-width: 0; height: 100%; border: 0; padding: 0 14px; font-size: 16px; color: #252D2D"></div></div>
+<div style="display: flex; flex-direction: column; gap: 6px"><label for="wbs-tz" style="font-size: 15px; font-weight: 500">Timezone</label><sc-raw-select id="wbs-tz" style="height: 50px; border-radius: 14px; border: 1px solid #E3DED2; background: #FFFFFF; padding: 0 12px; font-size: 16px; color: #252D2D"><option>Asia/Beirut (UTC+2)</option></sc-raw-select><span style="font-size: 13px; color: #737C79">Clock changes are handled automatically.</span></div>
+</section>
+
+<section style="border-radius: 24px; background: #FFFFFF; border: 1px solid #E3DED2; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 600">Booking rules</h2>
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span id="wbs-step" style="font-size: 15px; font-weight: 500">Time slots every</span>
+<div role="radiogroup" aria-labelledby="wbs-step" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 16px; background: #F7F5F0">
+<button type="button" role="radio" aria-checked="false" style="height: 44px; border-radius: 12px; border: 0; background: transparent; color: #737C79; font-size: 15px">10 min</button>
+<button type="button" role="radio" aria-checked="true" style="height: 44px; border-radius: 12px; border: 0; background: #FFFFFF; color: #252D2D; font-size: 15px; font-weight: 600; box-shadow: 0 2px 6px rgba(37,45,45,0.1)">15 min</button>
+<button type="button" role="radio" aria-checked="false" style="height: 44px; border-radius: 12px; border: 0; background: transparent; color: #737C79; font-size: 15px">30 min</button>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 12px"><label for="wbs-win" style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Booking window</span><span style="font-size: 13px; color: #737C79">How far ahead clients can book</span></label><input id="wbs-win" type="text" inputmode="numeric" value="30" style="width: 64px; height: 46px; border-radius: 12px; border: 1px solid #E3DED2; text-align: center; font-size: 16px; color: #252D2D"><span style="width: 44px; font-size: 14px; color: #737C79">days</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><label for="wbs-min" style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Minimum notice</span><span style="font-size: 13px; color: #737C79">No bookings closer than this</span></label><input id="wbs-min" type="text" inputmode="numeric" value="60" style="width: 64px; height: 46px; border-radius: 12px; border: 1px solid #E3DED2; text-align: center; font-size: 16px; color: #252D2D"><span style="width: 44px; font-size: 14px; color: #737C79">min</span></div>
+<div style="display: flex; align-items: center; gap: 12px"><label for="wbs-cut" style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 500">Cancellation cutoff</span><span style="font-size: 13px; color: #737C79">Later cancels count as late</span></label><input id="wbs-cut" type="text" inputmode="numeric" value="24" style="width: 64px; height: 46px; border-radius: 12px; border: 1px solid #E3DED2; text-align: center; font-size: 16px; color: #252D2D"><span style="width: 44px; font-size: 14px; color: #737C79">hours</span></div>
+</section>
+
+<section style="border-radius: 24px; background: #FFFFFF; border: 1px solid #E3DED2; padding: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 13px; color: #737C79">Your plan</span><span style="font-size: 20px; font-weight: 600">Free</span><span style="font-size: 14px; color: #737C79">1 bookable staff member</span></div>
+<a href="#" style="height: 46px; padding: 0 20px; border-radius: 999px; background: #E8B86D; color: #252D2D; font-size: 15px; font-weight: 600; text-decoration: none; display: flex; align-items: center">See Pro</a>
+</section>
+</main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+renderVals() { return {}; }
+}
+</script>
+
+
+</body></html>

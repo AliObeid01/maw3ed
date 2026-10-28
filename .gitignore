@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.env
+.env.*
+!.env.example
+design/app-shots/
+design/boards/
+test-results/
+playwright-report/
+coverage/
+*.tsbuildinfo
+.vercel/
+.DS_Store

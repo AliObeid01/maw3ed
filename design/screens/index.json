@@ -1,0 +1,250 @@
+[
+  {
+    "n": 1,
+    "title": "Shared public header",
+    "file": "01-shared-public-header.html",
+    "width": 1440,
+    "height": 69,
+    "id": "e8c5054b-546e-4521-a838-6b76900cbe93"
+  },
+  {
+    "n": 2,
+    "title": "1.1 Choose service · web",
+    "file": "02-1.1-choose-service.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "9f7f31ee-268f-4606-bc99-ac383af38337"
+  },
+  {
+    "n": 3,
+    "title": "1.2 Choose staff · web",
+    "file": "03-1.2-choose-staff.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "08106b18-75c6-4ddb-a79a-26e3d4c217ff"
+  },
+  {
+    "n": 4,
+    "title": "1.3 Day & time · web",
+    "file": "04-1.3-day-and-time.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "1cddde2a-3549-439c-9068-4a7f182a71f8"
+  },
+  {
+    "n": 5,
+    "title": "1.4 Your details · web",
+    "file": "05-1.4-your-details.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "aa3373dc-e7f5-4f31-83f3-f0c37ea24eda"
+  },
+  {
+    "n": 6,
+    "title": "1.5 Booked · web",
+    "file": "06-1.5-booked.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "ac1c8169-13d8-44ec-ba9d-9bff9857b98a"
+  },
+  {
+    "n": 7,
+    "title": "1.6 Slot just taken · web",
+    "file": "07-1.6-slot-just-taken.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "c338c2db-db69-45a7-832c-154c968657da"
+  },
+  {
+    "n": 8,
+    "title": "1.7 Join waitlist · web",
+    "file": "08-1.7-join-waitlist.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "b05fa76a-336b-4ef7-9c68-acca4746b299"
+  },
+  {
+    "n": 9,
+    "title": "2.1 Confirm or cancel · web",
+    "file": "09-2.1-confirm-or-cancel.html",
+    "width": 1440,
+    "height": 900,
+    "id": "ff12e6b9-a78f-4959-b51c-67c6cb06eb75"
+  },
+  {
+    "n": 10,
+    "title": "2.2 Cancelled · web",
+    "file": "10-2.2-cancelled.html",
+    "width": 1440,
+    "height": 900,
+    "id": "1975afd8-a205-4972-865f-a8568eb3cd8c"
+  },
+  {
+    "n": 11,
+    "title": "2.3 Waitlist offer · web",
+    "file": "11-2.3-waitlist-offer.html",
+    "width": 1440,
+    "height": 900,
+    "id": "b90c9e93-dbaa-403d-b61e-e023e086062e"
+  },
+  {
+    "n": 12,
+    "title": "3.1 Sign up · web",
+    "file": "12-3.1-sign-up.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "5b861cd8-be9e-4de3-a5db-5eef25389f7f"
+  },
+  {
+    "n": 13,
+    "title": "3.2 Sign in · web",
+    "file": "13-3.2-sign-in.html",
+    "width": 1440,
+    "height": 900,
+    "id": "786034db-9d88-42e3-897c-7d760951c54c"
+  },
+  {
+    "n": 14,
+    "title": "3.3 Accept invite · web",
+    "file": "14-3.3-accept-invite.html",
+    "width": 1440,
+    "height": 900,
+    "id": "775ad15a-2c78-42cc-8602-53bb88ac89d2"
+  },
+  {
+    "n": 15,
+    "title": "3.4 Setup checklist · web",
+    "file": "15-3.4-setup-checklist.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "be67b7d9-68df-4db6-9c3d-06be7ac0d58e"
+  },
+  {
+    "n": 16,
+    "title": "3.5 Services · web",
+    "file": "16-3.5-services.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "e20ac464-e49c-47d8-9319-344f4021a9ad"
+  },
+  {
+    "n": 17,
+    "title": "3.6 Staff · web",
+    "file": "17-3.6-staff.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "2a82ed5d-58cb-47a3-a9f7-8ccd212c6264"
+  },
+  {
+    "n": 18,
+    "title": "3.7 Hours & time off · web",
+    "file": "18-3.7-hours-and-time-off.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "1ef987f9-42f4-4034-ad44-9f0d690defb4"
+  },
+  {
+    "n": 19,
+    "title": "3.8 Business settings · web",
+    "file": "19-3.8-business-settings.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "c4271b69-820f-44b1-9c35-4118820afb6f"
+  },
+  {
+    "n": 20,
+    "title": "3.9 Share booking link · web",
+    "file": "20-3.9-share-booking-link.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "1c726e91-6f42-476e-ad04-75170eca1d87"
+  },
+  {
+    "n": 21,
+    "title": "Shared sidebar",
+    "file": "21-shared-sidebar.html",
+    "width": 256,
+    "height": 900,
+    "id": "1293a402-0948-40f0-b7cb-6f242edfc832"
+  },
+  {
+    "n": 22,
+    "title": "4.1 Today · web",
+    "file": "22-4.1-today.html",
+    "width": 1440,
+    "height": 1100,
+    "id": "7dadcd71-42f0-4eea-adbd-be1ea014e5f9"
+  },
+  {
+    "n": 23,
+    "title": "4.2 Reminders due · web",
+    "file": "23-4.2-reminders-due.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "dddb3ff7-bf46-4b4f-9513-14fdb63972de"
+  },
+  {
+    "n": 24,
+    "title": "4.3 Front-desk booking · web",
+    "file": "24-4.3-front-desk-booking.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "92eb5dc6-995d-472b-a188-ab666c7e2120"
+  },
+  {
+    "n": 25,
+    "title": "4.4 Mark outcome · web",
+    "file": "25-4.4-mark-outcome.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "d758ea2d-a2a8-4ade-9c3f-ae0fe156ccbd"
+  },
+  {
+    "n": 26,
+    "title": "4.5 Appointment · web",
+    "file": "26-4.5-appointment.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "68a0f9c5-5991-46aa-a1cc-c18b6b0ce0a5"
+  },
+  {
+    "n": 27,
+    "title": "4.6 Clients · web",
+    "file": "27-4.6-clients.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "01279781-16bc-47ae-9b73-88293ffc978d"
+  },
+  {
+    "n": 28,
+    "title": "4.7 Client history · web",
+    "file": "28-4.7-client-history.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "e562c8ed-803a-4c1f-843e-24569890870f"
+  },
+  {
+    "n": 29,
+    "title": "4.8 Pilot report · web",
+    "file": "29-4.8-pilot-report.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "aa2a1cda-5b89-4fbf-bf99-30870275ebf7"
+  },
+  {
+    "n": 30,
+    "title": "5.1 Pricing · web",
+    "file": "30-5.1-pricing.html",
+    "width": 1440,
+    "height": 1000,
+    "id": "0928f591-0dd5-415b-b697-b3a2f92fe624"
+  },
+  {
+    "n": 31,
+    "title": "5.2 Deposit · web",
+    "file": "31-5.2-deposit.html",
+    "width": 1440,
+    "height": 900,
+    "id": "a705a828-2fec-4d31-92b5-0b314aacb4af"
+  }
+]
