@@ -7,7 +7,7 @@ export type ChipTone =
 
 const tones: Record<ChipTone, string> = {
   neutral: 'bg-divider text-muted',
-  muted: 'bg-divider text-subtle',
+  muted: 'bg-divider text-muted line-through',
   brand: 'bg-brand-soft text-brand',
   success: 'bg-success-soft text-success',
   danger: 'bg-danger-soft text-danger',

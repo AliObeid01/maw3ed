@@ -4,7 +4,9 @@
   --color-canvas: #f7f5f0;
   --color-surface: #ffffff;
   --color-ink: #252d2d;
-  --color-muted: #737c79;
+  /* Board value #737C79 is 3.9:1 on canvas and 3.5:1 on the divider chip; #626967 keeps the warm grey hue and passes AA (5.2 / 5.6 / 4.6:1). See scripts/design/contrast.mjs. */
+  --color-muted: #626967;
+  /* Placeholders and disabled text ONLY (3:1). Never use for real copy. */
   --color-subtle: #8a918e;
   --color-line: #e3ded2;
   --color-divider: #ece8df;
@@ -35,8 +37,8 @@
   --color-danger-line: #f5b3bd;
 
   --color-hero-ink: #e4eeec;
-  --color-hero-muted: #c9d6d4;
-  --color-hero-subtle: #bcd2d0;
+  --color-hero-muted: #d4dfdd; /* board #C9D6D4 is 4.1:1 at the teal glow */
+  --color-hero-subtle: #d0e0de; /* board #BCD2D0 is 3.9:1 at the teal glow */
 
   --radius-input: 14px;
   --radius-nav: 12px;

@@ -28,7 +28,7 @@ export function BookingSummary({ rows, className, bare }: BookingSummaryProps) {
         {rows.map((row) => (
           <div key={row.id} className="col-span-2 grid grid-cols-subgrid">
             <dt className="text-muted">{row.label}</dt>
-            <dd className={cn('m-0 min-w-0', row.value ? 'font-medium text-ink' : 'text-subtle')}>
+            <dd className={cn('m-0 min-w-0', row.value ? 'font-medium text-ink' : 'text-muted')}>
               {row.value ?? row.empty ?? t('empty')}
             </dd>
           </div>
