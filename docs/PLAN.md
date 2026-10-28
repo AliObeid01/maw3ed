@@ -19,17 +19,17 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **P0.9 H** Accounts and secrets from `docs/HUMAN_TASKS.md` §1–5; start recruiting pilots (§7).
 
 ## Phase 1 — Engine proven (29–31 Oct) · gate: slots + no-overlap + isolation tests green
-- [ ] **P1.1 BE** `prisma/schema.prisma`: all entities from `docs/DATA_MODEL.md`, businessId-first indexes, uniques, enums. (FR-01…24 data)
-- [ ] **P1.2 BE** Hand-written migration `appointment_no_overlap` + CHECKs + reminder partial index; `scripts/db/check-constraints.sql`, `check-overlaps.sql`. (NFR-07)
-- [ ] **P1.3 BE** `prisma/seed.ts`: "Studio Nour" (Hamra, Beirut; Lina owner+bookable, Karim, Jad, receptionist Rana; the five board services) + a second business for isolation tests.
-- [ ] **P1.4 BE** `src/server/http`: `withRoute`, `AppError`, error mapper (23P01→409, 23505→409), request id + pino logger, OpenAPI registry + `openapi:generate/check`. (NFR-02, NFR-11)
-- [ ] **P1.5 BE** `domain/slots.ts` `generateSlots` with TDD: split shifts, long service, buffers, time off, min notice, window edge, DST days (Asia/Beirut), "anyone" merge + least-booked pick. (FR-09, NFR-06)
-- [ ] **P1.6 BE** `domain/tokens.ts` (HMAC sign/verify, scope, expiry), `domain/phone.ts` (E.164, default LB), `domain/reminderWindows.ts`. (NFR-03, FR-15, FR-17)
+- [x] **P1.1 BE** `prisma/schema.prisma`: all entities from `docs/DATA_MODEL.md`, businessId-first indexes, uniques, enums. (FR-01…24 data)
+- [x] **P1.2 BE** Hand-written migration `appointment_no_overlap` + CHECKs + reminder partial index; `scripts/db/check-constraints.sql`, `check-overlaps.sql`. (NFR-07)
+- [x] **P1.3 BE** `prisma/seed.ts`: "Studio Nour" (Hamra, Beirut; Lina owner+bookable, Karim, Jad, receptionist Rana; the five board services) + a second business for isolation tests.
+- [x] **P1.4 BE** `src/server/http`: `withRoute`, `AppError`, error mapper (23P01→409, 23505→409), request id + pino logger, OpenAPI registry + `openapi:generate/check`. (NFR-02, NFR-11)
+- [x] **P1.5 BE** `domain/slots.ts` `generateSlots` with TDD: split shifts, long service, buffers, time off, min notice, window edge, DST days (Asia/Beirut), "anyone" merge + least-booked pick. (FR-09, NFR-06)
+- [x] **P1.6 BE** `domain/tokens.ts` (HMAC sign/verify, scope, expiry), `domain/phone.ts` (E.164, default LB), `domain/reminderWindows.ts`. (NFR-03, FR-15, FR-17)
 - [ ] **P1.7 BE** Auth: `POST /api/auth/signup` (Business + User + Membership OWNER + owner StaffMember, slug check), login/logout, `Session` table, argon2, cookie flags, `requireRole`. (FR-01, FR-02, NFR-03)
 - [ ] **P1.8 BE** Invites: `POST /api/invites`, `POST /api/invites/{token}/accept` (hashed, single-use, expiring), invite email via `EmailProvider` + `FakeEmailProvider`. (FR-02)
 - [ ] **P1.9 QA** `tenant.isolation.test.ts` scaffold + `booking.concurrency.test.ts` (red until P2.3); unit tests for tokens/phone/windows/guards.
-- [ ] **P1.10 FE** `PublicHeader`, `BusinessHero`, `StepRail`, `Button`/`IconButton`/`Input`/`Card`/`Chip`/`StatTile`/`Sheet` primitives.
-- [ ] **P1.11 FE** `AppShell`: sidebar (`lg+`), bottom tab bar + More sheet + FAB (< `lg`), badge slots, active state.
+- [x] **P1.10 FE** `PublicHeader`, `BusinessHero`, `StepRail`, `Button`/`IconButton`/`Input`/`Card`/`Chip`/`StatTile`/`Sheet` primitives.
+- [x] **P1.11 FE** `AppShell`: sidebar (`lg+`), bottom tab bar + More sheet + FAB (< `lg`), badge slots, active state.
 - [ ] **P1.12 FE** Screens 3.1 sign up, 3.2 sign in, 3.3 accept invite → wired to P1.7/P1.8.
 
 ## Phase 2 — Core flow live (31 Oct – 3 Nov) · gate: pilots go live 3 Nov
@@ -72,11 +72,11 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 ---
 
 ## Follow-ups from reviews (non-blocking, schedule alongside the phase that touches them)
-- [ ] **F1 FE** Focus ring is invisible on `bg-hero` and `primary` buttons: white outline on dark surfaces + `outline-offset-2` (before the public hero, P2.10).
-- [ ] **F2 FE** `Button`: add `ghost`/`danger` variants, 46 px row size, `loading` prop (spinner, `aria-busy`, disabled), `clsx`+`tailwind-merge` for className (P1.10).
-- [ ] **F3 FE** `Logo`: optional `label` (decorative = `aria-hidden`), fix the SVG `fontFamily` to use the next/font CSS variable, `tone` prop for a white logo on the hero, derive height from width (P1.10).
+- [x] **F1 FE** Focus ring is invisible on `bg-hero` and `primary` buttons: white outline on dark surfaces + `outline-offset-2` (before the public hero, P2.10).
+- [x] **F2 FE** `Button`: add `ghost`/`danger` variants, 46 px row size, `loading` prop (spinner, `aria-busy`, disabled), `clsx`+`tailwind-merge` for className (P1.10).
+- [x] **F3 FE** `Logo`: optional `label` (decorative = `aria-hidden`), fix the SVG `fontFamily` to use the next/font CSS variable, `tone` prop for a white logo on the hero, derive height from width (P1.10).
 - [ ] **F4 FE/BE** `?lang=` handoff: `src/proxy.ts` (Next 16) sets the `locale` cookie from `?lang=` and forwards `x-locale`/`x-business-locale`; export `LOCALE_COOKIE` from `src/i18n/config.ts`; resolution order per the `i18n-rtl` skill. Needed before the public booking page (P2.10).
-- [ ] **F5 FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
+- [ ] **F5 (viewport done in #7; timeZone remaining) FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
 - [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists. Unit-test `isLocale`/`dirFor` (P1.9).
 - [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
 - [ ] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
