@@ -7,6 +7,7 @@ import {
   type RoleName,
   type TokenIdentity,
 } from './auth';
+import { sessionCookie } from './cookies';
 import { AppError, mapError, safeError, zodFields } from './errors';
 import { childLogger, type Logger } from './logger';
 
@@ -19,11 +20,17 @@ export interface RouteContext {
   businessId?: string;
   userId?: string;
   role?: RoleName;
+  sessionId?: string;
   token?: TokenIdentity;
 }
 
 /** Context after a `session` guard: identity is guaranteed. */
-export type SessionContext = RouteContext & { businessId: string; userId: string; role: RoleName };
+export type SessionContext = RouteContext & {
+  businessId: string;
+  userId: string;
+  role: RoleName;
+  sessionId: string;
+};
 
 export interface RouteConfig {
   auth: AuthMode;
@@ -79,6 +86,67 @@ function queryToObject(url: URL): Record<string, string | string[]> {
   return out;
 }
 
+const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** Replace each dynamic segment value in the path with its `[name]`. */
+export function routeTemplate(pathname: string, params: Record<string, string | string[]>) {
+  const decode = (seg: string) => {
+    try {
+      return decodeURIComponent(seg);
+    } catch {
+      return seg;
+    }
+  };
+  let out = pathname;
+  for (const [name, value] of Object.entries(params)) {
+    if (Array.isArray(value)) {
+      const joined = value.join('/');
+      if (joined) out = out.replace(joined, `[...${name}]`);
+      continue;
+    }
+    if (!value) continue;
+    out = out
+      .split('/')
+      .map((seg) => (seg === value || decode(seg) === value ? `[${name}]` : seg))
+      .join('/');
+  }
+  return out;
+}
+
+/** Mutating routes with a JSON body require `Content-Type: application/json` (blocks form/text/plain CSRF). */
+function assertJsonContentType(req: Request) {
+  if (!MUTATING.has(req.method)) return;
+  const type = req.headers.get('content-type') ?? '';
+  if (!/^application\/json\s*(;|$)/i.test(type.trim()))
+    throw new AppError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Send the request as application/json.');
+}
+
+/**
+ * Session-authenticated mutations: a present `Origin` must match this request's host or APP_URL's host.
+ * An absent Origin (non-browser clients, same-site navigations) passes; SameSite=Lax covers the rest.
+ */
+function assertSameOrigin(req: Request, url: URL) {
+  if (!MUTATING.has(req.method)) return;
+  const origin = req.headers.get('origin');
+  if (origin === null) return;
+  const allowed = new Set([url.host]);
+  const forwarded = req.headers.get('x-forwarded-host');
+  if (forwarded) allowed.add(forwarded);
+  try {
+    if (process.env.APP_URL) allowed.add(new URL(process.env.APP_URL).host);
+  } catch {
+    /* ignore a malformed APP_URL */
+  }
+  let originHost: string | undefined;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    /* "null" and garbage origins are rejected below */
+  }
+  if (!originHost || !allowed.has(originHost))
+    throw AppError.forbidden('Cross-origin request blocked.');
+}
+
 export const MAX_BODY_BYTES = 64 * 1024;
 
 /** Read the body as text, refusing more than MAX_BODY_BYTES (content-length first, then the real bytes). */
@@ -126,13 +194,20 @@ export function withRoute<C extends RouteConfig>(
     const requestId = incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
     const url = new URL(req.url);
     const ctx: RouteContext = { requestId, logger: childLogger({ requestId }) };
+    const rawParams: Record<string, string | string[]> = routeArgs?.params
+      ? await Promise.resolve(routeArgs.params).catch(() => ({}))
+      : {};
+    // Log the route template (/api/invites/[token]/accept), never a path that carries a token.
+    const logPath = routeTemplate(url.pathname, rawParams);
+    let refresh: { token: string; expiresAt: Date } | undefined;
 
     /** Never log the raw error object: Prisma/pg messages can embed query parameters. */
     const finish = (res: Response, error?: unknown) => {
       res.headers.set('x-request-id', requestId);
+      if (!res.headers.has('cache-control')) res.headers.set('cache-control', 'no-store');
       const entry = {
         method: req.method,
-        path: url.pathname,
+        path: logPath,
         status: res.status,
         durationMs: Math.round(performance.now() - started),
         businessId: ctx.businessId,
@@ -146,9 +221,16 @@ export function withRoute<C extends RouteConfig>(
       if (config.auth === 'cron') {
         assertCronSecret(req);
       } else if (config.auth === 'session') {
+        assertSameOrigin(req, url);
         const session = await resolveSession(req);
         if (config.roles && !config.roles.includes(session.role)) throw AppError.forbidden();
-        Object.assign(ctx, session);
+        refresh = session.refresh;
+        Object.assign(ctx, {
+          userId: session.userId,
+          businessId: session.businessId,
+          role: session.role,
+          sessionId: session.sessionId,
+        });
         ctx.logger = childLogger({
           requestId,
           businessId: session.businessId,
@@ -156,9 +238,9 @@ export function withRoute<C extends RouteConfig>(
         });
       }
 
-      const rawParams = routeArgs?.params ? await routeArgs.params : {};
       const params = parse(config.params, rawParams, 'params');
       const query = parse(config.query, queryToObject(url), 'query');
+      if (config.body) assertJsonContentType(req);
       const body = config.body ? parse(config.body, await readBody(req), 'body') : undefined;
 
       if (config.auth === 'token') {
@@ -168,6 +250,9 @@ export function withRoute<C extends RouteConfig>(
       }
 
       const res = await handler({ req, ctx, params, query, body } as HandlerArgs<C>);
+      // Sliding session: re-issue the cookie so the browser expiry moves with the database one.
+      if (refresh && !res.headers.has('set-cookie'))
+        res.headers.append('set-cookie', sessionCookie(refresh.token, refresh.expiresAt));
       return finish(res);
     } catch (error) {
       const mapped = mapError(error);

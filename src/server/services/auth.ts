@@ -1,0 +1,188 @@
+import { slugProblem } from '@/server/contracts/slug';
+import type { RoleName } from '@/server/http/auth';
+import { AppError, fromDbError } from '@/server/http/errors';
+import type { RouteContext, SessionContext } from '@/server/http/withRoute';
+import { accountRepo } from '@/server/repositories/account.repo';
+import { businessRepo } from '@/server/repositories/business.repo';
+import { membershipRepo } from '@/server/repositories/membership.repo';
+import { userRepo } from '@/server/repositories/user.repo';
+import { loginThrottle, type Throttle } from './loginThrottle';
+import { hashPassword, verifyPassword } from './password';
+import { sessionService } from './session';
+
+export interface SessionInfo {
+  user: { id: string; name: string; email: string };
+  business: { id: string; slug: string; name: string; timezone: string };
+  role: RoleName;
+}
+
+/** What a route needs to answer and to set the cookie. */
+export interface SignedIn {
+  info: SessionInfo;
+  token: string;
+  expiresAt: Date;
+}
+
+export const toSessionInfo = (
+  user: { id: string; name: string; email: string },
+  business: { id: string; slug: string; name: string; timezone: string },
+  role: RoleName,
+): SessionInfo => ({
+  user: { id: user.id, name: user.name, email: user.email },
+  business: {
+    id: business.id,
+    slug: business.slug,
+    name: business.name,
+    timezone: business.timezone,
+  },
+  role,
+});
+
+export interface AuthDeps {
+  now: () => Date;
+  throttle: Throttle;
+}
+const defaultDeps: AuthDeps = { now: () => new Date(), throttle: loginThrottle };
+
+export interface SignupInput {
+  businessName: string;
+  slug: string;
+  timezone: string;
+  ownerName: string;
+  email: string;
+  password: string;
+}
+
+export const authService = {
+  async slugCheck(
+    slug: string,
+  ): Promise<{ available: boolean; reason?: 'invalid' | 'reserved' | 'taken' }> {
+    const problem = slugProblem(slug);
+    if (problem) return { available: false, reason: problem };
+    if (await businessRepo.slugExists(slug)) return { available: false, reason: 'taken' };
+    return { available: true };
+  },
+
+  async signup(
+    ctx: RouteContext,
+    input: SignupInput,
+    deps: AuthDeps = defaultDeps,
+  ): Promise<SignedIn> {
+    const problem = slugProblem(input.slug);
+    if (problem)
+      throw AppError.validation({
+        slug:
+          problem === 'reserved'
+            ? 'This address is reserved.'
+            : 'Use 3-40 lowercase letters, digits or hyphens.',
+      });
+    if (await businessRepo.slugExists(input.slug))
+      throw AppError.conflict('SLUG_TAKEN', undefined, 'That booking address is already taken.');
+    // Email enumeration at signup is an accepted trade-off.
+    if (await userRepo.findByEmail(input.email))
+      throw AppError.conflict(
+        'EMAIL_TAKEN',
+        undefined,
+        'An account with this email already exists.',
+      );
+
+    const passwordHash = await hashPassword(input.password);
+    const session = sessionService.issue(deps.now());
+    try {
+      const { business, user } = await accountRepo.createBusinessWithOwner({
+        business: { slug: input.slug, name: input.businessName, timezone: input.timezone },
+        owner: { name: input.ownerName, email: input.email, passwordHash },
+        sessionTokenHash: session.tokenHash,
+        sessionExpiresAt: session.expiresAt,
+      });
+      ctx.logger.info({ businessId: business.id, userId: user.id }, 'business signed up');
+      return {
+        info: toSessionInfo(user, business, 'OWNER'),
+        token: session.token,
+        expiresAt: session.expiresAt,
+      };
+    } catch (error) {
+      // Lost a race on a unique key: say which one.
+      if (fromDbError(error)?.code === 'CONFLICT') {
+        if (await businessRepo.slugExists(input.slug))
+          throw AppError.conflict(
+            'SLUG_TAKEN',
+            undefined,
+            'That booking address is already taken.',
+          );
+        throw AppError.conflict(
+          'EMAIL_TAKEN',
+          undefined,
+          'An account with this email already exists.',
+        );
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Wrong email and wrong password are indistinguishable: same status, body and (roughly) the same time,
+   * because a missing user is verified against a dummy hash. A user in several businesses is signed into
+   * the most recently created membership (business switching is out of scope for now).
+   */
+  async login(
+    ctx: RouteContext,
+    input: { email: string; password: string },
+    deps: AuthDeps = defaultDeps,
+  ): Promise<SignedIn> {
+    const now = deps.now();
+    const wait = deps.throttle.retryAfterSec(input.email, now);
+    if (wait > 0) throw AppError.tooManyAttempts(wait);
+
+    const user = await userRepo.findByEmail(input.email);
+    const valid = await verifyPassword(input.password, user?.passwordHash);
+    const membership = valid && user ? await membershipRepo.findLatestForUser(user.id) : null;
+    if (!user || !valid || !membership) {
+      deps.throttle.recordFailure(input.email, now);
+      ctx.logger.warn('login failed');
+      throw AppError.invalidCredentials();
+    }
+    deps.throttle.clear(input.email);
+    const session = await sessionService.create(membership.businessId, user.id, now);
+    ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
+    return {
+      info: toSessionInfo(user, membership.business, membership.role),
+      token: session.token,
+      expiresAt: session.expiresAt,
+    };
+  },
+
+  async logout(ctx: SessionContext): Promise<void> {
+    await sessionService.destroy(ctx.businessId, ctx.sessionId);
+    ctx.logger.info('logout');
+  },
+
+  /** For server components: cookie token -> everything the dashboard shell needs, or null. */
+  async current(token: string) {
+    const resolved = await sessionService.resolve(token);
+    if (!resolved) return null;
+    const [user, business] = await Promise.all([
+      userRepo.findById(resolved.userId),
+      businessRepo.findById(resolved.businessId),
+    ]);
+    if (!user || !business) return null;
+    return {
+      userId: user.id,
+      userName: user.name,
+      businessId: business.id,
+      businessName: business.name,
+      businessSlug: business.slug,
+      timezone: business.timezone,
+      role: resolved.role,
+    };
+  },
+
+  async me(ctx: SessionContext): Promise<SessionInfo> {
+    const [user, business] = await Promise.all([
+      userRepo.findById(ctx.userId),
+      businessRepo.findById(ctx.businessId),
+    ]);
+    if (!user || !business) throw AppError.unauthenticated();
+    return toSessionInfo(user, business, ctx.role);
+  },
+};

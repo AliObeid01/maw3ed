@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Client } from 'pg';
+import { poolConfigFromUrl } from '../../../src/server/repositories/db';
 import { PrismaClient } from '../../../src/generated/prisma/client';
 
 /**
@@ -36,7 +37,7 @@ export function testConnectionString(): string {
 
 export function newClient(): Client {
   return new Client({
-    connectionString: testConnectionString(),
+    ...poolConfigFromUrl(testConnectionString()),
     options: `-c search_path=${TEST_SCHEMA}`,
   });
 }
@@ -44,7 +45,7 @@ export function newClient(): Client {
 /** (Re)create the isolated schema and apply every migration, in order, inside it. */
 export async function setupSchema(): Promise<void> {
   assertSafeSchema(TEST_SCHEMA);
-  const client = new Client({ connectionString: testConnectionString() });
+  const client = new Client(poolConfigFromUrl(testConnectionString()));
   await client.connect();
   try {
     await client.query(`DROP SCHEMA IF EXISTS ${TEST_SCHEMA} CASCADE`);
@@ -77,6 +78,6 @@ export async function truncateAll(client: Client): Promise<void> {
 /** Prisma client bound to the isolated schema (for fixtures and for checking real driver errors). */
 export function newPrisma(): PrismaClient {
   return new PrismaClient({
-    adapter: new PrismaPg({ connectionString: testConnectionString() }, { schema: TEST_SCHEMA }),
+    adapter: new PrismaPg(poolConfigFromUrl(testConnectionString()), { schema: TEST_SCHEMA }),
   });
 }

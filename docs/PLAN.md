@@ -84,3 +84,12 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
 - [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.
 - [ ] **F12 FE** Narrow `use client` boundaries: `AppShell` and `StepRail` are fully client components; split the interactive parts (More sheet trigger, back button) so the rest renders on the server.
+
+## Launch gates (must be done before the pilot goes live)
+
+- [ ] **L1 Shared login throttle.** Today's throttle is an in-memory map (per serverless instance, reset on cold start). Replace it with a shared store (Postgres table or Redis), keyed email + IP, plus a per-IP budget and a global argon2 concurrency/rate limit (this also protects signup, slug-check and unknown-email floods, which each cost an argon2 hash or a DB query). Known weakness until then: anyone can lock a victim out of login for 15 minutes by failing 5 times against their email.
+- [ ] **L2 Session and invite hygiene.** Cron job to purge expired `Session` and `Invite` rows; add an absolute session lifetime (e.g. 90 days) on top of the 30-day sliding expiry; add a "sign out other sessions" option.
+- [ ] **L3 Staff removal revokes sessions.** When staff removal is built, delete that user's sessions for that business in the same transaction (otherwise a stale cookie revives access if they are re-added within 30 days).
+- [ ] **L4 No email verification at signup.** Consequence: an attacker can pre-register someone's address so that a later invite to it hits an existing account (accept then needs that account's password, so it fails for the real person). There is no account takeover, but it is a squatting/DoS vector. Decide whether to add email verification before launch.
+- [ ] **L5 Referrer-Policy.** Send `Referrer-Policy: no-referrer` on `/invite/[token]` and every other page that carries a token in its URL (confirm/cancel/offer/pay links), so tokens never leak through the Referer header.
+- [ ] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.

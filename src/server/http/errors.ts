@@ -11,6 +11,8 @@ export type ErrorCode =
   | 'OFFER_EXPIRED'
   | 'SERVICE_UNAVAILABLE'
   | 'NOT_IMPLEMENTED'
+  | 'INVALID_CREDENTIALS'
+  | 'TOO_MANY_ATTEMPTS'
   | 'INTERNAL'
   | (string & {});
 
@@ -66,6 +68,19 @@ export class AppError extends Error {
     message = 'The request conflicts with the current state.',
   ) {
     return new AppError(409, code, message, {}, data);
+  }
+  /** Login and invite-accept failures: one message for wrong email and wrong password. */
+  static invalidCredentials() {
+    return new AppError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password.');
+  }
+  static tooManyAttempts(retryAfterSec: number) {
+    return new AppError(
+      429,
+      'TOO_MANY_ATTEMPTS',
+      'Too many attempts. Try again later.',
+      {},
+      { retryAfterSec },
+    );
   }
   static gone(code: ErrorCode = 'LINK_EXPIRED', message = 'This link has expired.') {
     return new AppError(410, code, message);

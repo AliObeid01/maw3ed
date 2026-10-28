@@ -108,6 +108,7 @@ with GET (no side effect) and act with POST, so email link scanners can't cancel
 | `FOR UPDATE SKIP LOCKED` + unique job key + provider idempotency key | Three independent layers make a duplicate send impossible to record, to claim and to deliver. |
 | External scheduler (cron-job.org) instead of Vercel Cron | Vercel Hobby cron runs once a day; the job route is idempotent, so a backup scheduler is safe. |
 | Custom session table instead of Auth.js | Credentials provider forces JWT sessions; we need server-side revocation and a business-scoped session. |
+| Repository-owned transactions (`account.repo`, `invite.repo`) | Signup and invite-accept must commit several tables atomically; the Prisma transaction handle may only live in `src/server/repositories`, so those repos expose one method per transaction (an accepted exception to "one repo per entity"). |
 | Luxon for time | Explicit zone-aware local → UTC conversion; DST handling is covered by tests. |
 | WhatsApp via `wa.me` prefilled links | No paid Business API; the receptionist sends from their phone and the server records who sent it. |
 | No locale prefix in URLs | Keeps `/b/{slug}` stable for sharing on Instagram and WhatsApp. |
