@@ -1,0 +1,55 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: maw3ed
+          POSTGRES_PASSWORD: maw3ed
+          POSTGRES_DB: maw3ed_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U maw3ed" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      DIRECT_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      DATABASE_URL_TEST: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      APP_URL: http://localhost:3000
+      SESSION_SECRET: ci-session-secret-ci-session-secret
+      LINK_SECRET: ci-link-secret-ci-link-secret-00
+      CRON_SECRET: ci-cron-secret
+      EMAIL_PROVIDER: fake
+      PAYMENT_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Migrate (skipped until the Prisma schema lands)
+        run: |
+          if [ -f prisma/schema.prisma ]; then pnpm prisma migrate deploy; else echo "no schema yet"; fi
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test:unit --passWithNoTests
+      - run: pnpm test:int --passWithNoTests
+      - run: pnpm build
+      - name: OpenAPI contract
+        run: |
+          if [ -f scripts/openapi/check.ts ]; then pnpm openapi:check; else echo "no contract yet"; fi
+      - name: i18n keys
+        run: |
+          if [ -f scripts/i18n/check-keys.mjs ]; then node scripts/i18n/check-keys.mjs; else echo "no check yet"; fi

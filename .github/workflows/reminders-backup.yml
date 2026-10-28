@@ -1,0 +1,15 @@
+# Backup scheduler. Job routes are idempotent, so a second caller alongside cron-job.org is harmless.
+name: Job triggers (backup)
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    if: ${{ vars.APP_URL != '' }}
+    steps:
+      - run: |
+          curl -fsS -X POST "${{ vars.APP_URL }}/api/jobs/reminders" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+          curl -fsS -X POST "${{ vars.APP_URL }}/api/jobs/waitlist-expiry" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
