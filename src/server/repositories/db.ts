@@ -2,6 +2,27 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 import { rootLogger } from '@/server/http/logger';
 
+const VERIFYING_MODES = new Set(['require', 'prefer', 'verify-ca', 'verify-full']);
+
+/**
+ * pg (v8) treats sslmode=require|prefer|verify-ca as verify-full and prints a warning because v9 will
+ * switch to libpq semantics. Say what we mean explicitly: strip `sslmode` from the URL and pass an
+ * `ssl` option. Any of those modes -> TLS with certificate verification (what pg does today, and what
+ * Neon's publicly signed certificates support); `disable`, `allow` or no sslmode (local Postgres) -> no TLS.
+ */
+export function poolConfigFromUrl(rawUrl: string): {
+  connectionString: string;
+  ssl?: { rejectUnauthorized: true };
+} {
+  const url = new URL(rawUrl);
+  const mode = url.searchParams.get('sslmode');
+  if (mode === null) return { connectionString: rawUrl };
+  url.searchParams.delete('sslmode');
+  return VERIFYING_MODES.has(mode)
+    ? { connectionString: url.toString(), ssl: { rejectUnauthorized: true } }
+    : { connectionString: url.toString() };
+}
+
 /**
  * The only Prisma client in the app. Only files under src/server/repositories may import this.
  * Runtime uses DATABASE_URL (pooled on Neon); migrations use DIRECT_URL via prisma.config.ts.
@@ -14,8 +35,15 @@ function createClient(): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
   const adapter = new PrismaPg(
-    { connectionString, max: 5, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 5_000 },
     {
+      ...poolConfigFromUrl(connectionString),
+      max: 5,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 5_000,
+    },
+    {
+      // DATABASE_SCHEMA points the app at a non-default schema (integration tests use "itest").
+      ...(process.env.DATABASE_SCHEMA ? { schema: process.env.DATABASE_SCHEMA } : {}),
       onPoolError: (err) => {
         rootLogger.error(
           { err: { name: err.name, message: err.message } },
