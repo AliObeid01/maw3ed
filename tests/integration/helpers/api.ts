@@ -20,7 +20,8 @@ export async function call(handler: Handler, path: string, opts: CallOptions = {
   const url = new URL(`http://localhost${path}`);
   for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
   const headers: Record<string, string> = { ...opts.headers };
-  if (opts.body !== undefined) headers['content-type'] = 'application/json';
+  if (opts.body !== undefined && !headers['content-type'])
+    headers['content-type'] = 'application/json';
   if (opts.cookie) headers.cookie = opts.cookie;
   const req = new Request(url, {
     method: opts.method ?? (opts.body !== undefined ? 'POST' : 'GET'),

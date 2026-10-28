@@ -3,24 +3,45 @@ import { PrismaClient } from '@/generated/prisma/client';
 import { rootLogger } from '@/server/http/logger';
 
 const VERIFYING_MODES = new Set(['require', 'prefer', 'verify-ca', 'verify-full']);
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '::1', '[::1]']);
 
 /**
  * pg (v8) treats sslmode=require|prefer|verify-ca as verify-full and prints a warning because v9 will
  * switch to libpq semantics. Say what we mean explicitly: strip `sslmode` from the URL and pass an
- * `ssl` option. Any of those modes -> TLS with certificate verification (what pg does today, and what
- * Neon's publicly signed certificates support); `disable`, `allow` or no sslmode (local Postgres) -> no TLS.
+ * `ssl` option.
+ *
+ * Fails closed: only localhost, 127.0.0.1 and ::1 may connect without TLS. Any other host always gets
+ * TLS with certificate verification (a missing sslmode included). `disable`, `allow`, `no-verify` and any
+ * unknown or misspelled value throw for a remote host, so a typo can never downgrade a production URL.
  */
 export function poolConfigFromUrl(rawUrl: string): {
   connectionString: string;
   ssl?: { rejectUnauthorized: true };
 } {
   const url = new URL(rawUrl);
+  const local = LOCAL_HOSTS.has(url.hostname);
   const mode = url.searchParams.get('sslmode');
-  if (mode === null) return { connectionString: rawUrl };
   url.searchParams.delete('sslmode');
-  return VERIFYING_MODES.has(mode)
-    ? { connectionString: url.toString(), ssl: { rejectUnauthorized: true } }
-    : { connectionString: url.toString() };
+  const tls = mode !== null && VERIFYING_MODES.has(mode);
+  if (!local && mode !== null && !tls)
+    throw new Error(
+      `Refusing to connect to a remote database without TLS verification: unsupported sslmode "${mode}" (use require or verify-full).`,
+    );
+  const connectionString = mode === null ? rawUrl : url.toString();
+  return !local || tls
+    ? { connectionString, ssl: { rejectUnauthorized: true } }
+    : { connectionString };
+}
+
+/** DATABASE_SCHEMA is a test seam: refused in production and restricted to a plain identifier. */
+export function schemaFromEnv(env: NodeJS.ProcessEnv = process.env): string | undefined {
+  const schema = env.DATABASE_SCHEMA;
+  if (!schema) return undefined;
+  if (env.NODE_ENV === 'production')
+    throw new Error('DATABASE_SCHEMA must not be set in production.');
+  if (!/^[a-z_][a-z0-9_]*$/.test(schema))
+    throw new Error('DATABASE_SCHEMA is not a valid identifier.');
+  return schema;
 }
 
 /**
@@ -43,7 +64,7 @@ function createClient(): PrismaClient {
     },
     {
       // DATABASE_SCHEMA points the app at a non-default schema (integration tests use "itest").
-      ...(process.env.DATABASE_SCHEMA ? { schema: process.env.DATABASE_SCHEMA } : {}),
+      ...(schemaFromEnv() ? { schema: schemaFromEnv() } : {}),
       onPoolError: (err) => {
         rootLogger.error(
           { err: { name: err.name, message: err.message } },

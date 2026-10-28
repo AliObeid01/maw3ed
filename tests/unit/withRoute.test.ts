@@ -28,6 +28,7 @@ describe('withRoute parsing', () => {
     const res = await route(
       new Request('http://localhost/api/x?limit=5', {
         method: 'POST',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: ' Lina ' }),
       }),
       args,
@@ -56,7 +57,11 @@ describe('withRoute parsing', () => {
 
   it('rejects unknown query params and bad params', async () => {
     const badQuery = await route(
-      new Request('http://localhost/api/x?nope=1', { method: 'POST', body: '{"name":"a"}' }),
+      new Request('http://localhost/api/x?nope=1', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: '{"name":"a"}',
+      }),
       args,
     );
     expect(badQuery.status).toBe(400);
@@ -67,7 +72,13 @@ describe('withRoute parsing', () => {
 
   it('returns 400 for malformed JSON and for a missing required body', async () => {
     expect((await route(post('{oops'), args)).status).toBe(400);
-    const missing = await route(new Request('http://localhost/api/x', { method: 'POST' }), args);
+    const missing = await route(
+      new Request('http://localhost/api/x', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+      }),
+      args,
+    );
     expect(missing.status).toBe(400);
   });
 

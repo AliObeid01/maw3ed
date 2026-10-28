@@ -10,12 +10,35 @@ const g = globalThis as unknown as { __maw3edFakeEmail?: FakeEmailProvider };
 export const fakeEmailProvider: FakeEmailProvider = (g.__maw3edFakeEmail ??=
   new FakeEmailProvider());
 
-/** True when running with the fake provider (the default), e.g. to expose dev-only links. */
-export const isFakeEmail = () => (process.env.EMAIL_PROVIDER ?? 'fake') === 'fake';
+/** Test seam: replace the provider that `getEmailProvider` returns for a non-fake name. */
+let override: EmailProvider | undefined;
+export function setEmailProviderOverride(provider: EmailProvider | undefined) {
+  override = provider;
+}
+
+/**
+ * Which provider is configured. Fails CLOSED: in production an unset or 'fake' EMAIL_PROVIDER is a
+ * configuration error, never a silent fallback to the fake.
+ */
+export function emailProviderName(): string {
+  const configured = process.env.EMAIL_PROVIDER;
+  if (process.env.NODE_ENV === 'production') {
+    if (!configured || configured === 'fake')
+      throw new Error(
+        'EMAIL_PROVIDER must be set to a real provider in production (unset or "fake" is not allowed).',
+      );
+    return configured;
+  }
+  return configured || 'fake';
+}
+
+/** True only for the fake provider outside production. Production never reports fake (it throws). */
+export const isFakeEmail = () => emailProviderName() === 'fake';
 
 export function getEmailProvider(): EmailProvider {
-  const name = process.env.EMAIL_PROVIDER ?? 'fake';
+  const name = emailProviderName();
   if (name === 'fake') return fakeEmailProvider;
+  if (override) return override;
   if (name === 'resend') throw new Error('EMAIL_PROVIDER=resend is not implemented yet.');
   throw new Error(`Unknown EMAIL_PROVIDER "${name}".`);
 }

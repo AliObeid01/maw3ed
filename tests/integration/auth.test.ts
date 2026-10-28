@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { POST as login } from '@/app/api/auth/login/route';
 import { POST as logout } from '@/app/api/auth/logout/route';
@@ -7,6 +7,7 @@ import { POST as signupRoute } from '@/app/api/auth/signup/route';
 import { GET as me } from '@/app/api/me/route';
 import { sha256Hex } from '@/server/services/crypto';
 import { loginThrottle } from '@/server/services/loginThrottle';
+import { sessionService } from '@/server/services/session';
 import { call, PASSWORD, signup, signupBody } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 
@@ -66,15 +67,30 @@ describe('POST /api/auth/signup', () => {
     expect(meRes.body).toEqual(res.body);
   });
 
-  it('is atomic: a failure after the business insert leaves nothing behind', async () => {
-    // Email conflict is detected up front, so force the transaction path: same slug race is covered by 409 below.
+  it('is atomic: a failure after the business insert rolls everything back', async () => {
     const first = await signup();
-    const dup = await call(signupRoute, '/api/auth/signup', {
-      body: signupBody({ email: first.body.email, slug: 'another-slug' }),
+    // Make the LAST insert in the transaction (Session) fail by reusing an existing token hash.
+    const taken = sha256Hex(first.cookie.split('=')[1]!);
+    const spy = vi.spyOn(sessionService, 'issue').mockReturnValue({
+      token: 'x',
+      tokenHash: taken,
+      expiresAt: new Date(Date.now() + 60_000),
     });
-    expect(dup.status).toBe(409);
+    try {
+      const res = await call(signupRoute, '/api/auth/signup', {
+        body: signupBody({ slug: 'rolled-back' }),
+      });
+      expect(res.status).toBeGreaterThanOrEqual(400);
+    } finally {
+      spy.mockRestore();
+    }
     expect(await count('Business')).toBe(1);
+    expect(await count('User')).toBe(1);
+    expect(await count('Membership')).toBe(1);
+    expect(await count('StaffMember')).toBe(1);
     expect(await count('Session')).toBe(1);
+    const leaked = await pg.query(`SELECT 1 FROM "Business" WHERE slug = 'rolled-back'`);
+    expect(leaked.rowCount).toBe(0);
   });
 
   it('409 SLUG_TAKEN and EMAIL_TAKEN', async () => {
@@ -338,5 +354,88 @@ describe('GET /api/me and logout', () => {
     });
     await call(logout, '/api/auth/logout', { method: 'POST', cookie });
     expect((await call(me, '/api/me', { cookie: second.cookie })).status).toBe(200);
+  });
+});
+
+describe('throttle identity', () => {
+  it('an unknown email gets the same 401 x5 then the same 429 as a known one', async () => {
+    const { body } = await signup();
+    const run = async (email: string) => {
+      const out = [];
+      for (let i = 0; i < 6; i++)
+        out.push(
+          await call(login, '/api/auth/login', { body: { email, password: 'wrong-password-1' } }),
+        );
+      return out;
+    };
+    const known = await run(body.email);
+    const unknown = await run('nobody@example.test');
+    expect(known.map((r) => r.status)).toEqual([401, 401, 401, 401, 401, 429]);
+    expect(unknown.map((r) => r.status)).toEqual(known.map((r) => r.status));
+    expect(unknown[5]!.body!.error.code).toBe(known[5]!.body!.error.code);
+    expect(unknown[5]!.body!.error.message).toBe(known[5]!.body!.error.message);
+  });
+});
+
+describe('request hardening', () => {
+  it('login with text/plain is 415 and creates no session', async () => {
+    const { body } = await signup();
+    const sessions = await count('Session');
+    const res = await call(login, '/api/auth/login', {
+      body: { email: body.email, password: PASSWORD },
+      headers: { 'content-type': 'text/plain' },
+    });
+    expect(res.status).toBe(415);
+    expect(res.body!.error.code).toBe('UNSUPPORTED_MEDIA_TYPE');
+    expect(await count('Session')).toBe(sessions);
+  });
+
+  it('a cross-origin Origin on a session route is 403; same-origin and absent Origin work', async () => {
+    const { cookie } = await signup();
+    const cross = await call(logout, '/api/auth/logout', {
+      method: 'POST',
+      cookie,
+      headers: { origin: 'https://evil.example' },
+    });
+    expect(cross.status).toBe(403);
+    expect(await count('Session')).toBe(1);
+    const same = await call(me, '/api/me', { cookie, headers: { origin: 'http://localhost' } });
+    expect(same.status).toBe(200);
+    const out = await call(logout, '/api/auth/logout', {
+      method: 'POST',
+      cookie,
+      headers: { origin: 'http://localhost:3000' },
+    });
+    expect(out.status).toBe(204);
+  });
+
+  it('auth responses are no-store', async () => {
+    const { body, res, cookie } = await signup();
+    expect(res.headers.get('cache-control')).toBe('no-store');
+    const l = await call(login, '/api/auth/login', {
+      body: { email: body.email, password: PASSWORD },
+    });
+    expect(l.headers.get('cache-control')).toBe('no-store');
+    expect((await call(me, '/api/me', { cookie })).headers.get('cache-control')).toBe('no-store');
+    const out = await call(logout, '/api/auth/logout', { method: 'POST', cookie });
+    expect(out.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('production cookie is __Host-, Secure, Path=/, with no Domain', async () => {
+    const { body } = await signup(); // creates the DB client before NODE_ENV changes
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const l = await call(login, '/api/auth/login', {
+        body: { email: body.email, password: PASSWORD },
+      });
+      expect(l.status).toBe(200);
+      expect(l.setCookie).toMatch(/^__Host-maw3ed_session=[A-Za-z0-9_-]{43};/);
+      expect(l.setCookie).toContain('Secure');
+      expect(l.setCookie).toContain('HttpOnly');
+      expect(l.setCookie).toContain('Path=/');
+      expect(l.setCookie).not.toContain('Domain');
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

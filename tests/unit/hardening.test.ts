@@ -68,7 +68,13 @@ describe('withRoute input limits', () => {
     async ({ body }) => ok(body),
   );
   const post = (body: string, headers: Record<string, string> = {}) =>
-    route(new Request('http://localhost/x', { method: 'POST', body, headers }));
+    route(
+      new Request('http://localhost/x', {
+        method: 'POST',
+        body,
+        headers: { 'content-type': 'application/json', ...headers },
+      }),
+    );
 
   it('rejects an oversized body by content-length with 413', async () => {
     const res = await post('{}', { 'content-length': String(MAX_BODY_BYTES + 1) });

@@ -7,5 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export const POST = withRoute({ auth: 'public', body: LoginBody }, async ({ ctx, body }) => {
   const { info, token, expiresAt } = await authService.login(ctx, body);
-  return json(info, 200, { 'Set-Cookie': sessionCookie(token, expiresAt) });
+  return json(info, 200, {
+    'Set-Cookie': sessionCookie(token, expiresAt),
+    'Cache-Control': 'no-store',
+  });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createInMemoryThrottle, WINDOW_MS } from '@/server/services/loginThrottle';
+import { createInMemoryThrottle, MAX_KEYS, WINDOW_MS } from '@/server/services/loginThrottle';
 
 const T0 = new Date('2026-11-01T10:00:00Z');
 const at = (ms: number) => new Date(T0.getTime() + ms);
@@ -22,5 +22,19 @@ describe('login throttle', () => {
     for (let i = 0; i < 5; i++) t.recordFailure('c@x.com', at(0));
     t.clear('c@x.com');
     expect(t.retryAfterSec('c@x.com', at(1))).toBe(0);
+  });
+
+  it('evicts expired entries so the map cannot grow without bound', () => {
+    const t = createInMemoryThrottle();
+    for (let i = 0; i < 500; i++) t.recordFailure(`old${i}@x.com`, at(0));
+    expect(t.size()).toBe(500);
+    t.recordFailure('new@x.com', at(WINDOW_MS + 1));
+    expect(t.size()).toBe(1);
+  });
+
+  it('caps the number of live keys', () => {
+    const t = createInMemoryThrottle();
+    for (let i = 0; i < MAX_KEYS + 50; i++) t.recordFailure(`k${i}@x.com`, at(i));
+    expect(t.size()).toBeLessThanOrEqual(MAX_KEYS + 1);
   });
 });

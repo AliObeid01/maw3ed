@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { authService } from '@/server/services/auth';
 import type { RoleName } from './auth';
-import { SESSION_COOKIE } from './cookies';
+import { sessionCookieName } from './cookies';
 
 export interface CurrentSession {
   userId: string;
@@ -20,7 +20,7 @@ export interface CurrentSession {
  * the next API call that slides the session; the database expiry is extended here regardless.)
  */
 export async function getCurrentSession(): Promise<CurrentSession | null> {
-  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(sessionCookieName())?.value;
   return token ? authService.current(token) : null;
 }
 

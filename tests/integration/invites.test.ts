@@ -1,11 +1,11 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { POST as login } from '@/app/api/auth/login/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { POST as acceptInvite } from '@/app/api/invites/[token]/accept/route';
 import { GET as previewInvite } from '@/app/api/invites/[token]/route';
 import { GET as me } from '@/app/api/me/route';
-import { fakeEmailProvider } from '@/server/providers/email';
+import { fakeEmailProvider, setEmailProviderOverride } from '@/server/providers/email';
 import { sha256Hex } from '@/server/services/crypto';
 import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, PASSWORD, signup } from './helpers/api';
@@ -67,20 +67,47 @@ describe('POST /api/invites', () => {
     expect(mail.idempotencyKey).toBe(`invite:${res.body!.id}`);
   });
 
-  it('does not return acceptUrl when the provider is not fake', async () => {
+  it('withholds acceptUrl when the provider is not the fake (stub real provider)', async () => {
     const { cookie } = await signup();
-    process.env.EMAIL_PROVIDER = 'resend';
+    const sent: string[] = [];
+    setEmailProviderOverride({
+      send: async (m) => {
+        sent.push(m.to);
+        return { providerMessageId: 'stub-1' };
+      },
+    });
+    process.env.EMAIL_PROVIDER = 'stub';
     try {
       const res = await call(createInvite, '/api/invites', {
         body: { email: 'k@example.test', role: 'STAFF' },
         cookie,
       });
-      // The resend branch is not implemented yet: the invite is created but cannot be emailed.
-      expect(res.status).toBe(503);
+      expect(res.status).toBe(201);
+      expect(res.body).not.toHaveProperty('acceptUrl');
       expect(JSON.stringify(res.body)).not.toContain('/invite/');
+      expect(sent).toEqual(['k@example.test']);
+      expect(fakeEmailProvider.calls).toHaveLength(0);
     } finally {
+      setEmailProviderOverride(undefined);
       process.env.EMAIL_PROVIDER = 'fake';
     }
+  });
+
+  it('fails closed in production with the fake provider: no invite row, no acceptUrl', async () => {
+    const { cookie } = await signup(); // creates the DB client before NODE_ENV changes
+    vi.stubEnv('NODE_ENV', 'production');
+    try {
+      const res = await call(createInvite, '/api/invites', {
+        body: { email: 'k@example.test', role: 'STAFF' },
+        cookie: cookie.replace('maw3ed_session', '__Host-maw3ed_session'),
+      });
+      expect(res.status).toBe(500);
+      expect(JSON.stringify(res.body)).not.toContain('/invite/');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+    expect((await pg.query('SELECT 1 FROM "Invite"')).rowCount).toBe(0);
+    expect(fakeEmailProvider.calls).toHaveLength(0);
   });
 
   it('re-inviting an email replaces the previous open invite', async () => {
@@ -291,5 +318,47 @@ describe('role enforcement', () => {
       (await pg.query('SELECT 1 FROM "Invite" WHERE email = $1', ['another@example.test']))
         .rowCount,
     ).toBe(0);
+  });
+});
+
+describe('existing-user accept: concurrency and throttle', () => {
+  it('two PARALLEL accepts by an existing user: exactly one succeeds, one membership', async () => {
+    const owner = await signup();
+    const other = await signup({ email: 'karim@example.test' });
+    const { token } = await invite(owner.cookie, 'karim@example.test');
+    const results = await Promise.all([
+      accept(token, { name: 'K', password: PASSWORD }),
+      accept(token, { name: 'K', password: PASSWORD }),
+    ]);
+    expect(results.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(
+      results.filter((r) => r.status !== 200).every((r) => [404, 409].includes(r.status)),
+    ).toBe(true);
+    const rows = await pg.query(
+      'SELECT 1 FROM "Membership" WHERE "userId" = $1 AND "businessId" = $2',
+      [other.info.user.id, owner.info.business.id],
+    );
+    expect(rows.rowCount).toBe(1);
+  });
+
+  it('shares the login failure budget: accept failures lock login, and the reverse', async () => {
+    const owner = await signup();
+    const other = await signup({ email: 'karim@example.test' });
+    const { token } = await invite(owner.cookie, 'karim@example.test');
+    for (let i = 0; i < 5; i++) {
+      expect((await accept(token, { name: 'K', password: 'wrong-password-1' })).status).toBe(401);
+    }
+    expect((await accept(token, { name: 'K', password: PASSWORD })).status).toBe(429);
+    const locked = await call(login, '/api/auth/login', {
+      body: { email: other.body.email, password: PASSWORD },
+    });
+    expect(locked.status).toBe(429);
+
+    loginThrottle.reset();
+    for (let i = 0; i < 5; i++)
+      await call(login, '/api/auth/login', {
+        body: { email: other.body.email, password: 'wrong-password-1' },
+      });
+    expect((await accept(token, { name: 'K', password: PASSWORD })).status).toBe(429);
   });
 });

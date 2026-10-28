@@ -167,3 +167,22 @@ describe('session cookie', () => {
     expect(readSessionToken(null)).toBeUndefined();
   });
 });
+
+describe('cookie name', () => {
+  it('uses the __Host- prefix in production (Secure, Path=/, no Domain) and the plain name otherwise', () => {
+    const exp = new Date(NOW.getTime() + DAY);
+    vi.stubEnv('NODE_ENV', 'production');
+    const c = sessionCookie('tok', exp, NOW);
+    expect(c).toMatch(/^__Host-maw3ed_session=tok;/);
+    expect(c).toContain('Secure');
+    expect(c).toContain('Path=/');
+    expect(c).not.toContain('Domain');
+    expect(clearSessionCookie()).toMatch(/^__Host-maw3ed_session=;/);
+    expect(readSessionToken('__Host-maw3ed_session=abc')).toBe('abc');
+    expect(readSessionToken('maw3ed_session=abc')).toBeUndefined();
+    vi.stubEnv('NODE_ENV', 'development');
+    expect(sessionCookie('tok', exp, NOW)).toMatch(/^maw3ed_session=tok;/);
+    expect(readSessionToken('__Host-maw3ed_session=abc')).toBeUndefined();
+    vi.unstubAllEnvs();
+  });
+});

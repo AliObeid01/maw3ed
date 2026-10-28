@@ -9,6 +9,9 @@ export const POST = withRoute(
   { auth: 'public', params: TokenParams, body: AcceptInviteBody },
   async ({ ctx, params, body }) => {
     const { info, token, expiresAt } = await invitesService.accept(ctx, params.token, body);
-    return json(info, 200, { 'Set-Cookie': sessionCookie(token, expiresAt) });
+    return json(info, 200, {
+      'Set-Cookie': sessionCookie(token, expiresAt),
+      'Cache-Control': 'no-store',
+    });
   },
 );

@@ -23,6 +23,8 @@ export const invitesService = {
   async create(ctx: SessionContext, input: { email: string; role: 'STAFF' }, deps = defaultDeps) {
     requireRole(ctx, 'OWNER');
     const now = deps.now();
+    // Resolve the provider first: a misconfiguration (e.g. fake in production) fails before any row is written.
+    const provider = getEmailProvider();
     if (await membershipRepo.hasMemberWithEmail(ctx.businessId, input.email))
       throw AppError.conflict('ALREADY_MEMBER', undefined, 'That person is already on your team.');
     const business = await businessRepo.findById(ctx.businessId);
@@ -43,7 +45,7 @@ export const invitesService = {
         acceptUrl,
         expiresAt: invite.expiresAt,
       });
-      const sent = await getEmailProvider().send({
+      const sent = await provider.send({
         to: invite.email,
         ...message,
         idempotencyKey: `invite:${invite.id}`,
@@ -65,7 +67,8 @@ export const invitesService = {
       email: invite.email,
       role: invite.role,
       expiresAt: invite.expiresAt.toISOString(),
-      ...(isFakeEmail() ? { acceptUrl } : {}),
+      // Dev convenience only: never in production, never with a real provider.
+      ...(process.env.NODE_ENV !== 'production' && isFakeEmail() ? { acceptUrl } : {}),
     };
   },
 
@@ -135,12 +138,17 @@ export const invitesService = {
       };
     } catch (error) {
       if (error instanceof InviteGoneError) throw notFound();
-      if (fromDbError(error)?.code === 'CONFLICT')
-        throw AppError.conflict(
-          'ALREADY_MEMBER',
-          undefined,
-          'You already belong to this business.',
-        );
+      if (fromDbError(error)?.code === 'CONFLICT') {
+        // New user: the only unique key that can collide is User.email (someone registered it meanwhile),
+        // so answer generically. Existing user: the Membership (userId, businessId) pair already exists.
+        if ('existingId' in user)
+          throw AppError.conflict(
+            'ALREADY_MEMBER',
+            undefined,
+            'You already belong to this business.',
+          );
+        throw AppError.conflict('CONFLICT');
+      }
       throw error;
     }
   },
