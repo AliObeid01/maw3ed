@@ -21,7 +21,9 @@
     "openapi:generate": "tsx scripts/openapi/generate.ts",
     "openapi:check": "tsx scripts/openapi/check.ts",
     "design:extract": "node scripts/design/extract-screens.mjs",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "i18n:check": "node scripts/i18n/check-keys.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

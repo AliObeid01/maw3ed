@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -11,6 +14,7 @@ concurrency:
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16
@@ -22,13 +26,14 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U maw3ed" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
+      # Throwaway values for CI only. Never put real secrets here.
       DATABASE_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
       DIRECT_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
       DATABASE_URL_TEST: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
       APP_URL: http://localhost:3000
-      SESSION_SECRET: ci-session-secret-ci-session-secret
-      LINK_SECRET: ci-link-secret-ci-link-secret-00
-      CRON_SECRET: ci-cron-secret
+      SESSION_SECRET: ci-only-session-secret-0000000000000000
+      LINK_SECRET: ci-only-link-secret-000000000000000000
+      CRON_SECRET: ci-only-cron-secret-0000000000000000
       EMAIL_PROVIDER: fake
       PAYMENT_PROVIDER: fake
     steps:

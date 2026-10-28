@@ -5,11 +5,17 @@ on:
     - cron: '*/5 * * * *'
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   trigger:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     if: ${{ vars.APP_URL != '' }}
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
     steps:
       - run: |
-          curl -fsS -X POST "${{ vars.APP_URL }}/api/jobs/reminders" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
-          curl -fsS -X POST "${{ vars.APP_URL }}/api/jobs/waitlist-expiry" -H "x-cron-secret: ${{ secrets.CRON_SECRET }}"
+          curl -fsS --max-time 30 -X POST "$APP_URL/api/jobs/reminders" -H "x-cron-secret: $CRON_SECRET"
+          curl -fsS --max-time 30 -X POST "$APP_URL/api/jobs/waitlist-expiry" -H "x-cron-secret: $CRON_SECRET"

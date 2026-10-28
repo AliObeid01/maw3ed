@@ -8,13 +8,23 @@ export default defineConfig([
   ...nextTs,
   globalIgnores(['.next/**', 'node_modules/**', 'design/**', 'next-env.d.ts']),
   {
-    // NFR-12: no hardcoded UI strings in components or pages
+    // NFR-12: no hardcoded UI strings in components or pages (text and user-facing attributes)
     files: ['src/app/**/*.tsx', 'src/components/**/*.tsx'],
     plugins: { i18next },
-    rules: { 'i18next/no-literal-string': ['error', { mode: 'jsx-text-only' }] },
+    rules: {
+      'i18next/no-literal-string': [
+        'error',
+        {
+          mode: 'jsx-only',
+          'jsx-attributes': {
+            include: ['aria-label', 'aria-description', 'placeholder', 'title', 'alt', 'label'],
+          },
+        },
+      ],
+    },
   },
   {
-    // Layering: only repositories may touch Prisma
+    // Layering: only repositories may touch Prisma. Revisit the generated-client globs when the schema lands.
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/server/repositories/**'],
     rules: {
@@ -22,8 +32,32 @@ export default defineConfig([
         'error',
         {
           patterns: [
-            { group: ['@prisma/client', '**/repositories/db'], message: 'Only src/server/repositories may import Prisma.' },
+            {
+              group: ['@prisma/client', '**/generated/prisma*', '**/repositories/db'],
+              message: 'Only src/server/repositories may import Prisma.',
+            },
           ],
+        },
+      ],
+    },
+  },
+  {
+    // Domain code is pure: inject `now`, never read the clock.
+    files: ['src/server/domain/**/*.ts'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "CallExpression[callee.object.name='Date'][callee.property.name='now']",
+          message: 'Domain code must not call Date.now(); inject `now`.',
+        },
+        {
+          selector: "NewExpression[callee.name='Date'][arguments.length=0]",
+          message: 'Domain code must not call new Date(); inject `now`.',
+        },
+        {
+          selector: "CallExpression[callee.object.name='DateTime'][callee.property.name='now']",
+          message: 'Domain code must not call DateTime.now(); inject `now`.',
         },
       ],
     },
