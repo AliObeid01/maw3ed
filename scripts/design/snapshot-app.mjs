@@ -4,7 +4,7 @@
 // Signed-in routes: set STORAGE_STATE=tests/e2e/.auth/owner.json (written by the Playwright auth setup).
 import fs from 'node:fs';
 import path from 'node:path';
-import { chromium } from 'playwright';
+import { chromium } from '@playwright/test';
 
 const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => {

@@ -8,14 +8,14 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 ---
 
 ## Phase 0 — Foundations (29 Oct)
-- [ ] **P0.1 BE** Scaffold Next.js (App Router, `src/`), TS strict, pnpm, path alias `@/`, `.nvmrc` (Node 22), `.env.example`.
-- [ ] **P0.2 BE** ESLint + Prettier; `eslint-plugin-i18next` `no-literal-string` on `src/app/**` + `src/components/**` (NFR-12); `import/no-restricted-paths` so only `src/server/repositories` imports Prisma.
-- [ ] **P0.3 QA** Vitest config (`unit` and `integration` projects; integration uses `DATABASE_URL_TEST`); Playwright config (Pixel 5 + Desktop Chrome, `webServer`).
-- [ ] **P0.4 BE** `docker-compose.yml` (postgres:16) + `pnpm` scripts from CLAUDE.md.
-- [ ] **P0.5 BE** `.github/workflows/ci.yml` (PR: postgres service → install → migrate deploy → lint → typecheck → unit → int → build → openapi:check → i18n keys) and `deploy.yml` (main: same → `prisma migrate deploy` on prod → `vercel deploy --prod`); `reminders-backup.yml` (cron `*/5` → curl the job routes).
-- [ ] **P0.6 FE** Tailwind v4 `@theme` tokens, `bg-hero`, Outfit + IBM Plex Sans Arabic via `next/font`, shadcn/ui init restyled to tokens, `Logo.tsx` from the sidebar board SVG.
-- [ ] **P0.7 FE** next-intl (no URL prefix; locale resolver), `messages/en.json` + `ar.json`, `scripts/i18n/check-keys.mjs`, root layout sets `lang`/`dir`.
-- [ ] **P0.8 FE** `pnpm design:extract` script alias; run `snapshot-boards.mjs` once Playwright is installed → `design/boards/*.png`.
+- [x] **P0.1 BE** Scaffold Next.js (App Router, `src/`), TS strict, pnpm, path alias `@/`, `.nvmrc` (Node 22), `.env.example`.
+- [x] **P0.2 BE** ESLint + Prettier; `eslint-plugin-i18next` `no-literal-string` on `src/app/**` + `src/components/**` (NFR-12); `import/no-restricted-paths` so only `src/server/repositories` imports Prisma.
+- [x] **P0.3 QA** Vitest config (`unit` and `integration` projects; integration uses `DATABASE_URL_TEST`); Playwright config (Pixel 5 + Desktop Chrome, `webServer`).
+- [x] **P0.4 BE** `docker-compose.yml` (postgres:16) + `pnpm` scripts from CLAUDE.md.
+- [x] **P0.5 BE** `.github/workflows/ci.yml` (PR: postgres service → install → migrate deploy → lint → typecheck → unit → int → build → openapi:check → i18n keys) and `deploy.yml` (main: same → `prisma migrate deploy` on prod → `vercel deploy --prod`); `reminders-backup.yml` (cron `*/5` → curl the job routes).
+- [x] **P0.6 FE** Tailwind v4 `@theme` tokens, `bg-hero`, Outfit + IBM Plex Sans Arabic via `next/font`, shadcn/ui init restyled to tokens, `Logo.tsx` from the sidebar board SVG.
+- [x] **P0.7 FE** next-intl (no URL prefix; locale resolver), `messages/en.json` + `ar.json`, `scripts/i18n/check-keys.mjs`, root layout sets `lang`/`dir`.
+- [x] **P0.8 FE** `pnpm design:extract` script alias; run `snapshot-boards.mjs` once Playwright is installed → `design/boards/*.png`.
 - [ ] **P0.9 H** Accounts and secrets from `docs/HUMAN_TASKS.md` §1–5; start recruiting pilots (§7).
 
 ## Phase 1 — Engine proven (29–31 Oct) · gate: slots + no-overlap + isolation tests green
