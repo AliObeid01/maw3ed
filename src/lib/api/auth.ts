@@ -32,6 +32,7 @@ const errorEnvelopeSchema = z.object({
     code: z.string(),
     message: z.string().optional(),
     fields: z.record(z.string(), z.union([z.string(), z.array(z.string())])).optional(),
+    data: z.unknown().optional(),
   }),
 });
 
@@ -49,6 +50,8 @@ export class ApiError extends Error {
     message: string,
     /** One message per field name (first message when the server sends a list). */
     readonly fields: Record<string, string> = {},
+    /** Machine-readable extras from `error.data`, e.g. `{ slots }` for SLOT_TAKEN. Validate before use. */
+    readonly data?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -59,13 +62,13 @@ export class ApiError extends Error {
 export function parseErrorBody(status: number, body: unknown): ApiError {
   const parsed = errorEnvelopeSchema.safeParse(body);
   if (!parsed.success) return new ApiError(status, `HTTP_${status}`, `Request failed (${status})`);
-  const { code, message, fields } = parsed.data.error;
+  const { code, message, fields, data } = parsed.data.error;
   const flat: Record<string, string> = {};
   for (const [name, value] of Object.entries(fields ?? {})) {
     const first = Array.isArray(value) ? value[0] : value;
     if (first) flat[name] = first;
   }
-  return new ApiError(status, code, message ?? code, flat);
+  return new ApiError(status, code, message ?? code, flat, data);
 }
 
 async function readJson(res: Response): Promise<unknown> {
@@ -83,6 +86,8 @@ export async function request<S extends z.ZodType>(
     method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
     body?: unknown;
     signal?: AbortSignal;
+    /** Extra request headers, e.g. `Idempotency-Key`. */
+    headers?: Record<string, string>;
   } = {},
 ): Promise<z.infer<S>> {
   let res: Response;
@@ -90,7 +95,10 @@ export async function request<S extends z.ZodType>(
     res = await fetch(`${API_BASE}${path}`, {
       method: init.method ?? 'GET',
       credentials: 'same-origin',
-      headers: init.body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      headers: {
+        ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...init.headers,
+      },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       signal: init.signal,
     });

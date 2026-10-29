@@ -13,6 +13,11 @@ const nextConfig: NextConfig = {
         source: '/invite/:path*',
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
       },
+      {
+        // The link token is a bearer secret (it can cancel an appointment): never send it in a Referer header.
+        source: '/l/:path*',
+        headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
+      },
     ];
   },
 };
