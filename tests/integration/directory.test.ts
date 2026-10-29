@@ -176,6 +176,9 @@ describe('GET /api/public/directory', () => {
       { limit: '51' },
       { limit: 'abc' },
       { cursor: '%%%not-a-cursor' },
+      { search: 'a\u0000b' },
+      { category: '\u0000' },
+      { cursor: Buffer.from(JSON.stringify(['a\u0000', 'id'])).toString('base64url') },
       { cursor: Buffer.from('{"a":1}').toString('base64url') },
     ]) {
       const res = await list(query);

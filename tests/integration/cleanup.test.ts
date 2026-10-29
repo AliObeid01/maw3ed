@@ -72,6 +72,9 @@ describe('cleanup job', () => {
     const sessions = await ids('Session');
     expect(sessions).toContain('s-live');
     expect(sessions).toHaveLength(2);
+    // Explicitly: every ACTIVE session (younger than 90 days, expiry in the future) survived.
+    const active = `SELECT count(*)::int AS n FROM "Session" WHERE "expiresAt" > now() AND "createdAt" > now() - interval '90 days'`;
+    expect((await pg.query(active)).rows[0].n).toBe(2);
     expect((await pg.query(`SELECT key FROM "RateLimitBucket"`)).rows).toEqual([{ key: 'fresh' }]);
     // Idempotent.
     expect(await runCleanup(rootLogger)).toEqual({

@@ -106,13 +106,18 @@ describe('login guard', () => {
     await expect(guard.attempt('fresh@example.test', '3.3.3.3')).resolves.toBeUndefined();
   });
 
-  it('a success clears the email+ip bucket and refunds one ip hit', async () => {
+  it('a success clears the email+ip bucket and refunds its ip and email hits (ticket)', async () => {
     const guard = createLoginGuard(createRateLimiter({ now: () => T0 }));
-    for (let i = 0; i < 5; i++) await guard.attempt('a@example.test', '2.2.2.2');
-    await guard.succeeded('a@example.test', '2.2.2.2');
+    for (let i = 0; i < 4; i++) await guard.attempt('a@example.test', '2.2.2.2');
+    const ticket = await guard.attempt('a@example.test', '2.2.2.2');
+    await guard.succeeded('a@example.test', '2.2.2.2', ticket);
     for (let i = 0; i < 5; i++) await guard.attempt('a@example.test', '2.2.2.2');
     const ip = await pg.query(`SELECT count FROM "RateLimitBucket" WHERE key = 'loginIp:2.2.2.2'`);
     expect(ip.rows[0].count).toBe(5 - 1 + 5);
+    const em = await pg.query(`SELECT count FROM "RateLimitBucket" WHERE key = $1`, [
+      `loginEmail:${sha256Hex('a@example.test')}`,
+    ]);
+    expect(em.rows[0].count).toBe(5 - 1 + 5);
   });
 
   it('a success only clears its own email+ip bucket', async () => {
@@ -130,6 +135,53 @@ describe('login guard', () => {
     const keys = (await pg.query(`SELECT key FROM "RateLimitBucket"`)).rows.map((r) => r.key);
     expect(keys.join(' ')).not.toMatch(/secret|example/i);
     expect(keys).toContain(`loginEmailIp:${sha256Hex('secret.person@example.test')}:1.1.1.1`);
+  });
+});
+
+describe('refund window (N4) in Postgres', () => {
+  it('a refund after the window rolled over decrements the ORIGINAL window only', async () => {
+    const first = await rateLimitRepo.hit('k:r', 600, 10, T0);
+    await rateLimitRepo.hit('k:r', 600, 10, T0);
+    const second = await rateLimitRepo.hit('k:r', 600, 10, new Date(T0.getTime() + 600_000));
+    await rateLimitRepo.refund('k:r', first.windowStart);
+    const rows = await pg.query(
+      `SELECT "windowStart", count FROM "RateLimitBucket" WHERE key = 'k:r' ORDER BY "windowStart"`,
+    );
+    expect(rows.rows.map((r) => r.count)).toEqual([1, 1]);
+    expect(rows.rows[1].windowStart.getTime()).toBe(second.windowStart.getTime());
+  });
+});
+
+describe('B1: IPv6 /64 and per-email ceiling through the login route', () => {
+  it('rotating inside one /64 does not escape the per-IP budget; a different /64 is not blocked', async () => {
+    for (let i = 0; i < 5; i++)
+      expect(
+        (await tryLogin('victim@example.test', 'wrong-password-1', `2001:db8:aa:bb:${i}::1`))
+          .status,
+      ).toBe(401);
+    const locked = await tryLogin(
+      'victim@example.test',
+      'wrong-password-1',
+      `2001:db8:aa:bb:ffff::9`,
+    );
+    expect(locked.status).toBe(429);
+    expect(locked.headers.get('retry-after')).toBeTruthy();
+    expect(
+      (await tryLogin('victim@example.test', 'wrong-password-1', `2001:db8:aa:cc::1`)).status,
+    ).toBe(401);
+  });
+
+  it('30 attempts from rotating IPs hit the per-email ceiling; the owner success still works and refunds', async () => {
+    const { body } = await signup();
+    for (let i = 0; i < 29; i++)
+      expect((await tryLogin(body.email, 'wrong-password-1', `10.1.${i}.1`)).status).toBe(401);
+    // Owner from their own address: attempt 30 is allowed and, on success, refunded.
+    expect((await tryLogin(body.email, PASSWORD, '203.0.113.50')).status).toBe(200);
+    expect((await tryLogin(body.email, PASSWORD, '203.0.113.50')).status).toBe(200);
+    for (let i = 0; i < 2; i++) await tryLogin(body.email, 'wrong-password-1', `10.2.${i}.1`);
+    const over = await tryLogin(body.email, PASSWORD, '203.0.113.51');
+    expect(over.status).toBe(429);
+    expect(over.body!.error.code).toBe('TOO_MANY_ATTEMPTS');
   });
 });
 

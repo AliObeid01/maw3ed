@@ -131,15 +131,16 @@ async function burst(c: Case, ip: string, n: number) {
 }
 
 describe('per-IP route limits (L6)', () => {
-  for (const c of CASES) {
+  for (const [index, c] of CASES.entries()) {
+    const ip = `203.0.113.${index + 10}`; // one address per case: soft policies keep per-instance memory
     const { limit } = RATE_POLICIES[c.policy];
     it(`${c.policy} ${c.path}: request ${limit + 1} from one IP is 429 with Retry-After, other IPs are fine`, async () => {
-      expect(await burst(c, '203.0.113.7', limit)).toBe(0);
+      expect(await burst(c, ip, limit)).toBe(0);
       // Even a body that would be rejected with 415/400 gets the 429 first: no parsing happens.
       const limited = await call(c.handler, c.path, {
-        ...withIp(c, '203.0.113.7'),
+        ...withIp(c, ip),
         body: undefined,
-        headers: { 'x-vercel-forwarded-for': '203.0.113.7', 'content-type': 'text/plain' },
+        headers: { 'x-vercel-forwarded-for': ip, 'content-type': 'text/plain' },
       });
       expect(limited.status).toBe(429);
       expect(limited.body!.error.code).toBe('RATE_LIMITED');
@@ -153,7 +154,7 @@ describe('per-IP route limits (L6)', () => {
       );
       expect(limited.headers.get('x-request-id')).toBeTruthy();
 
-      const other = await call(c.handler, c.path, withIp(c, '203.0.113.8'));
+      const other = await call(c.handler, c.path, withIp(c, `198.18.${index}.1`));
       expect(other.status).not.toBe(429);
     }, 120_000);
   }
@@ -180,17 +181,39 @@ describe('per-IP route limits (L6)', () => {
     }
   });
 
-  it('without any client address header, requests share the "unknown" bucket', async () => {
+  it('without a trustworthy address (unknown) the per-IP budgets are skipped, not shared', async () => {
     const c = CASES.find((x) => x.policy === 'slugCheck')!;
     const limit = RATE_POLICIES.slugCheck.limit;
     const run = () => call(c.handler, c.path, { query: { slug: 'abc-def' } });
     let limited = 0;
-    for (let sent = 0; sent <= limit; sent += 10) {
-      const n = Math.min(10, limit + 1 - sent);
-      limited += (await Promise.all(Array.from({ length: n }, run))).filter(
+    for (let sent = 0; sent <= limit + 10; sent += 10)
+      limited += (await Promise.all(Array.from({ length: 10 }, run))).filter(
         (r) => r.status === 429,
       ).length;
+    expect(limited).toBe(0);
+    const rows = await pg.query(`SELECT count(*)::int AS n FROM "RateLimitBucket"`);
+    expect(rows.rows[0].n).toBe(0);
+  });
+
+  it('B1: addresses in one IPv6 /64 share a bucket; another /64 does not', async () => {
+    const c = CASES.find((x) => x.policy === 'signup')!;
+    const { limit } = RATE_POLICIES.signup;
+    for (let i = 0; i < limit; i++) {
+      const ip = `2001:db8:0:0:${i.toString(16)}::1`; // rotating inside one /64
+      expect((await call(c.handler, c.path, withIp(c, ip))).status).not.toBe(429);
     }
-    expect(limited).toBe(1);
+    expect((await call(c.handler, c.path, withIp(c, `2001:db8::ffff`))).status).toBe(429);
+    expect((await call(c.handler, c.path, withIp(c, `2001:db8:0:1::1`))).status).not.toBe(429);
+    // IPv4-mapped form shares the IPv4 bucket.
+    for (let i = 0; i < limit; i++) await call(c.handler, c.path, withIp(c, '92.0.2.9'));
+    expect((await call(c.handler, c.path, withIp(c, '::ffff:192.0.2.9'))).status).toBe(429);
+  });
+
+  it('N5: cacheable reads cause no Postgres writes below 50% of the limit', async () => {
+    const c = CASES.find((x) => x.policy === 'slots')!;
+    const below = Math.floor(RATE_POLICIES.slots.limit * 0.4);
+    expect(await burst(c, '198.19.0.1', below)).toBe(0);
+    const rows = await pg.query(`SELECT count(*)::int AS n FROM "RateLimitBucket"`);
+    expect(rows.rows[0].n).toBe(0);
   });
 });
