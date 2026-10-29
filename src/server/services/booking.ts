@@ -75,10 +75,7 @@ export function appointmentSummary(a: Stored) {
 }
 
 function manageLink(a: Stored, deps: BookDeps): string {
-  const token = signToken(
-    { a: a.id, act: 'view', exp: expiryFor(a.startAt) },
-    deps.linkSecret(),
-  );
+  const token = signToken({ a: a.id, act: 'view', exp: expiryFor(a.startAt) }, deps.linkSecret());
   return `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/l/${token}`;
 }
 

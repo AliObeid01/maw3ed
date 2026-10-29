@@ -45,7 +45,8 @@ describe('resolveLocalRange', () => {
       resolveLocalRange({ ...base, bookingWindowDays: 30, from: '2026-12-01', to: '2026-12-11' }),
     ).toMatchObject({ ok: false, fields: { to: expect.any(String) } });
     expect(
-      resolveLocalRange({ ...base, bookingWindowDays: 30, from: '2026-12-01', to: '2026-12-10' }).ok,
+      resolveLocalRange({ ...base, bookingWindowDays: 30, from: '2026-12-01', to: '2026-12-10' })
+        .ok,
     ).toBe(true);
   });
 });

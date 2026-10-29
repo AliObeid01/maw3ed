@@ -36,10 +36,7 @@ export const appointmentRepo = {
   findByIdempotencyKey: (businessId: string, key: string) =>
     db.appointment.findFirst({ where: { businessId, idempotencyKey: key }, select: detailSelect }),
 
-  list: (
-    businessId: string,
-    q: { startUtc: Date; endUtc: Date; staffId?: string | undefined },
-  ) =>
+  list: (businessId: string, q: { startUtc: Date; endUtc: Date; staffId?: string | undefined }) =>
     db.appointment.findMany({
       where: {
         businessId,

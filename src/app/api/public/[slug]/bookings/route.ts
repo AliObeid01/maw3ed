@@ -1,8 +1,4 @@
-import {
-  BookingBody,
-  RequiredIdempotencyHeaders,
-  SlugParams,
-} from '@/server/contracts/booking';
+import { BookingBody, RequiredIdempotencyHeaders, SlugParams } from '@/server/contracts/booking';
 import { created, ok, withRoute } from '@/server/http/withRoute';
 import { publicBookingService } from '@/server/services/publicBooking';
 

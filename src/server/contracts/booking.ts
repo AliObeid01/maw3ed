@@ -3,7 +3,9 @@ import { ErrorResponse, errorResponses, registry } from './registry';
 
 const id = z.string().cuid2();
 const localDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-10.');
-const isoInstant = z.string().datetime({ message: 'Use an ISO 8601 UTC time like 2026-11-10T09:00:00Z.' });
+const isoInstant = z
+  .string()
+  .datetime({ message: 'Use an ISO 8601 UTC time like 2026-11-10T09:00:00Z.' });
 const money = z.number();
 
 export const SlugParams = z
@@ -83,7 +85,9 @@ const idempotencyKey = z
 
 /** Headers are not `.strict()`: every request carries many unrelated headers. */
 export const RequiredIdempotencyHeaders = z.object({ 'idempotency-key': idempotencyKey });
-export const OptionalIdempotencyHeaders = z.object({ 'idempotency-key': idempotencyKey.optional() });
+export const OptionalIdempotencyHeaders = z.object({
+  'idempotency-key': idempotencyKey.optional(),
+});
 
 const BookedAppointment = z.object({
   id: z.string(),
@@ -103,7 +107,9 @@ export const BookingResultDto = registry.register(
   'BookingResult',
   z.object({
     appointment: BookedAppointment,
-    links: z.object({ manage: z.string().openapi({ description: 'Signed link, expires at the appointment start.' }) }),
+    links: z.object({
+      manage: z.string().openapi({ description: 'Signed link, expires at the appointment start.' }),
+    }),
   }),
 );
 
@@ -135,9 +141,7 @@ export const AppointmentOneDto = registry.register(
 
 const json = <T extends z.ZodType>(schema: T) => ({ 'application/json': { schema } });
 const err = (description: string) => ({ description, content: json(ErrorResponse) });
-const slotTaken = err(
-  'SLOT_TAKEN with `error.data.slots` (fresh slots for that day), or CONFLICT',
-);
+const slotTaken = err('SLOT_TAKEN with `error.data.slots` (fresh slots for that day), or CONFLICT');
 const keyReused = err('IDEMPOTENCY_KEY_REUSED: the key was used for a different booking');
 
 registry.registerPath({

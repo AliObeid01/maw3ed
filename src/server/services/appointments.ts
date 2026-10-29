@@ -98,7 +98,11 @@ export const appointmentsService = {
         const latest = await appointmentRepo.findById(ctx.businessId, id);
         if (!latest) throw AppError.notFound();
         if (latest.status !== 'CANCELLED')
-          throw AppError.conflict('CONFLICT', undefined, 'This appointment can no longer be cancelled.');
+          throw AppError.conflict(
+            'CONFLICT',
+            undefined,
+            'This appointment can no longer be cancelled.',
+          );
       } else {
         ctx.logger.info({ businessId: ctx.businessId, appointmentId: id }, 'appointment cancelled');
         await onSlotFreed(ctx, {
