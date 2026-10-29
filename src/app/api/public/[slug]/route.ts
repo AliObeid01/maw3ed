@@ -4,6 +4,7 @@ import { publicBookingService } from '@/server/services/publicBooking';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRoute({ auth: 'public', params: SlugParams }, async ({ ctx, params }) =>
-  ok(await publicBookingService.getBusiness(ctx, params.slug)),
+export const GET = withRoute(
+  { auth: 'public', rateLimit: { policy: 'publicPage' }, params: SlugParams },
+  async ({ ctx, params }) => ok(await publicBookingService.getBusiness(ctx, params.slug)),
 );

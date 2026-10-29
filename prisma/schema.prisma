@@ -111,6 +111,7 @@ model Business {
   plan              Plan     @default(FREE)
   depositThreshold  Int      @default(1)
   depositAmount     Decimal  @default(5.00) @db.Decimal(10, 2)
+  listed            Boolean  @default(false)
   createdAt         DateTime @default(now()) @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @db.Timestamptz(3)
 
@@ -445,4 +446,14 @@ model Payment {
   @@unique([provider, externalId])
   @@index([businessId, status])
   @@index([businessId, appointmentId])
+}
+
+/// Shared fixed-window rate limiter state. Written only through rateLimit.repo (atomic upsert).
+model RateLimitBucket {
+  key         String
+  windowStart DateTime @db.Timestamptz(3)
+  count       Int      @default(0)
+
+  @@id([key, windowStart])
+  @@index([windowStart])
 }

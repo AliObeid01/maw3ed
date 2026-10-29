@@ -5,7 +5,7 @@ import { offersService } from '@/server/services/waitlist';
 export const dynamic = 'force-dynamic';
 
 export const GET = withRoute(
-  { auth: 'token', acts: ['claim'], params: OfferParams },
+  { auth: 'token', rateLimit: { policy: 'linkRead' }, acts: ['claim'], params: OfferParams },
   async ({ ctx }) =>
     ok(await offersService.get({ businessId: ctx.token!.businessId }, ctx.token!.subjectId)),
 );

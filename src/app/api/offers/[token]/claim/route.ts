@@ -5,7 +5,13 @@ import { offersService } from '@/server/services/waitlist';
 export const dynamic = 'force-dynamic';
 
 export const POST = withRoute(
-  { auth: 'token', acts: ['claim'], params: OfferParams, body: ClaimBody },
+  {
+    auth: 'token',
+    rateLimit: { policy: 'linkAct' },
+    acts: ['claim'],
+    params: OfferParams,
+    body: ClaimBody,
+  },
   async ({ ctx }) => {
     const token = ctx.token!;
     const { replay, ...result } = await offersService.claim(

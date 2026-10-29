@@ -4,6 +4,8 @@ import { invitesService } from '@/server/services/invites';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRoute({ auth: 'public', params: TokenParams }, async ({ params }) =>
-  json(await invitesService.preview(params.token), 200, { 'Cache-Control': 'no-store' }),
+export const GET = withRoute(
+  { auth: 'public', rateLimit: { policy: 'invitePreview' }, params: TokenParams },
+  async ({ params }) =>
+    json(await invitesService.preview(params.token), 200, { 'Cache-Control': 'no-store' }),
 );

@@ -22,7 +22,6 @@ import { PUT as putStaffServices } from '@/app/api/staff/[id]/services/route';
 import { GET as listTimeOff } from '@/app/api/staff/[id]/time-off/route';
 import { GET as listStaff, POST as postStaff } from '@/app/api/staff/route';
 import { fakeEmailProvider } from '@/server/providers/email';
-import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, signup } from './helpers/api';
 import { at, bookingBody, bookPublicly, newScenario, NOW } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
@@ -46,7 +45,6 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncateAll(pg);
-  loginThrottle.reset();
   fakeEmailProvider.reset();
   a = await signup({ businessName: 'Business A', slug: 'business-a' });
   b = await signup({ businessName: 'Business B', slug: 'business-b' });

@@ -5,10 +5,13 @@ import { authService } from '@/server/services/auth';
 
 export const dynamic = 'force-dynamic';
 
-export const POST = withRoute({ auth: 'public', body: SignupBody }, async ({ ctx, body }) => {
-  const { info, token, expiresAt } = await authService.signup(ctx, body);
-  return json(info, 201, {
-    'Set-Cookie': sessionCookie(token, expiresAt),
-    'Cache-Control': 'no-store',
-  });
-});
+export const POST = withRoute(
+  { auth: 'public', rateLimit: { policy: 'signup' }, body: SignupBody },
+  async ({ ctx, body }) => {
+    const { info, token, expiresAt } = await authService.signup(ctx, body);
+    return json(info, 201, {
+      'Set-Cookie': sessionCookie(token, expiresAt),
+      'Cache-Control': 'no-store',
+    });
+  },
+);

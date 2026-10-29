@@ -1,3 +1,4 @@
+import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { getServerEnv } from '@/server/env';
 import { requireRole } from '@/server/http/auth';
 import { AppError, fromDbError } from '@/server/http/errors';
@@ -10,12 +11,12 @@ import { membershipRepo } from '@/server/repositories/membership.repo';
 import { userRepo } from '@/server/repositories/user.repo';
 import { toSessionInfo, type AuthDeps, type SignedIn } from './auth';
 import { newOpaqueToken, sha256Hex } from './crypto';
-import { loginThrottle } from './loginThrottle';
+import { loginGuard } from './loginGuard';
 import { hashPassword, verifyPassword } from './password';
 import { sessionService } from './session';
 
 export const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
-const defaultDeps: AuthDeps = { now: () => new Date(), throttle: loginThrottle };
+const defaultDeps: AuthDeps = { now: () => new Date(), guard: loginGuard };
 
 const notFound = () => AppError.notFound('This invitation is not valid.');
 
@@ -117,13 +118,12 @@ export const invitesService = {
     const existing = await userRepo.findByEmail(invite.email);
     let user: { existingId: string } | { name: string; passwordHash: string };
     if (existing) {
-      const wait = deps.throttle.retryAfterSec(invite.email, now);
-      if (wait > 0) throw AppError.tooManyAttempts(wait);
-      if (!(await verifyPassword(input.password, existing.passwordHash))) {
-        deps.throttle.recordFailure(invite.email, now);
+      // Same keys as login: guessing the password here spends the same budget as guessing it there.
+      const ip = ctx.ip ?? UNKNOWN_IP;
+      await deps.guard.attempt(invite.email, ip);
+      if (!(await verifyPassword(input.password, existing.passwordHash)))
         throw AppError.invalidCredentials();
-      }
-      deps.throttle.clear(invite.email);
+      await deps.guard.succeeded(invite.email, ip);
       if (await membershipRepo.hasMembership(invite.businessId, existing.id))
         throw AppError.conflict(
           'ALREADY_MEMBER',

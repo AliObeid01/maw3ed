@@ -10,7 +10,6 @@ import { PATCH as patchStaff } from '@/app/api/staff/[id]/route';
 import { PUT as putStaffServices } from '@/app/api/staff/[id]/services/route';
 import { PUT as putHours } from '@/app/api/staff/[id]/hours/route';
 import { fakeEmailProvider } from '@/server/providers/email';
-import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 
@@ -29,7 +28,6 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncateAll(pg);
-  loginThrottle.reset();
   fakeEmailProvider.reset();
   a = await signup({ businessName: 'Business A', slug: 'business-a' });
   b = await signup({ businessName: 'Business B', slug: 'business-b' });

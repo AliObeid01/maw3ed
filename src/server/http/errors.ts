@@ -13,6 +13,7 @@ export type ErrorCode =
   | 'NOT_IMPLEMENTED'
   | 'INVALID_CREDENTIALS'
   | 'TOO_MANY_ATTEMPTS'
+  | 'RATE_LIMITED'
   | 'INTERNAL'
   | (string & {});
 
@@ -78,6 +79,16 @@ export class AppError extends Error {
       429,
       'TOO_MANY_ATTEMPTS',
       'Too many attempts. Try again later.',
+      {},
+      { retryAfterSec },
+    );
+  }
+  /** Per-IP route limits (platform rate limiting). Same envelope as everything else. */
+  static rateLimited(retryAfterSec: number) {
+    return new AppError(
+      429,
+      'RATE_LIMITED',
+      'Too many requests. Try again later.',
       {},
       { retryAfterSec },
     );
@@ -186,11 +197,23 @@ export interface MappedError {
   body: ErrorBody;
   /** True when the error was not an expected AppError (log it, report it). */
   unexpected: boolean;
+  /** Extra response headers (Retry-After on 429). */
+  headers?: Record<string, string>;
 }
 
 export function mapError(error: unknown): MappedError {
   const known = toAppError(error);
-  if (known) return { status: known.status, body: errorBody(known), unexpected: false };
+  if (known) {
+    const retry = (known.data as { retryAfterSec?: unknown } | undefined)?.retryAfterSec;
+    return {
+      status: known.status,
+      body: errorBody(known),
+      unexpected: false,
+      ...(known.status === 429 && typeof retry === 'number'
+        ? { headers: { 'Retry-After': String(retry) } }
+        : {}),
+    };
+  }
   return {
     status: 500,
     body: errorBody(new AppError(500, 'INTERNAL', 'Something went wrong.')),
