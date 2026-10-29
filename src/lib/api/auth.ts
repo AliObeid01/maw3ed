@@ -95,10 +95,13 @@ export async function request<S extends z.ZodType>(
     res = await fetch(`${API_BASE}${path}`, {
       method: init.method ?? 'GET',
       credentials: 'same-origin',
-      headers: {
-        ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
-        ...init.headers,
-      },
+      headers:
+        init.body === undefined && !init.headers
+          ? undefined
+          : {
+              ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+              ...init.headers,
+            },
       body: init.body === undefined ? undefined : JSON.stringify(init.body),
       signal: init.signal,
     });

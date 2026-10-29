@@ -1,5 +1,6 @@
 'use client';
 
+import { DateTime } from 'luxon';
 import { useFormatter } from 'next-intl';
 import { useAppFormat } from '@/components/app/setup/useAppFormat';
 
@@ -17,18 +18,13 @@ export function useBookingFormat(timezone: string) {
   const { money, duration } = useAppFormat();
   const zoned = { ...LATIN, timeZone: timezone } as const;
   const utc = { ...LATIN, timeZone: 'UTC' } as const;
+  const time = (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone).toFormat('H:mm');
 
   return {
     money,
     duration,
-    /** "10:30" */
-    time: (iso: string) =>
-      format.dateTime(new Date(iso), {
-        ...zoned,
-        hour: 'numeric',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      }),
+    /** "9:00" / "10:30": 24-hour, Latin digits in both languages (Luxon, so it never depends on the ICU locale). */
+    time,
     /** "Thu 29 Oct" */
     day: (iso: string) =>
       format.dateTime(new Date(iso), { ...zoned, weekday: 'short', day: 'numeric', month: 'short' }),
@@ -48,14 +44,6 @@ export function useBookingFormat(timezone: string) {
     dayOfMonth: (iso: string) => format.dateTime(new Date(iso), { ...zoned, day: 'numeric' }),
     /** "Wed 28 Oct, 10:30" for cutoffs. */
     dayAndTime: (iso: string) =>
-      format.dateTime(new Date(iso), {
-        ...zoned,
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: 'numeric',
-        minute: '2-digit',
-        hourCycle: 'h23',
-      }),
+      `${format.dateTime(new Date(iso), { ...zoned, weekday: 'short', day: 'numeric', month: 'short' })}, ${time(iso)}`,
   };
 }
