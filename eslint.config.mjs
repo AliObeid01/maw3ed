@@ -6,7 +6,7 @@ import i18next from 'eslint-plugin-i18next';
 export default defineConfig([
   ...nextVitals,
   ...nextTs,
-  globalIgnores(['.next/**', 'node_modules/**', 'design/**', 'next-env.d.ts', 'src/generated/**']),
+  globalIgnores(['.next/**', 'node_modules/**', 'design/**', 'next-env.d.ts', 'src/generated/**', '.claude/**']),
   {
     // NFR-12: no hardcoded UI strings in components or pages (text and user-facing attributes)
     files: ['src/app/**/*.tsx', 'src/components/**/*.tsx'],
