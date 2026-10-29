@@ -134,7 +134,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       {children}
       </AppShell>
       {/* Polite announcement when the badge counts change (the visible digits are hidden from AT). */}
-      <div role="status" aria-live="polite" className="sr-only">
+      <div aria-live="polite" className="sr-only">
         {announcement}
       </div>
     </>

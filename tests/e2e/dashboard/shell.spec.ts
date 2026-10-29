@@ -18,7 +18,8 @@ test.describe('receptionist (STAFF)', () => {
       await expect(
         page.getByRole('heading', { name: 'Only the owner can change this' }),
       ).toBeVisible();
-      expect(calls).toEqual([]);
+      // The shell itself polls the badge counts on every page; only the setup endpoints must stay untouched.
+      expect(calls.filter((c) => !c.path.startsWith('/api/dashboard/'))).toEqual([]);
     });
   }
 
@@ -102,11 +103,11 @@ test.describe('owner', () => {
     expect(calls.some((c) => c.method === 'POST' && c.path === '/api/auth/logout')).toBe(true);
   });
 
-  test('unknown business routes do not break the shell (not-yet-built pages 404 inside it)', async ({
+  test('unknown dashboard routes 404 inside the shell', async ({
     page,
   }) => {
     await mockSetupApi(page, { state: defaultState() });
-    const response = await page.goto('/app/reminders');
+    const response = await page.goto('/app/does-not-exist');
     expect(response?.status()).toBe(404);
   });
 });
