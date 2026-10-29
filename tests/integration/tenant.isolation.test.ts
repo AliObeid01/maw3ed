@@ -3,6 +3,13 @@ import type { Client } from 'pg';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { GET as previewInvite } from '@/app/api/invites/[token]/route';
 import { GET as me } from '@/app/api/me/route';
+import { PATCH as patchService } from '@/app/api/services/[id]/route';
+import { GET as listServices, POST as postService } from '@/app/api/services/route';
+import { PATCH as patchStaff } from '@/app/api/staff/[id]/route';
+import { GET as getHours } from '@/app/api/staff/[id]/hours/route';
+import { PUT as putStaffServices } from '@/app/api/staff/[id]/services/route';
+import { GET as listTimeOff } from '@/app/api/staff/[id]/time-off/route';
+import { GET as listStaff, POST as postStaff } from '@/app/api/staff/route';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, signup } from './helpers/api';
@@ -104,8 +111,65 @@ describe('tenant isolation: arrives with later routes (P2)', () => {
   it.todo('PATCH/DELETE /api/appointments/{id} cross-tenant -> 404 and B’s row unchanged');
   it.todo('GET /api/clients/{id} cross-tenant -> 404');
   it.todo('GET /api/clients list never includes business B’s clients');
-  it.todo('PATCH/DELETE /api/services/{id} cross-tenant -> 404');
-  it.todo('GET /api/services list never includes business B’s services');
-  it.todo('GET/PATCH /api/staff/{id} cross-tenant -> 404');
+  it('PATCH /api/services/{id} cross-tenant -> 404 and B’s row unchanged (no DELETE route exists)', async () => {
+    const sb = await call(postService, '/api/services', {
+      cookie: b.cookie,
+      body: { name: 'B cut', durationMin: 30, price: 10 },
+    });
+    const res = await call(patchService, `/api/services/${sb.body!.id}`, {
+      method: 'PATCH',
+      cookie: a.cookie,
+      params: { id: sb.body!.id },
+      body: { name: 'Mine', active: false },
+    });
+    expect(res.status).toBe(404);
+    expect(
+      (await pg.query('SELECT name, active FROM "Service" WHERE id = $1', [sb.body!.id])).rows[0],
+    ).toEqual({ name: 'B cut', active: true });
+    const routeModule = await import('@/app/api/services/[id]/route');
+    expect(Object.keys(routeModule)).not.toContain('DELETE');
+  });
+  it('GET /api/services list never includes business B’s services', async () => {
+    const sb = await call(postService, '/api/services', {
+      cookie: b.cookie,
+      body: { name: 'B cut', durationMin: 30, price: 10 },
+    });
+    const list = await call(listServices, '/api/services', { cookie: a.cookie });
+    expect(list.body!.services).toEqual([]);
+    expect(JSON.stringify(list.body)).not.toContain(sb.body!.id);
+  });
+  it('GET /api/staff never lists B’s staff; PATCH, PUT services/hours and time-off on B’s staff id -> 404', async () => {
+    const mb = await call(postStaff, '/api/staff', {
+      cookie: b.cookie,
+      body: { displayName: 'B person', bookable: true, serviceIds: [] },
+    });
+    const id = mb.body!.id;
+    const list = await call(listStaff, '/api/staff', { cookie: a.cookie });
+    expect(JSON.stringify(list.body)).not.toContain(id);
+    const opts = { cookie: a.cookie, params: { id } };
+    expect(
+      (
+        await call(patchStaff, `/api/staff/${id}`, {
+          ...opts,
+          method: 'PATCH',
+          body: { active: false },
+        })
+      ).status,
+    ).toBe(404);
+    expect(
+      (
+        await call(putStaffServices, `/api/staff/${id}/services`, {
+          ...opts,
+          method: 'PUT',
+          body: { serviceIds: [] },
+        })
+      ).status,
+    ).toBe(404);
+    expect((await call(getHours, `/api/staff/${id}/hours`, opts)).status).toBe(404);
+    expect((await call(listTimeOff, `/api/staff/${id}/time-off`, opts)).status).toBe(404);
+    expect(
+      (await pg.query('SELECT active FROM "StaffMember" WHERE id = $1', [id])).rows[0].active,
+    ).toBe(true);
+  });
   it.todo('POST /api/appointments with B’s serviceId/staffId/clientId from A’s session -> 404');
 });
