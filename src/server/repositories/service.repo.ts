@@ -28,8 +28,4 @@ export const serviceRepo = {
     const result = await db.service.updateMany({ where: { id, businessId }, data: patch });
     return result.count === 1;
   },
-
-  /** How many of these ids are services of this business (ids are distinct). */
-  countOwned: (businessId: string, ids: string[]) =>
-    db.service.count({ where: { businessId, id: { in: ids } } }),
 };

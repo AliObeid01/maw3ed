@@ -1,4 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client';
+import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { db } from './db';
 
 export interface StaffRow {
@@ -8,6 +9,33 @@ export interface StaffRow {
   active: boolean;
   role: 'OWNER' | 'STAFF' | null;
   serviceIds: string[];
+}
+
+/** The staff member does not exist in this business (also: belongs to another business). */
+export class StaffNotFoundError extends Error {}
+/** A service id is not one of this business's services. */
+export class ServiceNotOwnedError extends Error {}
+/** Deactivation refused: active appointments that have not ended yet. */
+export class HasFutureAppointmentsError extends Error {}
+
+export type Tx = Prisma.TransactionClient;
+
+/**
+ * Take a row lock on the staff member (`FOR UPDATE`) inside a transaction. Everything that rewrites
+ * a staff member's hours or services, deactivates them, or books them must call this first so those
+ * operations serialise. Throws StaffNotFoundError when the row is not in this business.
+ */
+export async function lockStaff(tx: Tx, businessId: string, staffId: string): Promise<void> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "StaffMember" WHERE id = ${staffId} AND "businessId" = ${businessId} FOR UPDATE`;
+  if (rows.length !== 1) throw new StaffNotFoundError();
+}
+
+/** Every id must be a service of this business, checked inside the caller's transaction. */
+async function assertServicesOwned(tx: Tx, businessId: string, serviceIds: string[]) {
+  if (serviceIds.length === 0) return;
+  const owned = await tx.service.count({ where: { businessId, id: { in: serviceIds } } });
+  if (owned !== new Set(serviceIds).size) throw new ServiceNotOwnedError();
 }
 
 const staffInclude = (businessId: string) =>
@@ -48,55 +76,71 @@ export const staffRepo = {
   exists: async (businessId: string, id: string) =>
     (await db.staffMember.count({ where: { id, businessId } })) === 1,
 
-  /** Staff member and its service links commit together. */
+  /** Staff member and its service links commit together. Throws ServiceNotOwnedError on a foreign id. */
   create: (
     businessId: string,
     data: { displayName: string; bookable: boolean; serviceIds: string[] },
   ) =>
     db.$transaction(async (tx) => {
+      await assertServicesOwned(tx, businessId, data.serviceIds);
       const staff = await tx.staffMember.create({
         data: { businessId, displayName: data.displayName, bookable: data.bookable },
       });
-      if (data.serviceIds.length > 0)
+      const serviceIds = [...new Set(data.serviceIds)];
+      if (serviceIds.length > 0)
         await tx.staffService.createMany({
-          data: data.serviceIds.map((serviceId) => ({
-            businessId,
-            staffId: staff.id,
-            serviceId,
-          })),
+          data: serviceIds.map((serviceId) => ({ businessId, staffId: staff.id, serviceId })),
         });
       return staff.id;
     }),
 
-  update: async (
+  /**
+   * Apply a patch under a staff row lock. Turning `active` off first refuses
+   * (HasFutureAppointmentsError) while any active appointment has not ended (`endAt > now`, so one in
+   * progress also blocks). Throws StaffNotFoundError when the row is not in this business.
+   */
+  update: (
     businessId: string,
     id: string,
     patch: { displayName?: string; bookable?: boolean; active?: boolean },
-  ) => {
-    const result = await db.staffMember.updateMany({ where: { id, businessId }, data: patch });
-    return result.count === 1;
-  },
-
-  /** Replace the whole set in one transaction. Returns false when the staff member is not in this business. */
-  replaceServices: (businessId: string, staffId: string, serviceIds: string[]) =>
+    now: Date,
+  ) =>
     db.$transaction(async (tx) => {
-      if ((await tx.staffMember.count({ where: { id: staffId, businessId } })) !== 1) return false;
-      await tx.staffService.deleteMany({ where: { staffId, businessId } });
-      if (serviceIds.length > 0)
-        await tx.staffService.createMany({
-          data: serviceIds.map((serviceId) => ({ businessId, staffId, serviceId })),
+      await lockStaff(tx, businessId, id);
+      if (patch.active === false) {
+        const current = await tx.staffMember.findFirst({
+          where: { id, businessId },
+          select: { active: true },
         });
-      return true;
+        if (current?.active) {
+          const blocking = await tx.appointment.count({
+            where: {
+              businessId,
+              staffId: id,
+              status: { in: [...ACTIVE_APPOINTMENT_STATUSES] },
+              endAt: { gt: now },
+            },
+          });
+          if (blocking > 0) throw new HasFutureAppointmentsError();
+        }
+      }
+      const result = await tx.staffMember.updateMany({ where: { id, businessId }, data: patch });
+      if (result.count !== 1) throw new StaffNotFoundError();
     }),
 
-  /** BOOKED or CONFIRMED appointments that have not started yet. */
-  hasFutureActiveAppointments: async (businessId: string, staffId: string, now: Date) =>
-    (await db.appointment.count({
-      where: {
-        businessId,
-        staffId,
-        status: { in: ['BOOKED', 'CONFIRMED'] },
-        startAt: { gt: now },
-      },
-    })) > 0,
+  /**
+   * Replace the whole set under a staff row lock, so concurrent replaces serialise.
+   * Throws StaffNotFoundError / ServiceNotOwnedError.
+   */
+  replaceServices: (businessId: string, staffId: string, serviceIds: string[]) =>
+    db.$transaction(async (tx) => {
+      await lockStaff(tx, businessId, staffId);
+      const unique = [...new Set(serviceIds)];
+      await assertServicesOwned(tx, businessId, unique);
+      await tx.staffService.deleteMany({ where: { staffId, businessId } });
+      if (unique.length > 0)
+        await tx.staffService.createMany({
+          data: unique.map((serviceId) => ({ businessId, staffId, serviceId })),
+        });
+    }),
 };

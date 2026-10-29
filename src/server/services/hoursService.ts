@@ -2,7 +2,7 @@ import { findHoursProblem, sortIntervals, type HoursInterval } from '@/server/do
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
-import { staffRepo } from '@/server/repositories/staff.repo';
+import { StaffNotFoundError, staffRepo } from '@/server/repositories/staff.repo';
 import { workingHoursRepo } from '@/server/repositories/workingHours.repo';
 
 export const hoursService = {
@@ -22,8 +22,10 @@ export const hoursService = {
         [`intervals.${problem.index}`]: problem.message,
       });
     const intervals = sortIntervals(input.intervals);
-    if (!(await workingHoursRepo.replaceAll(ctx.businessId, staffId, intervals)))
-      throw AppError.notFound();
+    await workingHoursRepo.replaceAll(ctx.businessId, staffId, intervals).catch((error) => {
+      if (error instanceof StaffNotFoundError) throw AppError.notFound();
+      throw error;
+    });
     return { intervals };
   },
 };

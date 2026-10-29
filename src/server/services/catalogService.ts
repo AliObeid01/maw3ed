@@ -1,4 +1,5 @@
 import type { ServiceDtoT } from '@/server/contracts/setup';
+import { toCents } from '@/server/domain/money';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
@@ -30,12 +31,15 @@ export const catalogService = {
     input: Pick<ServiceFields, 'name' | 'durationMin' | 'bufferMin' | 'price'>,
   ) {
     requireRole(ctx, 'OWNER');
-    return toServiceDto(await serviceRepo.create(ctx.businessId, input));
+    return toServiceDto(
+      await serviceRepo.create(ctx.businessId, { ...input, price: toCents(input.price) }),
+    );
   },
 
   async update(ctx: SessionContext, id: string, patch: Partial<ServiceFields>) {
     requireRole(ctx, 'OWNER');
-    if (Object.keys(patch).length > 0 && !(await serviceRepo.update(ctx.businessId, id, patch)))
+    const data = patch.price === undefined ? patch : { ...patch, price: toCents(patch.price) };
+    if (Object.keys(data).length > 0 && !(await serviceRepo.update(ctx.businessId, id, data)))
       throw AppError.notFound();
     const row = await serviceRepo.findById(ctx.businessId, id);
     if (!row) throw AppError.notFound();

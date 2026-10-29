@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { MAX_INTERVALS_TOTAL } from '../domain/hours';
+import { isCents } from '../domain/money';
 import { ErrorResponse, errorResponses, registry } from './registry';
 import { isValidTimezone } from './slug';
 
@@ -73,11 +74,7 @@ export const BusinessDto = registry.register(
 export type BusinessDtoT = z.infer<typeof BusinessDto>;
 
 /* ---------- services ---------- */
-const price = z
-  .number()
-  .min(0)
-  .max(100000)
-  .refine((v) => Math.abs(v * 100 - Math.round(v * 100)) < 1e-6, 'At most 2 decimals.');
+const price = z.number().min(0).max(100000).refine(isCents, 'At most 2 decimals.');
 const serviceName = z.string().trim().min(1).max(80);
 const durationMin = z.number().int().min(5).max(600);
 const bufferMin = z.number().int().min(0).max(120);
