@@ -356,7 +356,7 @@
       "save": "حفظ الإعدادات",
       "saved": "حُفظت الإعدادات",
       "minutes": "{count} دقيقة",
-      "equals": "= {value}",
+      "equals": "{value}",
       "field": {
         "name": "الاسم",
         "link": "رابط صفحة الحجز",

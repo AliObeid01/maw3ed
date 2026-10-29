@@ -24,11 +24,14 @@ export function useWeekdayName() {
   const format = useFormatter();
   const name = (weekday: number, style: 'long' | 'short') =>
     format.dateTime(new Date(Date.UTC(2024, 0, 7 + weekday)), { weekday: style, timeZone: 'UTC' });
-  return { long: (weekday: number) => name(weekday, 'long'), short: (weekday: number) => name(weekday, 'short') };
+  return {
+    long: (weekday: number) => name(weekday, 'long'),
+    short: (weekday: number) => name(weekday, 'short'),
+  };
 }
 
 const timeInput =
-  'h-[52px] w-full min-w-0 rounded-input border bg-surface px-3 text-base text-ink transition-colors duration-200 ease-out';
+  'h-[52px] w-full min-w-0 rounded-input border bg-surface px-3 text-base text-ink transition-colors duration-200 ease-out [&::-webkit-calendar-picker-indicator]:hidden';
 
 function IntervalRow({
   interval,
@@ -108,7 +111,9 @@ export function DayEditor({
     <Sheet
       open={weekday !== null}
       onOpenChange={(open) => (open ? undefined : onClose())}
-      title={weekday === null ? t('title', { day: '' }) : t('title', { day: dayName.long(weekday) })}
+      title={
+        weekday === null ? t('title', { day: '' }) : t('title', { day: dayName.long(weekday) })
+      }
       closeLabel={t('close')}
     >
       {weekday === null ? null : (
@@ -219,7 +224,9 @@ function DayEditorBody({
           })}
         </div>
         {copyTo.length > 0 ? (
-          <p className="m-0 text-[13px] text-muted">{t('copyNote', { day: dayName.long(weekday) })}</p>
+          <p className="m-0 text-[13px] text-muted">
+            {t('copyNote', { day: dayName.long(weekday) })}
+          </p>
         ) : null}
       </fieldset>
 

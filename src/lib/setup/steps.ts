@@ -1,6 +1,13 @@
 import type { SetupFlags } from '@/lib/api/setup';
 
-export const SETUP_STEP_IDS = ['business', 'services', 'staff', 'hours', 'share', 'invite'] as const;
+export const SETUP_STEP_IDS = [
+  'business',
+  'services',
+  'staff',
+  'hours',
+  'share',
+  'invite',
+] as const;
 export type SetupStepId = (typeof SETUP_STEP_IDS)[number];
 
 export type SetupStep = { id: SetupStepId; done: boolean; current: boolean };

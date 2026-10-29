@@ -8,12 +8,7 @@ import { Callout } from '@/components/ui/Callout';
 import { Input, Select } from '@/components/ui/Field';
 import { Switch } from '@/components/ui/Switch';
 import { createService, updateService, type Service } from '@/lib/api/setup';
-import {
-  BUFFER_OPTIONS,
-  DURATION_OPTIONS,
-  parsePrice,
-  withCurrent,
-} from '@/lib/setup/duration';
+import { BUFFER_OPTIONS, DURATION_OPTIONS, parsePrice, withCurrent } from '@/lib/setup/duration';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
 import { useAppFormat } from './useAppFormat';
@@ -169,10 +164,16 @@ export function ServiceForm({
         </div>
       ) : null}
       <div className="flex gap-2.5 pt-1">
-        <Button variant="secondary" size="lg" block onClick={onCancel} disabled={pending}>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="min-w-0 flex-1"
+          onClick={onCancel}
+          disabled={pending}
+        >
           {shared.cancel}
         </Button>
-        <Button type="submit" size="lg" block loading={pending}>
+        <Button type="submit" size="lg" className="min-w-0 flex-1" loading={pending}>
           {pending ? shared.saving : shared.save}
         </Button>
       </div>

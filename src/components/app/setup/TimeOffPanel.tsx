@@ -94,7 +94,8 @@ export function TimeOffPanel({
     const next: Partial<Record<FieldKey, string>> = {};
     if (!startAt) next.from = t('errors.required');
     if (!endAt) next.to = t('errors.required');
-    if (startAt && endAt && new Date(endAt) <= new Date(startAt)) next.to = t('errors.endBeforeStart');
+    if (startAt && endAt && new Date(endAt) <= new Date(startAt))
+      next.to = t('errors.endBeforeStart');
     setErrors(next);
     if (!startAt || !endAt || Object.keys(next).length > 0) {
       focusFirstInvalid();
@@ -133,6 +134,7 @@ export function TimeOffPanel({
     <Card
       as="aside"
       aria-labelledby="time-off-title"
+      padding="none"
       className="flex w-full max-w-none flex-[1_1_300px] flex-col gap-3.5 p-[22px] lg:max-w-[380px]"
     >
       <h2 id="time-off-title" className="m-0 text-lg font-semibold">

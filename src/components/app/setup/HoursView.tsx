@@ -92,16 +92,11 @@ function StaffHours({ staffId }: { staffId: string }) {
 
   return (
     <div className="flex flex-wrap items-start gap-5">
-      <WeeklyHours
-        key={staffId}
-        staffId={staffId}
-        initial={hours.data}
-        onSaved={hours.setData}
-      />
+      <WeeklyHours staffId={staffId} initial={hours.data} onSaved={hours.setData} />
       {timeOff.error && !timeOff.data ? (
         <LoadError error={timeOff.error} onRetry={timeOff.reload} className="flex-[1_1_300px]" />
       ) : (
-        <TimeOffPanel key={staffId} staffId={staffId} items={upcoming} onChange={onChange} />
+        <TimeOffPanel staffId={staffId} items={upcoming} onChange={onChange} />
       )}
     </div>
   );

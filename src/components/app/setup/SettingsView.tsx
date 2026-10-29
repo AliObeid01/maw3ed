@@ -17,12 +17,7 @@ import { getBusiness, updateBusiness, type Business } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { timezoneGroups, timezoneLabel } from '@/lib/auth/timezones';
 import { cn } from '@/lib/cn';
-import {
-  cutoffFromDisplay,
-  cutoffToDisplay,
-  cutoffUnit,
-  parseWhole,
-} from '@/lib/setup/duration';
+import { cutoffFromDisplay, cutoffToDisplay, cutoffUnit, parseWhole } from '@/lib/setup/duration';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { utcOffsetLabel } from '@/lib/setup/time';
 import { HeaderActions } from '../HeaderActions';
@@ -99,7 +94,13 @@ function SettingsSkeleton() {
   );
 }
 
-function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: Business) => void }) {
+function SettingsForm({
+  business,
+  onSaved,
+}: {
+  business: Business;
+  onSaved: (b: Business) => void;
+}) {
   const t = useTranslations('app.settings');
   const shared = useSharedText();
   const errorText = useErrorMessage();
@@ -136,7 +137,9 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
     return {
       common: groups.common.map((z) => ({ z, label: label(z) })),
       rest: groups.rest.map((z) => ({ z, label: label(z) })),
-      extra: all.has(business.timezone) ? null : { z: business.timezone, label: label(business.timezone) },
+      extra: all.has(business.timezone)
+        ? null
+        : { z: business.timezone, label: label(business.timezone) },
     };
   }, [business.timezone]);
 
@@ -239,7 +242,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
         ref={formRef}
         onSubmit={submit}
         noValidate
-        className="grid content-start gap-5 lg:grid-cols-2"
+        className="grid grid-cols-1 content-start gap-5 lg:grid-cols-2"
       >
         {banner ? (
           <div role="alert" className="lg:col-span-2">
@@ -249,7 +252,12 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </div>
         ) : null}
 
-        <Card as="section" aria-labelledby={`${uid}-business`} className="flex flex-col gap-4 p-[22px]">
+        <Card
+          padding="none"
+          as="section"
+          aria-labelledby={`${uid}-business`}
+          className="flex flex-col gap-4 p-[22px]"
+        >
           <h2 id={`${uid}-business`} className="m-0 text-lg font-semibold">
             {t('business')}
           </h2>
@@ -265,7 +273,10 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
             <label htmlFor={`${uid}-slug`} className="text-[15px] font-medium">
               {t('field.link')}
             </label>
-            <div className="flex h-[52px] items-center overflow-hidden rounded-input border border-line bg-canvas" dir="ltr">
+            <div
+              className="flex h-[52px] items-center overflow-hidden rounded-input border border-line bg-canvas"
+              dir="ltr"
+            >
               <span className="flex h-full items-center border-e border-line px-3 text-[15px] text-muted">
                 {BOOKING_PATH}
               </span>
@@ -307,7 +318,12 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Select>
         </Card>
 
-        <Card as="section" aria-labelledby={`${uid}-rules`} className="flex flex-col gap-4 p-[22px]">
+        <Card
+          padding="none"
+          as="section"
+          aria-labelledby={`${uid}-rules`}
+          className="flex flex-col gap-4 p-[22px]"
+        >
           <h2 id={`${uid}-rules`} className="m-0 text-lg font-semibold">
             {t('rules')}
           </h2>
@@ -349,7 +365,12 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           />
         </Card>
 
-        <Card as="section" aria-labelledby={`${uid}-plan`} className="flex flex-wrap items-center gap-4 p-[22px]">
+        <Card
+          padding="none"
+          as="section"
+          aria-labelledby={`${uid}-plan`}
+          className="flex flex-wrap items-center gap-4 p-[22px]"
+        >
           <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-[3px]">
             <span className="text-[13px] text-muted">{t('plan.label')}</span>
             <span id={`${uid}-plan`} className="text-xl font-semibold">
@@ -362,7 +383,7 @@ function SettingsForm({ business, onSaved }: { business: Business; onSaved: (b: 
           </Link>
         </Card>
       </form>
-      <StickySaveBar>{saveButton({ block: true })}</StickySaveBar>
+      {dirty ? <StickySaveBar>{saveButton({ block: true })}</StickySaveBar> : null}
     </>
   );
 }
@@ -374,7 +395,9 @@ function noticeHint(
   longDuration: (m: number) => string,
   t: ReturnType<typeof useTranslations>,
 ) {
-  return minutes === null || minutes === 0 ? base : `${base} · ${t('equals', { value: longDuration(minutes) })}`;
+  return minutes === null || minutes === 0
+    ? base
+    : `${base} · ${t('equals', { value: longDuration(minutes) })}`;
 }
 
 export function SettingsView() {

@@ -83,7 +83,13 @@ function ChannelCard({
     </>
   );
   return href ? (
-    <a href={href} target="_blank" rel="noopener noreferrer" onClick={onClick} className={className}>
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={onClick}
+      className={className}
+    >
       {content}
     </a>
   ) : (
@@ -125,7 +131,13 @@ function QrCard({ url, name }: { url: string; name: string }) {
       <div className="size-44 shrink-0 overflow-hidden rounded-2xl border border-line bg-white">
         {dataUrl ? (
           // eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise
-          <img src={dataUrl} width={176} height={176} alt={t('alt', { name })} className="size-full" />
+          <img
+            src={dataUrl}
+            width={176}
+            height={176}
+            alt={t('alt', { name })}
+            className="size-full"
+          />
         ) : failed ? (
           <span className="flex size-full items-center justify-center p-3 text-center text-[13px] text-muted">
             {t('failed')}
@@ -169,7 +181,11 @@ function ShareSkeleton() {
 function ShareBody({ ready, businessName }: { ready: boolean; businessName: string }) {
   const t = useTranslations('app.share');
   const { slug } = useAppSession();
-  const origin = useSyncExternalStore(noopSubscribe, () => window.location.origin, () => '');
+  const origin = useSyncExternalStore(
+    noopSubscribe,
+    () => window.location.origin,
+    () => '',
+  );
   const url = origin ? bookingUrl(origin, slug) : '';
   const hero = useCopy(url);
   const instagram = useCopy(url);
@@ -190,11 +206,17 @@ function ShareBody({ ready, businessName }: { ready: boolean; businessName: stri
               {ready ? t('live') : t('notReady')}
             </span>
           </div>
-          <div dir="ltr" className="text-start text-[22px] font-semibold break-all md:text-[28px]">
+          <div
+            dir="ltr"
+            className="text-start text-xl font-semibold [overflow-wrap:anywhere] md:text-[28px]"
+          >
             {displayUrl(url)}
           </div>
           {!ready ? (
-            <Link href="/app/setup" className="w-fit text-sm font-semibold text-white underline">
+            <Link
+              href="/app/setup"
+              className="inline-flex min-h-11 w-fit items-center text-sm font-semibold text-white underline"
+            >
               {t('finishSetup')}
             </Link>
           ) : null}
