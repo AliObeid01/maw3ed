@@ -97,6 +97,14 @@ export const createBooking = (slug: string, body: BookingBody, idempotencyKey: s
     headers: { 'Idempotency-Key': idempotencyKey },
   });
 
+/** Front-desk booking (staff session): same engine and body as the public page, but no minimum notice. */
+export const createFrontDeskBooking = (body: BookingBody, idempotencyKey: string) =>
+  request('/api/appointments', bookingResultSchema, {
+    method: 'POST',
+    body,
+    headers: { 'Idempotency-Key': idempotencyKey },
+  });
+
 /** The fresh slots the server attaches to a 409 SLOT_TAKEN (`error.data.slots`); empty when absent or malformed. */
 export function slotsFromConflict(error: unknown): Slot[] {
   if (!(error instanceof ApiError)) return [];
