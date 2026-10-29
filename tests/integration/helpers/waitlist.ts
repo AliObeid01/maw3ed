@@ -67,6 +67,8 @@ export async function seedEntry(
   over: {
     name?: string;
     email?: string | null;
+    /** Where offers go (defaults to the client email, or a fresh address). */
+    contactEmail?: string;
     phone?: string;
     staffId?: string | null;
     fromDate?: string;
@@ -89,6 +91,9 @@ export async function seedEntry(
     data: {
       businessId,
       clientId: client.id,
+      contactEmail:
+        over.contactEmail ??
+        (typeof over.email === 'string' ? over.email : `c-${unique()}@example.test`),
       serviceId,
       staffId: over.staffId ?? null,
       fromDate: new Date(`${over.fromDate ?? '2026-11-03'}T00:00:00Z`),
@@ -113,4 +118,3 @@ export async function staffSession(ownerCookie: string) {
   if (accepted.status !== 200) throw new Error('staff invite failed');
   return accepted.cookie as string;
 }
-

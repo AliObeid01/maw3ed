@@ -6,9 +6,19 @@ import { GET as waitlistActivity } from '@/app/api/waitlist/activity/route';
 import { DELETE as deleteEntry } from '@/app/api/waitlist/[id]/route';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
-import { newPhone, newScenario, newTenant, NOW, type Tenant } from './helpers/booking';
+import { fakeEmailProvider } from '@/server/providers/email';
+import {
+  at,
+  bookingBody,
+  bookPublicly,
+  newPhone,
+  newScenario,
+  newTenant,
+  NOW,
+  type Tenant,
+} from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
-import { joinBody, joinWaitlist, seedEntry, staffSession } from './helpers/waitlist';
+import { joinBody, joinWaitlist, seedEntry, staffCancel, staffSession } from './helpers/waitlist';
 
 let pg: Client;
 let prisma: PrismaClient;
@@ -37,6 +47,8 @@ afterAll(async () => {
 beforeEach(async () => {
   await pg.query('DELETE FROM "WaitlistOffer"');
   await pg.query('DELETE FROM "WaitlistEntry"');
+  await pg.query('DELETE FROM "ReminderJob"');
+  await pg.query('DELETE FROM "Appointment"');
   vi.setSystemTime(NOW);
 });
 
@@ -78,7 +90,9 @@ describe('POST /api/public/{slug}/waitlist', () => {
     expect(overlap.status).toBe(200);
     expect(overlap.body!.entry.id).toBe(first.body!.entry.id);
     // disjoint dates, or another staff preference, are different entries
-    expect((await join({ ...body, fromDate: '2026-11-15', toDate: '2026-11-16' })).status).toBe(201);
+    expect((await join({ ...body, fromDate: '2026-11-15', toDate: '2026-11-16' })).status).toBe(
+      201,
+    );
     expect((await join({ ...body, staffId: aScn.staffIds[1] })).status).toBe(201);
     expect((await pg.query('SELECT count(*)::int AS n FROM "WaitlistEntry"')).rows[0].n).toBe(3);
   });
@@ -171,36 +185,67 @@ describe('POST /api/public/{slug}/waitlist', () => {
     expect((await pg.query('SELECT count(*)::int AS n FROM "WaitlistEntry"')).rows[0].n).toBe(0);
   });
 
-  it('never overwrites an existing client’s name or email; fills only empty ones', async () => {
+  const clientRow = async (phone: string) =>
+    (await pg.query('SELECT name, email FROM "Client" WHERE phone = $1', [phone])).rows[0];
+
+  it('never writes to an existing client: a different email or name is ignored', async () => {
     const phone = '+96171555001';
     await prisma.client.create({
       data: { businessId: a.businessId, name: 'Real Name', phone, email: 'real@example.test' },
     });
-    const noEmail = '+96171555002';
-    await prisma.client.create({
-      data: { businessId: a.businessId, name: 'Has Name', phone: noEmail, email: null },
-    });
-    const r1 = await join(
+    const r = await join(
       joinBody(aScn.serviceId, {
         client: { name: 'Mallory', phone, email: 'mallory@example.test' },
       }),
     );
-    expect(r1.status).toBe(201);
-    const r2 = await join(
+    expect(r.status).toBe(201);
+    expect(await clientRow(phone)).toEqual({ name: 'Real Name', email: 'real@example.test' });
+    const entry = (await pg.query('SELECT "contactEmail" FROM "WaitlistEntry"')).rows[0];
+    expect(entry.contactEmail).toBe('mallory@example.test');
+  });
+
+  it('a new client gets their name and email as before', async () => {
+    const phone = '+96171555003';
+    const r = await join(
+      joinBody(aScn.serviceId, { client: { name: 'Newbie', phone, email: 'new@example.test' } }),
+    );
+    expect(r.status).toBe(201);
+    expect(await clientRow(phone)).toEqual({ name: 'Newbie', email: 'new@example.test' });
+  });
+
+  it('an existing client with NO email stays without one; offers go to the entry address only', async () => {
+    const victimPhone = '+96171555002';
+    await prisma.client.create({
+      data: { businessId: a.businessId, name: 'Victim', phone: victimPhone, email: null },
+    });
+    const r = await join(
       joinBody(aScn.serviceId, {
-        client: { name: 'Someone', phone: noEmail, email: 'filled@example.test' },
+        client: { name: 'Attacker', phone: victimPhone, email: 'attacker@example.test' },
       }),
     );
-    expect(r2.status).toBe(201);
-    const rows = (
-      await pg.query('SELECT phone, name, email FROM "Client" WHERE phone = ANY($1) ORDER BY phone', [
-        [phone, noEmail],
-      ])
-    ).rows;
-    expect(rows).toEqual([
-      { phone, name: 'Real Name', email: 'real@example.test' },
-      { phone: noEmail, name: 'Has Name', email: 'filled@example.test' },
-    ]);
+    expect(r.status).toBe(201);
+    // not stored on the client: neither name nor email
+    expect(await clientRow(victimPhone)).toEqual({ name: 'Victim', email: null });
+
+    // a slot opens up: the offer is mailed to the entry's address, and nothing is written to the client
+    fakeEmailProvider.reset();
+    const booked = await bookPublicly(
+      a.slug,
+      bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('07:00'), {
+        email: 'canceller@example.test',
+      }),
+    );
+    expect(booked.status).toBe(201);
+    expect((await staffCancel(a.cookie, booked.body!.appointment.id)).status).toBe(200);
+    expect(fakeEmailProvider.calls.map((m) => m.to)).toEqual(['attacker@example.test']);
+    expect(await clientRow(victimPhone)).toEqual({ name: 'Victim', email: null });
+    // the only mail ever sent to this address is the offer the entry asked for
+    const jobs = await pg.query(
+      `SELECT count(*)::int AS n FROM "ReminderJob" j JOIN "Appointment" ap ON ap.id = j."appointmentId"
+       JOIN "Client" c ON c.id = ap."clientId" WHERE c.phone = $1`,
+      [victimPhone],
+    );
+    expect(jobs.rows[0].n).toBe(0);
   });
 });
 
