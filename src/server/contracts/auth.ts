@@ -123,7 +123,7 @@ registry.registerPath({
   path: '/api/auth/login',
   summary: 'Sign in with email and password',
   description:
-    'A user with several memberships is signed into the most recently created one. 5 failures per email in 15 minutes -> 429 TOO_MANY_ATTEMPTS.',
+    'A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.',
   tags: ['auth'],
   request: { body: { content: json(LoginBody) } },
   responses: {
@@ -131,6 +131,7 @@ registry.registerPath({
     400: errorResponses[400],
     401: err('INVALID_CREDENTIALS (same body for wrong email and wrong password)'),
     429: err('TOO_MANY_ATTEMPTS'),
+    503: err('SERVICE_BUSY (Retry-After: 2)'),
   },
 });
 

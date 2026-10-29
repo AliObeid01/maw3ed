@@ -8,7 +8,7 @@ import {
   type TokenIdentity,
 } from './auth';
 import type { TokenAction } from '@/server/domain/tokens';
-import { clientIp } from './clientIp';
+import { clientIp, UNKNOWN_IP } from './clientIp';
 import { rateLimiter, routeRateLimitDisabled } from '@/server/services/rateLimit';
 import type { RatePolicyName } from '@/server/services/rateLimitPolicies';
 import { sessionCookie } from './cookies';
@@ -231,7 +231,8 @@ export function withRoute<C extends RouteConfig>(
     };
 
     try {
-      if (config.rateLimit && !routeRateLimitDisabled()) {
+      // Unknown address: per-IP budgets are skipped (one shared bucket would lock everyone out).
+      if (config.rateLimit && ctx.ip !== UNKNOWN_IP && !routeRateLimitDisabled()) {
         const decision = await rateLimiter.consume(config.rateLimit.policy, ctx.ip!);
         if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
       }

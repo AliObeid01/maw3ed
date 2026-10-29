@@ -5,6 +5,8 @@ import { rateLimitRepo } from '@/server/repositories/rateLimit.repo';
 import { sessionRepo } from '@/server/repositories/session.repo';
 
 export const CLEANUP_BATCH = 500;
+/** Buckets are many and cheap: one indexed delete per 5000. */
+export const BUCKET_BATCH = 5000;
 export const CLEANUP_BUDGET_MS = 20_000;
 const DAY = 24 * 60 * 60 * 1000;
 export const INVITE_RETENTION_MS = 7 * DAY;
@@ -51,20 +53,28 @@ export async function runCleanup(
   const bucketCutoff = new Date(now.getTime() - BUCKET_RETENTION_MS);
 
   const result: CleanupResult = { sessions: 0, invites: 0, rateLimitBuckets: 0, truncated: false };
-  const steps: [keyof Omit<CleanupResult, 'truncated'>, (limit: number) => Promise<number>][] = [
-    ['sessions', (n) => sessionRepo.deleteDead(now, absoluteCutoff, n)],
-    ['invites', (n) => inviteRepo.deleteStale(inviteCutoff, n)],
-    ['rateLimitBuckets', (n) => rateLimitRepo.deleteOlderThan(bucketCutoff, n)],
+  const steps: [
+    keyof Omit<CleanupResult, 'truncated'>,
+    (limit: number) => Promise<number>,
+    number,
+  ][] = [
+    ['sessions', (n) => sessionRepo.deleteDead(now, absoluteCutoff, n), deps.batch],
+    ['invites', (n) => inviteRepo.deleteStale(inviteCutoff, n), deps.batch],
+    [
+      'rateLimitBuckets',
+      (n) => rateLimitRepo.deleteOlderThan(bucketCutoff, n),
+      overrides.batch ?? BUCKET_BATCH,
+    ],
   ];
-  for (const [name, deleteBatch] of steps) {
+  for (const [name, deleteBatch, size] of steps) {
     for (;;) {
       if (deps.elapsedMs() >= deps.budgetMs) {
         result.truncated = true;
         break;
       }
-      const deleted = await deleteBatch(deps.batch);
+      const deleted = await deleteBatch(size);
       result[name] += deleted;
-      if (deleted < deps.batch) break;
+      if (deleted < size) break;
     }
   }
   logger.info({ ...result }, 'cleanup finished');

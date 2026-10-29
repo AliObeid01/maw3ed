@@ -133,7 +133,7 @@ export const authService = {
   ): Promise<SignedIn> {
     const now = deps.now();
     const ip = ctx.ip ?? UNKNOWN_IP;
-    await deps.guard.attempt(input.email, ip);
+    const ticket = await deps.guard.attempt(input.email, ip);
 
     const user = await userRepo.findByEmail(input.email);
     const valid = await verifyPassword(input.password, user?.passwordHash);
@@ -142,7 +142,7 @@ export const authService = {
       ctx.logger.warn('login failed');
       throw AppError.invalidCredentials();
     }
-    await deps.guard.succeeded(input.email, ip);
+    await deps.guard.succeeded(input.email, ip, ticket);
     const session = await sessionService.create(membership.businessId, user.id, now);
     ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
     return {

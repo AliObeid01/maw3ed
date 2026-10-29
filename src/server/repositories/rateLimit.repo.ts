@@ -1,6 +1,8 @@
 import { db } from './db';
 
 export interface HitResult {
+  /** The window this hit landed in; pass it back to refund() so a refund never hits a later window. */
+  windowStart: Date;
   count: number;
   limited: boolean;
   retryAfterSec: number;
@@ -22,27 +24,32 @@ export const rateLimitRepo = {
    * returned. Concurrent callers (even on different serverless instances) each get a distinct count, so
    * exactly `limit` of them see `limited === false`.
    */
-  async hit(key: string, windowSec: number, limit: number, now: Date): Promise<HitResult> {
+  async hit(
+    key: string,
+    windowSec: number,
+    limit: number,
+    now: Date,
+    amount = 1,
+  ): Promise<HitResult> {
     const start = windowStartOf(now, windowSec);
     const rows = await db.$queryRaw<{ count: number }[]>`
       INSERT INTO "RateLimitBucket" ("key", "windowStart", "count")
-      VALUES (${key}, ${start.toISOString()}::timestamptz, 1)
-      ON CONFLICT ("key", "windowStart") DO UPDATE SET "count" = "RateLimitBucket"."count" + 1
+      VALUES (${key}, ${start.toISOString()}::timestamptz, ${amount})
+      ON CONFLICT ("key", "windowStart") DO UPDATE SET "count" = "RateLimitBucket"."count" + ${amount}
       RETURNING "count"`;
     const count = Number(rows[0]!.count);
     const retryAfterSec = Math.max(
       1,
       Math.ceil((start.getTime() + windowSec * 1000 - now.getTime()) / 1000),
     );
-    return { count, limited: count > limit, retryAfterSec };
+    return { windowStart: start, count, limited: count > limit, retryAfterSec };
   },
 
-  /** Give back one hit in the current window (a successful login does not spend the per-IP budget). */
-  async refund(key: string, windowSec: number, now: Date): Promise<void> {
-    const start = windowStartOf(now, windowSec);
+  /** Give back one hit in the EXACT window it was taken in (not whatever window is current now). */
+  async refund(key: string, windowStart: Date): Promise<void> {
     await db.$executeRaw`
       UPDATE "RateLimitBucket" SET "count" = GREATEST("count" - 1, 0)
-      WHERE "key" = ${key} AND "windowStart" = ${start.toISOString()}::timestamptz`;
+      WHERE "key" = ${key} AND "windowStart" = ${windowStart.toISOString()}::timestamptz`;
   },
 
   /** Forget every window of a key. */

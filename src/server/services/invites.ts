@@ -120,10 +120,10 @@ export const invitesService = {
     if (existing) {
       // Same keys as login: guessing the password here spends the same budget as guessing it there.
       const ip = ctx.ip ?? UNKNOWN_IP;
-      await deps.guard.attempt(invite.email, ip);
+      const ticket = await deps.guard.attempt(invite.email, ip);
       if (!(await verifyPassword(input.password, existing.passwordHash)))
         throw AppError.invalidCredentials();
-      await deps.guard.succeeded(invite.email, ip);
+      await deps.guard.succeeded(invite.email, ip, ticket);
       if (await membershipRepo.hasMembership(invite.businessId, existing.id))
         throw AppError.conflict(
           'ALREADY_MEMBER',

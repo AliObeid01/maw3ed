@@ -14,6 +14,7 @@ export type ErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'TOO_MANY_ATTEMPTS'
   | 'RATE_LIMITED'
+  | 'SERVICE_BUSY'
   | 'INTERNAL'
   | (string & {});
 
@@ -101,6 +102,16 @@ export class AppError extends Error {
   }
   static unavailable(message = 'Service temporarily unavailable.') {
     return new AppError(503, 'SERVICE_UNAVAILABLE', message);
+  }
+  /** Too many password hashes in flight on this instance. */
+  static busy(retryAfterSec = 2) {
+    return new AppError(
+      503,
+      'SERVICE_BUSY',
+      'The server is busy. Try again in a moment.',
+      {},
+      { retryAfterSec },
+    );
   }
   static notImplemented(message = 'Not implemented yet.') {
     return new AppError(501, 'NOT_IMPLEMENTED', message);
@@ -209,7 +220,7 @@ export function mapError(error: unknown): MappedError {
       status: known.status,
       body: errorBody(known),
       unexpected: false,
-      ...(known.status === 429 && typeof retry === 'number'
+      ...((known.status === 429 || known.status === 503) && typeof retry === 'number'
         ? { headers: { 'Retry-After': String(retry) } }
         : {}),
     };

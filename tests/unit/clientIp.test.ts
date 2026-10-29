@@ -3,8 +3,8 @@ import { clientIp, normaliseIp, resetClientIpWarning } from '@/server/http/clien
 import { rootLogger } from '@/server/http/logger';
 
 const req = (headers: Record<string, string>) => new Request('http://x.test/', { headers });
-const VERCEL = { VERCEL: '1' } as NodeJS.ProcessEnv;
-const PLAIN = {} as NodeJS.ProcessEnv;
+const VERCEL = { VERCEL: '1' } as unknown as NodeJS.ProcessEnv;
+const PLAIN = {} as unknown as NodeJS.ProcessEnv;
 
 describe('normaliseIp', () => {
   it('keeps IPv4, rejects malformed IPv4', () => {
