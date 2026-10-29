@@ -9,6 +9,7 @@ export interface BusinessPatch {
   cancelCutoffMin?: number;
   category?: string | null;
   address?: string | null;
+  listed?: boolean;
 }
 
 export const businessRepo = {
