@@ -21,6 +21,8 @@ export type AppShellProps = {
   actions?: ReactNode;
   onSignOut?: () => void;
   signingOut?: boolean;
+  /** Hide the Business section (setup pages are owner-only; receptionists do not see it). */
+  hideBusiness?: boolean;
   children: ReactNode;
 };
 
@@ -38,6 +40,7 @@ export function AppShell({
   actions,
   onSignOut,
   signingOut,
+  hideBusiness,
   children,
 }: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -45,7 +48,13 @@ export function AppShell({
 
   return (
     <div className="flex min-h-dvh bg-canvas">
-      <AppSidebar business={business} activeId={activeId} badges={badges} hrefs={hrefs} />
+      <AppSidebar
+        business={business}
+        activeId={activeId}
+        badges={badges}
+        hrefs={hrefs}
+        hideBusiness={hideBusiness}
+      />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-divider bg-surface px-4 py-3.5 md:px-8">
           <div className="flex min-w-0 flex-[1_1_240px] flex-col">
@@ -74,6 +83,7 @@ export function AppShell({
         hrefs={hrefs}
         onSignOut={onSignOut}
         signingOut={signingOut}
+        hideBusiness={hideBusiness}
       />
     </div>
   );

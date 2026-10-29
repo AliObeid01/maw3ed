@@ -15,6 +15,7 @@ type Props = {
   hrefs: Record<ActiveId, string>;
   onSignOut?: () => void;
   signingOut?: boolean;
+  hideBusiness?: boolean;
 };
 
 /** Pilot report, the Business section and sign out. */
@@ -26,6 +27,7 @@ export function MoreSheet({
   hrefs,
   onSignOut,
   signingOut,
+  hideBusiness,
 }: Props) {
   const t = useTranslations('app.more');
   const close = () => onOpenChange(false);
@@ -41,7 +43,9 @@ export function MoreSheet({
             onNavigate={close}
           />
         </ul>
-        <BusinessSection activeId={activeId} hrefs={hrefs} onNavigate={close} />
+        {hideBusiness ? null : (
+          <BusinessSection activeId={activeId} hrefs={hrefs} onNavigate={close} />
+        )}
       </nav>
       {onSignOut ? (
         <Button
