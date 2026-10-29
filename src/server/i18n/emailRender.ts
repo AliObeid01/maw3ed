@@ -78,7 +78,7 @@ function vars(c: EmailContext): Record<string, string> {
 }
 
 /** HTML-escape a template; dynamic values are escaped and, for right-to-left mail, isolated in <bdi>. */
-function interpolateHtml(template: string, v: Record<string, string>, rtl: boolean): string {
+export function interpolateHtml(template: string, v: Record<string, string>, rtl: boolean): string {
   return template
     .split(/(\{\w+\})/)
     .map((part) => {

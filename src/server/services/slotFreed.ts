@@ -1,4 +1,5 @@
 import type { Logger } from '@/server/http/logger';
+import { onSlotFreedOffer } from './waitlist';
 
 export interface FreedSlot {
   appointmentId: string;
@@ -9,15 +10,12 @@ export interface FreedSlot {
 }
 
 /**
- * Hook called after an appointment is cancelled and its slot is free again. The waitlist task (P2.8)
- * implements the offering here; until then it deliberately does nothing.
+ * Hook called after an appointment is cancelled and its slot is free again: offers the slot to the
+ * waitlist (FR-19). It never throws, because the cancel is already committed; failures are logged.
  */
 export async function onSlotFreed(
   ctx: { businessId: string; logger: Logger },
   slot: FreedSlot,
 ): Promise<void> {
-  ctx.logger.debug(
-    { appointmentId: slot.appointmentId },
-    'slot freed (waitlist hook not wired yet)',
-  );
+  await onSlotFreedOffer(ctx, slot.appointmentId);
 }
