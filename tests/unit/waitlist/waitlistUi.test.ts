@@ -3,6 +3,7 @@ import { ApiError } from '@/lib/api/auth';
 import { claimOffer, getOffer, joinWaitlist } from '@/lib/api/waitlist';
 import { classifyJoinError, validateJoin } from '@/lib/waitlist/errors';
 import {
+  clockSaysEnded,
   classifyOfferError,
   createClaimRunner,
   isExpired,
@@ -105,7 +106,12 @@ describe('offer countdown and screen', () => {
 
   it('derives the screen from status, canClaim and the clock', () => {
     expect(offerScreen(view('OPEN'), at - 60_000)).toBe('open');
-    expect(offerScreen(view('OPEN'), at)).toBe('expired');
+    // The clock alone never ends an offer the server says can be claimed.
+    expect(offerScreen(view('OPEN'), at)).toBe('open');
+    expect(offerScreen(view('OPEN'), at + 3_600_000)).toBe('open');
+    expect(clockSaysEnded(expiresAt, at)).toBe(true);
+    // Once the server says it cannot be claimed, the clock tells expired from unavailable.
+    expect(offerScreen(view('OPEN', false), at)).toBe('expired');
     expect(offerScreen(view('OPEN', false), at - 60_000)).toBe('unavailable');
     expect(offerScreen(view('EXPIRED'), at - 60_000)).toBe('expired');
     expect(offerScreen(view('TAKEN'), at - 60_000)).toBe('taken');

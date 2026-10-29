@@ -26,8 +26,17 @@ export function minutesLeft(expiresAt: string, nowMs: number): number {
   return Math.ceil(msLeft(expiresAt, nowMs) / 60_000);
 }
 
-/** Derives the screen from the API view and the clock. The clock wins over a stale OPEN status. */
-export function offerScreen(view: Pick<OfferView, 'offer' | 'canClaim'>, nowMs: number): OfferScreen {
+/**
+ * True when the (server-corrected) clock has reached expiry. This alone never ends the offer: the server's
+ * canClaim and its answer to a tap decide. The page uses it to disable Book and show the expiry text.
+ */
+export const clockSaysEnded = isExpired;
+
+/**
+ * Derives the screen from the API view. The clock is only consulted once the server has already said the offer
+ * cannot be claimed (an OPEN offer with canClaim false and a passed expiry is an expired offer, not a broken one).
+ */
+export function offerScreen(view: Pick<OfferView, 'offer' | 'canClaim'>, serverNowMs: number): OfferScreen {
   switch (view.offer.status) {
     case 'EXPIRED':
       return 'expired';
@@ -36,9 +45,20 @@ export function offerScreen(view: Pick<OfferView, 'offer' | 'canClaim'>, nowMs: 
     case 'CLAIMED':
       return 'claimed';
     default:
-      if (isExpired(view.offer.expiresAt, nowMs)) return 'expired';
-      return view.canClaim ? 'open' : 'unavailable';
+      if (view.canClaim) return 'open';
+      return isExpired(view.offer.expiresAt, serverNowMs) ? 'expired' : 'unavailable';
   }
+}
+
+/** Which spoken announcement (if any) the hidden live region makes: only at 10, 5 and 1 minute and at expiry. */
+export type Announcement = 'm10' | 'm5' | 'm1' | 'expired' | '';
+export function announcementFor(expiresAt: string, nowMs: number): Announcement {
+  const ms = msLeft(expiresAt, nowMs);
+  if (ms === 0) return 'expired';
+  if (ms <= 60_000) return 'm1';
+  if (ms <= 5 * 60_000) return 'm5';
+  if (ms <= 10 * 60_000) return 'm10';
+  return '';
 }
 
 export type OfferFailure = 'invalid' | 'expired' | 'taken' | 'unavailable' | 'network' | 'tooMany' | 'generic';

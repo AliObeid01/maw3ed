@@ -1015,18 +1015,18 @@
       "email": "Email",
       "emailHint": "Offers are sent by email, so we need this one."
     },
-    "consent": "We email you if a spot opens. You can ignore the email to leave the waitlist.",
+    "consent": "We email you if a spot opens. You stay on the waitlist until the last day you chose or until you book, and each offer lasts about 30 minutes. To be removed earlier, contact the business.",
     "submit": "Join the waitlist",
     "summary": {
       "title": "Your waitlist request",
       "service": "Service",
       "with": "With",
       "days": "Days",
-      "range": "{from} to {to}",
+      "range": "<b>{from}</b> to <b>{to}</b>",
       "notChosen": "Not chosen yet"
     },
     "side": {
-      "free": "Joining is free. You can leave the waitlist by ignoring the email."
+      "free": "Joining is free. Offers last about 30 minutes, and the first person to claim gets the spot."
     },
     "errors": {
       "serviceRequired": "Choose a service.",
@@ -1041,7 +1041,8 @@
       "nameTooLong": "Use 80 characters or fewer.",
       "phoneInvalid": "Enter a valid mobile number.",
       "emailRequired": "Enter your email. Offers are sent by email.",
-      "emailInvalid": "Enter a valid email address."
+      "emailInvalid": "Enter a valid email address.",
+      "dateInvalid": "Check this date."
     },
     "banner": {
       "network": "We couldn't reach the server. Check your connection and try again.",
@@ -1058,15 +1059,15 @@
     },
     "done": {
       "title": "You're on the waitlist",
-      "body": "We'll email {email} if a spot opens for {service}.",
+      "body": "Offers are sent to <b>{email}</b> if a spot opens for <b>{service}</b>.",
       "nextTitle": "What happens next",
       "n1Title": "We watch for openings",
       "n1Body": "If someone cancels, we check the waitlist.",
       "n2Title": "You get an email with a link",
-      "n2Body": "The offer lasts about 30 minutes.",
+      "n2Body": "Each offer lasts about 30 minutes.",
       "n3Title": "First to claim gets it",
-      "n3Body": "Tap the link to book the spot. If it's gone, you stay on the list.",
-      "leave": "To leave the waitlist, just ignore the email.",
+      "n3Body": "Tap the link to book the spot. If it's gone, you stay on the list for the next opening.",
+      "leave": "You stay on the waitlist until the last day you chose, or until you book. To be removed earlier, contact the business.",
       "back": "Back to booking"
     },
     "notFound": {
@@ -1087,7 +1088,8 @@
       "title": "Nothing fits?",
       "body": "Join the waitlist and we'll email you if a spot opens.",
       "action": "Join the waitlist"
-    }
+    },
+    "shortened": "We shortened the range to fit this business's booking window."
   },
   "offer": {
     "pageTitle": "Waitlist offer",
@@ -1105,7 +1107,7 @@
     },
     "done": {
       "title": "You're booked",
-      "body": "{service} with {staff}, {when}.",
+      "body": "<b>{service}</b> with <b>{staff}</b>, <b>{when}</b>.",
       "next": "Reminders will follow by email, 24 h and 2 h before.",
       "manage": "Confirm or cancel your booking",
       "manageHint": "Keep this link. It stops working when your appointment starts."
@@ -1116,12 +1118,12 @@
     },
     "expired": {
       "title": "This offer has expired",
-      "body": "The 30 minutes are over, so the spot went to the next person on the list. You stay on the waitlist.",
+      "body": "The 30 minutes are over, so the spot may go to the next person on the list. You stay on the waitlist until the last day you chose.",
       "action": "See free times"
     },
     "taken": {
       "title": "Someone else got this slot",
-      "body": "It was claimed a moment before you. You stay on the waitlist for the next opening.",
+      "body": "It was claimed a moment before you. You stay on the waitlist until the last day you chose, so you can still get another offer.",
       "action": "See free times"
     },
     "unavailable": {
@@ -1139,6 +1141,14 @@
       "tooMany": "Too many attempts. Please wait a moment and try again.",
       "generic": "Something went wrong. Please try again.",
       "retry": "Try again"
+    },
+    "endedAt": "Offer ended at {time}",
+    "endedHint": "This offer may have ended. Reload the page to check.",
+    "announce": {
+      "m10": "About 10 minutes left to claim this offer.",
+      "m5": "About 5 minutes left to claim this offer.",
+      "m1": "About 1 minute left to claim this offer.",
+      "expired": "This offer has ended."
     }
   }
 }

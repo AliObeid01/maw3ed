@@ -163,3 +163,70 @@ test('Arabic: RTL page, translated heading, email and phone stay LTR', async ({ 
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('the consent copy tells the truth: the entry stays until the last day chosen or until booking', async ({ page }) => {
+  await open(page);
+  const body = page.locator('main');
+  await expect(body).toContainText('You stay on the waitlist until the last day you chose or until you book');
+  await expect(body).toContainText('contact the business');
+  await expect(body).not.toContainText('ignore the email');
+});
+
+test('the same request submitted twice (201 then 200 duplicate) succeeds both times', async ({ page }) => {
+  const { calls } = await open(page, `?service=${IDS.haircut}`);
+  const statuses: number[] = [];
+  page.on('response', (r) => {
+    if (r.url().endsWith('/waitlist') && r.request().method() === 'POST') statuses.push(r.status());
+  });
+  for (let i = 0; i < 2; i++) {
+    await page.goto(`${WL}?service=${IDS.haircut}`);
+    await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
+    await fill(page);
+    await submit(page).click();
+    await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
+  }
+  expect(statuses).toEqual([201, 200]);
+  expect(calls).toHaveLength(2);
+});
+
+test('tampered prefill: a staff id that does not do the service, and an over-long service id, are dropped', async ({ page }) => {
+  await open(page, `?service=${IDS.beard}&staff=${IDS.lina}`);
+  await expect(page.getByLabel('Service')).toHaveValue(IDS.beard);
+  await expect(page.getByLabel('With')).toHaveValue('');
+  await page.goto(`${WL}?service=${'a'.repeat(80)}&staff=${IDS.lina}`);
+  await expect(page.getByLabel('Service')).toHaveValue('');
+  await expect(page.getByLabel('With')).toHaveValue('');
+});
+
+test('the default range overshooting a short booking window is clipped to the named window and the user is told', async ({
+  page,
+}) => {
+  await mockPublicApi(page, { windowDays: 7 });
+  const { calls } = await mockJoinWaitlist(page, { windowDays: 7 });
+  await page.goto(`${WL}?service=${IDS.haircut}`);
+  await fill(page);
+  await submit(page).click();
+  await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
+  await expect(page.getByText("We shortened the range to fit this business's booking window.")).toBeVisible();
+  const today = DateTime.now().setZone(TZ).toISODate()!;
+  expect(calls).toHaveLength(1);
+  expect(calls[0]!.toDate).toBe(DateTime.fromISO(today).plus({ days: 7 }).toISODate());
+});
+
+test('when the window complaint names no length, the range is retried once at 7 days', async ({ page }) => {
+  await mockPublicApi(page, { windowDays: 3 });
+  const rejected: string[] = [];
+  const { calls } = await mockJoinWaitlist(page, { windowDays: 3, unnamedWindow: true });
+  page.on('response', (r) => {
+    if (r.url().endsWith('/waitlist') && r.status() === 400) rejected.push('400');
+  });
+  await page.goto(`${WL}?service=${IDS.haircut}`);
+  await fill(page);
+  await submit(page).click();
+  // 7 days is still beyond a 3-day window: the single retry fails and the field is marked, no loop.
+  await expect(page.getByLabel('To day')).toHaveAttribute('aria-invalid', 'true');
+  expect(rejected).toHaveLength(2);
+  expect(calls).toHaveLength(0);
+  const today = DateTime.now().setZone(TZ).toISODate()!;
+  await expect(page.getByLabel('To day')).toHaveValue(DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
+});

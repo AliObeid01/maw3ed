@@ -1,9 +1,9 @@
 'use client';
 
-import { BellRing, Compass, Check, WifiOff, ChevronLeft } from 'lucide-react';
+import { BellRing, Compass, Check, WifiOff, ChevronLeft, Info } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { FormBanner } from '@/components/auth/formKit';
 import { PhoneField } from '@/components/booking/PhoneField';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
@@ -21,9 +21,11 @@ import { useResource } from '@/lib/api/useResource';
 import { joinWaitlist, type JoinWaitlistBody } from '@/lib/api/waitlist';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { assemblePhone, DEFAULT_DIAL } from '@/lib/booking/phone';
-import { readWindowLength } from '@/lib/booking/window';
+import { readWindowLength, rememberWindowLength } from '@/lib/booking/window';
 import {
   classifyJoinError,
+  isOutOfWindow,
+  windowDaysFromError,
   validateJoin,
   type JoinBanner,
   type JoinErrors,
@@ -34,6 +36,8 @@ import { useLocaleHint } from '@/lib/useLocaleHint';
 
 const mainClass =
   'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-10 md:px-8 md:pt-7';
+/** Rich-text tag that isolates emails, dates and names inside right-to-left sentences. */
+const bdiTag = { b: (chunks: ReactNode) => <bdi>{chunks}</bdi> };
 const HOW_STEPS = ['s1', 's2', 's3'] as const;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** Order the fields appear on the page: the first invalid one gets focus. */
@@ -72,6 +76,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   const [errors, setErrors] = useState<JoinErrors>({});
   const [banner, setBanner] = useState<JoinBanner>();
   const [limit, setLimit] = useState(false);
+  const [shortened, setShortened] = useState(false);
   const [pending, setPending] = useState(false);
   const [tick, setTick] = useState(0);
   const [joined, setJoined] = useState<{ email: string; service: string }>();
@@ -166,6 +171,9 @@ export function JoinWaitlist({ slug }: { slug: string }) {
     );
   }
 
+  const doneBody = joined
+    ? t.rich('done.body', { email: joined.email, service: joined.service, ...bdiTag })
+    : null;
   if (joined) {
     const steps = [
       { id: 'n1', title: t('done.n1Title'), body: t('done.n1Body') },
@@ -194,11 +202,18 @@ export function JoinWaitlist({ slug }: { slug: string }) {
                     {t('done.title')}
                   </h2>
                   <p className="m-0 text-[15px] text-muted">
-                    {t('done.body', { email: joined.email, service: joined.service })}
+                    {doneBody}
                   </p>
                 </div>
               </div>
             </Card>
+            {shortened ? (
+              <div role="status">
+                <Callout tone="warning" icon={<Info />}>
+                  {t('shortened')}
+                </Callout>
+              </div>
+            ) : null}
             <Card className="flex flex-col gap-4">
               <h3 className="m-0 text-lg font-semibold">{t('done.nextTitle')}</h3>
               <ol className="m-0 flex list-none flex-col gap-4 p-0">
@@ -279,11 +294,31 @@ export function JoinWaitlist({ slug }: { slug: string }) {
       toDate: range!.to,
       client: { name: name.trim(), phone: assemblePhone(dial, phone), email: email.trim() },
     };
+    await send(body, false);
+  }
+
+  /**
+   * One POST. If the only complaint is "too far ahead" (the first visit has not learned the booking window yet),
+   * clip the range to the window the server names (7 days when it names none), remember it, and send once more.
+   */
+  async function send(body: JoinWaitlistBody, retried: boolean) {
     try {
       await joinWaitlist(slug, body);
-      setJoined({ email: body.client.email, service: service!.name });
+      setJoined({ email: body.client.email, service: service?.name ?? '' });
       window.scrollTo({ top: 0 });
     } catch (error) {
+      if (!retried && isOutOfWindow(error)) {
+        const named = windowDaysFromError(error);
+        const days = named ?? 7;
+        const last = named ? addDays(todayIn(new Date(), timezone), named) : addDays(todayIn(new Date(), timezone), 6);
+        const to = body.toDate < last ? body.toDate : last;
+        const clipped = { ...body, toDate: to < body.fromDate ? body.fromDate : to };
+        rememberWindowLength(slug, days);
+        setPickedRange({ from: clipped.fromDate, to: clipped.toDate });
+        setShortened(true);
+        await send(clipped, true);
+        return;
+      }
       const failure = classifyJoinError(error);
       guard.current.release();
       setPending(false);
@@ -306,7 +341,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
     {
       id: 'days',
       label: t('summary.days'),
-      value: t('summary.range', { from: f.ymd(range.from), to: f.ymd(range.to) }),
+      value: t.rich('summary.range', { from: f.ymd(range.from), to: f.ymd(range.to), ...bdiTag }),
     },
   ];
 
@@ -348,6 +383,13 @@ export function JoinWaitlist({ slug }: { slug: string }) {
             <h2 className="m-0 text-[22px] font-semibold md:text-2xl">{t('title')}</h2>
           </div>
 
+          {shortened ? (
+            <div role="status">
+              <Callout tone="warning" icon={<Info />}>
+                {t('shortened')}
+              </Callout>
+            </div>
+          ) : null}
           {banner ? (
             <FormBanner
               message={t(`banner.${banner}`)}

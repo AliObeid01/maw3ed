@@ -13,6 +13,7 @@ export type JoinFieldError =
   | 'staffInvalid'
   | RangeProblem
   | 'toOutOfWindow'
+  | 'dateInvalid'
   | 'nameRequired'
   | 'nameTooLong'
   | 'phoneInvalid'
@@ -57,12 +58,35 @@ export type JoinFailure =
 const SERVER_FIELDS: Record<string, { field: JoinField; error: JoinFieldError }> = {
   serviceId: { field: 'service', error: 'serviceRequired' },
   staffId: { field: 'staff', error: 'staffInvalid' },
-  fromDate: { field: 'from', error: 'fromPast' },
-  toDate: { field: 'to', error: 'toOutOfWindow' },
   'client.name': { field: 'name', error: 'nameRequired' },
   'client.phone': { field: 'phone', error: 'phoneInvalid' },
   'client.email': { field: 'email', error: 'emailInvalid' },
 };
+
+/** What a server date message means. Unrecognised text still marks the field (dateInvalid) but never claims a reason. */
+export function dateError(field: 'fromDate' | 'toDate', text: string): JoinFieldError {
+  if (/date like|real date/i.test(text)) return field === 'fromDate' ? 'fromRequired' : 'toRequired';
+  if (field === 'fromDate') return /later date|past|today/i.test(text) ? 'fromPast' : 'dateInvalid';
+  if (/before the start/i.test(text)) return 'toBeforeFrom';
+  if (/at most [0-9]+ days/i.test(text)) return 'tooLong';
+  if (/days ahead|open up to/i.test(text)) return 'toOutOfWindow';
+  return 'dateInvalid';
+}
+
+/** The booking window length (days) the server names in a toDate complaint ("Bookings open up to 14 days ahead."). */
+export function windowDaysFromError(error: unknown): number | undefined {
+  if (!(error instanceof ApiError) || error.status !== 400) return undefined;
+  if (dateError('toDate', error.fields.toDate ?? '') !== 'toOutOfWindow') return undefined;
+  const days = Number(/([0-9]+) days ahead/i.exec(error.fields.toDate ?? '')?.[1]);
+  return Number.isInteger(days) && days >= 1 ? days : undefined;
+}
+
+/** True for a 400 whose only complaint is "toDate is further ahead than the booking window". */
+export const isOutOfWindow = (error: unknown): boolean =>
+  error instanceof ApiError &&
+  error.status === 400 &&
+  Object.keys(error.fields).length === 1 &&
+  dateError('toDate', error.fields.toDate ?? '') === 'toOutOfWindow';
 
 /**
  * Maps a failed join to what the screen shows. Server text is English only and never displayed: every outcome
@@ -78,6 +102,10 @@ export function classifyJoinError(error: unknown): JoinFailure {
     const fields: JoinErrors = {};
     let other = false;
     for (const [name, text] of Object.entries(error.fields)) {
+      if (name === 'fromDate' || name === 'toDate') {
+        fields[name === 'fromDate' ? 'from' : 'to'] = dateError(name, text);
+        continue;
+      }
       const known = SERVER_FIELDS[name];
       if (!known) {
         other = true;

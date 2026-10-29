@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Clock, ExternalLink, LinkIcon, TriangleAlert, WifiOff, BellRing } from 'lucide-react';
+import { BellRing, Check, Clock, ExternalLink, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -13,10 +13,13 @@ import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { BookingResult } from '@/lib/api/booking';
-import { claimOffer, getOffer, type OfferView as Offer } from '@/lib/api/waitlist';
+import { claimOffer, getOffer } from '@/lib/api/waitlist';
 import { useResource } from '@/lib/api/useResource';
+import { safeHref, serverNow } from '@/lib/waitlist/clock';
 import {
+  announcementFor,
   classifyOfferError,
+  clockSaysEnded,
   createClaimRunner,
   minutesLeft,
   offerScreen,
@@ -27,6 +30,7 @@ import { useLocaleHint } from '@/lib/useLocaleHint';
 const mainClass =
   'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-10 md:px-8 md:pt-7';
 const TICK_MS = 30_000;
+type Offer = Awaited<ReturnType<typeof getOffer>>;
 
 /** Board 2.3 at /o/[token]. Reading the offer never changes anything; booking is a POST on a button press. */
 export function OfferView({ token }: { token: string }) {
@@ -34,27 +38,10 @@ export function OfferView({ token }: { token: string }) {
   const resource = useResource((signal) => getOffer(token, signal), token);
   const pathname = usePathname();
   useLocaleHint(resource.data?.business.locale, pathname);
-  const [gone, setGone] = useState<OfferFailure>();
 
-  const failure: OfferFailure | undefined = resource.error ? classifyOfferError(resource.error) : gone;
-  if (failure === 'invalid') {
-    return (
-      <PageState
-        role="status"
-        icon={<LinkIcon size={26} />}
-        title={t('invalid.title')}
-        body={t('invalid.body')}
-        action={
-          <ButtonLink href="/" size="lg" block>
-            {t('invalid.action')}
-          </ButtonLink>
-        }
-      />
-    );
-  }
-  if (failure === 'expired') {
-    return <Ended kind="expired" slug={resource.data?.business.slug} />;
-  }
+  const failure: OfferFailure | undefined = resource.error ? classifyOfferError(resource.error) : undefined;
+  if (failure === 'invalid') return <Invalid />;
+  if (failure === 'expired') return <Ended kind="expired" slug={resource.data?.business.slug} />;
   if (failure) {
     return (
       <PageState
@@ -72,7 +59,24 @@ export function OfferView({ token }: { token: string }) {
     );
   }
   if (!resource.data) return <OfferSkeleton label={t('loading')} />;
-  return <OfferBody token={token} view={resource.data} onGone={setGone} />;
+  return <OfferBody token={token} view={resource.data} />;
+}
+
+function Invalid() {
+  const t = useTranslations('offer');
+  return (
+    <PageState
+      role="status"
+      icon={<LinkIcon size={26} />}
+      title={t('invalid.title')}
+      body={t('invalid.body')}
+      action={
+        <ButtonLink href="/" size="lg" block>
+          {t('invalid.action')}
+        </ButtonLink>
+      }
+    />
+  );
 }
 
 function Ended({ kind, slug }: { kind: 'expired' | 'taken' | 'unavailable'; slug?: string }) {
@@ -95,59 +99,70 @@ function Ended({ kind, slug }: { kind: 'expired' | 'taken' | 'unavailable'; slug
   );
 }
 
-function OfferBody({
-  token,
-  view,
-  onGone,
-}: {
-  token: string;
-  view: Offer;
-  onGone: (kind: OfferFailure) => void;
-}) {
+/** The one place the claim outcome lives. */
+type Outcome =
+  | { kind: 'idle' }
+  | { kind: 'claiming' }
+  | { kind: 'booked'; result: BookingResult }
+  | { kind: 'ended'; as: 'taken' | 'expired' | 'unavailable' | 'invalid' }
+  /** A failure that can be retried (network, 429, 5xx): the offer screen stays and Book is the retry. */
+  | { kind: 'problem'; failure: OfferFailure };
+
+function OfferBody({ token, view }: { token: string; view: Offer }) {
   const t = useTranslations('offer');
   const { offer, business } = view;
   const f = useBookingFormat(business.timezone);
-  const [nowMs, setNowMs] = useState(() => Date.now());
-  const [booked, setBooked] = useState<BookingResult>();
-  const [taken, setTaken] = useState(false);
-  const [problem, setProblem] = useState<OfferFailure>();
-  const [pending, setPending] = useState(false);
-  const runner = useRef(createClaimRunner(() => claimOffer(token)));
+  // Recorded once from the first response: every "now" after that is the server's now.
+  const [offsetMs] = useState(view.clockOffsetMs);
+  const [nowMs, setNowMs] = useState(() => serverNow(offsetMs));
+  const [outcome, setOutcome] = useState<Outcome>({ kind: 'idle' });
+  const runner = useRef<ReturnType<typeof createClaimRunner<BookingResult>>>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
 
-  // Polite refresh of the countdown text; the live region only changes every 30 s.
+  // Refresh every 30 s, and once more exactly at expiry so the screen is never stale for up to 30 s.
   useEffect(() => {
-    const id = setInterval(() => setNowMs(Date.now()), TICK_MS);
-    return () => clearInterval(id);
-  }, []);
+    const tick = () => setNowMs(serverNow(offsetMs));
+    const id = setInterval(tick, TICK_MS);
+    const delay = Date.parse(offer.expiresAt) - serverNow(offsetMs);
+    const exact = delay > 0 ? setTimeout(tick, delay + 50) : undefined;
+    return () => {
+      clearInterval(id);
+      if (exact) clearTimeout(exact);
+    };
+  }, [offsetMs, offer.expiresAt]);
   useEffect(() => {
-    if (booked) headingRef.current?.focus();
-  }, [booked]);
+    if (outcome.kind === 'booked') headingRef.current?.focus();
+  }, [outcome.kind]);
 
   const screen = offerScreen(view, nowMs);
 
   async function claim() {
+    runner.current ??= createClaimRunner(() => claimOffer(token));
     if (runner.current.isRunning()) return;
-    setPending(true);
-    setProblem(undefined);
+    setOutcome({ kind: 'claiming' });
     try {
       const result = await runner.current.run();
-      setBooked(result);
+      setOutcome({ kind: 'booked', result });
       window.scrollTo({ top: 0 });
     } catch (error) {
-      const kind = classifyOfferError(error);
-      if (kind === 'taken') setTaken(true);
-      else if (kind === 'expired' || kind === 'invalid') onGone(kind);
-      else if (kind === 'unavailable') onGone('unavailable');
-      else setProblem(kind);
-    } finally {
-      setPending(false);
+      const failure = classifyOfferError(error);
+      if (failure === 'taken' || failure === 'expired' || failure === 'unavailable' || failure === 'invalid') {
+        setOutcome({ kind: 'ended', as: failure });
+      } else {
+        setOutcome({ kind: 'problem', failure });
+      }
     }
   }
 
-  if (taken || screen === 'taken') return <Ended kind="taken" slug={business.slug} />;
-  if (!booked && screen === 'expired') return <Ended kind="expired" slug={business.slug} />;
-  if (!booked && screen === 'unavailable') return <Ended kind="unavailable" slug={business.slug} />;
+  if (outcome.kind === 'ended') {
+    return outcome.as === 'invalid' ? <Invalid /> : <Ended kind={outcome.as} slug={business.slug} />;
+  }
+  const booked = outcome.kind === 'booked' ? outcome.result : undefined;
+  if (!booked) {
+    if (screen === 'taken') return <Ended kind="taken" slug={business.slug} />;
+    if (screen === 'expired') return <Ended kind="expired" slug={business.slug} />;
+    if (screen === 'unavailable') return <Ended kind="unavailable" slug={business.slug} />;
+  }
 
   const slot = booked?.appointment ?? offer;
   const when = t('when', { date: f.day(slot.startAt), start: f.time(slot.startAt), end: f.time(slot.endAt) });
@@ -177,6 +192,15 @@ function OfferBody({
   );
 
   if (booked || screen === 'claimed') {
+    const doneBody = booked
+      ? t.rich('done.body', {
+          service: slot.service.name,
+          staff: slot.staff.displayName,
+          when: `${f.day(slot.startAt)} · ${f.time(slot.startAt)}`,
+          b: (chunks) => <bdi>{chunks}</bdi>,
+        })
+      : null;
+    const manage = booked ? safeHref(booked.links.manage) : undefined;
     return (
       <>
         <BusinessHero name={business.name} meta="" />
@@ -199,13 +223,7 @@ function OfferBody({
                     {booked ? t('done.title') : t('mine.title')}
                   </h2>
                   <p className="m-0 text-[15px] text-muted">
-                    {booked
-                      ? t('done.body', {
-                          service: slot.service.name,
-                          staff: slot.staff.displayName,
-                          when: `${f.day(slot.startAt)} · ${f.time(slot.startAt)}`,
-                        })
-                      : t('mine.body')}
+                    {booked ? doneBody : t('mine.body')}
                   </p>
                 </div>
               </div>
@@ -213,18 +231,15 @@ function OfferBody({
               {booked ? (
                 <>
                   <Callout icon={<BellRing />}>{t('done.next')}</Callout>
-                  <div className="flex flex-col gap-2">
-                    <ButtonLink
-                      href={booked.links.manage}
-                      variant="secondary"
-                      size="lg"
-                      className="max-sm:w-full sm:self-start"
-                    >
-                      {t('done.manage')}
-                      <ExternalLink size={16} aria-hidden="true" className="rtl:-scale-x-100" />
-                    </ButtonLink>
-                    <p className="m-0 text-[13px] text-muted">{t('done.manageHint')}</p>
-                  </div>
+                  {manage ? (
+                    <div className="flex flex-col gap-2">
+                      <ButtonLink href={manage} variant="secondary" size="lg" className="max-sm:w-full sm:self-start">
+                        {t('done.manage')}
+                        <ExternalLink size={16} aria-hidden="true" className="rtl:-scale-x-100" />
+                      </ButtonLink>
+                      <p className="m-0 text-[13px] text-muted">{t('done.manageHint')}</p>
+                    </div>
+                  ) : null}
                 </>
               ) : null}
             </Card>
@@ -235,6 +250,10 @@ function OfferBody({
   }
 
   const left = minutesLeft(offer.expiresAt, nowMs);
+  const ended = clockSaysEnded(offer.expiresAt, nowMs);
+  const announce = announcementFor(offer.expiresAt, nowMs);
+  const claiming = outcome.kind === 'claiming';
+  const failure = outcome.kind === 'problem' ? outcome.failure : undefined;
   return (
     <>
       <BusinessHero name={business.name} meta="" />
@@ -248,22 +267,31 @@ function OfferBody({
               <h2 className="m-0 mt-1 text-2xl font-semibold md:text-[30px]">{t('title')}</h2>
             </div>
             {tile}
+            {/* The visible text is not live (it would be re-read every 30 s); the hidden region below speaks at 10, 5, 1 min and expiry. */}
             <div
-              role="status"
-              aria-live="polite"
+              data-testid="expiry"
               className="flex min-h-[58px] items-center gap-3 rounded-[20px] border border-warning-line bg-warning-soft p-4 text-[15px] text-warning-deep"
             >
               <Clock size={22} aria-hidden="true" className="shrink-0 text-warning" />
               <span>
-                <b className="font-semibold">
-                  {t('expiresAt', { time: f.time(offer.expiresAt) })}
-                </b>{' '}
-                · {t('minutesLeft', { minutes: left })} · {t('firstToClaim')}
+                {ended ? (
+                  <b className="font-semibold">{t('endedAt', { time: f.time(offer.expiresAt) })}</b>
+                ) : (
+                  <>
+                    <b className="font-semibold">{t('expiresAt', { time: f.time(offer.expiresAt) })}</b> ·{' '}
+                    {t('minutesLeft', { minutes: left })} · {t('firstToClaim')}
+                  </>
+                )}
               </span>
             </div>
-            {problem ? (
+            <p role="status" aria-live="polite" data-testid="expiry-live" className="sr-only">
+              {announce ? t(`announce.${announce}`) : ''}
+            </p>
+            {failure ? (
               <div role="alert">
-                <Callout tone="danger">{t(`errors.${problem === 'tooMany' ? 'tooMany' : problem === 'network' ? 'network' : 'generic'}`)}</Callout>
+                <Callout tone="danger">
+                  {t(`errors.${failure === 'tooMany' ? 'tooMany' : failure === 'network' ? 'network' : 'generic'}`)}
+                </Callout>
               </div>
             ) : null}
             <Button
@@ -271,11 +299,13 @@ function OfferBody({
               size="lg"
               block
               className="h-[54px] text-base"
-              loading={pending}
+              loading={claiming}
+              disabled={ended}
               onClick={() => void claim()}
             >
-              {t('book')}
+              {failure ? t('errors.retry') : t('book')}
             </Button>
+            {ended ? <p className="m-0 text-sm text-muted">{t('endedHint')}</p> : null}
           </Card>
         </section>
         <aside className="flex w-full flex-[1_1_240px] flex-col gap-3.5 lg:max-w-[290px]">

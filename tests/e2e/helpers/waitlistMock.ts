@@ -31,6 +31,8 @@ export type JoinOptions = {
   existingOpen?: number;
   delayMs?: number;
   failWith?: 500 | 429 | 'drop';
+  /** The window complaint does not say how many days (the client falls back to 7). */
+  unnamedWindow?: boolean;
 };
 
 export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
@@ -58,12 +60,12 @@ export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
     const from = DateTime.fromISO(body.fromDate ?? '', { zone: 'utc' });
     const to = DateTime.fromISO(body.toDate ?? '', { zone: 'utc' });
     if (!date.test(body.fromDate ?? '') || !from.isValid) fields.fromDate = 'Use a date like 2026-11-10.';
-    else if (body.fromDate < today.toISODate()!) fields.fromDate = 'The start date is in the past.';
+    else if (body.fromDate < today.toISODate()!) fields.fromDate = 'Pick today or a later date.';
     if (!date.test(body.toDate ?? '') || !to.isValid) fields.toDate = 'Use a date like 2026-11-10.';
     else if (from.isValid && to < from) fields.toDate = 'The end date must not be before the start date.';
     else if (from.isValid && Math.round(to.diff(from, 'days').days) + 1 > 31) fields.toDate = 'The range is at most 31 days.';
     else if (body.toDate > today.plus({ days: options.windowDays ?? 30 }).toISODate()!)
-      fields.toDate = 'Bookings open up to 30 days ahead.';
+      fields.toDate = options.unnamedWindow ? 'Bookings open further out.' : `Bookings open up to ${options.windowDays ?? 30} days ahead.`;
     if (!body.client?.name?.trim()) fields['client.name'] = 'Too small: expected string to have >=1 characters';
     if (!body.client?.phone || body.client.phone.length < 3) fields['client.phone'] = 'Enter a valid phone number.';
     if (!body.client?.email) fields['client.email'] = 'Invalid input: expected string, received undefined';
@@ -107,6 +109,8 @@ export type OfferMock = {
   /** What the claim answers instead of booking. */
   claim?: 'taken' | 'conflict' | 'expired' | '500' | 'drop-once';
   claimDelayMs?: number;
+  /** Leave the `Date` response header out (the client then trusts the device clock). */
+  noDateHeader?: boolean;
 };
 
 export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
@@ -132,7 +136,11 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
     if (gone === 410) return apiError(route, 410, 'OFFER_EXPIRED');
 
     if (!isClaim) {
-      return json(route, 200, {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        headers: mock.noDateHeader ? {} : { date: new Date().toUTCString() },
+        body: JSON.stringify({
         offer: {
           id: 'of1',
           status: booked ? 'CLAIMED' : (mock.status ?? 'OPEN'),
@@ -144,6 +152,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
         },
         business: { name: 'Studio Nour', slug: SLUG, timezone: TZ, locale: 'en' },
         canClaim: mock.canClaim ?? (mock.status ?? 'OPEN') === 'OPEN',
+        }),
       });
     }
     if (method !== 'POST') return apiError(route, 405, 'METHOD_NOT_ALLOWED');

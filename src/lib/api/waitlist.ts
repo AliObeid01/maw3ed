@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { bookingResultSchema } from './booking';
+import { serverOffsetMs } from '@/lib/waitlist/clock';
 import { request } from './auth';
 
 // Typed client for the waitlist endpoints. Responses are validated; unknown extra keys are ignored.
@@ -61,8 +62,17 @@ const seg = encodeURIComponent;
 export const joinWaitlist = (slug: string, body: JoinWaitlistBody) =>
   request(`/api/public/${seg(slug)}/waitlist`, waitlistJoinedSchema, { method: 'POST', body });
 
-export const getOffer = (token: string, signal?: AbortSignal) =>
-  request(`/api/offers/${seg(token)}`, offerViewSchema, { signal });
+/** The offer plus the server clock offset taken from the response  header (0 when absent). */
+export async function getOffer(token: string, signal?: AbortSignal) {
+  let header: string | null = null;
+  const view = await request(`/api/offers/${seg(token)}`, offerViewSchema, {
+    signal,
+    onResponse: (res) => {
+      header = res.headers.get('date');
+    },
+  });
+  return { ...view, clockOffsetMs: serverOffsetMs(header, Date.now()) };
+}
 
 /** The body is an empty strict object. A repeat of a successful claim answers 200 with the first booking. */
 export const claimOffer = (token: string) =>
