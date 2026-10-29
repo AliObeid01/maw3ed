@@ -45,7 +45,9 @@ describe('validateDay', () => {
   });
 
   it('caps six intervals per day', () => {
-    const six = Array.from({ length: 6 }, (_, i) => iv(`${String(i * 2).padStart(2, '0')}:00`, `${String(i * 2 + 1).padStart(2, '0')}:00`));
+    const six = Array.from({ length: 6 }, (_, i) =>
+      iv(`${String(i * 2).padStart(2, '0')}:00`, `${String(i * 2 + 1).padStart(2, '0')}:00`),
+    );
     expect(validateDay(six)).toEqual([]);
     expect(validateDay([...six, iv('13:00', '14:00')])).toContain('tooMany');
   });
