@@ -765,6 +765,10 @@
       "title": "We couldn't load this page",
       "body": "Check your connection and try again.",
       "retry": "Try again"
+    },
+    "waitlist": {
+      "body": "Join the waitlist and we’ll email you if a spot opens.",
+      "action": "Join the waitlist"
     }
   },
   "link": {

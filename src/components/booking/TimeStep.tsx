@@ -4,7 +4,7 @@ import { Globe, TriangleAlert } from 'lucide-react';
 import { DateTime } from 'luxon';
 import { useId, type Ref } from 'react';
 import { useTranslations } from 'next-intl';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { Slot } from '@/lib/api/booking';
@@ -40,6 +40,8 @@ export type TimeStepProps = {
   onBookInstead?: () => void;
   onSeeOtherDays?: () => void;
   submitting?: boolean;
+  /** Join-the-waitlist page with the service and person prefilled; the action is hidden without it. */
+  waitlistHref?: string;
 };
 
 /** Boards 1.3 (day strip + times) and 1.6 (slot just taken, fresh times for that day, one tap to rebook). */
@@ -111,6 +113,11 @@ export function TimeStep(props: TimeStepProps) {
           >
             {t('cta.seeOtherDays')}
           </Button>
+          {props.waitlistHref ? (
+            <ButtonLink href={props.waitlistHref} size="lg" variant="ghost" className="max-sm:w-full">
+              {t('waitlist.action')}
+            </ButtonLink>
+          ) : null}
         </div>
       </section>
     );
@@ -137,7 +144,17 @@ export function TimeStep(props: TimeStepProps) {
           </Button>
         </div>
       ) : covered.length === 0 ? (
-        <p className="m-0 text-[15px] text-muted">{t('time.noTimesAtAll', { days: days.length })}</p>
+        <div className="flex flex-col items-start gap-3 rounded-[20px] bg-canvas p-4">
+          <p className="m-0 text-[15px] text-muted">{t('time.noTimesAtAll', { days: days.length })}</p>
+          {props.waitlistHref ? (
+            <>
+              <p className="m-0 text-sm">{t('waitlist.body')}</p>
+              <ButtonLink href={props.waitlistHref} variant="secondary" className="max-sm:w-full">
+                {t('waitlist.action')}
+              </ButtonLink>
+            </>
+          ) : null}
+        </div>
       ) : (
         <>
           <DayStrip

@@ -263,6 +263,11 @@ export function BookingFlow({ slug }: { slug: string }) {
     : undefined;
   const price = service ? f.money(service.price) : undefined;
 
+  const waitlistQuery = new URLSearchParams();
+  if (resolved.serviceId) waitlistQuery.set('service', resolved.serviceId);
+  if (resolved.staffId && resolved.staffId !== 'anyone') waitlistQuery.set('staff', resolved.staffId);
+  const waitlistHref = `/b/${encodeURIComponent(slug)}/waitlist?${waitlistQuery}`;
+
   const stepIds = ['service', ...(resolved.staffSkipped ? [] : ['staff']), 'time', 'details'] as const;
   const labelFor = (id: (typeof stepIds)[number]) => t(`steps.${id}`);
   const valueFor = (id: (typeof stepIds)[number]) =>
@@ -544,6 +549,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             onBookInstead={() => void submit()}
             onSeeOtherDays={() => setTaken(undefined)}
             submitting={pending}
+            waitlistHref={waitlistHref}
           />
         ) : null}
         {onDetailsStep ? (
