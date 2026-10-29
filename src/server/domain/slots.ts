@@ -159,6 +159,19 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
   const last = DateTime.fromISO(input.range.to, { zone: 'utc' });
   if (!first.isValid || !last.isValid) throw new Error('Invalid range dates');
 
+  // Staff share dates and hours, so local->UTC conversions are memoised for the duration of this call.
+  const localCache = new Map<string, number>();
+  const toUtc = (d: { year: number; month: number; day: number }, hour: number, minute: number) => {
+    const key = `${d.year}-${d.month}-${d.day}-${hour}-${minute}`;
+    let ms = localCache.get(key);
+    if (ms === undefined) {
+      ms = localToUtcMs(d, hour, minute, timezone);
+      localCache.set(key, ms);
+    }
+    return ms;
+  };
+  const stepMs = slotStepMin * MIN_MS;
+
   const result: Slot[] = [];
   for (const member of input.staff) {
     const seen = new Set<number>();
@@ -174,14 +187,13 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
         if (wh.weekday !== weekday) continue;
         const s = parseHm(wh.startLocal);
         const e = parseHm(wh.endLocal);
-        const startMs = localToUtcMs(dateParts, s.hour, s.minute, timezone);
-        const endMs = localToUtcMs(dateParts, e.hour, e.minute, timezone);
+        const startMs = toUtc(dateParts, s.hour, s.minute);
+        const endMs = toUtc(dateParts, e.hour, e.minute);
         if (endMs <= startMs) continue;
         let free: Range[] = [[startMs, endMs]];
         for (const cut of unavailable) free = subtract(free, cut);
         for (const [fs, fe] of free) {
-          let t = alignToLocalGrid(Math.max(fs, earliest), slotStepMin, timezone);
-          while (t + needMs <= fe) {
+          const emit = (t: number) => {
             if (t < windowEnd && !seen.has(t)) {
               seen.add(t);
               result.push({
@@ -191,7 +203,21 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
                 staffId: member.id,
               });
             }
-            t = alignToLocalGrid(t + slotStepMin * MIN_MS, slotStepMin, timezone);
+          };
+          let t = alignToLocalGrid(Math.max(fs, earliest), slotStepMin, timezone);
+          if (t + needMs > fe) continue;
+          // Fast path: when the zone offset is the same at the first start, the middle and the end of the
+          // free interval, no DST transition lies inside it, so every step stays on the local grid and
+          // aligning again would be the identity. Step arithmetically with no Intl calls.
+          // A transition inside the interval falls back to aligning every slot (the original algorithm).
+          const o = offsetMs(timezone, t);
+          if (offsetMs(timezone, fe) === o && offsetMs(timezone, Math.floor((t + fe) / 2)) === o) {
+            for (; t + needMs <= fe; t += stepMs) emit(t);
+          } else {
+            while (t + needMs <= fe) {
+              emit(t);
+              t = alignToLocalGrid(t + stepMs, slotStepMin, timezone);
+            }
           }
         }
       }

@@ -1,0 +1,122 @@
+import { MAX_APPOINTMENT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
+import { requireRole } from '@/server/http/auth';
+import { AppError } from '@/server/http/errors';
+import type { SessionContext } from '@/server/http/withRoute';
+import { appointmentRepo } from '@/server/repositories/appointment.repo';
+import { availabilityRepo } from '@/server/repositories/availability.repo';
+import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
+import { book, defaultBookDeps, type BookDeps } from './booking';
+import { onSlotFreed } from './slotFreed';
+
+type Row = NonNullable<Awaited<ReturnType<typeof appointmentRepo.findById>>>;
+
+const toItem = (a: Row) => ({
+  id: a.id,
+  startAt: a.startAt,
+  endAt: a.endAt,
+  status: a.status,
+  source: a.source,
+  client: a.client,
+  service: {
+    id: a.service.id,
+    name: a.service.name,
+    durationMin: a.service.durationMin,
+    price: Number(a.service.price.toString()),
+  },
+  staff: a.staff,
+});
+
+export const appointmentsService = {
+  async list(
+    ctx: SessionContext,
+    q: { from: string; to: string; staffId?: string | undefined },
+    now: () => Date = () => new Date(),
+  ) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const business = await publicBusinessRepo.findById(ctx.businessId);
+    if (!business) throw AppError.notFound();
+    const range = resolveLocalRange({
+      from: q.from,
+      to: q.to,
+      timezone: business.timezone,
+      maxDays: MAX_APPOINTMENT_RANGE_DAYS,
+      now: now(),
+    });
+    if (!range.ok) throw AppError.validation(range.fields);
+    if (q.staffId && !(await availabilityRepo.staffExists(ctx.businessId, q.staffId)))
+      throw AppError.notFound();
+    const rows = await appointmentRepo.list(ctx.businessId, {
+      startUtc: range.startUtc,
+      endUtc: range.endUtc,
+      staffId: q.staffId,
+    });
+    return { appointments: rows.map(toItem) };
+  },
+
+  async get(ctx: SessionContext, id: string) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const row = await appointmentRepo.findById(ctx.businessId, id);
+    if (!row) throw AppError.notFound();
+    return { appointment: toItem(row) };
+  },
+
+  /** Front-desk booking: same engine as the public page; the business comes from the session. */
+  async book(
+    ctx: SessionContext,
+    body: {
+      serviceId: string;
+      staffId: string;
+      startAt: string;
+      client: { name: string; phone: string; email?: string | undefined };
+    },
+    idempotencyKey: string | undefined,
+    deps: BookDeps = defaultBookDeps,
+  ) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    return book(
+      ctx,
+      {
+        serviceId: body.serviceId,
+        staffId: body.staffId,
+        startAt: new Date(body.startAt),
+        client: body.client,
+        source: 'FRONT_DESK',
+        ignoreMinNotice: true, // reception can book a client who is walking in now
+        idempotencyKey,
+      },
+      deps,
+    );
+  },
+
+  /** Idempotent: cancelling a cancelled appointment succeeds; one with an outcome is a conflict. */
+  async cancel(ctx: SessionContext, id: string, now: () => Date = () => new Date()) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const current = await appointmentRepo.findById(ctx.businessId, id);
+    if (!current) throw AppError.notFound();
+    if (current.status !== 'CANCELLED') {
+      const done = await appointmentRepo.cancelByStaff(ctx.businessId, id, now());
+      if (!done) {
+        const latest = await appointmentRepo.findById(ctx.businessId, id);
+        if (!latest) throw AppError.notFound();
+        if (latest.status !== 'CANCELLED')
+          throw AppError.conflict(
+            'CONFLICT',
+            undefined,
+            'This appointment can no longer be cancelled.',
+          );
+      } else {
+        ctx.logger.info({ businessId: ctx.businessId, appointmentId: id }, 'appointment cancelled');
+        await onSlotFreed(ctx, {
+          appointmentId: id,
+          serviceId: current.service.id,
+          staffId: current.staff.id,
+          startAt: current.startAt,
+          endAt: current.endAt,
+        });
+      }
+    }
+    const row = await appointmentRepo.findById(ctx.businessId, id);
+    if (!row) throw AppError.notFound();
+    return { appointment: toItem(row) };
+  },
+};

@@ -38,6 +38,8 @@ export interface RouteConfig {
   roles?: readonly RoleName[];
   params?: z.ZodType;
   query?: z.ZodType;
+  /** Parsed from lower-cased request headers. Not `.strict()`: requests carry many unrelated headers. */
+  headers?: z.ZodType;
   body?: z.ZodType;
 }
 
@@ -48,6 +50,7 @@ export interface HandlerArgs<C extends RouteConfig> {
   ctx: C['auth'] extends 'session' ? SessionContext : RouteContext;
   params: Out<C['params']>;
   query: Out<C['query']>;
+  headers: Out<C['headers']>;
   body: Out<C['body']>;
 }
 
@@ -240,6 +243,7 @@ export function withRoute<C extends RouteConfig>(
 
       const params = parse(config.params, rawParams, 'params');
       const query = parse(config.query, queryToObject(url), 'query');
+      const headers = parse(config.headers, Object.fromEntries(req.headers.entries()), 'headers');
       if (config.body) assertJsonContentType(req);
       const body = config.body ? parse(config.body, await readBody(req), 'body') : undefined;
 
@@ -249,7 +253,7 @@ export function withRoute<C extends RouteConfig>(
         ctx.logger = childLogger({ requestId, businessId: ctx.businessId });
       }
 
-      const res = await handler({ req, ctx, params, query, body } as HandlerArgs<C>);
+      const res = await handler({ req, ctx, params, query, headers, body } as HandlerArgs<C>);
       // Sliding session: re-issue the cookie so the browser expiry moves with the database one.
       if (refresh && !res.headers.has('set-cookie'))
         res.headers.append('set-cookie', sessionCookie(refresh.token, refresh.expiresAt));

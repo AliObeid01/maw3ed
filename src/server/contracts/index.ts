@@ -2,5 +2,6 @@
 import './health';
 import './auth';
 import './setup';
+import './booking';
 
 export { buildOpenApiDocument, registry } from './registry';
