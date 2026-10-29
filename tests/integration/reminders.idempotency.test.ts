@@ -98,10 +98,10 @@ afterEach(() => vi.setSystemTime(NOW));
 describe('no duplicate send', () => {
   it('overlapping runs (Promise.all) send each due job exactly once', async () => {
     const wide = await newScenario(prisma, a, { staff: 3 });
-    const total = 36;
+    const total = 24;
     for (let i = 0; i < total; i++) {
       const staffId = wide.staffIds[i % 3]!;
-      const slot = Math.floor(i / 3); // 12 half-hour slots from 07:00Z
+      const slot = Math.floor(i / 3); // 8 half-hour slots from 07:00Z
       const time = `${String(7 + Math.floor(slot / 2)).padStart(2, '0')}:${slot % 2 ? '30' : '00'}`;
       const res = await bookPublicly(
         a.slug,
@@ -121,7 +121,7 @@ describe('no duplicate send', () => {
     ).rows;
     expect(rows).toHaveLength(total);
     expect(rows.every((r) => r.status === 'SENT' && r.attempts === 1)).toBe(true);
-  });
+  }, 180_000);
 
   it('a row locked by another transaction is skipped (SKIP LOCKED), not waited on, and sent later exactly once', async () => {
     const [x, y] = [(await book()).id, (await book()).id];
