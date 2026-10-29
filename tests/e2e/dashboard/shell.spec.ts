@@ -26,7 +26,7 @@ test.describe('receptionist (STAFF)', () => {
     await setRole(page, 'STAFF', DASHBOARD);
     await mockSetupApi(page);
     await page.goto('/app');
-    await expect(page.getByRole('heading', { name: /Good to see you, Lina/ })).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Good (morning|afternoon|evening), Lina/ })).toBeVisible();
     if (isMobile) {
       await page.getByRole('button', { name: 'More' }).click();
       await expect(
