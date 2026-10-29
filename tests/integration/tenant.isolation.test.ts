@@ -3,6 +3,14 @@ import type { Client } from 'pg';
 import { POST as cancelAppointment } from '@/app/api/appointments/[id]/cancel/route';
 import { GET as getAppointment } from '@/app/api/appointments/[id]/route';
 import { POST as postAppointment } from '@/app/api/appointments/route';
+import { PATCH as patchOutcomeRoute } from '@/app/api/appointments/[id]/outcome/route';
+import { GET as listClientsRoute } from '@/app/api/clients/route';
+import { DELETE as deleteClientRoute, GET as getClientRoute } from '@/app/api/clients/[id]/route';
+import { GET as dashboardSummaryRoute } from '@/app/api/dashboard/summary/route';
+import { GET as dashboardTodayRoute } from '@/app/api/dashboard/today/route';
+import { GET as outcomesQueueRoute } from '@/app/api/outcomes/queue/route';
+import { GET as getBaselineRoute, PUT as putBaselineRoute } from '@/app/api/pilot/baseline/route';
+import { GET as exportCsvRoute } from '@/app/api/pilot/export.csv/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { GET as previewInvite } from '@/app/api/invites/[token]/route';
 import { GET as me } from '@/app/api/me/route';
@@ -164,8 +172,104 @@ describe('tenant isolation: arrives with later routes (P2)', () => {
     expect(Object.keys(routeModule)).not.toContain('PATCH');
     expect(Object.keys(routeModule)).not.toContain('DELETE');
   });
-  it.todo('GET /api/clients/{id} cross-tenant -> 404');
-  it.todo('GET /api/clients list never includes business B’s clients');
+  it('GET /api/clients/{id} cross-tenant -> 404', async () => {
+    const { bAppt } = await twoBookings();
+    const bClient = (await pg.query('SELECT "clientId" FROM "Appointment" WHERE id = $1', [bAppt]))
+      .rows[0].clientId as string;
+    const res = await call(getClientRoute, `/api/clients/${bClient}`, {
+      cookie: a.cookie,
+      params: { id: bClient },
+    });
+    expect(res.status).toBe(404);
+    expect(JSON.stringify(res.body)).not.toContain('Client');
+  });
+  it('GET /api/clients list never includes business B’s clients', async () => {
+    const { aAppt, bAppt } = await twoBookings();
+    const idOf = async (appt: string) =>
+      (await pg.query('SELECT "clientId" FROM "Appointment" WHERE id = $1', [appt])).rows[0]
+        .clientId as string;
+    const list = await call(listClientsRoute, '/api/clients', { cookie: a.cookie });
+    expect(list.status).toBe(200);
+    expect(list.body!.clients.map((c: { id: string }) => c.id)).toEqual([await idOf(aAppt)]);
+    expect(JSON.stringify(list.body)).not.toContain(await idOf(bAppt));
+  });
+  it('DELETE /api/clients/{id} cross-tenant -> 404 and B’s client is untouched', async () => {
+    const { bAppt } = await twoBookings();
+    const bClient = (await pg.query('SELECT "clientId" FROM "Appointment" WHERE id = $1', [bAppt]))
+      .rows[0].clientId as string;
+    const res = await call(deleteClientRoute, `/api/clients/${bClient}`, {
+      method: 'DELETE',
+      cookie: a.cookie,
+      params: { id: bClient },
+    });
+    expect(res.status).toBe(404);
+    expect(
+      (await pg.query('SELECT name FROM "Client" WHERE id = $1', [bClient])).rows[0].name,
+    ).toBe('Client');
+    expect(
+      (await pg.query('SELECT status FROM "Appointment" WHERE id = $1', [bAppt])).rows[0].status,
+    ).toBe('BOOKED');
+  });
+  it('PATCH /api/appointments/{id}/outcome cross-tenant -> 404 and B’s counters are untouched', async () => {
+    const { bAppt } = await twoBookings();
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-05T00:00:00Z') });
+    try {
+      const res = await call(patchOutcomeRoute, `/api/appointments/${bAppt}/outcome`, {
+        method: 'PATCH',
+        cookie: a.cookie,
+        params: { id: bAppt },
+        body: { outcome: 'NO_SHOW' },
+      });
+      expect(res.status).toBe(404);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(
+      (await pg.query('SELECT status FROM "Appointment" WHERE id = $1', [bAppt])).rows[0].status,
+    ).toBe('BOOKED');
+    expect((await pg.query('SELECT sum("noShows")::int AS n FROM "Client"')).rows[0].n).toBe(0);
+  });
+  it('GET /api/outcomes/queue and /api/dashboard/* never include business B’s appointments', async () => {
+    const { aAppt, bAppt } = await twoBookings();
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-05T00:00:00Z') });
+    try {
+      const q = await call(outcomesQueueRoute, '/api/outcomes/queue', { cookie: a.cookie });
+      expect(q.body!.items.map((i: { id: string }) => i.id)).toEqual([aAppt]);
+      expect(q.body!.count).toBe(1);
+      const s = await call(dashboardSummaryRoute, '/api/dashboard/summary', { cookie: a.cookie });
+      expect(s.body!.outcomesToMark).toBe(1);
+      const d = await call(dashboardTodayRoute, '/api/dashboard/today', {
+        cookie: a.cookie,
+        query: { date: '2026-11-04' },
+      });
+      expect(JSON.stringify(d.body)).not.toContain(bAppt);
+      expect(d.body!.appointments.map((x: { id: string }) => x.id)).toEqual([aAppt]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+  it('pilot baseline, report and export only ever read the session business', async () => {
+    const put = await call(putBaselineRoute, '/api/pilot/baseline', {
+      method: 'PUT',
+      cookie: b.cookie,
+      body: {
+        fromDate: '2026-09-01',
+        toDate: '2026-09-30',
+        appointments: 80,
+        noShows: 10,
+        lateCancels: 1,
+      },
+    });
+    expect(put.status).toBe(200);
+    const mine = await call(getBaselineRoute, '/api/pilot/baseline', { cookie: a.cookie });
+    expect(mine.body).toEqual({ baseline: null });
+    await twoBookings();
+    const url = new URL('http://localhost/api/pilot/export.csv?from=2026-11-04&to=2026-11-04');
+    const csv = await (
+      await exportCsvRoute(new Request(url, { headers: { cookie: a.cookie } }))
+    ).text();
+    expect(csv.trim().split('\r\n')).toHaveLength(2); // header + A's single booking
+  });
   it('PATCH /api/services/{id} cross-tenant -> 404 and B’s row unchanged (no DELETE route exists)', async () => {
     const sb = await call(postService, '/api/services', {
       cookie: b.cookie,

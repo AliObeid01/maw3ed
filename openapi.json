@@ -1244,6 +1244,9 @@
               "noShows": {
                 "type": "integer"
               },
+              "repeatNoShow": {
+                "type": "boolean"
+              },
               "lateCancels": {
                 "type": "integer"
               }
@@ -1253,6 +1256,7 @@
               "name",
               "phone",
               "noShows",
+              "repeatNoShow",
               "lateCancels"
             ]
           }
@@ -1351,6 +1355,9 @@
                     "noShows": {
                       "type": "integer"
                     },
+                    "repeatNoShow": {
+                      "type": "boolean"
+                    },
                     "lateCancels": {
                       "type": "integer"
                     }
@@ -1360,6 +1367,7 @@
                     "name",
                     "phone",
                     "noShows",
+                    "repeatNoShow",
                     "lateCancels"
                   ]
                 }
@@ -1462,6 +1470,9 @@
                   "noShows": {
                     "type": "integer"
                   },
+                  "repeatNoShow": {
+                    "type": "boolean"
+                  },
                   "lateCancels": {
                     "type": "integer"
                   }
@@ -1471,6 +1482,7 @@
                   "name",
                   "phone",
                   "noShows",
+                  "repeatNoShow",
                   "lateCancels"
                 ]
               }
@@ -2019,6 +2031,847 @@
           "status",
           "sentBy",
           "sentAt"
+        ]
+      },
+      "OutcomeBody": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "ATTENDED",
+              "NO_SHOW",
+              "LATE_CANCEL"
+            ]
+          }
+        },
+        "required": [
+          "outcome"
+        ],
+        "additionalProperties": false
+      },
+      "OutcomeResult": {
+        "type": "object",
+        "properties": {
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "attended": {
+                    "type": "integer"
+                  },
+                  "noShows": {
+                    "type": "integer"
+                  },
+                  "lateCancels": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "phone",
+                  "attended",
+                  "noShows",
+                  "lateCancels"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "startAt",
+              "endAt",
+              "client"
+            ]
+          }
+        },
+        "required": [
+          "appointment"
+        ]
+      },
+      "OutcomeQueue": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "All appointments waiting for an outcome (not capped by limit)."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "startAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "endAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "noShows": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "noShows"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "startAt",
+                "endAt",
+                "service",
+                "staff",
+                "client"
+              ]
+            }
+          }
+        },
+        "required": [
+          "count",
+          "items"
+        ]
+      },
+      "ClientList": {
+        "type": "object",
+        "properties": {
+          "clients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "phone": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "attended": {
+                  "type": "integer"
+                },
+                "noShows": {
+                  "type": "integer"
+                },
+                "lateCancels": {
+                  "type": "integer"
+                },
+                "lastVisitAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "repeatNoShow": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "phone",
+                "email",
+                "attended",
+                "noShows",
+                "lateCancels",
+                "lastVisitAt",
+                "repeatNoShow"
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "clients",
+          "nextCursor"
+        ]
+      },
+      "ClientDetail": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "phone": {
+                "type": "string"
+              },
+              "email": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "attended": {
+                "type": "integer"
+              },
+              "noShows": {
+                "type": "integer"
+              },
+              "lateCancels": {
+                "type": "integer"
+              },
+              "lastVisitAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "repeatNoShow": {
+                "type": "boolean"
+              },
+              "createdAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "phone",
+              "email",
+              "attended",
+              "noShows",
+              "lateCancels",
+              "lastVisitAt",
+              "repeatNoShow",
+              "createdAt"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "startAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "startAt",
+                "status",
+                "service",
+                "staff"
+              ]
+            }
+          }
+        },
+        "required": [
+          "client",
+          "history"
+        ]
+      },
+      "PilotBaselineBody": {
+        "type": "object",
+        "properties": {
+          "fromDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "toDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "appointments": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "noShows": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          },
+          "lateCancels": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000
+          }
+        },
+        "required": [
+          "fromDate",
+          "toDate",
+          "appointments",
+          "noShows",
+          "lateCancels"
+        ],
+        "additionalProperties": false
+      },
+      "PilotBaseline": {
+        "type": "object",
+        "properties": {
+          "baseline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "fromDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "toDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "appointments": {
+                "type": "integer",
+                "description": "Appointments held or missed (attended + no-shows). Excludes cancellations and late cancels."
+              },
+              "noShows": {
+                "type": "integer"
+              },
+              "lateCancels": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fromDate",
+              "toDate",
+              "appointments",
+              "noShows",
+              "lateCancels"
+            ]
+          }
+        },
+        "required": [
+          "baseline"
+        ]
+      },
+      "PilotReport": {
+        "type": "object",
+        "properties": {
+          "rateDefinition": {
+            "type": "string",
+            "description": "Pilot rate definition to show next to the numbers."
+          },
+          "baselineDefinition": {
+            "type": "string",
+            "description": "What the baseline appointments field means."
+          },
+          "baseline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "fromDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "toDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "appointments": {
+                "type": "integer",
+                "description": "Appointments held or missed (attended + no-shows). Excludes cancellations and late cancels."
+              },
+              "noShows": {
+                "type": "integer"
+              },
+              "lateCancels": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "fromDate",
+              "toDate",
+              "appointments",
+              "noShows",
+              "lateCancels"
+            ]
+          },
+          "pilot": {
+            "type": "object",
+            "properties": {
+              "fromDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "toDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "daysCovered": {
+                "type": "integer"
+              },
+              "appointments": {
+                "type": "integer"
+              },
+              "attended": {
+                "type": "integer"
+              },
+              "noShows": {
+                "type": "integer"
+              },
+              "lateCancels": {
+                "type": "integer"
+              },
+              "noShowRate": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent, 1 decimal: noShows / (attended + noShows). Null without marked outcomes."
+              },
+              "baselineRate": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent: baseline noShows / baseline appointments."
+              },
+              "changePoints": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "pilot rate minus baseline rate, percentage points."
+              },
+              "changeRelativePct": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Relative change; null when the baseline rate is 0."
+              }
+            },
+            "required": [
+              "fromDate",
+              "toDate",
+              "daysCovered",
+              "appointments",
+              "attended",
+              "noShows",
+              "lateCancels",
+              "noShowRate",
+              "baselineRate",
+              "changePoints",
+              "changeRelativePct"
+            ]
+          },
+          "weekly": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "weekStart": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "appointments": {
+                  "type": "integer"
+                },
+                "attended": {
+                  "type": "integer"
+                },
+                "noShows": {
+                  "type": "integer"
+                },
+                "lateCancels": {
+                  "type": "integer"
+                },
+                "noShowRate": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "weekStart",
+                "appointments",
+                "attended",
+                "noShows",
+                "lateCancels",
+                "noShowRate"
+              ]
+            }
+          },
+          "signals": {
+            "type": "object",
+            "properties": {
+              "confirmRate": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent. Population: appointments that already started, not CANCELLED, LATE_CANCEL or PENDING_PAYMENT, that had at least one H24 or H2 reminder SENT (email or WhatsApp). confirmRate = the share of them with confirmedAt set. The booking email carries the confirm link too, so a confirmation may pre-date the reminder."
+              },
+              "cancellationsViaLink": {
+                "type": "integer"
+              },
+              "waitlistSlotsOffered": {
+                "type": "integer",
+                "description": "Freed slots offered to the waitlist: distinct freedFromAppointmentId of offers created in the pilot window."
+              },
+              "waitlistRefills": {
+                "type": "integer",
+                "description": "Of those freed slots, the ones whose offer was CLAIMED (rebooked from the waitlist)."
+              },
+              "waitlistRefillRate": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent: waitlistRefills / waitlistSlotsOffered. Null when nothing was offered."
+              }
+            },
+            "required": [
+              "confirmRate",
+              "cancellationsViaLink",
+              "waitlistSlotsOffered",
+              "waitlistRefills",
+              "waitlistRefillRate"
+            ]
+          }
+        },
+        "required": [
+          "rateDefinition",
+          "baselineDefinition",
+          "baseline",
+          "pilot",
+          "weekly",
+          "signals"
+        ]
+      },
+      "DashboardSummary": {
+        "type": "object",
+        "properties": {
+          "whatsappDue": {
+            "type": "integer"
+          },
+          "outcomesToMark": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "whatsappDue",
+          "outcomesToMark"
+        ]
+      },
+      "DashboardToday": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "appointments": {
+                "type": "integer"
+              },
+              "confirmed": {
+                "type": "integer"
+              },
+              "noReply": {
+                "type": "integer"
+              },
+              "refilledFromWaitlist": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "appointments",
+              "confirmed",
+              "noReply",
+              "refilledFromWaitlist"
+            ]
+          },
+          "whatsappDue": {
+            "type": "integer"
+          },
+          "outcomesToMark": {
+            "type": "integer"
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName"
+              ]
+            }
+          },
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "startAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "endAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "PUBLIC",
+                    "FRONT_DESK",
+                    "WAITLIST"
+                  ]
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "durationMin": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "durationMin"
+                  ]
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "noShows": {
+                      "type": "integer"
+                    },
+                    "repeatNoShow": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "phone",
+                    "noShows",
+                    "repeatNoShow"
+                  ]
+                },
+                "confirmedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "reminders": {
+                  "type": "object",
+                  "properties": {
+                    "whatsappPending": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "whatsappPending"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "startAt",
+                "endAt",
+                "status",
+                "source",
+                "service",
+                "staff",
+                "client",
+                "confirmedAt",
+                "reminders"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "timezone",
+          "stats",
+          "whatsappDue",
+          "outcomesToMark",
+          "staff",
+          "appointments"
         ]
       },
       "JoinWaitlistBody": {
@@ -4857,6 +5710,775 @@
           },
           "409": {
             "description": "ALREADY_SENT with error.data { sentBy, sentAt }",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/appointments/{id}/outcome": {
+      "patch": {
+        "summary": "Record attended / no-show / late cancel (and correct it later)",
+        "description": "Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW and LATE_CANCEL are allowed once it started. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).",
+        "tags": [
+          "outcomes"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutcomeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutcomeResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "NOT_STARTED, NOT_ENDED or CONFLICT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/outcomes/queue": {
+      "get": {
+        "summary": "Past appointments still waiting for an outcome, newest first",
+        "tags": [
+          "outcomes"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Queue",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutcomeQueue"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clients": {
+      "get": {
+        "summary": "Clients with attendance counters (search by name or phone digits)",
+        "tags": [
+          "clients"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "noShows",
+                "recent"
+              ],
+              "default": "name"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{1,40}$"
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page of clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/clients/{id}": {
+      "get": {
+        "summary": "One client with their latest 50 appointments",
+        "tags": [
+          "clients"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Client",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a client on request (owner): anonymise, cancel future bookings, close waitlist entries",
+        "tags": [
+          "clients"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Anonymised"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pilot/baseline": {
+      "get": {
+        "summary": "The owner-entered pre-pilot baseline (owner)",
+        "tags": [
+          "pilot"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Baseline or null",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotBaseline"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Set or replace the baseline (owner)",
+        "description": "appointments = held or missed (attended + no-shows), EXCLUDING cancellations and late cancels, which go in lateCancels; baseline rate = noShows / appointments, comparable with the pilot rate noShows / (attended + noShows). toDate >= fromDate, at most 31 days, not in the future (business timezone); noShows <= appointments; appointments + lateCancels <= 10000.",
+        "tags": [
+          "pilot"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PilotBaselineBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotBaseline"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pilot/report": {
+      "get": {
+        "summary": "Pilot results: no-show rate vs baseline, weekly series and signals (owner)",
+        "tags": [
+          "pilot"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 26,
+              "default": 4
+            },
+            "required": false,
+            "name": "weeks",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PilotReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pilot/export.csv": {
+      "get": {
+        "summary": "Appointments CSV for a local date range of at most 366 days (owner)",
+        "tags": [
+          "pilot"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": true,
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": true,
+            "name": "to",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "text/csv; charset=utf-8 attachment with a UTF-8 BOM",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/summary": {
+      "get": {
+        "summary": "Badge counts: WhatsApp reminders due and outcomes to mark",
+        "tags": [
+          "dashboard"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dashboard/today": {
+      "get": {
+        "summary": "One local day for the dashboard: stats, staff columns and every appointment",
+        "tags": [
+          "dashboard"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "required": false,
+            "name": "date",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Day",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DashboardToday"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
             "content": {
               "application/json": {
                 "schema": {
