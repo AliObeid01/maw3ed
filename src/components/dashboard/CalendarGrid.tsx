@@ -110,8 +110,11 @@ export function CalendarGrid({
                         <bdi dir="ltr">{f.time(appt.startAt)}</bdi> · {appt.service.name}
                         {box.compact ? null : <> · {ts(toneLabelKey[tone])}</>}
                       </span>
-                      {appt.client.repeatNoShow && !box.compact ? (
-                        <NoShowBadge count={appt.client.noShows} className="self-start" />
+                      {appt.client.repeatNoShow ? (
+                        <NoShowBadge
+                          count={appt.client.noShows}
+                          className={box.compact ? 'ms-auto shrink-0' : 'self-start'}
+                        />
                       ) : null}
                     </button>
                   </div>

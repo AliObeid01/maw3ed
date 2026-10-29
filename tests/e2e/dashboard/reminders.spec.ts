@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
 
 const row = (page: Page, name: string) => page.getByRole('listitem').filter({ hasText: name });
 const badge = (page: Page, count: number) =>
-  page.getByRole('link', { name: new RegExp(`Reminders.*${count} reminders? due`) }).first();
+  page.getByRole('link', { name: new RegExp(`${count} reminders? due`) }).first();
 
 test('lists due reminders with chips, the sent one and the no-phone one', async ({ page }) => {
   await mockDashboardApi(page);
