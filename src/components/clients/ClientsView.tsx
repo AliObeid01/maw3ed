@@ -2,7 +2,7 @@
 
 import { ChevronRight, Search, SearchX, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
 import { useAppSession } from '@/components/app/SessionContext';
@@ -132,14 +132,15 @@ export function ClientsView() {
     sortRef.current = state.sort;
   });
 
-  const debounced = useMemo(
-    () =>
-      createDebounced((value: string) => {
-        dispatch({ type: 'filter', search: value, sort: sortRef.current });
-      }, SEARCH_DEBOUNCE_MS),
-    [],
-  );
-  useEffect(() => () => debounced.cancel(), [debounced]);
+  // The debouncer lives in an effect so it can read the latest sort without touching refs during render.
+  const debouncedRef = useRef<ReturnType<typeof createDebounced<[string]>> | null>(null);
+  useEffect(() => {
+    const d = createDebounced((value: string) => {
+      dispatch({ type: 'filter', search: value, sort: sortRef.current });
+    }, SEARCH_DEBOUNCE_MS);
+    debouncedRef.current = d;
+    return () => d.cancel();
+  }, []);
 
   // First page of the current search/sort. Every restart bumps `seq`, so an answer to an older one is ignored.
   const { seq, search, sort } = state;
@@ -164,11 +165,11 @@ export function ClientsView() {
 
   const onText = (value: string) => {
     setText(value);
-    debounced.call(value);
+    debouncedRef.current?.call(value);
   };
   const clear = () => {
     setText('');
-    debounced.cancel();
+    debouncedRef.current?.cancel();
     dispatch({ type: 'filter', search: '', sort: state.sort });
   };
 
@@ -182,7 +183,7 @@ export function ClientsView() {
           role="search"
           onSubmit={(e) => {
             e.preventDefault();
-            debounced.flush();
+            debouncedRef.current?.flush();
           }}
           className="relative flex-1"
         >
@@ -226,7 +227,7 @@ export function ClientsView() {
               { value: 'recent', label: t('sort.recent') },
             ]}
             onChange={(next) => {
-              debounced.cancel();
+              debouncedRef.current?.cancel();
               dispatch({ type: 'filter', search: textRef.current, sort: next });
             }}
           />

@@ -19,7 +19,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTile } from '@/components/ui/StatTile';
 import { useToast } from '@/components/ui/Toast';
-import { deleteClient, getClient, type ClientDetail } from '@/lib/api/outcomes';
+import { deleteClient, getClient, type ClientDetail, type HistoryItem } from '@/lib/api/outcomes';
 import { useResource } from '@/lib/api/useResource';
 import { apptTone } from '@/lib/dashboard/agenda';
 import { formatPhone, initials } from '@/lib/dashboard/phone';
@@ -46,10 +46,34 @@ function Skeletons() {
   );
 }
 
-function History({ data, timezone }: { data: ClientDetail; timezone: string }) {
+function HistoryRow({ item: h, timezone }: { item: HistoryItem; timezone: string }) {
   const t = useTranslations('app.clientHistory');
   const ts = useTranslations('ui.status');
   const f = useBookingFormat(timezone);
+  const tone = apptTone({ status: h.status, source: '' });
+  const statusKey = toneLabelKey[tone === 'waitlist' ? 'booked' : tone];
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-row px-5 py-3.5 last:border-b-0">
+      <Link
+        href={`/app/appointments/${h.id}`}
+        aria-label={t('openAppointmentAria', { day: f.day(h.startAt), time: f.time(h.startAt) })}
+        className="min-w-0 flex-[1_1_220px] text-[15px] text-ink no-underline hover:underline"
+      >
+        <span className="font-semibold">{f.day(h.startAt)}</span>
+        {' · '}
+        <bdi dir="ltr" className="font-semibold tabular-nums">
+          {f.time(h.startAt)}
+        </bdi>
+        {' · '}
+        {h.service.name} · {h.staff.displayName}
+      </Link>
+      <Chip tone={chipTone[tone]}>{ts(statusKey)}</Chip>
+    </li>
+  );
+}
+
+function History({ data, timezone }: { data: ClientDetail; timezone: string }) {
+  const t = useTranslations('app.clientHistory');
   return (
     <Card as="section" padding="none" aria-labelledby="client-history" className="overflow-hidden">
       <h2 id="client-history" className="m-0 border-b border-row px-5 py-4 text-lg font-semibold">
@@ -59,30 +83,9 @@ function History({ data, timezone }: { data: ClientDetail; timezone: string }) {
         <p className="m-0 px-5 py-8 text-center text-sm text-muted">{t('historyEmpty')}</p>
       ) : (
         <ul className="m-0 list-none p-0">
-          {data.history.map((h) => {
-            const tone = apptTone({ status: h.status, source: '' });
-            return (
-              <li
-                key={h.id}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-row px-5 py-3.5 last:border-b-0"
-              >
-                <Link
-                  href={`/app/appointments/${h.id}`}
-                  aria-label={t('openAppointmentAria', { day: f.day(h.startAt), time: f.time(h.startAt) })}
-                  className="min-w-0 flex-[1_1_220px] text-[15px] text-ink no-underline hover:underline"
-                >
-                  <span className="font-semibold">{f.day(h.startAt)}</span>
-                  {' · '}
-                  <bdi dir="ltr" className="font-semibold tabular-nums">
-                    {f.time(h.startAt)}
-                  </bdi>
-                  {' · '}
-                  {h.service.name} · {h.staff.displayName}
-                </Link>
-                <Chip tone={chipTone[tone]}>{ts(toneLabelKey[tone === 'waitlist' ? 'booked' : tone])}</Chip>
-              </li>
-            );
-          })}
+          {data.history.map((h) => (
+            <HistoryRow key={h.id} item={h} timezone={timezone} />
+          ))}
         </ul>
       )}
       {data.history.length >= HISTORY_LIMIT ? (
@@ -150,6 +153,11 @@ export function ClientHistoryView({ id }: { id: string }) {
 
   const { client } = res.data;
   const isOwner = role === 'OWNER';
+  const labels = {
+    attended: tc('col.attended'),
+    noShows: tc('col.noShows'),
+    lateCancels: tc('col.lateCancels'),
+  };
 
   const remove = async () => {
     if (busy.current) return;
@@ -230,9 +238,9 @@ export function ClientHistoryView({ id }: { id: string }) {
 
         <div className="flex flex-col gap-4">
           <div role="group" aria-label={t('countersLabel')} className="grid grid-cols-3 gap-2 md:gap-4">
-            <StatTile value={client.attended} label={tc('col.attended')} tone="success" />
-            <StatTile value={client.noShows} label={tc('col.noShows')} tone="danger" />
-            <StatTile value={client.lateCancels} label={tc('col.lateCancels')} tone="amber" />
+            <StatTile value={client.attended} label={labels.attended} tone="success" />
+            <StatTile value={client.noShows} label={labels.noShows} tone="danger" />
+            <StatTile value={client.lateCancels} label={labels.lateCancels} tone="amber" />
           </div>
           <History data={res.data} timezone={timezone} />
         </div>

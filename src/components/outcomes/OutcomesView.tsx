@@ -38,23 +38,21 @@ const tone = { ATTENDED: 'attended', NO_SHOW: 'noShow', LATE_CANCEL: 'lateCancel
 const statusKey = { ATTENDED: 'attended', NO_SHOW: 'noShow', LATE_CANCEL: 'lateCancel' } as const;
 
 /** "10:30 – 11:00 · Haircut · Karim", with the day in front when it was not today. */
-function useWhen(timezone: string) {
+function When({ item, timezone }: { item: QueueItem; timezone: string }) {
   const t = useTranslations('app.outcomes');
   const f = useBookingFormat(timezone);
-  return (item: QueueItem) => {
-    const relation = dayRelation(item.startAt, timezone);
-    const day = relation === 'today' ? null : relation === 'tomorrow' ? t('tomorrow') : f.day(item.startAt);
-    return (
-      <>
-        {day ? <>{day} · </> : null}
-        <bdi dir="ltr" className="tabular-nums">
-          {f.time(item.startAt)} – {f.time(item.endAt)}
-        </bdi>
-        {' · '}
-        {item.service.name} · {item.staff.displayName}
-      </>
-    );
-  };
+  const relation = dayRelation(item.startAt, timezone);
+  const day = relation === 'today' ? null : relation === 'tomorrow' ? t('tomorrow') : f.day(item.startAt);
+  return (
+    <>
+      {day ? <>{day} · </> : null}
+      <bdi dir="ltr" className="tabular-nums">
+        {f.time(item.startAt)} – {f.time(item.endAt)}
+      </bdi>
+      {' · '}
+      {item.service.name} · {item.staff.displayName}
+    </>
+  );
 }
 
 function QueueCard({
@@ -70,7 +68,6 @@ function QueueCard({
 }) {
   const t = useTranslations('app.outcomes');
   const failure = useFailureText();
-  const when = useWhen(timezone)(item);
   return (
     <Card as="li" className="flex flex-col gap-4 p-5 md:p-5">
       <div className="flex flex-col gap-1">
@@ -84,7 +81,9 @@ function QueueCard({
           </Link>
           {item.client.noShows > 1 ? <NoShowBadge count={item.client.noShows} /> : null}
         </span>
-        <span className="text-sm text-muted">{when}</span>
+        <span className="text-sm text-muted">
+          <When item={item} timezone={timezone} />
+        </span>
       </div>
       <OutcomeButtons name={item.client.name} onPick={(o) => onPick(item, o)} />
       {entry?.error ? (

@@ -93,7 +93,9 @@
       "hours": "ساعات العمل والإجازات",
       "settings": "إعدادات النشاط",
       "share": "رابط الحجز",
-      "book": "حجز جديد"
+      "book": "حجز جديد",
+      "appointment": "الموعد",
+      "client": "العميل"
     },
     "frame": {
       "account": "الحساب",
@@ -561,6 +563,195 @@
         "summary": "{name} · {service} · {day}، {time} · مع {staff}",
         "another": "احجز موعدًا آخر",
         "backToToday": "العودة إلى اليوم"
+      }
+    },
+    "outcomes": {
+      "intro": "انتهت هذه المواعيد. سجّل نتيجة كل موعد ليبقى سجل العميل ونسبة عدم الحضور دقيقين.",
+      "left": "{count} متبقٍ",
+      "allDone": "اكتمل كل شيء",
+      "loading": "جارٍ تحميل المواعيد المطلوب تسجيلها",
+      "emptyTitle": "تم تسجيل كل النتائج",
+      "emptyBody": "لا شيء ينتظر. تظهر المواعيد هنا بعد انتهائها.",
+      "backToToday": "العودة إلى اليوم",
+      "listLabel": "مواعيد بانتظار تسجيل النتيجة",
+      "groupLabel": "نتيجة موعد {name}",
+      "markAria": "سجّل {name} على أنه: {outcome}",
+      "openAria": "افتح موعد {name}",
+      "justMarked": "سُجّلت الآن",
+      "change": "تغيير",
+      "changeAria": "غيّر نتيجة {name}",
+      "marked": "سُجّل {name}: {outcome}",
+      "stale": "تعذّر التحديث. نعرض آخر قائمة.",
+      "tomorrow": "غدًا",
+      "errors": {
+        "notEnded": "يمكنك تسجيل «حضر» بعد انتهاء الموعد.",
+        "notStarted": "لم يبدأ هذا الموعد بعد.",
+        "conflict": "لا يمكن تسجيل نتيجة لهذا الموعد بعد الآن. أُلغي أو أُغلق مسبقًا.",
+        "notFound": "لم نجد هذا الموعد. ربما تم حذفه."
+      }
+    },
+    "appointment": {
+      "loading": "جارٍ تحميل الموعد",
+      "back": "رجوع",
+      "notFoundTitle": "الموعد غير موجود",
+      "notFoundBody": "ربما تم حذفه، أو أن الرابط غير صحيح.",
+      "backToToday": "العودة إلى اليوم",
+      "detailsLabel": "تفاصيل الموعد",
+      "eyebrowToday": "اليوم · {day}",
+      "eyebrowTomorrow": "غدًا · {day}",
+      "summary": "{service} · مع {staff} · {source}",
+      "source": {
+        "public": "حجز عبر الإنترنت",
+        "waitlist": "من قائمة الانتظار",
+        "frontDesk": "حجز من الاستقبال"
+      },
+      "confirmedByClient": "أكّده العميل",
+      "clientLabel": "العميل",
+      "clientHistoryAria": "اعرض سجل {name}",
+      "noShowCount": "{count, plural, one {لم يحضر مرة} two {لم يحضر مرتين} few {لم يحضر # مرات} many {لم يحضر # مرة} other {لم يحضر # مرة}}",
+      "lateCancelCount": "{count, plural, one {إلغاء متأخر} two {إلغاءان متأخران} few {# إلغاءات متأخرة} many {# إلغاءً متأخرًا} other {# إلغاء متأخر}}",
+      "cancel": "إلغاء باسم العميل",
+      "cancelNote": "يُعرض الوقت على قائمة الانتظار فورًا.",
+      "outcome": {
+        "title": "النتيجة",
+        "upcoming": "يمكنك تسجيل النتيجة عند بدء الموعد، في {time}.",
+        "inProgress": "يمكن تسجيل «حضر» بعد {time}، عند انتهاء الموعد. «لم يحضر» و«إلغاء متأخر» متاحان الآن.",
+        "ended": "هل حضر {name}؟ سجّل النتيجة ليبقى السجل دقيقًا.",
+        "recorded": "سُجّل: {outcome}. يمكنك التغيير إن كان خطأ."
+      }
+    },
+    "clients": {
+      "openAria": "افتح سجل {name}",
+      "today": "اليوم",
+      "summary": "{visits, plural, one {زيارة} two {زيارتان} few {# زيارات} many {# زيارة} other {# زيارة}} · {noShows, plural, one {غياب} two {غيابان} few {# غيابات} many {# غيابًا} other {# غياب}} · {lateCancels, plural, one {إلغاء متأخر} two {إلغاءان متأخران} few {# إلغاءات متأخرة} many {# إلغاءً متأخرًا} other {# إلغاء متأخر}}",
+      "last": "الأخيرة: {day}",
+      "never": "لا زيارات بعد",
+      "loading": "جارٍ تحميل العملاء",
+      "searchLabel": "ابحث عن العملاء بالاسم أو الهاتف",
+      "searchPlaceholder": "ابحث بالاسم أو الهاتف",
+      "clearSearch": "مسح البحث",
+      "sortLabel": "ترتيب حسب",
+      "sort": {
+        "name": "الاسم",
+        "noShows": "الغياب",
+        "recent": "الأحدث"
+      },
+      "noResultsTitle": "لا عملاء يطابقون «{query}»",
+      "noResultsBody": "جرّب اسمًا آخر، أو أرقامًا أقل من الهاتف.",
+      "emptyTitle": "لا عملاء بعد",
+      "emptyBody": "يظهر العملاء هنا بعد أول حجز لهم.",
+      "shown": "{count, plural, one {عميل واحد معروض} two {عميلان معروضان} few {# عملاء معروضون} many {# عميلًا معروضًا} other {# عميل معروض}}",
+      "listLabel": "العملاء",
+      "col": {
+        "client": "العميل",
+        "phone": "الهاتف",
+        "visits": "الزيارات",
+        "attended": "حضر",
+        "noShows": "لم يحضر",
+        "lateCancels": "إلغاء متأخر",
+        "lastVisit": "آخر زيارة"
+      },
+      "moreFailed": "تعذّر تحميل المزيد من العملاء.",
+      "loadMore": "عرض المزيد",
+      "loadingMore": "جارٍ التحميل…"
+    },
+    "clientHistory": {
+      "loading": "جارٍ تحميل العميل",
+      "back": "العودة إلى العملاء",
+      "notFoundTitle": "العميل غير موجود",
+      "notFoundBody": "ربما حُذف هذا العميل، أو أن الرابط غير صحيح.",
+      "backToClients": "العودة إلى العملاء",
+      "bookAgain": "احجز مجددًا",
+      "contactLabel": "بيانات التواصل",
+      "countersLabel": "الحضور",
+      "repeatNote": "تكرر غيابه. تظهر هذه الشارة على كل حجز لهذا العميل.",
+      "historyTitle": "السجل",
+      "historyEmpty": "لا مواعيد بعد.",
+      "historyLimit": "نعرض آخر {count} موعدًا.",
+      "openAppointmentAria": "افتح الموعد يوم {day} الساعة {time}",
+      "delete": "حذف بيانات العميل",
+      "deleteTitle": "حذف بيانات {name}؟",
+      "deleteBody": "سيُجهَّل هذا العميل: يُزال اسمه وهاتفه وبريده من موعد. تُلغى مواعيده القادمة وتُغلق طلباته في قائمة الانتظار. لا يمكن التراجع عن هذا.",
+      "deleteConfirm": "حذف بيانات العميل",
+      "deleteKeep": "إبقاء العميل",
+      "deletedToast": "حُذفت بيانات {name}",
+      "close": "إغلاق"
+    },
+    "pilot": {
+      "loading": "جارٍ تحميل تقرير التجربة",
+      "export": "تصدير CSV",
+      "exported": "تم تنزيل ملف CSV",
+      "stale": "تعذّر التحديث. نعرض آخر الأرقام.",
+      "smallNumbers": "مع بضع عشرات من المواعيد، يحرّك غياب واحد النسبة عدة نقاط. اقرأها كاتجاه لا كدليل، وأبقِ الأعداد أمامك.",
+      "weeks": {
+        "label": "الفترة",
+        "option": "{count} أسابيع"
+      },
+      "hero": {
+        "eyebrow": "نسبة عدم الحضور · {days, plural, one {يوم} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+        "same": "بلا تغيير",
+        "lower": "{points} نقطة{hasRelative, select, yes { · أقل بنسبة {relative}%} other { أقل}}",
+        "higher": "{points} نقطة{hasRelative, select, yes { · أعلى بنسبة {relative}%} other { أعلى}}",
+        "counts": "{noShows, plural, one {غياب} two {غيابان} few {# غيابات} many {# غيابًا} other {# غياب}} من {of} موعدًا",
+        "noOutcomes": "لم تُسجَّل نتائج في هذه الفترة بعد. سجّل النتائج لترى نسبتك.",
+        "withMaw3ed": "مع موعد",
+        "before": "دفترك قبل التجربة",
+        "noBaseline": "أدخل أرقامك قبل التجربة للمقارنة.",
+        "definition": "النسبة = عدد من لم يحضروا مقسومًا على (من حضروا + من لم يحضروا). لا تُحتسب الإلغاءات والإلغاءات المتأخرة."
+      },
+      "signals": {
+        "label": "أرقام داعمة",
+        "confirmed": "مؤكدة",
+        "confirmedNote": "من المواعيد التي وصلها تذكير",
+        "noReminders": "لم تُرسل تذكيرات بعد",
+        "cancelledByLink": "أُلغيت بالرابط",
+        "cancelledByLinkNote": "أوقات تحررت مبكرًا",
+        "refilledValue": "{refilled} من {offered}",
+        "refilled": "أُعيد ملؤها",
+        "refilledNote": "من قائمة الانتظار · {rate}",
+        "noWaitlist": "لم تُعرض أوقات متاحة بعد"
+      },
+      "chart": {
+        "title": "نسبة عدم الحضور أسبوعيًا",
+        "range": "من {from} إلى {to}",
+        "empty": "لا نتائج مسجّلة في هذه الأسابيع بعد.",
+        "summary": "مخطط أعمدة لنسبة عدم الحضور لمدة {count} أسابيع. الأساس: {baseline}.",
+        "noBaseline": "غير مُدخل",
+        "legendRate": "النسبة الأسبوعية",
+        "legendBaseline": "الأساس {rate}",
+        "caption": "نسبة عدم الحضور الأسبوعية مع الأرقام خلف كل أسبوع",
+        "showTable": "عرض كجدول",
+        "col": {
+          "week": "أسبوع",
+          "noShows": "لم يحضر",
+          "held": "تم أو فات",
+          "rate": "النسبة"
+        }
+      },
+      "baseline": {
+        "title": "أساس من دفترك",
+        "empty": "احسب الأيام الـ14 قبل بدئك مع موعد، من دفترك الورقي أو تقويمك.",
+        "from": "من",
+        "to": "إلى",
+        "appointments": "تم أو فات",
+        "noShows": "لم يحضر",
+        "lateCancels": "إلغاء متأخر",
+        "lateCancelsHint": "يُحتسب منفصلًا ولا يدخل في النسبة.",
+        "definition": "احسب المواعيد التي تمت أو فاتت (من حضروا + من لم يحضروا). لا تحسب الإلغاءات ولا الإلغاءات المتأخرة. نسبة الأساس = عدد من لم يحضروا / المواعيد.",
+        "saved": "تم حفظ الأساس",
+        "update": "تحديث الأساس",
+        "save": "حفظ الأساس",
+        "errors": {
+          "dateRequired": "اختر تاريخًا.",
+          "dateInvalid": "استخدم تاريخًا صحيحًا.",
+          "toBeforeFrom": "يجب ألا يسبق تاريخ النهاية تاريخ البداية.",
+          "tooLong": "أقصى مدة للفترة 31 يومًا.",
+          "future": "لا يمكن أن تنتهي الفترة في المستقبل.",
+          "numberRequired": "أدخل رقمًا (0 مقبول).",
+          "numberInvalid": "استخدم عددًا صحيحًا، 0 أو أكثر.",
+          "noShowsAbove": "لا يمكن أن يزيد عدد من لم يحضروا عن المواعيد.",
+          "tooMany": "هذا أكثر من 10,000."
+        }
       }
     }
   },

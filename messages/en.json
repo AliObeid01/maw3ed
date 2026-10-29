@@ -93,7 +93,9 @@
       "hours": "Hours and time off",
       "settings": "Business settings",
       "share": "Booking link",
-      "book": "New booking"
+      "book": "New booking",
+      "appointment": "Appointment",
+      "client": "Client"
     },
     "frame": {
       "account": "Account",
@@ -561,6 +563,195 @@
         "summary": "{name} · {service} · {day}, {time} · with {staff}",
         "another": "Book another",
         "backToToday": "Back to Today"
+      }
+    },
+    "outcomes": {
+      "intro": "These appointments have ended. Mark each one so the client's history and your no-show rate stay accurate.",
+      "left": "{count} left",
+      "allDone": "All done",
+      "loading": "Loading appointments to mark",
+      "emptyTitle": "All outcomes marked",
+      "emptyBody": "Nothing is waiting. Appointments show up here once they have ended.",
+      "backToToday": "Back to Today",
+      "listLabel": "Appointments waiting for an outcome",
+      "groupLabel": "Outcome for {name}",
+      "markAria": "Mark {name} as {outcome}",
+      "openAria": "Open the appointment of {name}",
+      "justMarked": "Just marked",
+      "change": "Change",
+      "changeAria": "Change the outcome for {name}",
+      "marked": "Marked {name} as {outcome}",
+      "stale": "Could not refresh. Showing the last list.",
+      "tomorrow": "Tomorrow",
+      "errors": {
+        "notEnded": "You can mark Attended once the appointment has ended.",
+        "notStarted": "This appointment has not started yet.",
+        "conflict": "This appointment can no longer be marked. It was cancelled or is already closed.",
+        "notFound": "We could not find this appointment. It may have been removed."
+      }
+    },
+    "appointment": {
+      "loading": "Loading the appointment",
+      "back": "Back",
+      "notFoundTitle": "Appointment not found",
+      "notFoundBody": "It may have been removed, or the link is wrong.",
+      "backToToday": "Back to Today",
+      "detailsLabel": "Appointment details",
+      "eyebrowToday": "Today · {day}",
+      "eyebrowTomorrow": "Tomorrow · {day}",
+      "summary": "{service} · with {staff} · {source}",
+      "source": {
+        "public": "booked online",
+        "waitlist": "from the waitlist",
+        "frontDesk": "booked at the front desk"
+      },
+      "confirmedByClient": "Confirmed by client",
+      "clientLabel": "Client",
+      "clientHistoryAria": "See the history of {name}",
+      "noShowCount": "{count, plural, one {# no-show} other {# no-shows}}",
+      "lateCancelCount": "{count, plural, one {# late cancel} other {# late cancels}}",
+      "cancel": "Cancel for client",
+      "cancelNote": "The slot is offered to the waitlist straight away.",
+      "outcome": {
+        "title": "Outcome",
+        "upcoming": "You can mark the outcome once the appointment starts, at {time}.",
+        "inProgress": "Attended can be marked after {time}, when the appointment ends. No-show and Late cancel are available now.",
+        "ended": "Did {name} come? Mark it so the history stays accurate.",
+        "recorded": "Recorded as {outcome}. You can change it if it was a mistake."
+      }
+    },
+    "clients": {
+      "openAria": "Open the history of {name}",
+      "today": "today",
+      "summary": "{visits, plural, one {# visit} other {# visits}} · {noShows, plural, one {# no-show} other {# no-shows}} · {lateCancels, plural, one {# late cancel} other {# late cancels}}",
+      "last": "Last: {day}",
+      "never": "No visits yet",
+      "loading": "Loading clients",
+      "searchLabel": "Search clients by name or phone",
+      "searchPlaceholder": "Search name or phone",
+      "clearSearch": "Clear search",
+      "sortLabel": "Sort by",
+      "sort": {
+        "name": "Name",
+        "noShows": "No-shows",
+        "recent": "Recent"
+      },
+      "noResultsTitle": "No clients match “{query}”",
+      "noResultsBody": "Try a different name, or fewer digits of the phone number.",
+      "emptyTitle": "No clients yet",
+      "emptyBody": "Clients appear here after their first booking.",
+      "shown": "{count, plural, one {# client} other {# clients}} shown",
+      "listLabel": "Clients",
+      "col": {
+        "client": "Client",
+        "phone": "Phone",
+        "visits": "Visits",
+        "attended": "Attended",
+        "noShows": "No-shows",
+        "lateCancels": "Late cancels",
+        "lastVisit": "Last visit"
+      },
+      "moreFailed": "Could not load more clients.",
+      "loadMore": "Load more",
+      "loadingMore": "Loading…"
+    },
+    "clientHistory": {
+      "loading": "Loading the client",
+      "back": "Back to clients",
+      "notFoundTitle": "Client not found",
+      "notFoundBody": "This client may have been deleted, or the link is wrong.",
+      "backToClients": "Back to clients",
+      "bookAgain": "Book again",
+      "contactLabel": "Contact details",
+      "countersLabel": "Attendance",
+      "repeatNote": "Repeat no-show. This badge shows on every booking for this client.",
+      "historyTitle": "History",
+      "historyEmpty": "No appointments yet.",
+      "historyLimit": "Showing the latest {count} appointments.",
+      "openAppointmentAria": "Open the appointment on {day} at {time}",
+      "delete": "Delete client data",
+      "deleteTitle": "Delete {name}'s data?",
+      "deleteBody": "This anonymises the client: their name, phone and email are removed from Maw3ed. Their upcoming appointments are cancelled and any waitlist entries are closed. This cannot be undone.",
+      "deleteConfirm": "Delete client data",
+      "deleteKeep": "Keep client",
+      "deletedToast": "Deleted the data of {name}",
+      "close": "Close"
+    },
+    "pilot": {
+      "loading": "Loading the pilot report",
+      "export": "Export CSV",
+      "exported": "CSV downloaded",
+      "stale": "Could not refresh. Showing the last numbers.",
+      "smallNumbers": "With a few dozen appointments, one no-show moves the rate by several points. Read it as a direction, not proof, and keep the counts in view.",
+      "weeks": {
+        "label": "Period",
+        "option": "{count} weeks"
+      },
+      "hero": {
+        "eyebrow": "No-show rate · {days, plural, one {# day} other {# days}}",
+        "same": "No change",
+        "lower": "{points} {n, plural, one {point} other {points}}{hasRelative, select, yes { · {relative}% lower} other { lower}}",
+        "higher": "{points} {n, plural, one {point} other {points}}{hasRelative, select, yes { · {relative}% higher} other { higher}}",
+        "counts": "{noShows, plural, one {# no-show} other {# no-shows}} of {of} appointments",
+        "noOutcomes": "No outcomes marked in this period yet. Mark outcomes to see your rate.",
+        "withMaw3ed": "With Maw3ed",
+        "before": "Your book before",
+        "noBaseline": "Enter your numbers from before the pilot to compare.",
+        "definition": "Rate = no-shows divided by (attended + no-shows). Cancellations and late cancels are not counted."
+      },
+      "signals": {
+        "label": "Supporting numbers",
+        "confirmed": "Confirmed",
+        "confirmedNote": "of reminded appointments",
+        "noReminders": "No reminders sent yet",
+        "cancelledByLink": "Cancelled by link",
+        "cancelledByLinkNote": "slots freed early",
+        "refilledValue": "{refilled} of {offered}",
+        "refilled": "Refilled",
+        "refilledNote": "from the waitlist · {rate}",
+        "noWaitlist": "No freed slots offered yet"
+      },
+      "chart": {
+        "title": "Weekly no-show rate",
+        "range": "{from} to {to}",
+        "empty": "No marked outcomes in these weeks yet.",
+        "summary": "Bar chart of the no-show rate for {count, plural, one {# week} other {# weeks}}. Baseline: {baseline}.",
+        "noBaseline": "not entered",
+        "legendRate": "Weekly rate",
+        "legendBaseline": "Baseline {rate}",
+        "caption": "Weekly no-show rate with the numbers behind each week",
+        "showTable": "Show as a table",
+        "col": {
+          "week": "Week of",
+          "noShows": "No-shows",
+          "held": "Held or missed",
+          "rate": "Rate"
+        }
+      },
+      "baseline": {
+        "title": "Baseline from your book",
+        "empty": "Count the 14 days before you started with Maw3ed, from your paper book or calendar.",
+        "from": "From",
+        "to": "To",
+        "appointments": "Held or missed",
+        "noShows": "No-shows",
+        "lateCancels": "Late cancels",
+        "lateCancelsHint": "Counted separately, not part of the rate.",
+        "definition": "Count appointments held or missed (people who came plus no-shows). Do not count cancellations or late cancels. Baseline rate = no-shows / appointments.",
+        "saved": "Baseline saved",
+        "update": "Update baseline",
+        "save": "Save baseline",
+        "errors": {
+          "dateRequired": "Choose a date.",
+          "dateInvalid": "Use a real date.",
+          "toBeforeFrom": "The end date must not be before the start date.",
+          "tooLong": "The period can be at most 31 days.",
+          "future": "The period cannot end in the future.",
+          "numberRequired": "Enter a number (0 is fine).",
+          "numberInvalid": "Use a whole number, 0 or more.",
+          "noShowsAbove": "No-shows cannot be more than the appointments.",
+          "tooMany": "That is more than 10,000."
+        }
       }
     }
   },

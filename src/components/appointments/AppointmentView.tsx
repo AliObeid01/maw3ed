@@ -216,6 +216,19 @@ export function AppointmentView({ id }: { id: string }) {
     appt.client.lateCancels ? `, ${t('lateCancelCount', { count: appt.client.lateCancels })}` : ''
   }`;
 
+  // Plain strings, so the JSX below holds no calls with literal arguments.
+  const sheet = {
+    call: tc('call'),
+    whatsapp: tc('whatsapp'),
+    callAria: tc('callAria', { name: appt.client.name }),
+    whatsappAria: tc('whatsappAria', { name: appt.client.name }),
+    confirmTitle: tc('confirmTitle'),
+    confirmBody: tc('confirmBody', { name: appt.client.name }),
+    close: tc('close'),
+    confirmYes: tc('confirmYes'),
+    confirmKeep: tc('confirmKeep'),
+  };
+
   const cancel = async () => {
     if (cancelling) return;
     setCancelling(true);
@@ -307,22 +320,22 @@ export function AppointmentView({ id }: { id: string }) {
               href={`tel:${appt.client.phone}`}
               variant="secondary"
               size="row"
-              aria-label={tc('callAria', { name: appt.client.name })}
+              aria-label={sheet.callAria}
               className="flex-1 sm:flex-none"
             >
               <Phone size={18} aria-hidden="true" />
-              {tc('call')}
+              {sheet.call}
             </ButtonLink>
             {wa ? (
               <a
                 href={wa}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={tc('whatsappAria', { name: appt.client.name })}
+                aria-label={sheet.whatsappAria}
                 className={buttonClasses({ variant: 'secondary', size: 'row', className: 'flex-1 sm:flex-none' })}
               >
                 <MessageCircle size={18} aria-hidden="true" />
-                {tc('whatsapp')}
+                {sheet.whatsapp}
               </a>
             ) : null}
           </div>
@@ -346,9 +359,9 @@ export function AppointmentView({ id }: { id: string }) {
             setCancelError(undefined);
           }
         }}
-        title={tc('confirmTitle')}
-        description={tc('confirmBody', { name: appt.client.name })}
-        closeLabel={tc('close')}
+        title={sheet.confirmTitle}
+        description={sheet.confirmBody}
+        closeLabel={sheet.close}
       >
         <div className="flex flex-col gap-3">
           {cancelError ? (
@@ -357,7 +370,7 @@ export function AppointmentView({ id }: { id: string }) {
             </p>
           ) : null}
           <Button variant="danger" size="lg" block loading={cancelling} onClick={cancel}>
-            {tc('confirmYes')}
+            {sheet.confirmYes}
           </Button>
           <Button
             variant="secondary"
@@ -366,7 +379,7 @@ export function AppointmentView({ id }: { id: string }) {
             disabled={cancelling}
             onClick={() => setConfirming(false)}
           >
-            {tc('confirmKeep')}
+            {sheet.confirmKeep}
           </Button>
         </div>
       </Sheet>
