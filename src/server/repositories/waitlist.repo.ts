@@ -99,42 +99,45 @@ export const waitlistRepo = {
    * duplicate check cannot be raced.
    */
   join: (businessId: string, input: NewEntry, maxOpen: number): Promise<JoinResult> =>
-    db.$transaction(async (tx) => {
-      const client = await clientRepo.upsertByPhone(businessId, tx, input.client, false);
-      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`waitlist:${client.id}`}))`;
-      const from = toStoredDate(input.fromDate);
-      const to = toStoredDate(input.toDate);
-      const existing = await tx.waitlistEntry.findFirst({
-        where: {
-          businessId,
-          clientId: client.id,
-          serviceId: input.serviceId,
-          staffId: input.staffId,
-          status: 'OPEN',
-          fromDate: { lte: to },
-          toDate: { gte: from },
-        },
-        orderBy: { createdAt: 'asc' },
-        select: entrySelect,
-      });
-      if (existing) return { kind: 'existing', entry: existing };
-      const open = await tx.waitlistEntry.count({
-        where: { businessId, clientId: client.id, status: 'OPEN' },
-      });
-      if (open >= maxOpen) return { kind: 'limit' };
-      const entry = await tx.waitlistEntry.create({
-        data: {
-          businessId,
-          clientId: client.id,
-          serviceId: input.serviceId,
-          staffId: input.staffId,
-          fromDate: from,
-          toDate: to,
-        },
-        select: entrySelect,
-      });
-      return { kind: 'created', entry };
-    }),
+    db.$transaction(
+      async (tx) => {
+        const client = await clientRepo.upsertByPhone(businessId, tx, input.client, false);
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`waitlist:${client.id}`}))`;
+        const from = toStoredDate(input.fromDate);
+        const to = toStoredDate(input.toDate);
+        const existing = await tx.waitlistEntry.findFirst({
+          where: {
+            businessId,
+            clientId: client.id,
+            serviceId: input.serviceId,
+            staffId: input.staffId,
+            status: 'OPEN',
+            fromDate: { lte: to },
+            toDate: { gte: from },
+          },
+          orderBy: { createdAt: 'asc' },
+          select: entrySelect,
+        });
+        if (existing) return { kind: 'existing', entry: existing };
+        const open = await tx.waitlistEntry.count({
+          where: { businessId, clientId: client.id, status: 'OPEN' },
+        });
+        if (open >= maxOpen) return { kind: 'limit' };
+        const entry = await tx.waitlistEntry.create({
+          data: {
+            businessId,
+            clientId: client.id,
+            serviceId: input.serviceId,
+            staffId: input.staffId,
+            fromDate: from,
+            toDate: to,
+          },
+          select: entrySelect,
+        });
+        return { kind: 'created', entry };
+      },
+      { maxWait: 15_000, timeout: 30_000 },
+    ),
 
   // ---- staff side ---------------------------------------------------------------------------------
 
