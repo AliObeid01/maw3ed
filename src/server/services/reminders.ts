@@ -106,10 +106,12 @@ export async function runReminders(
     (await reminderJobRepo.loadSendContexts(claimed.map((j) => j.id))).map((c) => [c.id, c]),
   );
 
-  // Reminders before booking confirmations, so the budget cut-off drops confirmations first (NFR-10).
-  const ordered = [...claimed].sort(
-    (x, y) => Number(x.kind === 'BOOKING') - Number(y.kind === 'BOOKING'),
-  );
+  // Reminders finish before any booking confirmation starts, so the budget cut-off drops confirmations
+  // first (NFR-10).
+  const phases = [
+    claimed.filter((j) => j.kind !== 'BOOKING'),
+    claimed.filter((j) => j.kind === 'BOOKING'),
+  ];
 
   const skip = async (job: ClaimedJob, reason: string, businessId?: string) => {
     await reminderJobRepo.markSkipped(job.id, reason);
@@ -213,8 +215,10 @@ export async function runReminders(
     }
   };
 
-  for (let i = 0; i < ordered.length; i += CONCURRENCY) {
-    await Promise.all(ordered.slice(i, i + CONCURRENCY).map(process));
+  for (const phase of phases) {
+    for (let i = 0; i < phase.length; i += CONCURRENCY) {
+      await Promise.all(phase.slice(i, i + CONCURRENCY).map(process));
+    }
   }
 
   log.info({ ...summary }, 'reminder run finished');
