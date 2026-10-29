@@ -7,6 +7,7 @@ import { POST as inviteAccept } from '@/app/api/invites/[token]/accept/route';
 import { GET as linkGet, POST as linkPost } from '@/app/api/links/[token]/route';
 import { GET as offerGet } from '@/app/api/offers/[token]/route';
 import { POST as offerClaim } from '@/app/api/offers/[token]/claim/route';
+import { GET as directory } from '@/app/api/public/directory/route';
 import { GET as publicPage } from '@/app/api/public/[slug]/route';
 import { POST as bookings } from '@/app/api/public/[slug]/bookings/route';
 import { GET as slots } from '@/app/api/public/[slug]/slots/route';
@@ -73,6 +74,7 @@ const CASES: Case[] = [
     path: '/api/public/no-such-business',
     opts: { params: { slug: 'no-such-business' } },
   },
+  { policy: 'directory', handler: directory, path: '/api/public/directory' },
   {
     policy: 'linkRead',
     handler: linkGet,

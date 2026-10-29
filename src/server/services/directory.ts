@@ -34,7 +34,14 @@ export const directoryService = {
     const page = rows.slice(0, query.limit);
     const last = page[page.length - 1];
     return {
-      businesses: page.map(({ id: _id, ...b }) => b),
+      businesses: page.map((b) => ({
+        slug: b.slug,
+        name: b.name,
+        category: b.category,
+        address: b.address,
+        serviceCount: b.serviceCount,
+        fromPrice: b.fromPrice,
+      })),
       nextCursor: rows.length > query.limit && last ? encodeCursor(last.name, last.id) : null,
     };
   },
