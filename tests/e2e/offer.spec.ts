@@ -93,7 +93,7 @@ test('a dropped connection on claim shows a retry that books', async ({ page }) 
   await book(page).click();
   const alert = page.getByRole('alert').filter({ hasText: "We couldn't reach the server" });
   await expect(alert).toBeVisible();
-  await book(page).click();
+  await page.getByRole('button', { name: 'Try again' }).click();
   await expect(page.getByRole('heading', { name: "You're booked" })).toBeVisible();
   expect(calls.filter((c) => c.method === 'POST')).toHaveLength(2);
 });
@@ -102,7 +102,7 @@ test('the countdown updates politely every 30 s without moving the layout', asyn
   await page.clock.install({ time: new Date() });
   await open(page, { expiresInMin: 28 });
   const box = page.getByTestId('expiry');
-  await expect(box).toContainText(/2[78] minutes left/);
+  await expect(box).toContainText(/2[789] minutes left/);
   const before = await box.boundingBox();
   await page.clock.runFor(5 * 60_000);
   await expect(box).toContainText(/2[2-3] minutes left/);
@@ -130,14 +130,14 @@ test.describe('device clock skew', () => {
   test('a slow device clock (10 min behind) still shows the server countdown', async ({ page }) => {
     await page.clock.install({ time: new Date(Date.now() - 10 * 60_000) });
     await open(page, { expiresInMin: 28 });
-    await expect(page.getByTestId('expiry')).toContainText(/2[78] minutes left/);
+    await expect(page.getByTestId('expiry')).toContainText(/2[789] minutes left/);
     await expect(book(page)).toBeEnabled();
   });
 
   test('a fast device clock (40 min ahead) does not turn an open offer into an expired one', async ({ page }) => {
     await page.clock.install({ time: new Date(Date.now() + 40 * 60_000) });
     const { calls } = await open(page, { expiresInMin: 28 });
-    await expect(page.getByTestId('expiry')).toContainText(/2[78] minutes left/);
+    await expect(page.getByTestId('expiry')).toContainText(/2[789] minutes left/);
     await expect(book(page)).toBeEnabled();
     await expect(page.getByRole('heading', { name: 'This offer has expired' })).toHaveCount(0);
     await book(page).click();

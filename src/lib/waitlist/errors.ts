@@ -69,7 +69,7 @@ export function dateError(field: 'fromDate' | 'toDate', text: string): JoinField
   if (field === 'fromDate') return /later date|past|today/i.test(text) ? 'fromPast' : 'dateInvalid';
   if (/before the start/i.test(text)) return 'toBeforeFrom';
   if (/at most [0-9]+ days/i.test(text)) return 'tooLong';
-  if (/days ahead|open up to/i.test(text)) return 'toOutOfWindow';
+  if (/days ahead|open up to|further|window|too far/i.test(text)) return 'toOutOfWindow';
   return 'dateInvalid';
 }
 

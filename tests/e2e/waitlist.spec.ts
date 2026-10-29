@@ -31,7 +31,7 @@ test('join happy path sends the real contract and shows what happens next', asyn
   await fill(page);
   await submit(page).click();
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
-  await expect(page.getByText('The offer lasts about 30 minutes.')).toBeVisible();
+  await expect(page.getByText('Each offer lasts about 30 minutes.')).toBeVisible();
   await expect(page.getByText('maya@example.com')).toBeVisible();
   const today = DateTime.now().setZone(TZ).toISODate()!;
   expect(calls).toHaveLength(1);
@@ -225,7 +225,7 @@ test('when the window complaint names no length, the range is retried once at 7 
   await submit(page).click();
   // 7 days is still beyond a 3-day window: the single retry fails and the field is marked, no loop.
   await expect(page.getByLabel('To day')).toHaveAttribute('aria-invalid', 'true');
-  expect(rejected).toHaveLength(2);
+  await expect.poll(() => rejected.length).toBe(2);
   expect(calls).toHaveLength(0);
   const today = DateTime.now().setZone(TZ).toISODate()!;
   await expect(page.getByLabel('To day')).toHaveValue(DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
