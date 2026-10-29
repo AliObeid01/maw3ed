@@ -22,12 +22,15 @@ type SummaryApi = {
   refresh: () => void;
   /** Show a count right away (optimistic) until the next fetch confirms it. */
   setWhatsappDue: (count: number) => void;
+  /** Same for the outcomes badge. */
+  setOutcomesToMark: (count: number) => void;
 };
 
 const SummaryContext = createContext<SummaryApi>({
   summary: undefined,
   refresh: () => undefined,
   setWhatsappDue: () => undefined,
+  setOutcomesToMark: () => undefined,
 });
 
 export const useSummary = () => useContext(SummaryContext);
@@ -79,6 +82,13 @@ export function SummaryProvider({ children }: { children: ReactNode }) {
     setSummary((s) => (s ? { ...s, whatsappDue: Math.max(0, count) } : s));
   }, []);
 
-  const api = useMemo(() => ({ summary, refresh, setWhatsappDue }), [summary, refresh, setWhatsappDue]);
+  const setOutcomesToMark = useCallback((count: number) => {
+    setSummary((s) => (s ? { ...s, outcomesToMark: Math.max(0, count) } : s));
+  }, []);
+
+  const api = useMemo(
+    () => ({ summary, refresh, setWhatsappDue, setOutcomesToMark }),
+    [summary, refresh, setWhatsappDue, setOutcomesToMark],
+  );
   return <SummaryContext.Provider value={api}>{children}</SummaryContext.Provider>;
 }
