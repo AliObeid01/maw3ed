@@ -16,9 +16,9 @@ Goal: 3–5 businesses live by **Tue 3 Nov**, each compared only with its own bo
 5. Enter **next week's existing appointments** from the book through front-desk booking.
 6. Invite the receptionist; show them **Reminders due** (it's their first screen) and **Mark outcome**.
 7. Share the booking link: Instagram bio, WhatsApp status, Google Maps profile.
-8. Enter the **baseline** on the Pilot page: from/to dates, total appointments, no-shows, late cancels.
+8. Enter the **baseline** on the Pilot page: from/to dates (up to 31 days, ending today or earlier), **appointments held or missed** (people who came plus no-shows; do NOT count cancellations or late cancels), no-shows, and late cancels (entered separately). Baseline rate = no-shows / appointments, the same measure as the pilot rate.
 
-**No-show definition (both periods):** the client neither came nor cancelled before the cutoff. Late cancels are counted separately.
+**No-show definition (both periods):** the client neither came nor cancelled before the cutoff. Late cancels are counted separately, and cancellations are excluded from the denominator. **Rate (both periods) = no-shows / (attended + no-shows).**
 
 ## During the pilot (daily)
 - Staff mark every appointment's outcome **the same day**; the Mark-outcome badge nags until they do.
@@ -29,10 +29,10 @@ Goal: 3–5 businesses live by **Tue 3 Nov**, each compared only with its own bo
 ## Report per business (Pilot page / CSV)
 | Field | Shown |
 |---|---|
-| Baseline | appointments, no-shows, rate |
-| Pilot | appointments, no-shows, rate, days covered |
+| Baseline | appointments (held or missed), no-shows, late cancels, rate |
+| Pilot | attended, no-shows, late cancels, rate, days covered |
 | Change | absolute points and relative % |
-| Supporting | confirm rate, cancellations via link, waitlist refills |
+| Supporting | confirm rate, cancellations via link, waitlist refills (freed slots rebooked from the waitlist / freed slots offered) |
 
 With a few dozen appointments, one no-show moves the rate by several points. Always show the raw counts next to the rate,
 and claim a **direction**, not statistical significance.

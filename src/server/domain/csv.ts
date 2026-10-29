@@ -2,11 +2,21 @@
 
 export const CSV_BOM = '﻿';
 
-const FORMULA_START = /^[=+\-@\t\r]/;
+/**
+ * A cell is dangerous when, after leading whitespace / control characters (spreadsheets trim them, a leading
+ * newline included), it starts with = + - @; a leading tab or CR is dangerous on its own.
+ */
+// eslint-disable-next-line no-control-regex -- control characters are exactly what we look for
+const FORMULA_START = /^(?:[\t\r]|[\s\u0000-\u001f]*[=+\-@])/;
+/** A plain international phone number is left as is: an apostrophe in a phone column is worse than the risk. */
+const E164 = /^\+\d{8,15}$/;
 
-/** Neutralise cells that Excel / Sheets would evaluate: prefix a single quote. */
+/**
+ * Neutralise cells that Excel / Sheets would evaluate: prefix a single quote. Valid E.164 numbers are the one
+ * exception (spreadsheet apps may still reformat them, e.g. drop the plus sign; documented, not prevented).
+ */
 export function neutralise(value: string): string {
-  return FORMULA_START.test(value) ? `'${value}` : value;
+  return FORMULA_START.test(value) && !E164.test(value) ? `'${value}` : value;
 }
 
 /** One cell: injection-safe, and quoted when it holds a comma, quote, CR or LF. */

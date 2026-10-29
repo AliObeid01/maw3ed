@@ -196,16 +196,19 @@ export const BaselineBody = registry.register(
     .object({
       fromDate: localDate,
       toDate: localDate,
-      appointments: z.number().int().min(0).max(1_000_000),
-      noShows: z.number().int().min(0).max(1_000_000),
-      lateCancels: z.number().int().min(0).max(1_000_000),
+      appointments: z.number().int().min(0).max(10_000),
+      noShows: z.number().int().min(0).max(10_000),
+      lateCancels: z.number().int().min(0).max(10_000),
     })
     .strict(),
 );
 const BaselineShape = z.object({
   fromDate: localDate,
   toDate: localDate,
-  appointments: z.number().int(),
+  appointments: z.number().int().openapi({
+    description:
+      'Appointments held or missed (attended + no-shows). Excludes cancellations and late cancels.',
+  }),
   noShows: z.number().int(),
   lateCancels: z.number().int(),
 });
@@ -221,6 +224,12 @@ const nullableNumber = z.number().nullable();
 export const ReportDto = registry.register(
   'PilotReport',
   z.object({
+    rateDefinition: z
+      .string()
+      .openapi({ description: 'Pilot rate definition to show next to the numbers.' }),
+    baselineDefinition: z
+      .string()
+      .openapi({ description: 'What the baseline appointments field means.' }),
     baseline: BaselineShape.nullable(),
     pilot: z.object({
       fromDate: localDate,
@@ -257,13 +266,20 @@ export const ReportDto = registry.register(
     signals: z.object({
       confirmRate: nullableNumber.openapi({
         description:
-          'Percent: of appointments that had at least one H24/H2 reminder SENT (email or WhatsApp), the share with confirmedAt set.',
+          'Percent. Population: appointments that already started, not CANCELLED, LATE_CANCEL or PENDING_PAYMENT, that had at least one H24 or H2 reminder SENT (email or WhatsApp). confirmRate = the share of them with confirmedAt set. The booking email carries the confirm link too, so a confirmation may pre-date the reminder.',
       }),
       cancellationsViaLink: z.number().int(),
-      waitlistRefills: z.number().int().nullable(),
+      waitlistSlotsOffered: z.number().int().openapi({
+        description:
+          'Freed slots offered to the waitlist: distinct freedFromAppointmentId of offers created in the pilot window.',
+      }),
+      waitlistRefills: z.number().int().openapi({
+        description:
+          'Of those freed slots, the ones whose offer was CLAIMED (rebooked from the waitlist).',
+      }),
       waitlistRefillRate: nullableNumber.openapi({
         description:
-          'Percent: appointments with source WAITLIST / cancellations (CANCELLED + LATE_CANCEL) in the pilot.',
+          'Percent: waitlistRefills / waitlistSlotsOffered. Null when nothing was offered.',
       }),
     }),
   }),
@@ -288,7 +304,7 @@ registry.registerPath({
   path: '/api/pilot/baseline',
   summary: 'Set or replace the baseline (owner)',
   description:
-    'toDate >= fromDate, at most 31 days, not in the future (business timezone); noShows <= appointments.',
+    'appointments = held or missed (attended + no-shows), EXCLUDING cancellations and late cancels, which go in lateCancels; baseline rate = noShows / appointments, comparable with the pilot rate noShows / (attended + noShows). toDate >= fromDate, at most 31 days, not in the future (business timezone); noShows <= appointments; appointments + lateCancels <= 10000.',
   tags: ['pilot'],
   security: session,
   request: { body: { content: json(BaselineBody) } },

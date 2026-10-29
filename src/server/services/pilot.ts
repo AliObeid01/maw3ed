@@ -1,7 +1,9 @@
 import { toCsv } from '@/server/domain/csv';
-import { MAX_EXPORT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
+import { localDayOf, MAX_EXPORT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import {
   addRow,
+  BASELINE_DEFINITION,
+  RATE_DEFINITION,
   baselineRate,
   changeVsBaseline,
   daysCovered,
@@ -80,9 +82,9 @@ export const pilotService = {
    * is none) to today, over appointments that have started. Rates are percentages rounded to 1 decimal here
    * and only here.
    *
-   * confirmRate = of the appointments that had at least one H24 or H2 reminder SENT (email or WhatsApp),
-   * the share with confirmedAt set (confirmed by link at any time).
-   * waitlistRefillRate = appointments with source WAITLIST / (CANCELLED + LATE_CANCEL appointments).
+   * confirmRate: see pilotRepo.reminderConfirmSignal. waitlistRefillRate = freed slots rebooked from the
+   * waitlist / freed slots offered (distinct freedFromAppointmentId of WaitlistOffer rows created in the
+   * pilot window), the PRD definition; the raw counts are returned beside it.
    */
   async report(ctx: SessionContext, weeks: number, now: Now = realNow) {
     requireRole(ctx, 'OWNER');
@@ -93,28 +95,31 @@ export const pilotService = {
       pilotRepo.getBaseline(ctx.businessId),
       outcomeRepo.listForReport(ctx.businessId, at),
       outcomeRepo.firstStart(ctx.businessId),
-      pilotRepo.reminderConfirmSignal(ctx.businessId),
+      pilotRepo.reminderConfirmSignal(ctx.businessId, at),
       pilotRepo.businessCreatedAt(ctx.businessId),
     ]);
 
     const totals = emptyCounts();
     let viaLink = 0;
-    let refills = 0;
-    let cancellations = 0;
     for (const r of rows) {
       addRow(totals, r);
       if (r.cancelledVia === 'LINK') viaLink += 1;
-      if (r.status === 'CANCELLED' || r.status === 'LATE_CANCEL') cancellations += 1;
-      if (r.source === 'WAITLIST' && r.status !== 'CANCELLED') refills += 1;
     }
 
     const toDate = localDateOf(at, tz);
     const fromDate = localDateOf(first ?? createdAt ?? at, tz);
+    const waitlist = await pilotRepo.waitlistSignal(
+      ctx.businessId,
+      localDayOf(first ?? createdAt ?? at, tz).startUtc,
+      at,
+    );
     const rate = noShowRate(totals.attended, totals.noShows);
     const base = baseline ? baselineRate(baseline.appointments, baseline.noShows) : null;
     const change = changeVsBaseline(rate, base);
 
     return {
+      rateDefinition: RATE_DEFINITION,
+      baselineDefinition: BASELINE_DEFINITION,
       baseline: baselineDto(baseline),
       pilot: {
         fromDate: fromDate <= toDate ? fromDate : toDate,
@@ -136,8 +141,12 @@ export const pilotService = {
             ? null
             : round1((signal.confirmedAfterReminder / signal.remindedAppointments) * 100),
         cancellationsViaLink: viaLink,
-        waitlistRefills: refills,
-        waitlistRefillRate: cancellations === 0 ? null : round1((refills / cancellations) * 100),
+        waitlistSlotsOffered: waitlist.slotsOffered,
+        waitlistRefills: waitlist.refills,
+        waitlistRefillRate:
+          waitlist.slotsOffered === 0
+            ? null
+            : round1((waitlist.refills / waitlist.slotsOffered) * 100),
       },
     };
   },
@@ -179,8 +188,8 @@ export const pilotService = {
         r.client.phone,
         r.status,
         r.source,
-        r.confirmedAt?.toISOString() ?? '',
-        r.outcomeMarkedAt?.toISOString() ?? '',
+        r.confirmedAt ? local(r.confirmedAt).toFormat('yyyy-MM-dd HH:mm') : '',
+        r.outcomeMarkedAt ? local(r.outcomeMarkedAt).toFormat('yyyy-MM-dd HH:mm') : '',
       ]),
     );
     ctx.logger.info({ businessId: ctx.businessId, rows: rows.length }, 'pilot csv exported');

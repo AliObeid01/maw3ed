@@ -4,6 +4,7 @@ import type { Client } from 'pg';
 import { GET as exportCsv } from '@/app/api/pilot/export.csv/route';
 import { GET as getBaseline, PUT as putBaseline } from '@/app/api/pilot/baseline/route';
 import { GET as getReport } from '@/app/api/pilot/report/route';
+import { BASELINE_DEFINITION, RATE_DEFINITION } from '@/server/domain/pilotMetrics';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
 import { newScenario, newTenant, type Tenant } from './helpers/booking';
@@ -62,6 +63,8 @@ afterAll(async () => {
   await pg.end();
 });
 beforeEach(async () => {
+  await pg.query('DELETE FROM "WaitlistOffer"');
+  await pg.query('DELETE FROM "WaitlistEntry"');
   await pg.query('DELETE FROM "PilotBaseline"');
   await pg.query('DELETE FROM "ReminderJob"');
   await pg.query('DELETE FROM "Appointment"');
@@ -112,6 +115,25 @@ describe('pilot baseline', () => {
     expect(res.body!.error.code).toBe('VALIDATION_FAILED');
     expect(res.body!.error.fields).toHaveProperty(field);
     expect((await baseline(a.cookie)).body).toEqual({ baseline: null });
+  });
+
+  it('late cancels are outside `appointments`: they may exceed noShows, and the sum is capped at 10000', async () => {
+    const ok = await put(a.cookie, {
+      ...validBaseline,
+      appointments: 5,
+      noShows: 5,
+      lateCancels: 7,
+    });
+    expect(ok.status).toBe(200);
+    const tooMany = await put(a.cookie, {
+      ...validBaseline,
+      appointments: 9999,
+      noShows: 1,
+      lateCancels: 2,
+    });
+    expect(tooMany.status).toBe(400);
+    expect(tooMany.body!.error.fields).toHaveProperty('appointments');
+    expect((await put(a.cookie, { ...validBaseline, appointments: 10001 })).status).toBe(400);
   });
 
   it('400 for unknown fields (including businessId) and a missing field', async () => {
@@ -174,6 +196,40 @@ describe('GET /api/pilot/report', () => {
       },
     });
 
+  const waitlistEntry = async () => {
+    const client = await seedClient(prisma, a.businessId, {
+      phone: `+9617${String(2500000 + slot++)}`,
+    });
+    return prisma.waitlistEntry.create({
+      data: {
+        businessId: a.businessId,
+        clientId: client.id,
+        serviceId: aScn.serviceId,
+        fromDate: new Date('2026-11-05T00:00:00Z'),
+        toDate: new Date('2026-11-10T00:00:00Z'),
+      },
+    });
+  };
+  const offer = (
+    entry: { id: string },
+    freedFrom: string,
+    status: 'CLAIMED' | 'EXPIRED' | 'SUPERSEDED',
+    createdAt = new Date('2026-11-03T12:00:00Z'),
+  ) =>
+    prisma.waitlistOffer.create({
+      data: {
+        businessId: a.businessId,
+        entryId: entry.id,
+        staffId: aScn.staffIds[0]!,
+        startAt: new Date('2026-11-06T06:00:00Z'),
+        endAt: new Date('2026-11-06T06:30:00Z'),
+        expiresAt: new Date('2026-11-04T12:00:00Z'),
+        status,
+        freedFromAppointmentId: freedFrom,
+        createdAt,
+      },
+    });
+
   async function seedPilot() {
     // Week of Mon 19 Oct (the DST week: clocks go back on Sun 25 Oct).
     const a1 = await add('2026-10-20T06:00:00Z', 'ATTENDED', { confirmed: true });
@@ -198,6 +254,7 @@ describe('GET /api/pilot/report', () => {
     await add('2026-11-04T12:00:00Z', 'BOOKED'); // still to come: not part of the pilot yet
     const a5 = await add('2026-11-03T10:00:00Z', 'CONFIRMED', { confirmed: true });
     void a5;
+    await add('2026-11-03T12:00:00Z', 'PENDING_PAYMENT'); // not an appointment yet: excluded everywhere
     // 4 appointments had a reminder (3 confirmed); a1 had two (email + WhatsApp) but counts once; BOOKING kind ignored.
     await sent(a1.id, 'H24', 'EMAIL');
     await sent(a1.id, 'H2', 'WHATSAPP');
@@ -205,6 +262,15 @@ describe('GET /api/pilot/report', () => {
     await sent(a3.id, 'H2', 'EMAIL');
     await sent(a4.id, 'H24', 'EMAIL');
     await sent(a5.id, 'BOOKING', 'EMAIL');
+    // Waitlist: 3 freed slots offered (a1, a2, a3); slot a1 was offered to two clients and rebooked by one.
+    const e1 = await waitlistEntry();
+    const e2 = await waitlistEntry();
+    await offer(e1, a1.id, 'CLAIMED');
+    await offer(e2, a1.id, 'EXPIRED');
+    await offer(e1, a2.id, 'EXPIRED');
+    await offer(e2, a3.id, 'SUPERSEDED');
+    // An offer from before the pilot window and another business's offer must not count.
+    await offer(e1, a4.id, 'CLAIMED', new Date('2026-10-01T00:00:00Z'));
     // The other business must not leak into any number.
     const bo = await add('2026-10-30T06:00:00Z', 'NO_SHOW', { tenant: b, scn: bScn });
     void bo;
@@ -216,6 +282,8 @@ describe('GET /api/pilot/report', () => {
     const res = await report(a.cookie);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({
+      rateDefinition: RATE_DEFINITION,
+      baselineDefinition: BASELINE_DEFINITION,
       baseline: validBaseline,
       pilot: {
         fromDate: '2026-10-20',
@@ -267,10 +335,58 @@ describe('GET /api/pilot/report', () => {
       signals: {
         confirmRate: 75, // 3 of the 4 reminded appointments were confirmed
         cancellationsViaLink: 2,
+        waitlistSlotsOffered: 3,
         waitlistRefills: 1,
-        waitlistRefillRate: 33.3, // 1 refill / 3 cancellations
+        waitlistRefillRate: 33.3, // 1 freed slot rebooked / 3 freed slots offered
       },
     });
+  });
+
+  it('baseline and pilot use one definition: 100 held-or-missed with 10 no-shows vs 77 attended + 8 no-shows', async () => {
+    const total = 85;
+    const clients = await Promise.all(
+      Array.from({ length: total }, (_, i) =>
+        seedClient(prisma, a.businessId, { phone: `+9617${String(6000000 + i)}` }),
+      ),
+    );
+    await prisma.appointment.createMany({
+      data: clients.map((c, i) => {
+        const start = new Date(Date.parse('2026-10-26T04:00:00Z') + i * 30 * 60_000);
+        return {
+          businessId: a.businessId,
+          clientId: c.id,
+          staffId: aScn.staffIds[0]!,
+          serviceId: aScn.serviceId,
+          startAt: start,
+          endAt: new Date(start.getTime() + 30 * 60_000),
+          blockedUntil: new Date(start.getTime() + 30 * 60_000),
+          status: i < 77 ? ('ATTENDED' as const) : ('NO_SHOW' as const),
+        };
+      }),
+    });
+    // 100 held-or-missed, 10 no-shows; 6 late cancels are entered separately and are not part of the 100.
+    const saved = await put(a.cookie, {
+      fromDate: '2026-09-01',
+      toDate: '2026-09-30',
+      appointments: 100,
+      noShows: 10,
+      lateCancels: 6,
+    });
+    expect(saved.status).toBe(200);
+    const { pilot, baseline, rateDefinition, baselineDefinition } = (await report(a.cookie)).body!;
+    expect(baseline).toMatchObject({ appointments: 100, noShows: 10, lateCancels: 6 });
+    expect(pilot).toMatchObject({
+      attended: 77,
+      noShows: 8,
+      lateCancels: 0,
+      noShowRate: 9.4,
+      baselineRate: 10,
+      changePoints: -0.6,
+      changeRelativePct: -5.9,
+    });
+    expect(rateDefinition).toBe(RATE_DEFINITION);
+    expect(baselineDefinition).toBe(BASELINE_DEFINITION);
+    expect(rateDefinition).toMatch(/\(attended \+ no-shows\)/);
   });
 
   it('weeks controls the weekly series length (1 to 26)', async () => {
@@ -301,6 +417,7 @@ describe('GET /api/pilot/report', () => {
     expect(res.body!.signals).toEqual({
       confirmRate: null,
       cancellationsViaLink: 0,
+      waitlistSlotsOffered: 0,
       waitlistRefills: 0,
       waitlistRefillRate: null,
     });
@@ -384,7 +501,7 @@ describe('GET /api/pilot/export.csv', () => {
       .displayName;
     // 23:30 local on the 25th; it ends at 00:00 local on the 26th (clocks went back at midnight).
     expect(row).toBe(
-      `2026-10-25,23:30,00:00,${service},${staff},Night,'+9617${3000000 + n - 1},ATTENDED,FRONT_DESK,${confirmed.toISOString()},${marked.toISOString()}`,
+      `2026-10-25,23:30,00:00,${service},${staff},Night,+9617${3000000 + n - 1},ATTENDED,FRONT_DESK,2026-10-24 13:00,2026-10-26 10:00`,
     );
   });
 
@@ -394,12 +511,16 @@ describe('GET /api/pilot/export.csv', () => {
     await add(a, aScn, '2026-11-03T08:00:00Z', 'Smith, "Bob"\nJr');
     await add(a, aScn, '2026-11-03T09:00:00Z', 'سارة الحداد');
     await add(a, aScn, '2026-11-03T10:00:00Z', '-2+3');
+    await add(a, aScn, '2026-11-03T11:00:00Z', '  =1+1');
+    await add(a, aScn, '2026-11-03T12:00:00Z', '\n@x');
     const res = await csv(a.cookie, { from: '2026-11-03', to: '2026-11-03' });
     expect(res.text).toContain(`"'=HYPERLINK(""http://evil"",""x"")"`);
     expect(res.text).toContain(`'@SUM(1+1)`);
     expect(res.text).toContain(`"Smith, ""Bob""\nJr"`);
     expect(res.text).toContain('سارة الحداد');
     expect(res.text).toContain(`'-2+3`);
+    expect(res.text).toContain(`'  =1+1`);
+    expect(res.text).toContain(`"'\n@x"`);
     // No cell starts with a bare formula character.
     for (const cell of res.text.split(/,|\r\n/)) expect(/^[=@]/.test(cell)).toBe(false);
   });

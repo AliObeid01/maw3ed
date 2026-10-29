@@ -14,12 +14,27 @@ describe('csvCell', () => {
     expect(csvCell('l1\nl2')).toBe('"l1\nl2"');
     expect(csvCell('l1\r\nl2')).toBe('"l1\r\nl2"');
   });
-  it.each(['=1+1', '+96171123456', '-5', '@SUM(A1)', '\tx', '\rx'])(
-    'prefixes %j with a quote',
-    (v) => {
-      expect(csvCell(v).startsWith("'") || csvCell(v).startsWith('"\'')).toBe(true);
-    },
-  );
+  it('leaves a valid E.164 phone number alone (8 to 15 digits) but not a short or spaced one', () => {
+    expect(csvCell('+96171123456')).toBe('+96171123456');
+    expect(csvCell('+12345678')).toBe('+12345678');
+    expect(csvCell('+1234567')).toBe("'+1234567");
+    expect(csvCell(' +96171123456')).toBe("' +96171123456");
+  });
+  it.each([
+    '=1+1',
+    '+9617',
+    '-5',
+    '@SUM(A1)',
+    '\tx',
+    '\rx',
+    ' =1+1',
+    '  @SUM(A1)',
+    '\n=1+1',
+    '\u0001+cmd',
+    ' \t -2',
+  ])('prefixes %j with a quote', (v) => {
+    expect(csvCell(v).startsWith("'") || csvCell(v).startsWith('"\'')).toBe(true);
+  });
   it('does not prefix a formula character in the middle', () => {
     expect(csvCell('a=b')).toBe('a=b');
   });

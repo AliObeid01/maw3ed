@@ -1,35 +1,31 @@
 import { isRepeatNoShow } from '@/server/domain/clientFlags';
-import { localDayOf, resolveLocalRange } from '@/server/domain/dateRange';
+import { resolveLocalRange } from '@/server/domain/dateRange';
 import { localDateOf } from '@/server/domain/pilotMetrics';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
 import { outcomeRepo } from '@/server/repositories/outcome.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
-import { whatsappRemindersService, type WhatsappDeps } from './whatsappReminders';
+import { whatsappRemindersService } from './whatsappReminders';
 
 type Now = () => Date;
 const realNow: Now = () => new Date();
 
-const CANCELLED = new Set(['CANCELLED', 'LATE_CANCEL']);
+/** Not counted in the day's stats (still listed, flagged by status). */
+const NOT_LIVE = new Set(['CANCELLED', 'LATE_CANCEL', 'PENDING_PAYMENT']);
 
 export const dashboardService = {
   /** Badge counts, polled every minute. */
-  async summary(ctx: SessionContext, now: Now = realNow, whatsapp?: WhatsappDeps) {
+  async summary(ctx: SessionContext, now: Now = realNow) {
     requireRole(ctx, 'OWNER', 'STAFF');
-    const [due, outcomesToMark] = await Promise.all([
-      whatsappRemindersService.due(ctx, whatsapp),
+    const [whatsappDue, outcomesToMark] = await Promise.all([
+      whatsappRemindersService.dueCount(ctx, now),
       outcomeRepo.countQueue(ctx.businessId, now()),
     ]);
-    return { whatsappDue: due.count, outcomesToMark };
+    return { whatsappDue, outcomesToMark };
   },
 
-  async today(
-    ctx: SessionContext,
-    q: { date?: string | undefined },
-    now: Now = realNow,
-    whatsapp?: WhatsappDeps,
-  ) {
+  async today(ctx: SessionContext, q: { date?: string | undefined }, now: Now = realNow) {
     requireRole(ctx, 'OWNER', 'STAFF');
     const business = await publicBusinessRepo.findById(ctx.businessId);
     if (!business) throw AppError.notFound();
@@ -39,31 +35,27 @@ export const dashboardService = {
     const range = resolveLocalRange({ from: date, to: date, timezone: tz, maxDays: 1, now: at });
     if (!range.ok)
       throw AppError.validation({ date: range.fields.from ?? 'Use a date like 2026-11-10.' });
-    const realToday = localDayOf(at, tz);
 
-    const [rows, staff, outcomesToMark, due] = await Promise.all([
+    const [rows, staff, outcomesToMark, whatsappDue] = await Promise.all([
       outcomeRepo.listForDay(ctx.businessId, range.startUtc, range.endUtc, at),
       outcomeRepo.listColumns(ctx.businessId),
       outcomeRepo.countQueue(ctx.businessId, at),
-      whatsappRemindersService.due(ctx, whatsapp),
+      whatsappRemindersService.dueCount(ctx, now),
     ]);
 
-    const live = rows.filter((r) => !CANCELLED.has(r.status));
+    const live = rows.filter((r) => !NOT_LIVE.has(r.status));
     return {
       date: range.from,
       timezone: tz,
       stats: {
         appointments: live.length,
         confirmed: live.filter((r) => r.confirmedAt !== null).length,
-        noReply: live.filter((r) => r.status === 'BOOKED').length,
-        refilledFromWaitlist: live.filter(
-          (r) =>
-            r.source === 'WAITLIST' &&
-            r.createdAt >= realToday.startUtc &&
-            r.createdAt < realToday.endUtc,
-        ).length,
+        // BOOKED and not started yet: a started one is an outcome to mark, not "no reply".
+        noReply: live.filter((r) => r.status === 'BOOKED' && r.startAt > at).length,
+        // For the viewed date: WAITLIST-source appointments that start on it and are still live.
+        refilledFromWaitlist: live.filter((r) => r.source === 'WAITLIST').length,
       },
-      whatsappDue: due.count,
+      whatsappDue,
       outcomesToMark,
       staff,
       appointments: rows.map((r) => ({

@@ -13,6 +13,13 @@ import { DateTime } from 'luxon';
  * - The baseline rate is the owner's own figure: baseline no-shows / baseline appointments.
  */
 
+/** Shown to the owner next to the numbers. One definition for the baseline and the pilot. */
+export const RATE_DEFINITION =
+  'No-shows divided by (attended + no-shows). Cancellations and late cancels are excluded.';
+export const BASELINE_DEFINITION =
+  'Baseline appointments are those held or missed (attended + no-shows), excluding cancellations and late cancels, which are entered separately. Baseline rate = no-shows / appointments.';
+export const MAX_BASELINE_COUNT = 10000;
+
 export const round1 = (n: number): number => Math.round(n * 10) / 10;
 
 export interface ReportRow {
@@ -56,7 +63,7 @@ export function changeVsBaseline(pilot: number | null, baseline: number | null) 
 }
 
 export function addRow(counts: Counts, row: Pick<ReportRow, 'status'>): void {
-  if (row.status === 'CANCELLED') return;
+  if (row.status === 'CANCELLED' || row.status === 'PENDING_PAYMENT') return;
   counts.appointments += 1;
   if (row.status === 'ATTENDED') counts.attended += 1;
   else if (row.status === 'NO_SHOW') counts.noShows += 1;
@@ -140,5 +147,7 @@ export function validateBaseline(input: BaselineInput, today: string): Record<st
   if (to.isValid && input.toDate > today)
     fields.toDate = 'The baseline period cannot end in the future.';
   if (input.noShows > input.appointments) fields.noShows = 'No-shows cannot exceed appointments.';
+  if (input.appointments + input.lateCancels > MAX_BASELINE_COUNT)
+    fields.appointments = `Appointments plus late cancels are at most ${MAX_BASELINE_COUNT}.`;
   return fields;
 }
