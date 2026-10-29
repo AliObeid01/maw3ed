@@ -63,7 +63,7 @@ describe('week windows (Monday start, business timezone)', () => {
     const w = weekWindows(new Date('2026-11-01T21:30:00Z'), TZ, 1);
     expect(w[0]!.weekStart).toBe('2026-10-26');
   });
-  it('the DST week (clocks go back on 25 Oct 2026) is 169 hours and buckets by local time', () => {
+  it('the DST week (clocks go back at midnight ending Sat 24 Oct 2026) is 169 hours and buckets by local time', () => {
     const w = weekWindows(new Date('2026-11-04T08:00:00Z'), TZ, 3);
     const dst = w[0]!;
     expect((dst.endUtc.getTime() - dst.startUtc.getTime()) / 3_600_000).toBe(169);

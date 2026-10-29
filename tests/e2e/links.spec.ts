@@ -3,7 +3,11 @@ import { mockLinkApi, type LinkMock } from './helpers/publicMock';
 
 // Self-contained: every /api/links call is answered by page.route.
 
-async function open(page: Parameters<typeof mockLinkApi>[0], mock: LinkMock = {}, token = 'tok123') {
+async function open(
+  page: Parameters<typeof mockLinkApi>[0],
+  mock: LinkMock = {},
+  token = 'tok123',
+) {
   const api = await mockLinkApi(page, mock);
   await page.goto(`/l/${token}`);
   return api;
@@ -14,7 +18,9 @@ test.describe('confirm link', () => {
     page,
   }) => {
     const { calls } = await open(page, { act: 'confirm' });
-    await expect(page.getByRole('heading', { name: 'Please confirm your appointment' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Please confirm your appointment' }),
+    ).toBeVisible();
     await expect(page.getByText('Karim')).toBeVisible();
     expect(calls.map((c) => c.method)).toEqual(['GET']);
 
@@ -37,9 +43,12 @@ test.describe('cancel link', () => {
     await open(page, { act: 'cancel' });
     await expect(page.getByRole('heading', { name: 'Need to cancel?' })).toBeVisible();
     await expect(page.locator('[data-primary="true"]')).toHaveText("I can't come, cancel");
-    await expect(page.getByRole('button').filter({ hasText: /there|cancel/ }).first()).toHaveText(
-      "I can't come, cancel",
-    );
+    await expect(
+      page
+        .getByRole('button')
+        .filter({ hasText: /there|cancel/ })
+        .first(),
+    ).toHaveText("I can't come, cancel");
   });
 
   test('a view link offers both actions', async ({ page }) => {
@@ -121,7 +130,10 @@ test.describe('?lang= on a real signed token', () => {
   // Signed tokens are <base64url>.<base64url>: the dot must not exempt the page from the proxy.
   const token = 'eyJhIjoiYiJ9-_abc.c2ln_nature-123';
 
-  test('sets the cookie and redirects to the same token without the parameter', async ({ page, context }) => {
+  test('sets the cookie and redirects to the same token without the parameter', async ({
+    page,
+    context,
+  }) => {
     await mockLinkApi(page);
     await page.goto(`/l/${token}?lang=ar`);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
@@ -129,7 +141,9 @@ test.describe('?lang= on a real signed token', () => {
     expect(url.pathname).toBe(`/l/${token}`);
     expect(url.search).toBe('');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    expect((await context.cookies()).find((c) => c.name === 'locale')).toMatchObject({ value: 'ar' });
+    expect((await context.cookies()).find((c) => c.name === 'locale')).toMatchObject({
+      value: 'ar',
+    });
     await expect(page.getByRole('heading', { name: 'يرجى تأكيد موعدك' })).toBeVisible();
   });
 });
@@ -138,12 +152,16 @@ test.describe('server answers on the action', () => {
   test('403 WRONG_LINK_ACTION shows a clear message and keeps the buttons', async ({ page }) => {
     const { calls } = await open(page, { act: 'view', postError: 403 });
     await page.getByRole('button', { name: "Yes, I'll be there" }).click();
-    await expect(page.getByRole('alert').filter({ hasText: "This link can't do that" })).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({ hasText: "This link can't do that" }),
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: "Yes, I'll be there" })).toBeVisible();
     expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
   });
 
-  test('409 refetches the appointment and shows what it is now (cancelled elsewhere)', async ({ page }) => {
+  test('409 refetches the appointment and shows what it is now (cancelled elsewhere)', async ({
+    page,
+  }) => {
     const { calls } = await open(page, { act: 'view', postError: 409 });
     await page.getByRole('button', { name: "Yes, I'll be there" }).click();
     await expect(page.getByRole('heading', { name: 'Appointment cancelled' })).toBeVisible();
@@ -162,7 +180,9 @@ test.describe('server answers on the action', () => {
     await expect(page.getByText('No fee was charged.')).toHaveCount(0);
   });
 
-  test('opening the cancel dialog re-reads the appointment so the wording is current', async ({ page }) => {
+  test('opening the cancel dialog re-reads the appointment so the wording is current', async ({
+    page,
+  }) => {
     await open(page, { act: 'cancel', cutoffPassesAfterFirstGet: true });
     // At load the cutoff has not passed...
     await expect(page.getByText(/Free cancellation until/).first()).toBeVisible();

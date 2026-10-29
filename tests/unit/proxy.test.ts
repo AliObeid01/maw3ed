@@ -46,7 +46,15 @@ describe('proxy: ?lang=', () => {
   const hit = (path: string) => matches(path, { headers: {} } as never, {} as never);
 
   it('with the real Next matcher: runs for pages and dotted tokens, not for the API, internals or static files', () => {
-    for (const path of ['/', '/b/studio-nour', '/l/token', '/l/abc.def', '/l/abc.def.ghi', '/l/x.jsx', '/login'])
+    for (const path of [
+      '/',
+      '/b/studio-nour',
+      '/l/token',
+      '/l/abc.def',
+      '/l/abc.def.ghi',
+      '/l/x.jsx',
+      '/login',
+    ])
       expect(hit(path), path).toBe(true);
     for (const path of [
       '/api/public/x',

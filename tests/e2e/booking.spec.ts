@@ -1,5 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
-import { firstBookableDay, IDS, mockPublicApi, SLUG, type PublicMockOptions } from './helpers/publicMock';
+import {
+  firstBookableDay,
+  IDS,
+  mockPublicApi,
+  SLUG,
+  type PublicMockOptions,
+} from './helpers/publicMock';
 
 // Self-contained: every /api/public call is answered by page.route (see helpers/publicMock.ts), so no database is needed.
 
@@ -70,10 +76,9 @@ test.describe('happy path', () => {
 
     await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
     await expect(page.getByText('What happens next')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Confirm or cancel your booking/ })).toHaveAttribute(
-      'href',
-      '/l/mock-manage-token',
-    );
+    await expect(
+      page.getByRole('link', { name: /Confirm or cancel your booking/ }),
+    ).toHaveAttribute('href', '/l/mock-manage-token');
 
     expect(calls).toHaveLength(1);
     expect(calls[0]!.key).toMatch(/^[A-Za-z0-9_.:-]{8,100}$/);
@@ -98,7 +103,10 @@ test.describe('happy path', () => {
     expect(days).toBe(14);
   });
 
-  test('skips the staff step when only one person offers the service', async ({ page, isMobile }) => {
+  test('skips the staff step when only one person offers the service', async ({
+    page,
+    isMobile,
+  }) => {
     await mockPublicApi(page);
     await page.goto(BOOK);
     await pickService(page, 'Beard trim');
@@ -116,7 +124,9 @@ test.describe('happy path', () => {
     await expect(page.getByRole('heading', { name: /You're booked/ })).toBeVisible();
   });
 
-  test('offers "Anyone available" first when several people offer the service', async ({ page }) => {
+  test('offers "Anyone available" first when several people offer the service', async ({
+    page,
+  }) => {
     await mockPublicApi(page);
     await page.goto(`${BOOK}?service=${IDS.haircut}`);
     const buttons = page.getByRole('list', { name: "Choose who you'd like" }).getByRole('button');
@@ -146,16 +156,22 @@ test.describe('url state', () => {
   test('an unknown business shows a friendly page', async ({ page }) => {
     await mockPublicApi(page);
     await page.goto('/b/not-a-business');
-    await expect(page.getByRole('heading', { name: "We can't find this booking page" })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: "We can't find this booking page" }),
+    ).toBeVisible();
   });
 
   test('a slug the API rejects with 400 is also "not found"', async ({ page }) => {
     await mockPublicApi(page);
     await page.goto(`/b/${'a'.repeat(90)}`);
-    await expect(page.getByRole('heading', { name: "We can't find this booking page" })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: "We can't find this booking page" }),
+    ).toBeVisible();
   });
 
-  test('a hand-edited day (not a real date, or outside the visible days) is ignored', async ({ page }) => {
+  test('a hand-edited day (not a real date, or outside the visible days) is ignored', async ({
+    page,
+  }) => {
     await mockPublicApi(page);
     for (const day of ['2026-02-31', '2099-01-01']) {
       await page.goto(detailsUrl(`day=${day}&time=09:00`));
@@ -174,7 +190,9 @@ test.describe('the details step never stands on a missing time', () => {
     await mockPublicApi(page);
     await page.goto(detailsUrl(`day=${day}&time=09:05`));
     await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
-    await expect(page.getByRole('status').filter({ hasText: 'That time is no longer available' })).toBeVisible();
+    await expect(
+      page.getByRole('status').filter({ hasText: 'That time is no longer available' }),
+    ).toBeVisible();
     await expect(page).not.toHaveURL(/step=details/);
     await expect(page).not.toHaveURL(/time=/);
     await expect(page.getByRole('heading', { name: 'Your details' })).toHaveCount(0);
@@ -184,12 +202,16 @@ test.describe('the details step never stands on a missing time', () => {
     await mockPublicApi(page, { bookedTimes: ['09:00'] });
     await page.goto(detailsUrl(`day=${day}&time=09:00`));
     await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
-    await expect(page.getByText('That time is no longer available. Please pick another.')).toBeVisible();
+    await expect(
+      page.getByText('That time is no longer available. Please pick another.'),
+    ).toBeVisible();
     // The other times of that day are offered.
     await expect(page.getByRole('radio', { name: '9:30', exact: true })).toBeVisible();
   });
 
-  test('while the times load the button shows its loading state and sends nothing', async ({ page }) => {
+  test('while the times load the button shows its loading state and sends nothing', async ({
+    page,
+  }) => {
     const { calls } = await mockPublicApi(page, { slotsDelayMs: 1500 });
     await page.goto(detailsUrl(`day=${day}&time=09:00`));
     await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
@@ -250,7 +272,9 @@ test.describe('slot just taken (board 1.6)', () => {
     await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
   });
 
-  test('a second 409 updates the message and moves focus to the heading again', async ({ page }) => {
+  test('a second 409 updates the message and moves focus to the heading again', async ({
+    page,
+  }) => {
     await reachDetails(page, { script: ['taken', 'taken'] });
     await fillDetails(page);
     await confirm(page).click();
@@ -265,9 +289,19 @@ test.describe('slot just taken (board 1.6)', () => {
 test.describe('"Book instead" failures are visible and retryable', () => {
   const cases = [
     { label: '500', second: '500', text: 'Something went wrong', sameKey: true },
-    { label: 'dropped connection', second: 'drop', text: "couldn't reach the server", sameKey: true },
+    {
+      label: 'dropped connection',
+      second: 'drop',
+      text: "couldn't reach the server",
+      sameKey: true,
+    },
     { label: '429', second: '429', text: 'Too many attempts', sameKey: true },
-    { label: 'a 400 that spends the key', second: 'bad-request', text: 'Something went wrong', sameKey: false },
+    {
+      label: 'a 400 that spends the key',
+      second: 'bad-request',
+      text: 'Something went wrong',
+      sameKey: false,
+    },
   ] as const;
 
   for (const c of cases) {
@@ -310,7 +344,9 @@ test.describe('submitting', () => {
     const { calls } = await reachDetails(page, { dropFirstResponse: true });
     await fillDetails(page);
     await confirm(page).click();
-    await expect(page.getByRole('alert').filter({ hasText: "couldn't reach the server" })).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({ hasText: "couldn't reach the server" }),
+    ).toBeVisible();
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(page.getByRole('heading', { name: /You're booked/ })).toBeVisible();
     expect(calls).toHaveLength(2);
@@ -323,7 +359,9 @@ test.describe('submitting', () => {
     const { calls, bookings } = await reachDetails(page, { dropFirstResponse: true });
     await fillDetails(page, 'Maya Hadad');
     await confirm(page).click();
-    await expect(page.getByRole('alert').filter({ hasText: "couldn't reach the server" })).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({ hasText: "couldn't reach the server" }),
+    ).toBeVisible();
     await page.getByLabel('Full name').fill('Maya Haddad');
     await confirm(page).click();
     await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
@@ -342,7 +380,9 @@ test.describe('submitting', () => {
     expect(calls[1]!.key).toBe(calls[0]!.key);
   });
 
-  test('changing the phone after a failure starts a new attempt with a new key', async ({ page }) => {
+  test('changing the phone after a failure starts a new attempt with a new key', async ({
+    page,
+  }) => {
     const { calls } = await reachDetails(page, { failFirstWith500: true });
     await fillDetails(page);
     await confirm(page).click();
@@ -353,7 +393,9 @@ test.describe('submitting', () => {
     expect(calls[1]!.key).not.toBe(calls[0]!.key);
   });
 
-  test('a 400 on the phone shows a translated message on the field and focuses it', async ({ page }) => {
+  test('a 400 on the phone shows a translated message on the field and focuses it', async ({
+    page,
+  }) => {
     await reachDetails(page, { rejectPhone: true });
     await fillDetails(page);
     await confirm(page).click();
@@ -425,7 +467,11 @@ test.describe('the booking window', () => {
 });
 
 test.describe('language and direction', () => {
-  test('Arabic renders right-to-left without horizontal overflow', async ({ page, context, baseURL }) => {
+  test('Arabic renders right-to-left without horizontal overflow', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
     await mockPublicApi(page);
     await page.goto(BOOK);
@@ -435,7 +481,10 @@ test.describe('language and direction', () => {
     await page.getByRole('button', { name: /أي موظف متاح/ }).click();
     await expect(page.getByRole('heading', { name: 'اختر اليوم والوقت' })).toBeVisible();
     // The counts in the day names use Latin digits too.
-    const label = await page.getByRole('radio', { name: /متاحة/ }).first().getAttribute('aria-label');
+    const label = await page
+      .getByRole('radio', { name: /متاحة/ })
+      .first()
+      .getAttribute('aria-label');
     expect(label).not.toMatch(/[٠-٩]/);
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -443,7 +492,10 @@ test.describe('language and direction', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test('?lang=ar sets the cookie and redirects without the parameter', async ({ page, context }) => {
+  test('?lang=ar sets the cookie and redirects without the parameter', async ({
+    page,
+    context,
+  }) => {
     await mockPublicApi(page);
     await page.goto(`${BOOK}?lang=ar`);
     await expect(page).toHaveURL(new RegExp(`${BOOK}$`));
@@ -472,7 +524,11 @@ test.describe('language and direction', () => {
   }) => {
     await mockPublicApi(page);
     await page.route(`**/api/public/${SLUG}`, (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(arabicBusiness) }),
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(arabicBusiness),
+      }),
     );
     await page.goto(BOOK);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl', { timeout: 15_000 });
@@ -482,11 +538,20 @@ test.describe('language and direction', () => {
     expect(hint).toMatchObject({ value: 'ar', path: `/b/${SLUG}`, expires: -1 });
   });
 
-  test("another business's language hint does not leak onto this one", async ({ page, context, baseURL }) => {
+  test("another business's language hint does not leak onto this one", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     await mockPublicApi(page);
     // A hint learned on a different business page is scoped to that page's path and is never sent here.
     await context.addCookies([
-      { name: 'locale_hint', value: 'ar', domain: new URL(baseURL!).hostname, path: '/b/another-business' },
+      {
+        name: 'locale_hint',
+        value: 'ar',
+        domain: new URL(baseURL!).hostname,
+        path: '/b/another-business',
+      },
     ]);
     await page.goto(BOOK);
     await expect(page.getByRole('heading', { name: 'Choose a service' })).toBeVisible();

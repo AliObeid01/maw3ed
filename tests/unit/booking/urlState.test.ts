@@ -17,7 +17,13 @@ const parse = (qs: string) => parseBookingParams(new URLSearchParams(qs));
 
 describe('parseBookingParams / serialiseBookingParams', () => {
   it('round-trips a full state with a stable key order', () => {
-    const params = { step: 'details', service: 's1', staff: 'anyone', day: '2026-11-03', time: '10:30' } as const;
+    const params = {
+      step: 'details',
+      service: 's1',
+      staff: 'anyone',
+      day: '2026-11-03',
+      time: '10:30',
+    } as const;
     const qs = serialiseBookingParams(params);
     expect(qs).toBe('?step=details&service=s1&staff=anyone&day=2026-11-03&time=10%3A30');
     expect(parse(qs)).toEqual(params);
@@ -34,9 +40,7 @@ describe('parseBookingParams / serialiseBookingParams', () => {
   });
 
   it('drops malformed values instead of trusting them', () => {
-    expect(
-      parse('step=hack&service=a b&staff=<x>&day=2026-1-3&time=25:00&other=1'),
-    ).toEqual({});
+    expect(parse('step=hack&service=a b&staff=<x>&day=2026-1-3&time=25:00&other=1')).toEqual({});
     expect(parse('time=09:05')).toEqual({ time: '09:05' });
   });
 });
