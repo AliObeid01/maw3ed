@@ -36,7 +36,7 @@ export function DetailsStep({
   formRef: RefObject<HTMLFormElement | null>;
   headingRef: Ref<HTMLHeadingElement>;
   /** Already formatted in the business timezone. */
-  reminders: { first: string; second: string };
+  reminders: { first?: string; second?: string };
 }) {
   const t = useTranslations('booking.details');
   const tErr = useTranslations('booking.errors');
@@ -92,14 +92,17 @@ export function DetailsStep({
         <button type="submit" tabIndex={-1} aria-hidden="true" className="sr-only" />
       </form>
       <div className="flex flex-col gap-2 rounded-[20px] bg-canvas p-4 text-sm">
-        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-          <span className="text-muted">{t('reminder1')}</span>
-          <span className="font-medium">{reminders.first}</span>
-        </div>
-        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-          <span className="text-muted">{t('reminder2')}</span>
-          <span className="font-medium">{reminders.second}</span>
-        </div>
+        {[
+          { label: t('reminder1'), when: reminders.first },
+          { label: t('reminder2'), when: reminders.second },
+        ]
+          .filter((r) => r.when)
+          .map((r) => (
+            <div key={r.label} className="flex flex-wrap justify-between gap-x-4 gap-y-1">
+              <span className="text-muted">{r.label}</span>
+              <span className="font-medium">{r.when}</span>
+            </div>
+          ))}
         <span className="text-muted">{t('reminderNote')}</span>
       </div>
     </section>

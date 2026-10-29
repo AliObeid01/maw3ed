@@ -389,7 +389,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           date: f.day(new Date(startMs - hours * HOUR).toISOString()),
           time: f.time(new Date(startMs - hours * HOUR).toISOString()),
         })
-      : tEmpty;
+      : undefined;
 
   return (
     <>
@@ -488,6 +488,7 @@ export function BookingFlow({ slug }: { slug: string }) {
       </main>
       {cta ? (
         <StickySummaryBar
+          className="sticky-summary-bar"
           rows={rows}
           price={price}
           cta={cta.label}

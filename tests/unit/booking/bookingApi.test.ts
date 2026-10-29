@@ -13,7 +13,7 @@ import { loadSlotWindow } from '@/lib/booking/window';
 afterEach(() => vi.unstubAllGlobals());
 
 function mockFetch(status: number, body: unknown) {
-  const fn = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify(body), { status }));
+  const fn = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify(body), { status }));
   vi.stubGlobal('fetch', fn);
   return fn;
 }
@@ -158,14 +158,14 @@ describe('loadSlotWindow', () => {
   const slots = [{ startAt: '2026-11-03T08:30:00Z', endAt: '2026-11-03T09:00:00Z' }];
 
   it('asks once for 14 local days starting today in the business timezone and groups by local day', async () => {
-    const fetchSlots = vi.fn(async () => slots);
+    const fetchSlots = vi.fn<(slug: string, q: { from: string; to: string }) => Promise<typeof slots>>(async () => slots);
     const window = await loadSlotWindow(
       'studio-nour',
       { serviceId: 's1' },
       'Asia/Beirut',
       now,
       undefined,
-      fetchSlots,
+      fetchSlots as never,
     );
     expect(fetchSlots).toHaveBeenCalledTimes(1);
     expect(fetchSlots.mock.calls[0]![1]).toEqual({ serviceId: 's1', from: '2026-11-01', to: '2026-11-14' });
