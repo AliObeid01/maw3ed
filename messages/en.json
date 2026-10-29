@@ -522,6 +522,41 @@
       "inviteWrongPassword": "Incorrect password. If you already have a Maw3ed account, enter that account's password."
     }
   },
+  "email": {
+    "greeting": "Hi {name},",
+    "labels": {
+      "service": "Service",
+      "staff": "With",
+      "when": "When",
+      "business": "Where"
+    },
+    "actions": {
+      "confirm": "Confirm my appointment",
+      "cancel": "Cancel my appointment",
+      "linkNote": "These links stop working when your appointment starts."
+    },
+    "calendar": "A calendar file is attached so you can add this to your calendar.",
+    "footer": "Sent by Maw3ed on behalf of {business}.",
+    "booking": {
+      "subject": "Booking confirmed: {service} on {date}",
+      "heading": "Your booking is confirmed",
+      "intro": "You are booked in at {business}. Here are the details."
+    },
+    "h24": {
+      "subject": "Reminder: {service} tomorrow at {time}",
+      "heading": "Your appointment is tomorrow",
+      "intro": "This is a reminder of your appointment at {business}."
+    },
+    "h2": {
+      "subject": "Reminder: {service} today at {time}",
+      "heading": "Your appointment is in about 2 hours",
+      "intro": "This is a reminder of your appointment at {business}."
+    },
+    "whatsapp": {
+      "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
+      "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
+    }
+  },
   "dev": {
     "ui": {
       "pageTitle": "UI preview",

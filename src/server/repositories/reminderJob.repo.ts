@@ -1,10 +1,74 @@
 import type { Prisma } from '@/generated/prisma/client';
+import { db } from './db';
 
 export interface NewReminderJob {
   kind: 'BOOKING' | 'H24' | 'H2';
   channel: 'EMAIL' | 'WHATSAPP';
   dueAt: Date;
 }
+
+/** A row returned by the claim statement. */
+export interface ClaimedJob {
+  id: string;
+  businessId: string;
+  appointmentId: string;
+  kind: 'BOOKING' | 'H24' | 'H2';
+  dueAt: Date;
+  attempts: number;
+}
+
+interface RawClaimed {
+  id: string;
+  businessId: string;
+  appointmentId: string;
+  kind: ClaimedJob['kind'];
+  dueAt: Date | string;
+  attempts: number;
+}
+
+const sendContextSelect = {
+  id: true,
+  businessId: true,
+  appointmentId: true,
+  kind: true,
+  attempts: true,
+  business: { select: { id: true, name: true, timezone: true, locale: true, address: true } },
+  appointment: {
+    select: {
+      id: true,
+      businessId: true,
+      status: true,
+      startAt: true,
+      endAt: true,
+      client: { select: { name: true, email: true } },
+      service: { select: { name: true } },
+      staff: { select: { displayName: true } },
+    },
+  },
+} satisfies Prisma.ReminderJobSelect;
+
+export type SendContext = Prisma.ReminderJobGetPayload<{ select: typeof sendContextSelect }>;
+
+const whatsappSelect = {
+  id: true,
+  kind: true,
+  dueAt: true,
+  status: true,
+  sentAt: true,
+  sentBy: { select: { id: true, name: true } },
+  appointment: {
+    select: {
+      id: true,
+      status: true,
+      startAt: true,
+      client: { select: { name: true, phone: true, noShows: true } },
+      service: { select: { id: true, name: true } },
+      staff: { select: { id: true, displayName: true } },
+    },
+  },
+} satisfies Prisma.ReminderJobSelect;
+
+export type WhatsappJobRow = Prisma.ReminderJobGetPayload<{ select: typeof whatsappSelect }>;
 
 export const reminderJobRepo = {
   /**
@@ -31,5 +95,124 @@ export const reminderJobRepo = {
       data: { status: 'SKIPPED' },
     });
     return res.count;
+  },
+
+  // ---- job runner: these queries span all tenants on purpose (jobs only) ---------------------------
+
+  /** Crash recovery: SENDING rows locked before `lockedBefore` go back to PENDING. Returns how many. */
+  async requeueStuck(lockedBefore: Date): Promise<number> {
+    const res = await db.reminderJob.updateMany({
+      where: { status: 'SENDING', lockedAt: { lt: lockedBefore } },
+      data: { status: 'PENDING', lockedAt: null },
+    });
+    return res.count;
+  },
+
+  /**
+   * THE claim: one statement, `FOR UPDATE SKIP LOCKED`, so two overlapping runs can never claim the same
+   * row. Only due PENDING EMAIL rows; WhatsApp rows are never sent by the server.
+   */
+  async claimDue(now: Date, limit: number): Promise<ClaimedJob[]> {
+    const ts = now.toISOString();
+    const rows = await db.$queryRaw<RawClaimed[]>`
+      UPDATE "ReminderJob"
+      SET "status" = 'SENDING', "lockedAt" = ${ts}::timestamptz, "attempts" = "attempts" + 1
+      WHERE "id" IN (
+        SELECT "id" FROM "ReminderJob"
+        WHERE "status" = 'PENDING'
+          AND "channel" = 'EMAIL'
+          AND "dueAt" <= ${ts}::timestamptz
+          AND ("nextAttemptAt" IS NULL OR "nextAttemptAt" <= ${ts}::timestamptz)
+        ORDER BY "dueAt" ASC, "id" ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED
+      )
+      RETURNING *`;
+    return rows.map((r) => ({
+      id: r.id,
+      businessId: r.businessId,
+      appointmentId: r.appointmentId,
+      kind: r.kind,
+      dueAt: new Date(r.dueAt),
+      attempts: Number(r.attempts),
+    }));
+  },
+
+  /** Each claimed job with its own business and appointment, for building its email. */
+  loadSendContexts: (ids: string[]) =>
+    db.reminderJob.findMany({ where: { id: { in: ids } }, select: sendContextSelect }),
+
+  async markSent(id: string, providerMessageId: string, sentAt: Date): Promise<boolean> {
+    const res = await db.reminderJob.updateMany({
+      where: { id, status: 'SENDING' },
+      data: { status: 'SENT', providerMessageId, sentAt, lockedAt: null, lastError: null },
+    });
+    return res.count === 1;
+  },
+
+  async markSkipped(id: string, reason: string): Promise<boolean> {
+    const res = await db.reminderJob.updateMany({
+      where: { id, status: 'SENDING' },
+      data: { status: 'SKIPPED', lockedAt: null, lastError: reason },
+    });
+    return res.count === 1;
+  },
+
+  async markRetry(id: string, nextAttemptAt: Date, lastError: string): Promise<boolean> {
+    const res = await db.reminderJob.updateMany({
+      where: { id, status: 'SENDING' },
+      data: { status: 'PENDING', lockedAt: null, nextAttemptAt, lastError },
+    });
+    return res.count === 1;
+  },
+
+  async markFailed(id: string, lastError: string): Promise<boolean> {
+    const res = await db.reminderJob.updateMany({
+      where: { id, status: 'SENDING' },
+      data: { status: 'FAILED', lockedAt: null, lastError },
+    });
+    return res.count === 1;
+  },
+
+  /** Daily email budget input: emails recorded as SENT since `since` (all tenants share one Resend quota). */
+  countSentEmailsSince: (since: Date) =>
+    db.reminderJob.count({ where: { channel: 'EMAIL', status: 'SENT', sentAt: { gte: since } } }),
+
+  // ---- WhatsApp (tenant-scoped, session routes) -----------------------------------------------------
+
+  /** Due PENDING WhatsApp jobs plus those sent since `sentSince`. The service applies the send window. */
+  listWhatsapp: (businessId: string, now: Date, sentSince: Date) =>
+    db.reminderJob.findMany({
+      where: {
+        businessId,
+        channel: 'WHATSAPP',
+        kind: { in: ['H24', 'H2'] },
+        OR: [
+          { status: 'PENDING', dueAt: { lte: now } },
+          { status: 'SENT', sentAt: { gte: sentSince } },
+        ],
+      },
+      orderBy: [{ dueAt: 'asc' }, { id: 'asc' }],
+      select: whatsappSelect,
+    }),
+
+  findWhatsapp: (businessId: string, id: string) =>
+    db.reminderJob.findFirst({
+      where: { id, businessId, channel: 'WHATSAPP' },
+      select: whatsappSelect,
+    }),
+
+  /** `UPDATE ... WHERE id AND businessId AND status = 'PENDING'`: exactly one caller can win. */
+  async markWhatsappSent(
+    businessId: string,
+    id: string,
+    userId: string,
+    now: Date,
+  ): Promise<boolean> {
+    const res = await db.reminderJob.updateMany({
+      where: { id, businessId, channel: 'WHATSAPP', status: 'PENDING' },
+      data: { status: 'SENT', sentAt: now, sentById: userId },
+    });
+    return res.count === 1;
   },
 };
