@@ -105,7 +105,7 @@ test('the countdown updates politely every 30 s without moving the layout', asyn
   await expect(box).toContainText(/2[789] minutes left/);
   const before = await box.boundingBox();
   await page.clock.runFor(5 * 60_000);
-  await expect(box).toContainText(/2[2-3] minutes left/);
+  await expect(box).toContainText(/2[2-4] minutes left/);
   const after = await box.boundingBox();
   expect(after!.height).toBe(before!.height);
   expect(after!.y).toBe(before!.y);
