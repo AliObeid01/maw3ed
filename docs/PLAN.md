@@ -36,19 +36,19 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P2.1 BE** Setup CRUD: `/api/services`, `/api/staff` (+ services performed, bookable, active), `/api/staff/{id}/hours`, `/api/staff/{id}/time-off`, `GET/PATCH /api/business`. (FR-04…07)
 - [x] **P2.2 BE** Public read: `GET /api/public/{slug}`, `GET /api/public/{slug}/slots` (one query per range; < 300 ms p95). (FR-08, FR-09, NFR-09)
 - [x] **P2.3 BE** (note: `pickStaff` does not re-check availability; the insert under the exclusion constraint is the only referee, and on 23P01 for an "anyone" booking retry the next candidate before returning 409) Booking service (one insert path for public, front desk, waitlist claim, deposit): client upsert by phone, friendly re-check, insert with `blockedUntil`, 23P01 → 409 + fresh slots, `Idempotency-Key`, reminder jobs created in the same transaction. `POST /api/public/{slug}/bookings`, `GET/POST /api/appointments`. (FR-08, FR-10, FR-11, FR-15)
-- [ ] **P2.4 BE** Reminder job runner `POST /api/jobs/reminders` (cron secret): requeue stuck, claim SKIP LOCKED, re-check, send via `ResendEmailProvider` with idempotency key, record SENT/backoff/FAILED, daily count + warn at 80. (FR-13, FR-16, NFR-08, NFR-10)
-- [ ] **P2.5 BE** Booking confirmation email (kind BOOKING) + `.ics` attachment; email templates (react-email) for BOOKING/H24/H2. (FR-12, FR-13)
-- [ ] **P2.6 BE** Links: `GET/POST /api/links/{token}` confirm/cancel; late cancel after the cutoff; cancel skips pending reminders and triggers the waitlist. Staff cancel `POST /api/appointments/{id}/cancel`. (FR-15, FR-17)
-- [ ] **P2.7 BE** WhatsApp: `GET /api/reminders/whatsapp-due` (with prefilled `wa.me` URL), `POST /api/reminders/{id}/mark-sent` (conditional update; second call → 409 with "sent by X at T"). (FR-14)
+- [x] **P2.4 BE** Reminder job runner `POST /api/jobs/reminders` (cron secret): requeue stuck, claim SKIP LOCKED, re-check, send via `ResendEmailProvider` with idempotency key, record SENT/backoff/FAILED, daily count + warn at 80. (FR-13, FR-16, NFR-08, NFR-10)
+- [x] **P2.5 BE** Booking confirmation email (kind BOOKING) + `.ics` attachment; email templates (react-email) for BOOKING/H24/H2. (FR-12, FR-13)
+- [x] **P2.6 BE** Links: `GET/POST /api/links/{token}` confirm/cancel; late cancel after the cutoff; cancel skips pending reminders and triggers the waitlist. Staff cancel `POST /api/appointments/{id}/cancel`. (FR-15, FR-17)
+- [x] **P2.7 BE** WhatsApp: `GET /api/reminders/whatsapp-due` (with prefilled `wa.me` URL), `POST /api/reminders/{id}/mark-sent` (conditional update; second call → 409 with "sent by X at T"). (FR-14)
 - [ ] **P2.8 BE** Waitlist: `POST /api/public/{slug}/waitlist`; on cancel → `domain/waitlistMatch` → offer batch (3) by email with signed claim token; `POST /api/offers/{token}/claim` through P2.3; `POST /api/jobs/waitlist-expiry` cascades until the slot is within min notice. (FR-18…20)
-- [ ] **P2.9 QA** Proof tests green: `booking.concurrency`, `reminders.idempotency`, `links`, `waitlist.claim`, `validation.routes`, `tenant.isolation` (all entities).
-- [ ] **P2.10 FE** Booking stepper `/b/[slug]` 1.1–1.4 + 1.5 booked + 1.6 slot taken; mobile sticky summary/CTA; ≤ 4 screens. (FR-08, NFR-05)
-- [ ] **P2.11 FE** 1.7 join waitlist; 2.1 confirm/cancel, 2.2 cancelled, 2.3 waitlist offer.
+- [x] **P2.9 QA (done as dedicated suites; the registry-wide validation sweep and the clients isolation todos remain)** Proof tests green: `booking.concurrency`, `reminders.idempotency`, `links`, `waitlist.claim`, `validation.routes`, `tenant.isolation` (all entities).
+- [x] **P2.10 FE** Booking stepper `/b/[slug]` 1.1–1.4 + 1.5 booked + 1.6 slot taken; mobile sticky summary/CTA; ≤ 4 screens. (FR-08, NFR-05)
+- [ ] **P2.11 FE** (2.1 confirm/cancel and 2.2 cancelled are DONE in #19; 1.7 join waitlist and 2.3 waitlist offer remain, with P2.8) 1.7 join waitlist; 2.3 waitlist offer.
 - [x] **P2.12 FE** Setup 3.4 checklist, 3.5 services, 3.6 staff, 3.7 hours & time off (several intervals per day), 3.8 settings, 3.9 share link (copy, QR, WhatsApp/Instagram share).
 - [ ] **P2.13 FE** 4.1 Today (stat tiles, calendar grid `lg+`, agenda list mobile, "Do this first" WhatsApp card, "Needs you", waitlist activity).
 - [ ] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
 - [ ] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
-- [ ] **P2.16 QA** E2E `booking.spec.ts` (Pixel 5) green against preview.
+- [x] **P2.16 QA** E2E `booking.spec.ts` (Pixel 5) green against preview.
 - [ ] **P2.17 H** cron-job.org jobs live; prod smoke on a real Android phone; **onboard pilots** (`docs/PILOT_PLAYBOOK.md`); enter baselines.
 
 ## Phase 3 — History, pilot report, extras (3–6 Nov)
@@ -93,3 +93,13 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **L4 No email verification at signup.** Consequence: an attacker can pre-register someone's address so that a later invite to it hits an existing account (accept then needs that account's password, so it fails for the real person). There is no account takeover, but it is a squatting/DoS vector. Decide whether to add email verification before launch.
 - [ ] **L5 Referrer-Policy.** Send `Referrer-Policy: no-referrer` on `/invite/[token]` and every other page that carries a token in its URL (confirm/cancel/offer/pay links), so tokens never leak through the Referer header.
 - [ ] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.
+
+## Follow-ups from Phase 2 reviews and the real-API journey (non-blocking)
+- [ ] **F13 BE** Expose `bookingWindowDays` and `cancelCutoffMin` in `GET /api/public/{slug}` so the booking page stops probing 14 -> 7 -> 3 -> 1 days and can say 'free cancellation until ...'.
+- [ ] **F14 FE** First visit to a business whose language differs from the visitor's renders once in the default language, then refreshes (client `locale_hint`). Resolve the business locale server-side for `/b/[slug]` and `/l/[token]`.
+- [ ] **F15 FE** Email templates: brand colours (teal button for confirm, canvas background) instead of neutral greys; keep web-safe `Arial` stack (email clients cannot load Outfit). Decide whether to ignore the design hook's overused-font finding for emails.
+- [ ] **F16 BE** Verified or per-appointment contact email (today one mutable email per client; public bookings can only fill an EMPTY email on an existing client).
+- [ ] **F17 FE** The booked screen does not survive a refresh (manage link is in the confirmation email afterwards); consider persisting the manage link for the session.
+- [ ] **F18 QA** Real-API journey (signup -> setup -> client booking -> reminder runner -> confirm/cancel links) is currently a throwaway script; keep a cleaned-up version as a CI-able smoke test against the CI Postgres.
+- [ ] **F19 BE** `DST fall-back`: `time=HH:mm` in the booking URL is ambiguous for the one repeated hour per year in Beirut (24 Oct 23:xx); serialise with offset if it ever matters.
+- [ ] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
