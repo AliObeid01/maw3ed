@@ -33,9 +33,9 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P1.12 FE** Screens 3.1 sign up, 3.2 sign in, 3.3 accept invite → wired to P1.7/P1.8.
 
 ## Phase 2 — Core flow live (31 Oct – 3 Nov) · gate: pilots go live 3 Nov
-- [ ] **P2.1 BE** Setup CRUD: `/api/services`, `/api/staff` (+ services performed, bookable, active), `/api/staff/{id}/hours`, `/api/staff/{id}/time-off`, `GET/PATCH /api/business`. (FR-04…07)
-- [ ] **P2.2 BE** Public read: `GET /api/public/{slug}`, `GET /api/public/{slug}/slots` (one query per range; < 300 ms p95). (FR-08, FR-09, NFR-09)
-- [ ] **P2.3 BE** (note: `pickStaff` does not re-check availability; the insert under the exclusion constraint is the only referee, and on 23P01 for an "anyone" booking retry the next candidate before returning 409) Booking service (one insert path for public, front desk, waitlist claim, deposit): client upsert by phone, friendly re-check, insert with `blockedUntil`, 23P01 → 409 + fresh slots, `Idempotency-Key`, reminder jobs created in the same transaction. `POST /api/public/{slug}/bookings`, `GET/POST /api/appointments`. (FR-08, FR-10, FR-11, FR-15)
+- [x] **P2.1 BE** Setup CRUD: `/api/services`, `/api/staff` (+ services performed, bookable, active), `/api/staff/{id}/hours`, `/api/staff/{id}/time-off`, `GET/PATCH /api/business`. (FR-04…07)
+- [x] **P2.2 BE** Public read: `GET /api/public/{slug}`, `GET /api/public/{slug}/slots` (one query per range; < 300 ms p95). (FR-08, FR-09, NFR-09)
+- [x] **P2.3 BE** (note: `pickStaff` does not re-check availability; the insert under the exclusion constraint is the only referee, and on 23P01 for an "anyone" booking retry the next candidate before returning 409) Booking service (one insert path for public, front desk, waitlist claim, deposit): client upsert by phone, friendly re-check, insert with `blockedUntil`, 23P01 → 409 + fresh slots, `Idempotency-Key`, reminder jobs created in the same transaction. `POST /api/public/{slug}/bookings`, `GET/POST /api/appointments`. (FR-08, FR-10, FR-11, FR-15)
 - [ ] **P2.4 BE** Reminder job runner `POST /api/jobs/reminders` (cron secret): requeue stuck, claim SKIP LOCKED, re-check, send via `ResendEmailProvider` with idempotency key, record SENT/backoff/FAILED, daily count + warn at 80. (FR-13, FR-16, NFR-08, NFR-10)
 - [ ] **P2.5 BE** Booking confirmation email (kind BOOKING) + `.ics` attachment; email templates (react-email) for BOOKING/H24/H2. (FR-12, FR-13)
 - [ ] **P2.6 BE** Links: `GET/POST /api/links/{token}` confirm/cancel; late cancel after the cutoff; cancel skips pending reminders and triggers the waitlist. Staff cancel `POST /api/appointments/{id}/cancel`. (FR-15, FR-17)
@@ -44,7 +44,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **P2.9 QA** Proof tests green: `booking.concurrency`, `reminders.idempotency`, `links`, `waitlist.claim`, `validation.routes`, `tenant.isolation` (all entities).
 - [ ] **P2.10 FE** Booking stepper `/b/[slug]` 1.1–1.4 + 1.5 booked + 1.6 slot taken; mobile sticky summary/CTA; ≤ 4 screens. (FR-08, NFR-05)
 - [ ] **P2.11 FE** 1.7 join waitlist; 2.1 confirm/cancel, 2.2 cancelled, 2.3 waitlist offer.
-- [ ] **P2.12 FE** Setup 3.4 checklist, 3.5 services, 3.6 staff, 3.7 hours & time off (several intervals per day), 3.8 settings, 3.9 share link (copy, QR, WhatsApp/Instagram share).
+- [x] **P2.12 FE** Setup 3.4 checklist, 3.5 services, 3.6 staff, 3.7 hours & time off (several intervals per day), 3.8 settings, 3.9 share link (copy, QR, WhatsApp/Instagram share).
 - [ ] **P2.13 FE** 4.1 Today (stat tiles, calendar grid `lg+`, agenda list mobile, "Do this first" WhatsApp card, "Needs you", waitlist activity).
 - [ ] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
 - [ ] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
