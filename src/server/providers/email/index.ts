@@ -1,7 +1,15 @@
 import type { EmailProvider } from './EmailProvider';
 import { FakeEmailProvider } from './FakeEmailProvider';
+import { ResendEmailProvider } from './ResendEmailProvider';
 
-export type { EmailMessage, EmailProvider, EmailResult } from './EmailProvider';
+export type {
+  EmailAttachment,
+  EmailMessage,
+  EmailProvider,
+  EmailResult,
+} from './EmailProvider';
+export { EmailSendError } from './EmailProvider';
+export { ResendEmailProvider } from './ResendEmailProvider';
 export { FakeEmailProvider } from './FakeEmailProvider';
 
 const g = globalThis as unknown as { __maw3edFakeEmail?: FakeEmailProvider };
@@ -39,6 +47,12 @@ export function getEmailProvider(): EmailProvider {
   const name = emailProviderName();
   if (name === 'fake') return fakeEmailProvider;
   if (override) return override;
-  if (name === 'resend') throw new Error('EMAIL_PROVIDER=resend is not implemented yet.');
+  if (name === 'resend') {
+    const apiKey = process.env.RESEND_API_KEY;
+    const from = process.env.EMAIL_FROM;
+    if (!apiKey) throw new Error('RESEND_API_KEY must be set when EMAIL_PROVIDER=resend.');
+    if (!from) throw new Error('EMAIL_FROM must be set when EMAIL_PROVIDER=resend.');
+    return new ResendEmailProvider({ apiKey, from });
+  }
   throw new Error(`Unknown EMAIL_PROVIDER "${name}".`);
 }
