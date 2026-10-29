@@ -16,5 +16,8 @@ export async function onSlotFreed(
   ctx: { businessId: string; logger: Logger },
   slot: FreedSlot,
 ): Promise<void> {
-  ctx.logger.debug({ appointmentId: slot.appointmentId }, 'slot freed (waitlist hook not wired yet)');
+  ctx.logger.debug(
+    { appointmentId: slot.appointmentId },
+    'slot freed (waitlist hook not wired yet)',
+  );
 }

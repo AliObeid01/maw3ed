@@ -165,7 +165,11 @@ describe('Idempotency-Key', () => {
     const a = await newScenario(prisma, t);
     const b = await newScenario(prisma, other);
     const key = newKey();
-    const ra = await bookPublicly(t.slug, bookingBody(a.serviceId, a.staffIds[0]!, at('09:00')), key);
+    const ra = await bookPublicly(
+      t.slug,
+      bookingBody(a.serviceId, a.staffIds[0]!, at('09:00')),
+      key,
+    );
     const rb = await bookPublicly(
       other.slug,
       bookingBody(b.serviceId, b.staffIds[0]!, at('09:00')),
