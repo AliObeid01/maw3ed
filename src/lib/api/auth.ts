@@ -88,6 +88,8 @@ export async function request<S extends z.ZodType>(
     signal?: AbortSignal;
     /** Extra request headers, e.g. `Idempotency-Key`. */
     headers?: Record<string, string>;
+    /** Called with the raw response before the body is read (for headers such as `Date`). */
+    onResponse?: (res: Response) => void;
   } = {},
 ): Promise<z.infer<S>> {
   let res: Response;
@@ -109,6 +111,7 @@ export async function request<S extends z.ZodType>(
     if (cause instanceof DOMException && cause.name === 'AbortError') throw cause;
     throw new ApiError(0, 'NETWORK', 'Network error');
   }
+  init.onResponse?.(res);
   const json = await readJson(res);
   if (!res.ok) throw parseErrorBody(res.status, json);
   const parsed = schema.safeParse(json);

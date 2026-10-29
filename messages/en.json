@@ -903,6 +903,10 @@
       "title": "We couldn't load this page",
       "body": "Check your connection and try again.",
       "retry": "Try again"
+    },
+    "waitlist": {
+      "body": "Join the waitlist and we'll email you if a spot opens.",
+      "action": "Join the waitlist"
     }
   },
   "link": {
@@ -976,6 +980,175 @@
     "noActions": {
       "pendingPayment": "This appointment is waiting for its deposit, so it can't be confirmed yet.",
       "generic": "There is nothing to do with this link right now."
+    }
+  },
+  "waitlist": {
+    "pageTitle": "Join the waitlist",
+    "loading": "Loading the waitlist page",
+    "title": "Join the waitlist",
+    "back": "Back",
+    "heroFact": "We email you if a spot opens",
+    "how": {
+      "title": "How the waitlist works",
+      "s1Title": "Tell us when suits you",
+      "s1Body": "Pick a service and a range of days.",
+      "s2Title": "We watch for openings",
+      "s2Body": "When someone cancels, we check the waitlist.",
+      "s3Title": "First to claim gets it",
+      "s3Body": "You get an email with a claim link that lasts about 30 minutes."
+    },
+    "want": {
+      "title": "What are you waiting for?",
+      "service": "Service",
+      "servicePlaceholder": "Choose a service",
+      "with": "With",
+      "anyone": "Anyone available",
+      "from": "From day",
+      "to": "To day",
+      "rangeHint": "Up to 31 days, starting today at the earliest."
+    },
+    "contact": {
+      "title": "Where should we email you?",
+      "name": "Full name",
+      "phone": "Mobile number",
+      "countryCode": "Country code",
+      "email": "Email",
+      "emailHint": "Offers are sent by email, so we need this one."
+    },
+    "consent": "We email you if a spot opens. You stay on the waitlist until the last day you chose or until you book, and each offer lasts about 30 minutes. To be removed earlier, contact the business.",
+    "submit": "Join the waitlist",
+    "summary": {
+      "title": "Your waitlist request",
+      "service": "Service",
+      "with": "With",
+      "days": "Days",
+      "range": "<b>{from}</b> to <b>{to}</b>",
+      "notChosen": "Not chosen yet"
+    },
+    "side": {
+      "free": "Joining is free. Offers last about 30 minutes, and the first person to claim gets the spot."
+    },
+    "errors": {
+      "serviceRequired": "Choose a service.",
+      "staffInvalid": "Choose someone who offers this service.",
+      "fromRequired": "Choose a first day.",
+      "toRequired": "Choose a last day.",
+      "fromPast": "The first day can't be in the past.",
+      "toBeforeFrom": "The last day must not be before the first day.",
+      "tooLong": "Choose at most 31 days.",
+      "toOutOfWindow": "That day is further ahead than this business takes bookings.",
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "Use 80 characters or fewer.",
+      "phoneInvalid": "Enter a valid mobile number.",
+      "emailRequired": "Enter your email. Offers are sent by email.",
+      "emailInvalid": "Enter a valid email address.",
+      "dateInvalid": "Check this date."
+    },
+    "banner": {
+      "network": "We couldn't reach the server. Check your connection and try again.",
+      "tooMany": "Too many attempts. Please wait a moment and try again.",
+      "generic": "Something went wrong. Please try again.",
+      "notFound": "This booking page isn't available any more.",
+      "fixFields": "Please check the highlighted fields.",
+      "retry": "Try again"
+    },
+    "limit": {
+      "title": "You're already on several waitlists here",
+      "body": "You can have up to 5 open waitlist requests. Wait for one to finish, or book a free time instead.",
+      "action": "See free times"
+    },
+    "done": {
+      "title": "You're on the waitlist",
+      "body": "Offers are sent to <b>{email}</b> if a spot opens for <b>{service}</b>.",
+      "nextTitle": "What happens next",
+      "n1Title": "We watch for openings",
+      "n1Body": "If someone cancels, we check the waitlist.",
+      "n2Title": "You get an email with a link",
+      "n2Body": "Each offer lasts about 30 minutes.",
+      "n3Title": "First to claim gets it",
+      "n3Body": "Tap the link to book the spot. If it's gone, you stay on the list for the next opening.",
+      "leave": "You stay on the waitlist until the last day you chose, or until you book. To be removed earlier, contact the business.",
+      "back": "Back to booking"
+    },
+    "notFound": {
+      "title": "We can't find this booking page",
+      "body": "Check the link you were given, or ask the business to send it again.",
+      "action": "Go to Maw3ed"
+    },
+    "loadFailed": {
+      "title": "We couldn't load this page",
+      "body": "Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "noServices": {
+      "title": "Online booking isn't open yet",
+      "body": "{name} hasn't added services yet. Please check back soon."
+    },
+    "entry": {
+      "title": "Nothing fits?",
+      "body": "Join the waitlist and we'll email you if a spot opens.",
+      "action": "Join the waitlist"
+    },
+    "shortened": "We shortened the range to fit this business's booking window."
+  },
+  "offer": {
+    "pageTitle": "Waitlist offer",
+    "loading": "Loading your offer",
+    "eyebrow": "From your waitlist",
+    "title": "A spot just opened up",
+    "when": "{date} · {start} – {end}",
+    "detail": "{service} with {staff} · {price}",
+    "expiresAt": "Offer expires at {time}",
+    "minutesLeft": "{minutes, plural, one {# minute left} other {# minutes left}}",
+    "firstToClaim": "First to claim gets it",
+    "book": "Book this slot",
+    "side": {
+      "reminders": "Booking is instant. You'll get the usual reminders by email."
+    },
+    "done": {
+      "title": "You're booked",
+      "body": "<b>{service}</b> with <b>{staff}</b>, <b>{when}</b>.",
+      "next": "Reminders will follow by email, 24 h and 2 h before.",
+      "manage": "Confirm or cancel your booking",
+      "manageHint": "Keep this link. It stops working when your appointment starts."
+    },
+    "mine": {
+      "title": "You already booked this spot",
+      "body": "This offer was claimed and the appointment is yours."
+    },
+    "expired": {
+      "title": "This offer has expired",
+      "body": "The 30 minutes are over, so the spot may go to the next person on the list. You stay on the waitlist until the last day you chose.",
+      "action": "See free times"
+    },
+    "taken": {
+      "title": "Someone else got this slot",
+      "body": "It was claimed a moment before you. You stay on the waitlist until the last day you chose, so you can still get another offer.",
+      "action": "See free times"
+    },
+    "unavailable": {
+      "title": "This offer can't be claimed",
+      "body": "Your waitlist request is no longer active.",
+      "action": "See free times"
+    },
+    "invalid": {
+      "title": "This link doesn't work",
+      "body": "Check the link in your email, or ask the business to send it again.",
+      "action": "Go to Maw3ed"
+    },
+    "errors": {
+      "network": "We couldn't reach the server. Check your connection and try again.",
+      "tooMany": "Too many attempts. Please wait a moment and try again.",
+      "generic": "Something went wrong. Please try again.",
+      "retry": "Try again"
+    },
+    "endedAt": "Offer ended at {time}",
+    "endedHint": "This offer may have ended. Reload the page to check.",
+    "announce": {
+      "m10": "About 10 minutes left to claim this offer.",
+      "m5": "About 5 minutes left to claim this offer.",
+      "m1": "About 1 minute left to claim this offer.",
+      "expired": "This offer has ended."
     }
   }
 }

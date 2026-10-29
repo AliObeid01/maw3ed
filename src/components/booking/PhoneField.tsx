@@ -18,6 +18,7 @@ export function PhoneField({
   onChange,
   error,
   disabled,
+  id: idProp,
 }: {
   dial: string;
   onDialChange: (dial: string) => void;
@@ -25,9 +26,11 @@ export function PhoneField({
   onChange: (value: string) => void;
   error?: string;
   disabled?: boolean;
+  id?: string;
 }) {
   const t = useTranslations('booking.details');
-  const id = useId();
+  const auto = useId();
+  const id = idProp ?? auto;
   const border = error ? 'border-danger' : 'border-line';
   return (
     <FieldShell id={id} label={t('phone')} error={error}>
