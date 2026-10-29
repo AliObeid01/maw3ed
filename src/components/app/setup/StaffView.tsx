@@ -58,7 +58,8 @@ function StaffCard({
 }) {
   const t = useTranslations('app.staff');
   const tint = member.active && member.bookable ? AVATAR_TINTS[index % 3] : 'bg-divider text-muted';
-  const role = member.role === 'OWNER' ? t('role.owner') : member.role === 'STAFF' ? t('role.login') : null;
+  const role =
+    member.role === 'OWNER' ? t('role.owner') : member.role === 'STAFF' ? t('role.login') : null;
   const services = t('serviceCount', { count: member.serviceIds.length });
   return (
     <button
@@ -151,7 +152,8 @@ function StaffInner() {
 
   // On desktop the panel is always visible: with nothing chosen it shows the first person.
   const currentId = selected ?? (desktop ? (list[0]?.id ?? 'new') : null);
-  const member = currentId && currentId !== 'new' ? list.find((m) => m.id === currentId) : undefined;
+  const member =
+    currentId && currentId !== 'new' ? list.find((m) => m.id === currentId) : undefined;
   const panelTitle = member ? t('editTitle', { name: member.displayName }) : t('newTitle');
 
   const onSaved = (saved: StaffMember, created: boolean) => {

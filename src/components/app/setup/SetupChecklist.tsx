@@ -5,21 +5,10 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSyncExternalStore } from 'react';
 import { Skeleton } from '@/components/ui/Skeleton';
-import {
-  getBusiness,
-  listInvites,
-  listServices,
-  listStaff,
-  type Business,
-} from '@/lib/api/setup';
+import { getBusiness, listInvites, listServices, listStaff, type Business } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { cn } from '@/lib/cn';
-import {
-  SHARE_SEEN_KEY,
-  deriveSetupSteps,
-  stepHrefs,
-  type SetupStepId,
-} from '@/lib/setup/steps';
+import { SHARE_SEEN_KEY, deriveSetupSteps, stepHrefs, type SetupStepId } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
 import { LoadError, OwnerOnly } from '../states';
 

@@ -57,7 +57,7 @@ export function AppShell({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-divider bg-surface px-4 py-3.5 md:px-8">
-          <div className="flex min-w-0 flex-[1_1_240px] flex-col">
+          <div className="flex min-w-0 flex-[1_1_auto] flex-col">
             {eyebrow ? <span className="text-[13px] text-muted">{eyebrow}</span> : null}
             <h1 className="text-[22px] leading-tight font-semibold">{title}</h1>
           </div>

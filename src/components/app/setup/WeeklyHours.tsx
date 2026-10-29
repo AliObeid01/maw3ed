@@ -10,13 +10,7 @@ import { useToast } from '@/components/ui/Toast';
 import { putStaffHours, type HoursInterval } from '@/lib/api/setup';
 import { cn } from '@/lib/cn';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
-import {
-  WEEK_ORDER,
-  validateWeek,
-  weekFromApi,
-  weekToApi,
-  type Week,
-} from '@/lib/setup/hours';
+import { WEEK_ORDER, validateWeek, weekFromApi, weekToApi, type Week } from '@/lib/setup/hours';
 import { StickySaveBar } from '../StickySaveBar';
 import { useErrorMessage, useSharedText } from '../states';
 import { DayEditor, useWeekdayName } from './DayEditor';
@@ -72,7 +66,13 @@ export function WeeklyHours({
   };
 
   const saveButton = (block: boolean) => (
-    <Button size="lg" block={block} loading={pending} disabled={!dirty || hasProblems} onClick={save}>
+    <Button
+      size="lg"
+      block={block}
+      loading={pending}
+      disabled={!dirty || hasProblems}
+      onClick={save}
+    >
       {pending ? shared.saving : t('save')}
     </Button>
   );
@@ -81,7 +81,8 @@ export function WeeklyHours({
     <Card
       as="section"
       aria-labelledby="weekly-hours-title"
-      className="flex min-w-0 flex-[999_1_480px] flex-col px-[22px] pt-2 pb-4"
+      padding="none"
+      className="flex min-w-0 flex-[999_1_480px] flex-col px-4 pt-2 pb-4 md:px-[22px]"
     >
       <h2 id="weekly-hours-title" className="mt-3.5 mb-2 text-lg font-semibold">
         {t('weekly')}
@@ -155,7 +156,7 @@ export function WeeklyHours({
       </ul>
 
       <div className="mt-3.5 hidden justify-end md:flex">{saveButton(false)}</div>
-      <StickySaveBar>{saveButton(true)}</StickySaveBar>
+      {dirty ? <StickySaveBar>{saveButton(true)}</StickySaveBar> : null}
 
       <DayEditor
         weekday={editingDay}

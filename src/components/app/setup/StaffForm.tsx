@@ -91,7 +91,8 @@ export function StaffForm({
         saved = await updateStaff(member.id, { displayName: name, bookable });
       }
       let ids = member.serviceIds;
-      if (!sameSet(serviceIds, member.serviceIds)) ids = await setStaffServices(member.id, serviceIds);
+      if (!sameSet(serviceIds, member.serviceIds))
+        ids = await setStaffServices(member.id, serviceIds);
       onSaved({ ...saved, serviceIds: ids }, false);
     } catch (error) {
       if (invalidFields(error).includes('displayName')) setNameError(t('errors.fieldInvalid'));
@@ -151,7 +152,11 @@ export function StaffForm({
           <span className="flex-1 py-2 text-[15px] font-medium">
             {t('field.bookable', { name: member ? label : t('thisPerson') })}
           </span>
-          <Switch checked={bookable} onCheckedChange={setBookable} label={t('field.bookableSwitch')} />
+          <Switch
+            checked={bookable}
+            onCheckedChange={setBookable}
+            label={t('field.bookableSwitch')}
+          />
         </div>
       </div>
 
@@ -194,12 +199,12 @@ export function StaffForm({
         )}
       </fieldset>
 
-      <div className="flex flex-wrap items-center justify-end gap-2.5">
+      <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:justify-end">
         {member ? (
           <Button
             variant={member.active ? 'danger' : 'secondary'}
             size="lg"
-            className="me-auto"
+            className="order-3 md:order-1 md:me-auto"
             loading={pending === 'toggleActive'}
             disabled={pending === 'save'}
             onClick={() => setActive(!member.active)}
@@ -207,10 +212,21 @@ export function StaffForm({
             {member.active ? t('deactivate') : t('reactivate')}
           </Button>
         ) : null}
-        <Button variant="secondary" size="lg" onClick={onCancel} disabled={pending !== null}>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="order-2"
+          onClick={onCancel}
+          disabled={pending !== null}
+        >
           {shared.cancel}
         </Button>
-        <Button type="submit" size="lg" loading={pending === 'save'} className="px-[26px]">
+        <Button
+          type="submit"
+          size="lg"
+          loading={pending === 'save'}
+          className="order-1 px-[26px] md:order-3"
+        >
           {pending === 'save' ? shared.saving : member ? t('saveChanges') : t('create')}
         </Button>
       </div>

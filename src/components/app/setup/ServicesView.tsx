@@ -22,8 +22,8 @@ const ROW_COLUMNS = 'md:grid-cols-[2fr_1fr_1fr_1fr_80px]';
 
 function ServicesSkeleton() {
   return (
-    <div aria-hidden="true" className="flex flex-col gap-3 lg:flex-row">
-      <Card padding="none" className="flex-[999_1_480px] overflow-hidden">
+    <div aria-hidden="true" className="flex flex-wrap items-start gap-5">
+      <Card padding="none" className="min-w-0 flex-[999_1_480px] overflow-hidden">
         {Array.from({ length: 4 }, (_, i) => (
           <Skeleton key={i} className="m-4 h-12 rounded-nav" />
         ))}
@@ -77,8 +77,8 @@ function ServiceRow({
       </div>
       <div role="cell" className="col-span-2 text-sm text-muted md:hidden">
         <span className="tabular-nums">
-          {duration(service.durationMin)} · {t('bufferShort', { value: duration(service.bufferMin) })}{' '}
-          · {money(service.price)}
+          {duration(service.durationMin)} ·{' '}
+          {t('bufferShort', { value: duration(service.bufferMin) })} · {money(service.price)}
         </span>
       </div>
       <div role="cell" className="hidden tabular-nums md:col-start-2 md:row-start-1 md:block">
@@ -137,13 +137,12 @@ function ServicesInner() {
     toast.show(t(created ? 'created' : 'saved', { name: saved.name }));
   };
 
-  if (services.error && !list) return <LoadError error={services.error} onRetry={services.reload} />;
+  if (services.error && !list)
+    return <LoadError error={services.error} onRetry={services.reload} />;
   if (!list) return <ServicesSkeleton />;
 
   const editingService = editing && editing !== 'new' ? editing : undefined;
-  const panelTitle = editingService
-    ? t('editTitle', { name: editingService.name })
-    : t('newTitle');
+  const panelTitle = editingService ? t('editTitle', { name: editingService.name }) : t('newTitle');
   // On desktop the panel is always visible: with nothing selected it is the "New service" form.
   const formKey = editingService?.id ?? 'new';
 
