@@ -20,11 +20,9 @@ test.describe('confirm link', () => {
 
     const primary = page.locator('[data-primary="true"]');
     await expect(primary).toHaveText("Yes, I'll be there");
-    await expect(page.locator('[data-primary="false"]')).toHaveText("I can't come, cancel");
-    // Primary comes first in reading order.
-    await expect(page.getByRole('button').filter({ hasText: /there|cancel/ }).first()).toHaveText(
-      "Yes, I'll be there",
-    );
+    // A confirm link cannot cancel (the server says 403): no cancel button, a pointer to the cancel link instead.
+    await expect(page.getByRole('button', { name: "I can't come, cancel" })).toHaveCount(0);
+    await expect(page.getByText('Use the cancel link in your reminder message.')).toBeVisible();
 
     await primary.click();
     await expect(page.getByRole('heading', { name: "You're confirmed" })).toBeVisible();

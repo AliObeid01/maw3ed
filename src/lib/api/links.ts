@@ -6,16 +6,6 @@ import { request } from './auth';
 //   404 -> unknown or malformed link, 410 LINK_EXPIRED -> the link stopped working at the appointment start,
 //   403 WRONG_LINK_ACTION -> this token cannot do that action, 409 -> not allowed in the current state.
 
-export const LINK_STATUSES = [
-  'BOOKED',
-  'CONFIRMED',
-  'CANCELLED',
-  'LATE_CANCEL',
-  'ATTENDED',
-  'NO_SHOW',
-] as const;
-export type LinkStatus = (typeof LINK_STATUSES)[number];
-
 export const LINK_ACTIONS = ['view', 'confirm', 'cancel'] as const;
 export type LinkAct = (typeof LINK_ACTIONS)[number];
 
@@ -25,7 +15,8 @@ export const linkSchema = z.object({
     id: z.string(),
     startAt: z.string(),
     endAt: z.string(),
-    status: z.enum(LINK_STATUSES),
+    /** BOOKED, CONFIRMED, PENDING_PAYMENT, CANCELLED, LATE_CANCEL, ATTENDED or NO_SHOW; unknown values are treated as still open. */
+    status: z.string(),
     service: z.object({
       id: z.string(),
       name: z.string(),

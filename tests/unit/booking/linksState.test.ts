@@ -7,9 +7,10 @@ import {
   classifyLinkError,
   screenFor,
   screenForResult,
+  tokenCanCancel,
 } from '@/lib/links/state';
 
-const link = (patch: Partial<LinkView> & { status?: LinkView['appointment']['status'] } = {}): LinkView => {
+const link = (patch: Partial<LinkView> & { status?: string } = {}): LinkView => {
   const { status, ...rest } = patch;
   return {
     act: 'view',
@@ -31,33 +32,36 @@ const link = (patch: Partial<LinkView> & { status?: LinkView['appointment']['sta
   };
 };
 
-describe('buttonsFor: which button is primary per token', () => {
-  it('confirm token: confirm is primary and first, cancel secondary', () => {
-    expect(buttonsFor(link({ act: 'confirm' }))).toEqual([
+describe('buttonsFor: the token decides what is offered and what is primary', () => {
+  it('confirm token: only confirm (the server answers 403 to a cancel), primary', () => {
+    expect(buttonsFor(link({ act: 'confirm' }))).toEqual([{ action: 'confirm', primary: true }]);
+  });
+
+  it('cancel token: only cancel, primary', () => {
+    expect(buttonsFor(link({ act: 'cancel' }))).toEqual([{ action: 'cancel', primary: true }]);
+  });
+
+  it('view token: both, confirm first and primary', () => {
+    expect(buttonsFor(link({ act: 'view' }))).toEqual([
       { action: 'confirm', primary: true },
       { action: 'cancel', primary: false },
     ]);
   });
 
-  it('cancel token: cancel is primary and first', () => {
-    expect(buttonsFor(link({ act: 'cancel' }))).toEqual([
-      { action: 'cancel', primary: true },
-      { action: 'confirm', primary: false },
-    ]);
-  });
-
-  it('view token: both, confirm first', () => {
-    expect(buttonsFor(link({ act: 'view' })).map((b) => b.action)).toEqual(['confirm', 'cancel']);
-  });
-
-  it('offers only what the appointment allows, and the remaining one becomes primary', () => {
-    expect(buttonsFor(link({ act: 'confirm', canConfirm: false }))).toEqual([
+  it('offers only what the appointment allows', () => {
+    expect(buttonsFor(link({ act: 'view', canConfirm: false }))).toEqual([
       { action: 'cancel', primary: true },
     ]);
-    expect(buttonsFor(link({ act: 'cancel', canCancel: false }))).toEqual([
-      { action: 'confirm', primary: true },
-    ]);
+    expect(buttonsFor(link({ act: 'confirm', canConfirm: false }))).toEqual([]);
+    expect(buttonsFor(link({ act: 'cancel', canCancel: false }))).toEqual([]);
     expect(buttonsFor(link({ canConfirm: false, canCancel: false }))).toEqual([]);
+  });
+
+  it('a confirm link cannot cancel', () => {
+    expect(tokenCanCancel(link({ act: 'confirm' }))).toBe(false);
+    expect(tokenCanCancel(link({ act: 'cancel' }))).toBe(true);
+    expect(tokenCanCancel(link({ act: 'view' }))).toBe(true);
+    expect(tokenCanCancel(link({ act: 'view', canCancel: false }))).toBe(false);
   });
 });
 
@@ -67,6 +71,7 @@ describe('screens', () => {
     expect(screenFor(link({ status: 'CONFIRMED' }))).toBe('actionable');
     expect(screenFor(link({ status: 'CANCELLED' }))).toBe('cancelled');
     expect(screenFor(link({ status: 'LATE_CANCEL' }))).toBe('lateCancelled');
+    expect(screenFor(link({ status: 'PENDING_PAYMENT' }))).toBe('actionable');
     expect(screenFor(link({ status: 'ATTENDED' }))).toBe('over');
     expect(screenFor(link({ status: 'NO_SHOW' }))).toBe('over');
   });

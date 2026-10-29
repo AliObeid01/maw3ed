@@ -43,19 +43,19 @@ export function screenForResult(result: LinkResult): LinkScreen {
 }
 
 /**
- * Buttons to show, primary first. A confirm link makes "confirm" primary, a cancel link makes "cancel" primary,
- * a plain view link offers both with "confirm" first. An action the appointment cannot take is not offered.
+ * Buttons to show, primary first. The token decides what is allowed (the server answers 403 WRONG_LINK_ACTION
+ * otherwise): a confirm link can only confirm, a cancel link only cancel, a plain view link either, with
+ * "confirm" first. An action the appointment cannot take is not offered. The allowed one is always primary.
  */
 export function buttonsFor(link: LinkView): { action: LinkAction; primary: boolean }[] {
-  const available: LinkAction[] = [];
-  if (link.canConfirm) available.push('confirm');
-  if (link.canCancel) available.push('cancel');
-  const preferred: LinkAction = link.act === 'cancel' ? 'cancel' : 'confirm';
-  const primary = available.includes(preferred) ? preferred : available[0];
-  return available
-    .map((action) => ({ action, primary: action === primary }))
-    .sort((a, b) => Number(b.primary) - Number(a.primary));
+  const allowed: LinkAction[] = link.act === 'view' ? ['confirm', 'cancel'] : [link.act];
+  const buttons = allowed.filter((a) => (a === 'confirm' ? link.canConfirm : link.canCancel));
+  return buttons.map((action, i) => ({ action, primary: i === 0 }));
 }
+
+/** May this token cancel? (A confirm link cannot.) */
+export const tokenCanCancel = (link: Pick<LinkView, 'act' | 'canCancel'>) =>
+  link.canCancel && link.act !== 'confirm';
 
 /** Wording of the cancel dialog: free before the cutoff, a late cancellation after it. */
 export function cancelNoteKind(link: Pick<LinkView, 'pastCutoff'>): 'free' | 'late' {

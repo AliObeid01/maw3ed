@@ -731,6 +731,7 @@
       "cancel": "هل تريد الإلغاء؟",
       "view": "موعدك"
     },
+    "confirmOnlyHint": "لا تستطيع الحضور؟ استخدم رابط الإلغاء في رسالة التذكير.",
     "details": "{service} مع {staff} · {price}",
     "when": "{date} · {start} – {end}",
     "monthDay": "{month} {day}",

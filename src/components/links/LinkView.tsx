@@ -21,6 +21,7 @@ import {
   classifyLinkError,
   screenFor,
   screenForResult,
+  tokenCanCancel,
   type LinkAction,
   type LinkFailure,
   type LinkScreen,
@@ -201,6 +202,9 @@ function LinkBody({
             ))}
           </div>
         ) : null}
+        {link.act === 'confirm' && link.canCancel ? (
+          <p className="m-0 text-sm text-muted">{t('confirmOnlyHint')}</p>
+        ) : null}
       </Card>
     );
   } else if (screen === 'confirmed') {
@@ -210,7 +214,7 @@ function LinkBody({
           {t('confirmedScreen.body', { name: business.name, when: `${f.day(appointment.startAt)} · ${f.time(appointment.startAt)}` })}
         </Banner>
         {tile}
-        {link.canCancel ? (
+        {tokenCanCancel(link) ? (
           <div className="flex flex-col gap-3">
             <p className="m-0 text-sm text-muted">{t('confirmedScreen.cancelHint')}</p>
             {problem ? (

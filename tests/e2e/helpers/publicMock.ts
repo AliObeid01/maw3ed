@@ -247,6 +247,10 @@ export async function mockLinkApi(page: Page, mock: LinkMock = {}) {
     if (body?.action !== 'confirm' && body?.action !== 'cancel') {
       return apiError(route, 400, 'VALIDATION_FAILED', { fields: { action: 'Invalid.' } });
     }
+    // Like the server: a confirm link can only confirm, a cancel link only cancel, a view link either.
+    if ((mock.act ?? 'confirm') !== 'view' && body.action !== (mock.act ?? 'confirm')) {
+      return apiError(route, 403, 'WRONG_LINK_ACTION');
+    }
     const view = linkBody(mock);
     if (body.action === 'confirm') {
       return json(route, 200, {

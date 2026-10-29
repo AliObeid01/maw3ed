@@ -731,6 +731,7 @@
       "cancel": "Need to cancel?",
       "view": "Your appointment"
     },
+    "confirmOnlyHint": "Can't make it? Use the cancel link in your reminder message.",
     "details": "{service} with {staff} · {price}",
     "when": "{date} · {start} – {end}",
     "monthDay": "{month} {day}",
