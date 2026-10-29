@@ -7,7 +7,10 @@ export function linkActionAllowed(tokenAct: TokenAction, action: LinkAction): bo
   return tokenAct === 'view' || tokenAct === action;
 }
 
-/** Last instant a cancellation is free: startAt minus the business's cancel cutoff. */
+/**
+ * The cutoff instant: startAt minus the business's cancel cutoff. It is the FIRST instant that counts as a
+ * late cancel (now >= cutoff); one millisecond earlier is still free.
+ */
 export function cancelCutoffAt(startAt: Date, cancelCutoffMin: number): Date {
   return new Date(startAt.getTime() - cancelCutoffMin * 60_000);
 }
@@ -22,7 +25,7 @@ export function confirmOutcomeFor(status: string): ConfirmOutcome {
 
 export type CancelOutcome = 'cancel' | 'late_cancel' | 'already_cancelled' | 'conflict';
 
-/** From the cutoff on (now >= cutoff) a cancellation is a late cancel. */
+/** From the cutoff instant on (now >= cutoff) a cancellation is a late cancel. */
 export function cancelOutcomeFor(
   status: string,
   now: Date,

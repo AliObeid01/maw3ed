@@ -60,13 +60,24 @@ export const whatsappRemindersService = {
         confirmUrl: link('confirm'),
         cancelUrl: link('cancel'),
       });
+      let url: string | null = null;
+      try {
+        url = whatsappUrl(a.client.phone, text);
+      } catch {
+        // A stored phone that is not E.164 must not break the whole list: flag it (id only, no PII).
+        ctx.logger.warn(
+          { businessId: ctx.businessId, jobId: r.id },
+          'whatsapp reminder has an invalid phone',
+        );
+      }
       items.push({
         id: r.id,
         kind,
         dueAt: r.dueAt,
         appointment: { id: a.id, startAt: a.startAt, service: a.service, staff: a.staff },
         client: { name: a.client.name, phone: a.client.phone, noShows: a.client.noShows },
-        whatsappUrl: whatsappUrl(a.client.phone, text),
+        whatsappUrl: url,
+        phoneInvalid: url === null,
         status: r.status as 'PENDING' | 'SENT',
         sentBy: r.sentBy,
         sentAt: r.sentAt,

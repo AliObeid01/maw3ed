@@ -127,13 +127,21 @@ export const linksService = {
             { businessId: ctx.businessId, appointmentId: id, late },
             'appointment cancelled by link',
           );
-          await onSlotFreed(ctx, {
-            appointmentId: id,
-            serviceId: current.service.id,
-            staffId: current.staff.id,
-            startAt: current.startAt,
-            endAt: current.endAt,
-          });
+          // The cancel is committed: a failing hook must not turn it into a 500 for the client.
+          try {
+            await onSlotFreed(ctx, {
+              appointmentId: id,
+              serviceId: current.service.id,
+              staffId: current.staff.id,
+              startAt: current.startAt,
+              endAt: current.endAt,
+            });
+          } catch {
+            ctx.logger.error(
+              { businessId: ctx.businessId, appointmentId: id },
+              'onSlotFreed failed after a committed cancel',
+            );
+          }
         } else {
           current = await load(ctx, id);
           if (current.status === 'CANCELLED' || current.status === 'LATE_CANCEL')

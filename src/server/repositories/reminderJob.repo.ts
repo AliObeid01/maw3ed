@@ -99,13 +99,22 @@ export const reminderJobRepo = {
 
   // ---- job runner: these queries span all tenants on purpose (jobs only) ---------------------------
 
-  /** Crash recovery: SENDING rows locked before `lockedBefore` go back to PENDING. Returns how many. */
-  async requeueStuck(lockedBefore: Date): Promise<number> {
-    const res = await db.reminderJob.updateMany({
-      where: { status: 'SENDING', lockedAt: { lt: lockedBefore } },
+  /**
+   * Crash recovery: SENDING rows locked before `lockedBefore` go back to PENDING. A row that already used
+   * all its attempts (it keeps dying outside the send/record handlers) is FAILED instead, so a poison
+   * job can never be re-claimed forever.
+   */
+  async requeueStuck(lockedBefore: Date, maxAttempts: number) {
+    const stuck = { status: 'SENDING' as const, lockedAt: { lt: lockedBefore } };
+    const failed = await db.reminderJob.updateMany({
+      where: { ...stuck, attempts: { gte: maxAttempts } },
+      data: { status: 'FAILED', lockedAt: null, lastError: 'attempts' },
+    });
+    const requeued = await db.reminderJob.updateMany({
+      where: { ...stuck, attempts: { lt: maxAttempts } },
       data: { status: 'PENDING', lockedAt: null },
     });
-    return res.count;
+    return { requeued: requeued.count, failed: failed.count };
   },
 
   /**
@@ -142,7 +151,7 @@ export const reminderJobRepo = {
   loadSendContexts: (ids: string[]) =>
     db.reminderJob.findMany({ where: { id: { in: ids } }, select: sendContextSelect }),
 
-  async markSent(id: string, providerMessageId: string, sentAt: Date): Promise<boolean> {
+  async markSent(id: string, providerMessageId: string | null, sentAt: Date): Promise<boolean> {
     const res = await db.reminderJob.updateMany({
       where: { id, status: 'SENDING' },
       data: { status: 'SENT', providerMessageId, sentAt, lockedAt: null, lastError: null },
@@ -164,6 +173,36 @@ export const reminderJobRepo = {
       data: { status: 'PENDING', lockedAt: null, nextAttemptAt, lastError },
     });
     return res.count === 1;
+  },
+
+  /**
+   * Give claimed rows back without using an attempt (run budget exhausted, provider rate limit). With
+   * `nextAttemptAt` they wait until then.
+   */
+  async release(
+    ids: string[],
+    opts: { nextAttemptAt?: Date; lastError?: string } = {},
+  ): Promise<number> {
+    if (ids.length === 0) return 0;
+    const res = await db.reminderJob.updateMany({
+      where: { id: { in: ids }, status: 'SENDING' },
+      data: {
+        status: 'PENDING',
+        lockedAt: null,
+        attempts: { decrement: 1 },
+        ...(opts.nextAttemptAt ? { nextAttemptAt: opts.nextAttemptAt } : {}),
+        ...(opts.lastError ? { lastError: opts.lastError } : {}),
+      },
+    });
+    return res.count;
+  },
+
+  /** Mail delivered but not recorded: the row stays SENDING for the requeue, without burning an attempt. */
+  async refundAttempt(id: string): Promise<void> {
+    await db.reminderJob.updateMany({
+      where: { id, status: 'SENDING', attempts: { gt: 0 } },
+      data: { attempts: { decrement: 1 } },
+    });
   },
 
   async markFailed(id: string, lastError: string): Promise<boolean> {

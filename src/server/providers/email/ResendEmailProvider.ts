@@ -1,5 +1,6 @@
 import {
   EmailSendError,
+  IDEMPOTENT_MISMATCH,
   type EmailMessage,
   type EmailProvider,
   type EmailResult,
@@ -69,6 +70,24 @@ export class ResendEmailProvider implements EmailProvider {
     }
 
     if (!res.ok) {
+      if (res.status === 429) {
+        const secs = Number(res.headers.get('retry-after'));
+        throw new EmailSendError('resend_http_429', false, {
+          rateLimited: true,
+          retryAfterMs:
+            Number.isFinite(secs) && secs > 0 ? Math.min(secs, 86_400) * 1000 : undefined,
+        });
+      }
+      if (res.status === 409) {
+        let name: unknown;
+        try {
+          name = ((await res.json()) as { name?: unknown }).name;
+        } catch {
+          name = undefined;
+        }
+        // The key was already accepted with a different payload: the mail exists, do not retry.
+        if (name === IDEMPOTENT_MISMATCH) throw new EmailSendError(IDEMPOTENT_MISMATCH, true);
+      }
       const permanent = res.status >= 400 && res.status < 500 && !RETRYABLE_4XX.has(res.status);
       throw new EmailSendError(`resend_http_${res.status}`, permanent);
     }

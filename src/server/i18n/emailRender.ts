@@ -49,23 +49,45 @@ export function formatLocal(startAt: Date, timezone: string, locale: string) {
   return { date, time, when: `${date}, ${time}` };
 }
 
-const oneLine = (s: string) => s.replace(/[\r\n]+/g, ' ').trim();
+const CONTROL_CHARS = new RegExp(String.raw`[\u0000-\u001f\u007f-\u009f  ]`, 'g');
+
+/**
+ * One-line, control-free text for every dynamic value (names, service, business): CR/LF and other control
+ * characters become spaces and runs of whitespace collapse, so a value can never add a line, a header or a
+ * fake link line to the plain-text body, the subject or the WhatsApp message.
+ */
+export function oneLine(value: string): string {
+  return value.replace(CONTROL_CHARS, ' ').replace(/\s+/g, ' ').trim();
+}
 
 const KIND_KEY = { BOOKING: 'booking', H24: 'h24', H2: 'h2' } as const;
 
 function vars(c: EmailContext): Record<string, string> {
   const f = formatLocal(c.startAt, c.timezone, c.locale);
   return {
-    name: c.clientName,
-    business: c.businessName,
-    service: c.serviceName,
-    staff: c.staffName,
+    name: oneLine(c.clientName),
+    business: oneLine(c.businessName),
+    service: oneLine(c.serviceName),
+    staff: oneLine(c.staffName),
     date: f.date,
     time: f.time,
     when: f.when,
     confirmUrl: c.confirmUrl,
     cancelUrl: c.cancelUrl,
   };
+}
+
+/** HTML-escape a template; dynamic values are escaped and, for right-to-left mail, isolated in <bdi>. */
+function interpolateHtml(template: string, v: Record<string, string>, rtl: boolean): string {
+  return template
+    .split(/(\{\w+\})/)
+    .map((part) => {
+      const key = /^\{(\w+)\}$/.exec(part)?.[1];
+      if (key === undefined || v[key] === undefined) return escapeHtml(part);
+      const escaped = escapeHtml(v[key]);
+      return rtl ? `<bdi>${escaped}</bdi>` : escaped;
+    })
+    .join('');
 }
 
 /** Subject, plain text and simple HTML for a booking confirmation or a 24 h / 2 h reminder. Pure. */
@@ -77,12 +99,14 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
   const intro = interpolate(copy.intro, v);
   const greeting = interpolate(m.greeting, v);
   const footer = interpolate(m.footer, v);
+  const rtl = isRtl(c.locale);
+  const bdi = (value: string) => (rtl ? `<bdi>${escapeHtml(value)}</bdi>` : escapeHtml(value));
   const f = formatLocal(c.startAt, c.timezone, c.locale);
   const details: Array<[string, string]> = [
-    [m.labels.service, c.serviceName],
-    [m.labels.staff, c.staffName],
+    [m.labels.service, v.service!],
+    [m.labels.staff, v.staff!],
     [m.labels.when, f.when],
-    [m.labels.business, c.businessName],
+    [m.labels.business, v.business!],
   ];
   const calendarNote = c.kind === 'BOOKING' ? m.calendar : undefined;
 
@@ -115,13 +139,13 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
     '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
     `<body dir="${dir}" style="margin:0;padding:16px;background:#f6f5f1;font-family:Arial,Helvetica,sans-serif;color:#1b1b1b">`,
     `<div dir="${dir}" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;text-align:start">`,
-    `<p style="margin:0 0 12px">${e(greeting)}</p>`,
+    `<p style="margin:0 0 12px">${interpolateHtml(m.greeting, v, rtl)}</p>`,
     `<h1 style="margin:0 0 8px;font-size:20px">${e(copy.heading)}</h1>`,
-    `<p style="margin:0 0 16px">${e(intro)}</p>`,
+    `<p style="margin:0 0 16px">${interpolateHtml(copy.intro, v, rtl)}</p>`,
     '<table role="presentation" style="border-collapse:collapse;margin:0 0 20px">',
     ...details.map(
       ([k, val]) =>
-        `<tr><td style="padding:4px 12px;color:#5a5a5a">${e(k)}</td><td style="padding:4px 12px;font-weight:600">${e(val)}</td></tr>`,
+        `<tr><td style="padding:4px 12px;color:#5a5a5a">${e(k)}</td><td style="padding:4px 12px;font-weight:600">${bdi(val)}</td></tr>`,
     ),
     '</table>',
     `<p style="margin:0 0 8px">${button(m.actions.confirm, c.confirmUrl, '#0E7C66')}</p>`,
@@ -130,7 +154,7 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
     ...(calendarNote
       ? [`<p style="margin:0 0 8px;color:#5a5a5a;font-size:13px">${e(calendarNote)}</p>`]
       : []),
-    `<p style="margin:16px 0 0;color:#8a8a8a;font-size:12px">${e(footer)}</p>`,
+    `<p style="margin:16px 0 0;color:#8a8a8a;font-size:12px">${interpolateHtml(m.footer, v, rtl)}</p>`,
     '</div>',
     '</body>',
     '</html>',

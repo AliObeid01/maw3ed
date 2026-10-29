@@ -3,7 +3,7 @@ import { FakeEmailProvider } from './FakeEmailProvider';
 import { ResendEmailProvider } from './ResendEmailProvider';
 
 export type { EmailAttachment, EmailMessage, EmailProvider, EmailResult } from './EmailProvider';
-export { EmailSendError } from './EmailProvider';
+export { EmailSendError, IDEMPOTENT_MISMATCH } from './EmailProvider';
 export { ResendEmailProvider } from './ResendEmailProvider';
 export { FakeEmailProvider } from './FakeEmailProvider';
 
