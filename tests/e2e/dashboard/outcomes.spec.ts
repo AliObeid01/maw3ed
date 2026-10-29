@@ -140,19 +140,34 @@ test('409 NOT_ENDED keeps the card in the queue and explains why', async ({ page
   await expect(marked(page, 'Omar Daher')).toContainText('No-show');
 });
 
-test('409 CONFLICT (cancelled meanwhile) and 404 (removed) drop the card with a clear message', async ({ page }) => {
+test('a 409 CONFLICT on a first mark keeps the card with a calm message and a retry; only a 404 drops it', async ({
+  page,
+}) => {
+  const { appointments, calls } = await mockOutcomesApi(page, fixtures());
+  let conflicts = 1;
+  await page.route('**/api/appointments/apmaya/outcome', (route) =>
+    conflicts-- > 0
+      ? route.fulfill({ status: 409, contentType: 'application/json', body: JSON.stringify({ error: { code: 'CONFLICT', message: 'x' } }) })
+      : route.fallback(),
+  );
+  await page.goto('/app/outcomes');
+  const maya = card(page, 'Maya Khoury');
+  await expect(maya).toBeVisible();
+  await maya.getByRole('button', { name: /as Attended/ }).click();
+  await expect(maya.getByRole('alert')).toContainText('This appointment can no longer be marked');
+  await expect(marked(page, 'Maya Khoury')).toHaveCount(0);
+  // The card is still there and can be tried again.
+  await maya.getByRole('button', { name: /as Attended/ }).click();
+  await expect(marked(page, 'Maya Khoury')).toContainText('Attended');
+  // The mock only sees the retry (the first answer was the injected 409); it is exactly one PATCH.
+  expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
+  expect(appointments.find((a) => a.id === 'apmaya')!.status).toBe('ATTENDED');
+});
+
+test('a 404 (appointment removed between the list and the tap) drops the card with a clear message', async ({ page }) => {
   const { appointments } = await mockOutcomesApi(page, fixtures());
   await page.goto('/app/outcomes');
-  await expect(card(page, 'Maya Khoury')).toBeVisible();
-  appointments.find((a) => a.id === 'apmaya')!.status = 'CANCELLED';
-
-  await card(page, 'Maya Khoury').getByRole('button', { name: /as Attended/ }).click();
-  await expect(
-    page.getByRole('status').filter({ hasText: 'This appointment can no longer be marked' }),
-  ).toBeVisible();
-  await expect(card(page, 'Maya Khoury')).toHaveCount(0);
-  await expect(marked(page, 'Maya Khoury')).toHaveCount(0);
-
+  await expect(card(page, 'Nadine Aoun')).toBeVisible();
   // Nadine's appointment disappears between the list load and the tap.
   appointments.splice(appointments.findIndex((a) => a.id === 'apnadine'), 1);
   await card(page, 'Nadine Aoun').getByRole('button', { name: /as Attended/ }).click();
@@ -178,6 +193,18 @@ test('a double tap sends one request', async ({ page }) => {
   await card(page, 'Maya Khoury').getByRole('button', { name: /as No-show/ }).dblclick();
   await expect(marked(page, 'Maya Khoury')).toContainText('No-show');
   expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
+});
+
+test('two quick taps on different cards each take one off the badge (no stale left - 1)', async ({ page }) => {
+  await mockOutcomesApi(page, { ...fixtures(), outcomeScript: ['slow', 'slow'], slowMs: 1500 });
+  await page.goto('/app/outcomes');
+  await expect(outcomesBadge(page, 2)).toBeVisible();
+  await card(page, 'Maya Khoury').getByRole('button', { name: /as Attended/ }).click();
+  await card(page, 'Nadine Aoun').getByRole('button', { name: /as No-show/ }).click();
+  // Both requests are still in flight: the badge already counts both.
+  await expect(page.getByRole('link', { name: /\d+ outcomes? to mark/ })).toHaveCount(0, { timeout: 700 });
+  await expect(marked(page, 'Maya Khoury')).toContainText('Attended');
+  await expect(marked(page, 'Nadine Aoun')).toContainText('No-show');
 });
 
 test('shows the empty state when nothing is waiting', async ({ page }) => {

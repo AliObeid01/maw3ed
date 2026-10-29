@@ -130,6 +130,25 @@ test('Load more appends the next page with the cursor until there is none', asyn
   expect(new Set(asked.map((c) => c.limit))).toEqual(new Set(['25']));
 });
 
+test('the search box is capped at 80 characters (the API limit)', async ({ page }) => {
+  await mockOutcomesApi(page, { clients: few() });
+  await page.goto('/app/clients');
+  const box = page.getByRole('searchbox', { name: 'Search clients by name or phone' });
+  await expect(box).toHaveAttribute('maxlength', '80');
+  await box.fill('x'.repeat(120));
+  await expect(box).toHaveValue('x'.repeat(80));
+});
+
+test('an anonymised client in the list shows the localized name and a dash, never the tombstone', async ({ page }) => {
+  const gone = client('cldeleted', 'Deleted client', 'deleted:cldeleted9x8y7z6w5v4u', { attended: 2 });
+  await mockOutcomesApi(page, { clients: [...few(), gone] });
+  await page.goto('/app/clients');
+  const row = rows(page).filter({ hasText: 'Deleted client' });
+  await expect(row).toHaveCount(1);
+  await expect(row.locator('bdi[dir="ltr"]').first()).toHaveText('—');
+  expect(await page.locator('body').innerText()).not.toContain('deleted:');
+});
+
 test('shows the empty state when the business has no clients', async ({ page }) => {
   await mockOutcomesApi(page, { clients: [] });
   await page.goto('/app/clients');

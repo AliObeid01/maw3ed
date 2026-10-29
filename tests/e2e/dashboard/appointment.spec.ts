@@ -148,6 +148,73 @@ test('a server error offers a retry', async ({ page }) => {
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
+const GONE = client('cldeleted', 'Deleted client', 'deleted:cldeleted9x8y7z6w5v4u', { attended: 0 });
+
+test('an anonymised client: no tombstone text, no tel or WhatsApp link, no link to the history that would 404', async ({
+  page,
+}) => {
+  await mockOutcomesApi(page, { clients: [{ ...GONE }], appointments: [appt('apgone', 'cldeleted', -120, 30)] });
+  await page.goto('/app/appointments/apgone');
+  const who = page.getByRole('region', { name: 'Client' });
+  await expect(who).toContainText('Deleted client');
+  await expect(who.locator('bdi[dir="ltr"]')).toHaveText('—');
+  await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+  await expect(page.locator('a[href*="wa.me"]')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: /history of/ })).toHaveCount(0);
+  await expect(page.locator('a[href^="/app/clients/"]')).toHaveCount(0);
+  await expect(who.getByRole('link')).toHaveCount(0);
+  expect(await page.locator('body').innerText()).not.toContain('deleted:');
+  // The outcome can still be recorded for a past appointment.
+  await expect(page.getByRole('region', { name: 'Outcome' })).toContainText('Did Deleted client come?');
+});
+
+test('an anonymised client in Arabic shows the localized name', async ({ page }) => {
+  await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+  await mockOutcomesApi(page, { clients: [{ ...GONE }], appointments: [appt('apgone', 'cldeleted', -120, 30)] });
+  await page.goto('/app/appointments/apgone');
+  await expect(page.getByRole('region', { name: 'العميل' })).toContainText('عميل محذوف');
+  expect(await page.locator('body').innerText()).not.toContain('deleted:');
+  await expect(page.locator('a[href^="tel:"]')).toHaveCount(0);
+});
+
+test('a late cancel is final: Attended and No-show are locked with the reason, Late cancel stays as recorded', async ({
+  page,
+}) => {
+  await mockOutcomesApi(page, setup({ status: 'LATE_CANCEL', cancelledVia: 'LINK' }));
+  await page.goto('/app/appointments/apone');
+  const outcome = page.getByRole('region', { name: 'Outcome' });
+  const attended = outcome.getByRole('button', { name: /as Attended/ });
+  await expect(attended).toBeDisabled();
+  await expect(attended).toHaveAccessibleDescription(/A late cancel is final/);
+  await expect(outcome.getByRole('button', { name: /as No-show/ })).toBeDisabled();
+  await expect(outcome.getByRole('button', { name: /as Late cancel/ })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('a 409 CONFLICT reloads the appointment so the page shows what the server knows', async ({ page }) => {
+  const { appointments, calls } = await mockOutcomesApi(page, setup());
+  await page.goto('/app/appointments/apone');
+  const outcome = page.getByRole('region', { name: 'Outcome' });
+  await expect(outcome).toBeVisible();
+  // Cancelled by someone else after this page loaded.
+  appointments.find((a) => a.id === 'apone')!.status = 'CANCELLED';
+  const loadsBefore = calls.filter((c) => c.method === 'GET' && c.path === '/api/appointments/apone').length;
+  await outcome.getByRole('button', { name: /as No-show/ }).click();
+  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText('Cancelled');
+  await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
+  expect(calls.filter((c) => c.method === 'GET' && c.path === '/api/appointments/apone').length).toBeGreaterThan(
+    loadsBefore,
+  );
+});
+
+test('a booking waiting for payment says so instead of "Booked"', async ({ page }) => {
+  await mockOutcomesApi(page, setup({ status: 'PENDING_PAYMENT' }, 180, 30));
+  await page.goto('/app/appointments/apone');
+  const details = page.getByRole('region', { name: 'Appointment details' });
+  await expect(details).toContainText('Awaiting payment');
+  await expect(details).not.toContainText('Booked');
+  await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
+});
+
 test('RTL: Arabic appointment page, back chevron mirrored, phone left-to-right', async ({ page }) => {
   await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
   await mockOutcomesApi(page, setup());
