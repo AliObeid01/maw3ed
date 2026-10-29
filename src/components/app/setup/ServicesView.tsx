@@ -16,7 +16,7 @@ import { HeaderActions } from '../HeaderActions';
 import { EmptyState, LoadError, OwnerOnly, useErrorMessage } from '../states';
 import { EditorHost } from './EditorHost';
 import { ServiceForm } from './ServiceForm';
-import { useAppFormat } from './useAppFormat';
+import { useAppFormat } from '@/lib/useAppFormat';
 
 const ROW_COLUMNS = 'md:grid-cols-[2fr_1fr_1fr_1fr_80px]';
 

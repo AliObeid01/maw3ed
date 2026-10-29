@@ -1,22 +1,19 @@
 import type { BookingBody } from '@/lib/api/booking';
 
-/** Everything that makes a booking "the same attempt": slot, service, staff and the client's details. */
+/**
+ * What makes a booking "the same attempt". This mirrors the server's own replay check (service, staff, start and
+ * phone, see sameBookingRequest): a typo fix in the name or email after a lost response must reuse the key, so the
+ * server replays the first booking instead of answering 422 or booking twice.
+ */
 export function attemptFingerprint(body: BookingBody): string {
-  return JSON.stringify([
-    body.serviceId,
-    body.staffId,
-    body.startAt,
-    body.client.name,
-    body.client.phone,
-    body.client.email ?? '',
-  ]);
+  return JSON.stringify([body.serviceId, body.staffId, body.startAt, body.client.phone]);
 }
 
 /**
  * `Idempotency-Key` lifecycle. One key per booking attempt: retrying the same booking (network failure,
  * a double tap, a 5xx) reuses it so the server returns the first result instead of booking twice; changing
- * the slot or any detail starts a new attempt with a new key (the server answers 422 if a key is reused for
- * a different booking).
+ * the slot, the service, the person or the phone starts a new attempt with a new key (the server answers 422 if a
+ * key is reused for a different booking).
  */
 export function createAttemptKeys(generate: () => string = () => `bk-${crypto.randomUUID()}`) {
   let fingerprint: string | undefined;

@@ -33,13 +33,18 @@ describe('Idempotency-Key lifecycle', () => {
   it.each([
     ['service', body({ serviceId: 's2' })],
     ['staff', body({ staffId: 'p1' })],
-    ['name', body({}, { name: 'Maya H.' })],
     ['phone', body({}, { phone: '+96170000000' })],
-    ['email', body({}, { email: 'm@example.com' })],
   ])('starts a new attempt when the %s changes', (_label, changed) => {
     const keys = createAttemptKeys(counter());
     const first = keys.keyFor(body());
     expect(keys.keyFor(changed)).not.toBe(first);
+  });
+
+  it('keeps the key when only the name or email is corrected (the server compares service, staff, start, phone)', () => {
+    const keys = createAttemptKeys(counter());
+    const first = keys.keyFor(body());
+    expect(keys.keyFor(body({}, { name: 'Maya H.' }))).toBe(first);
+    expect(keys.keyFor(body({}, { email: 'm@example.com' }))).toBe(first);
   });
 
   it('gives a fresh key after reset (a spent key must not be reused)', () => {

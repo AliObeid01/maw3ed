@@ -12,7 +12,7 @@ export function dirFor(locale: Locale): 'ltr' | 'rtl' {
 
 /** Cookie written by the language toggle and `?lang=`: an explicit choice that always wins. */
 export const LOCALE_COOKIE = 'locale';
-/** Session cookie (path-scoped to /b and /l) carrying the business's default language for visitors who never chose one. */
+/** Session cookie (path-scoped to the one business page it was learned on) carrying the business's default language for visitors who never chose one. */
 export const LOCALE_HINT_COOKIE = 'locale_hint';
 
 /** Resolution order: the visitor's own choice, then the business default (public pages), then English. */

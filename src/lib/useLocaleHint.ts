@@ -13,10 +13,10 @@ const hasCookie = (name: string, value?: string) =>
 
 /**
  * Applies the business's language as the default for a visitor who never picked one: writes a session
- * `locale_hint` cookie scoped to `scopePath` (`/b` or `/l`) and refreshes once. An explicit `locale` cookie
+ * `locale_hint` cookie scoped to that one page (`/b/<slug>`, `/l/<token>`) and refreshes once. An explicit `locale` cookie
  * (the language toggle or `?lang=`) always wins, and the check for an existing hint prevents a refresh loop.
  */
-export function useLocaleHint(businessLocale: string | undefined, scopePath: '/b' | '/l') {
+export function useLocaleHint(businessLocale: string | undefined, scopePath: string) {
   const current = useLocale();
   const router = useRouter();
   useEffect(() => {

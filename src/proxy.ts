@@ -24,6 +24,10 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Pages only: not the API, Next internals, or anything with a file extension (images, fonts, favicon).
-  matcher: ['/((?!api/|_next/|.*\\..*).*)'],
+  // Pages only: not the API, Next internals, or static files. Static files are an explicit extension list, NOT
+  // "any dot": signed link tokens are `<base64url>.<base64url>`, so /l/<token> contains a dot and must match.
+  // (`[.]` instead of an escaped dot: Next's matcher compiler drops the backslash.)
+  matcher: [
+    '/((?!api/|_next/|.*[.](?:svg|png|jpe?g|gif|webp|ico|css|js|map|txt|woff2?|json|xml|webmanifest)$).*)',
+  ],
 };

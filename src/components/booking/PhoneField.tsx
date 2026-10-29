@@ -3,6 +3,7 @@
 import { useId } from 'react';
 import { useTranslations } from 'next-intl';
 import { describedByIds, FieldShell } from '@/components/ui/Field';
+import { PHONE_MAX } from '@/lib/booking/errors';
 import { COUNTRIES } from '@/lib/booking/phone';
 import { cn } from '@/lib/cn';
 
@@ -52,6 +53,7 @@ export function PhoneField({
           inputMode="tel"
           autoComplete="tel-national"
           dir="ltr"
+          maxLength={PHONE_MAX}
           value={value}
           disabled={disabled}
           onChange={(e) => onChange(e.target.value)}

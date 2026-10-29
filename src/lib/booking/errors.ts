@@ -3,7 +3,11 @@ import { slotsFromConflict, type Slot } from '@/lib/api/booking';
 import { phoneLooksComplete } from './phone';
 
 export type DetailsField = 'name' | 'phone' | 'email';
-export type DetailsErrors = Partial<Record<DetailsField, 'nameRequired' | 'phoneInvalid' | 'emailInvalid'>>;
+export const NAME_MAX = 80;
+export const PHONE_MAX = 32;
+export type DetailsErrors = Partial<
+  Record<DetailsField, 'nameRequired' | 'nameTooLong' | 'phoneInvalid' | 'emailInvalid'>
+>;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +20,7 @@ export function validateDetails(input: {
 }): DetailsErrors {
   const errors: DetailsErrors = {};
   if (input.name.trim().length === 0) errors.name = 'nameRequired';
+  else if (input.name.trim().length > NAME_MAX) errors.name = 'nameTooLong';
   if (!phoneLooksComplete(input.dial, input.phone)) errors.phone = 'phoneInvalid';
   const email = input.email.trim();
   if (email && !EMAIL.test(email)) errors.email = 'emailInvalid';
@@ -68,7 +73,13 @@ export function classifyBookingError(error: unknown): BookingFailure {
     let other = false;
     for (const name of Object.keys(error.fields)) {
       const match = /^client\.(name|phone|email)$/.exec(name);
-      if (match) fields[match[1] as DetailsField] = FIELD_ERRORS[match[1] as DetailsField];
+      if (match) {
+        const field = match[1] as DetailsField;
+        // The server text is English only, but its length complaint is how a too-long name is told apart from an empty one.
+        const tooLong =
+          field === 'name' && /\b80\b|<=|at most|too (long|big)|characters/i.test(error.fields[name] ?? '');
+        fields[field] = tooLong ? 'nameTooLong' : FIELD_ERRORS[field];
+      }
       else other = true;
     }
     if (Object.keys(fields).length > 0 && !other) {

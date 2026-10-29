@@ -1,3 +1,4 @@
+import { DateTime } from 'luxon';
 import type { PublicStaff } from '@/lib/api/booking';
 
 /**
@@ -35,7 +36,8 @@ export function parseBookingParams(search: Reader): BookingParams {
   const staff = search.get('staff');
   if (staff && ID.test(staff)) out.staff = staff;
   const day = search.get('day');
-  if (day && DAY.test(day)) out.day = day;
+  // A real calendar date (2026-02-31 matches the shape but is not one).
+  if (day && DAY.test(day) && DateTime.fromISO(day, { zone: 'utc' }).isValid) out.day = day;
   const time = search.get('time');
   if (time && TIME.test(time)) out.time = time;
   return out;
@@ -72,6 +74,8 @@ export type ResolvedBooking = {
 export function resolveBookingState(
   params: BookingParams,
   catalogue: { services: { id: string }[]; staff: PublicStaff[] },
+  /** The days the strip shows (local dates). A `day` outside it, such as a hand-edited or old link, is ignored. */
+  visibleDays?: string[],
 ): ResolvedBooking {
   const service = catalogue.services.find((s) => s.id === params.service);
   if (!service) return { step: 'service', staffSkipped: false, eligible: [] };
@@ -86,7 +90,7 @@ export function resolveBookingState(
   const base = { serviceId: service.id, staffSkipped, eligible };
   if (!staffId) return { ...base, step: 'staff' };
 
-  const day = params.day;
+  const day = params.day && (!visibleDays || visibleDays.includes(params.day)) ? params.day : undefined;
   const time = day ? params.time : undefined;
   const chosen = { ...base, staffId, day, time };
   if (params.step === 'details' && day && time) return { ...chosen, step: 'details' };

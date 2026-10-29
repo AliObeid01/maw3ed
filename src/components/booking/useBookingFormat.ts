@@ -2,7 +2,7 @@
 
 import { DateTime } from 'luxon';
 import { useFormatter } from 'next-intl';
-import { useAppFormat } from '@/components/app/setup/useAppFormat';
+import { useAppFormat } from '@/lib/useAppFormat';
 
 const LATIN = { numberingSystem: 'latn' } as const;
 

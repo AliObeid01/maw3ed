@@ -119,8 +119,10 @@ export function TimeStep(props: TimeStepProps) {
   const covered = days.filter((d) => (byDay[d]?.length ?? 0) > 0);
   const daySlots = props.day ? (byDay[props.day] ?? []) : [];
   const deviceZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const showZoneNote = !loading && timezonesDiffer(now, timezone, deviceZone);
-  const offset = DateTime.fromJSDate(now, { zone: timezone }).toFormat('Z');
+  // Offsets differ by date (DST): compare them at the chosen day, not today.
+  const refDate = props.day ? new Date(`${props.day}T12:00:00Z`) : now;
+  const showZoneNote = !loading && timezonesDiffer(refDate, timezone, deviceZone);
+  const offset = DateTime.fromJSDate(refDate, { zone: timezone }).toFormat('Z');
 
   return (
     <section className="flex min-w-0 flex-[999_1_320px] flex-col gap-4.5">

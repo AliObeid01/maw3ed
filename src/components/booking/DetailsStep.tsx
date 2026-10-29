@@ -2,10 +2,9 @@
 
 import { BellRing } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { FormEvent, Ref, RefObject } from 'react';
-import { FormBanner } from '@/components/auth/formKit';
+import type { FormEvent, Ref } from 'react';
 import { Input } from '@/components/ui/Field';
-import type { BookingBanner, DetailsErrors } from '@/lib/booking/errors';
+import { NAME_MAX, type DetailsErrors } from '@/lib/booking/errors';
 import { PhoneField } from './PhoneField';
 import { StepHeading } from './StepHeading';
 
@@ -16,24 +15,18 @@ export function DetailsStep({
   values,
   onChange,
   errors,
-  banner,
-  bannerAction,
   pending,
   onSubmit,
   onBack,
-  formRef,
   headingRef,
   reminders,
 }: {
   values: DetailsValues;
   onChange: (patch: Partial<DetailsValues>) => void;
   errors: DetailsErrors;
-  banner?: BookingBanner;
-  bannerAction?: React.ReactNode;
   pending: boolean;
   onSubmit: (event: FormEvent) => void;
   onBack: () => void;
-  formRef: RefObject<HTMLFormElement | null>;
   headingRef: Ref<HTMLHeadingElement>;
   /** Already formatted in the business timezone. */
   reminders: { first?: string; second?: string };
@@ -41,24 +34,23 @@ export function DetailsStep({
   const t = useTranslations('booking.details');
   const tErr = useTranslations('booking.errors');
   const err = (key?: NonNullable<DetailsErrors[keyof DetailsErrors]>) =>
-    key ? tErr(key) : undefined;
+    key ? tErr(key, { max: NAME_MAX }) : undefined;
 
   return (
     <section className="flex min-w-0 flex-[999_1_320px] flex-col gap-4.5">
       <StepHeading title={t('title')} onBack={onBack} headingRef={headingRef} />
       <form
         id="booking-form"
-        ref={formRef}
         onSubmit={onSubmit}
         noValidate
         className="flex flex-col gap-4.5 rounded-card border border-line bg-surface p-5 md:p-6"
       >
-        <FormBanner message={banner ? tErr(banner) : undefined} action={bannerAction} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <Input
             name="name"
             label={t('name')}
             autoComplete="name"
+            maxLength={NAME_MAX}
             value={values.name}
             disabled={pending}
             error={err(errors.name)}

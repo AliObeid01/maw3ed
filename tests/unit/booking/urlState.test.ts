@@ -27,6 +27,12 @@ describe('parseBookingParams / serialiseBookingParams', () => {
     expect(serialiseBookingParams({})).toBe('');
   });
 
+  it('drops dates that match the shape but are not real calendar days', () => {
+    expect(parse('day=2026-02-31')).toEqual({});
+    expect(parse('day=2026-13-01')).toEqual({});
+    expect(parse('day=2028-02-29')).toEqual({ day: '2028-02-29' });
+  });
+
   it('drops malformed values instead of trusting them', () => {
     expect(
       parse('step=hack&service=a b&staff=<x>&day=2026-1-3&time=25:00&other=1'),
@@ -67,6 +73,21 @@ describe('resolveBookingState', () => {
     expect(resolveBookingState(parse(`${base}&day=2026-11-03&time=10:30`), catalogue).step).toBe(
       'details',
     );
+  });
+});
+
+describe('resolveBookingState with the visible day window', () => {
+  const window = ['2026-11-02', '2026-11-03'];
+  const qs = 'service=s1&staff=anyone&step=details&time=10:30&day=';
+  it('keeps a day inside the window', () => {
+    expect(resolveBookingState(parse(qs + '2026-11-03'), catalogue, window)).toMatchObject({
+      step: 'details',
+      day: '2026-11-03',
+    });
+  });
+  it('ignores a day outside the window (and with it the time and the details step)', () => {
+    const state = resolveBookingState(parse(qs + '2027-01-01'), catalogue, window);
+    expect(state).toMatchObject({ step: 'time', day: undefined, time: undefined });
   });
 });
 

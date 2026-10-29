@@ -709,7 +709,9 @@
       "nameRequired": "Enter your name.",
       "phoneInvalid": "Enter a valid mobile number.",
       "emailInvalid": "Enter a valid email address.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "nameTooLong": "Use {max} characters or fewer.",
+      "slotGone": "That time is no longer available. Please pick another."
     },
     "notFound": {
       "title": "We can't find this booking page",
@@ -789,6 +791,10 @@
       "network": "We couldn't reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again.",
       "retry": "Try again"
+    },
+    "noActions": {
+      "pendingPayment": "This appointment is waiting for its deposit, so it can't be confirmed yet.",
+      "generic": "There is nothing to do with this link right now."
     }
   }
 }

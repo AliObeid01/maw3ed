@@ -43,6 +43,18 @@ export function screenForResult(result: LinkResult): LinkScreen {
 }
 
 /**
+ * The screen after an action. The result says what just happened; for "already cancelled" the appointment
+ * status says HOW it was cancelled (a late cancel must not be shown as a free one).
+ */
+export function screenAfter(result: LinkResult, link: LinkView): LinkScreen {
+  if (result === 'already_cancelled') {
+    const byStatus = screenFor(link);
+    if (byStatus === 'cancelled' || byStatus === 'lateCancelled') return byStatus;
+  }
+  return screenForResult(result);
+}
+
+/**
  * Buttons to show, primary first. The token decides what is allowed (the server answers 403 WRONG_LINK_ACTION
  * otherwise): a confirm link can only confirm, a cancel link only cancel, a plain view link either, with
  * "confirm" first. An action the appointment cannot take is not offered. The allowed one is always primary.

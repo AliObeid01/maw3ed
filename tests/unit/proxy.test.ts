@@ -1,8 +1,14 @@
 import { NextRequest } from 'next/server';
+import * as staticInfo from 'next/dist/build/analysis/get-page-static-info.js';
+import { getMiddlewareRouteMatcher } from 'next/dist/shared/lib/router/utils/middleware-route-matcher.js';
 import { describe, expect, it } from 'vitest';
 import { pickLocale } from '@/i18n/config';
 import { config, proxy } from '@/proxy';
 
+// Not in Next's published types, but it is the exact function the build uses to compile `config.matcher`.
+const { getMiddlewareMatchers } = staticInfo as unknown as {
+  getMiddlewareMatchers: (matchers: string[], config: object) => never;
+};
 const run = (url: string) => proxy(new NextRequest(url));
 
 describe('proxy: ?lang=', () => {
@@ -29,15 +35,31 @@ describe('proxy: ?lang=', () => {
     }
   });
 
-  it('matches pages but not the API, Next internals or static files', () => {
-    const pattern = new RegExp(`^${config.matcher[0]!}$`);
-    expect(pattern.test('/b/studio-nour')).toBe(true);
-    expect(pattern.test('/l/token')).toBe(true);
-    expect(pattern.test('/')).toBe(true);
-    expect(pattern.test('/api/public/x')).toBe(false);
-    expect(pattern.test('/_next/static/chunk.js')).toBe(false);
-    expect(pattern.test('/favicon.ico')).toBe(false);
-    expect(pattern.test('/logo.svg')).toBe(false);
+  it('sets the cookie on a signed link token that contains a dot', () => {
+    const res = run('https://maw3ed.example/l/abc_DEF-123.sig_456-xyz?lang=ar');
+    expect(res.headers.get('location')).toBe('https://maw3ed.example/l/abc_DEF-123.sig_456-xyz');
+    expect(res.cookies.get('locale')).toMatchObject({ value: 'ar' });
+  });
+
+  // Compiled exactly the way Next compiles a middleware matcher (same functions the build and the server use).
+  const matches = getMiddlewareRouteMatcher(getMiddlewareMatchers(config.matcher, {}));
+  const hit = (path: string) => matches(path, { headers: {} } as never, {} as never);
+
+  it('with the real Next matcher: runs for pages and dotted tokens, not for the API, internals or static files', () => {
+    for (const path of ['/', '/b/studio-nour', '/l/token', '/l/abc.def', '/l/abc.def.ghi', '/l/x.jsx', '/login'])
+      expect(hit(path), path).toBe(true);
+    for (const path of [
+      '/api/public/x',
+      '/_next/static/chunk.js',
+      '/_next/image',
+      '/favicon.ico',
+      '/logo.svg',
+      '/fonts/a.woff2',
+      '/robots.txt',
+      '/manifest.webmanifest',
+      '/img/a.PNG'.toLowerCase(),
+    ])
+      expect(hit(path), path).toBe(false);
   });
 });
 

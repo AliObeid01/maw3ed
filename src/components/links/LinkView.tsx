@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, Check, Clock, LinkIcon, WifiOff, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type ReactNode } from 'react';
 import { PageState } from '@/components/public/PageState';
@@ -20,7 +21,7 @@ import {
   cancelNoteKind,
   classifyLinkError,
   screenFor,
-  screenForResult,
+  screenAfter,
   tokenCanCancel,
   type LinkAction,
   type LinkFailure,
@@ -39,7 +40,8 @@ export function LinkView({ token }: { token: string }) {
   const resource = useResource((signal) => getLink(token, signal), token);
   const [shown, setShown] = useState<Shown>();
   const [gone, setGone] = useState<'invalid' | 'expired'>();
-  useLocaleHint(resource.data?.business.locale, '/l');
+  const pathname = usePathname();
+  useLocaleHint(resource.data?.business.locale, pathname);
 
   const failure: LinkFailure | undefined = resource.error ? classifyLinkError(resource.error) : gone;
 
@@ -120,13 +122,31 @@ function LinkBody({
   const cutoff = f.dayAndTime(link.cancelCutoffAt);
   const late = cancelNoteKind(link) === 'late';
 
+  /** Re-read the appointment (GET, no side effects) and re-derive the screen and buttons from it. */
+  async function refetch(keepOpenScreen: boolean) {
+    try {
+      const fresh = await getLink(token);
+      const next = screenFor(fresh);
+      onShown({ link: fresh, screen: keepOpenScreen && next === 'actionable' ? screen : next });
+    } catch (error) {
+      const kind = classifyLinkError(error);
+      if (kind === 'invalid' || kind === 'expired') onGone(kind);
+    }
+  }
+
+  /** Opening the dialog re-reads the appointment so "free" or "late" is current, not as of page load. */
+  function openCancel() {
+    setDialog(true);
+    void refetch(true);
+  }
+
   async function run(action: LinkAction) {
     if (!guard.current.tryStart()) return;
     setPending(action);
     setProblem(undefined);
     try {
       const { result, ...next } = await postLinkAction(token, action);
-      onShown({ link: next, screen: screenForResult(result) });
+      onShown({ link: next, screen: screenAfter(result, next) });
       setDialog(false);
       window.scrollTo({ top: 0 });
     } catch (error) {
@@ -134,6 +154,8 @@ function LinkBody({
       if (kind === 'invalid' || kind === 'expired') onGone(kind);
       else setProblem(kind);
       setDialog(false);
+      // 409: the appointment changed under us (cancelled elsewhere, already attended): show what it is now.
+      if (kind === 'notAllowed') await refetch(false);
     } finally {
       guard.current.release();
       setPending(undefined);
@@ -195,12 +217,17 @@ function LinkBody({
                 className="h-[54px] text-base"
                 loading={pending === action && action === 'confirm'}
                 disabled={pending !== undefined && pending !== action}
-                onClick={() => (action === 'confirm' ? void run('confirm') : setDialog(true))}
+                onClick={() => (action === 'confirm' ? void run('confirm') : openCancel())}
               >
                 {t(`actions.${action}`)}
               </Button>
             ))}
           </div>
+        ) : null}
+        {buttons.length === 0 ? (
+          <Callout>
+            {appointment.status === 'PENDING_PAYMENT' ? t('noActions.pendingPayment') : t('noActions.generic')}
+          </Callout>
         ) : null}
         {link.act === 'confirm' && link.canCancel ? (
           <p className="m-0 text-sm text-muted">{t('confirmOnlyHint')}</p>
@@ -226,7 +253,7 @@ function LinkBody({
               variant="danger"
               size="lg"
               className="h-[54px] text-base sm:self-start"
-              onClick={() => setDialog(true)}
+              onClick={openCancel}
             >
               {t('actions.cancel')}
             </Button>
