@@ -31,3 +31,24 @@ PAYMENT_PROVIDER=fake    # or "whish"
 SENTRY_DSN=
 ```
 Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+
+---
+
+## Production deployment checklist (maw3edlb.com)
+
+The `production` Neon branch exists (the `dev` branch was created from it) but is EMPTY. The first production deploy applies every migration (`scripts/vercel-build.mjs` runs `prisma migrate deploy` for Vercel production builds only; previews never run migrations). Never put the dev connection strings in Vercel Production, and never run the seed against production.
+
+1. **Secrets** (new values, never the local `.env` ones; never paste them in chat or commit them): generate two with
+   `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` for `LINK_SECRET` and `CRON_SECRET` (32+ characters, different from each other). `SESSION_SECRET` is not used by the app (sessions are stored in the database).
+2. **Neon** (project `maw3ed`, branch `production`, Connect): pooling ON gives `DATABASE_URL` (host contains `-pooler`); pooling OFF gives `DIRECT_URL`.
+3. **Vercel**: first add the environment variable `ENABLE_EXPERIMENTAL_COREPACK=1` (all scopes) so Vercel installs with the pnpm version pinned in `package.json` (`packageManager`), because the repo uses pnpm 11 settings. Then import the GitHub repo (Next.js is auto-detected; leave build/install commands, `vercel.json` is not needed because the `vercel-build` script is used), Node.js 22, attach `maw3edlb.com` as the production domain and redirect `www` to it.
+   - Production environment variables: `DATABASE_URL`, `DIRECT_URL`, `APP_URL=https://maw3edlb.com`, `NEXT_PUBLIC_APP_URL=https://maw3edlb.com`, `LINK_SECRET`, `CRON_SECRET`, `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`, and (recommended) `EXPECTED_DB_HOST` = the host of the production Neon DIRECT string without `-pooler` (for example `ep-xxx.eu-central-1.aws.neon.tech`): the build then refuses to deploy to Production if either connection string points at a different database, such as dev.
+   - **Do the first deploy as a Preview** (open a pull request or push a branch): it proves install, `postinstall` (`prisma generate`) and `next build` on Vercel with no migration risk. Only then deploy `main` to Production.
+   - Preview environment variables (the production checks do not run for previews, so only these are needed): `DATABASE_URL` and `DIRECT_URL` with the DEV Neon strings, `APP_URL` (the preview URL or `https://maw3edlb.com`), `NEXT_PUBLIC_APP_URL`, `LINK_SECRET`, `CRON_SECRET`, `EMAIL_PROVIDER=fake`. No Resend key is needed, so previews never send real mail or touch production data.
+   - A production build that is missing or mis-setting any of these fails with the variable NAMES listed (values are never printed).
+4. **Resend**: create an API key, add the sending domain (use a subdomain such as `mail.maw3edlb.com`), add the DNS records Resend shows in Vercel DNS, wait for Verified, optionally add a DMARC TXT record (`_dmarc`, `v=DMARC1; p=none`). `EMAIL_FROM` example: `Maw3ed <reminders@mail.maw3edlb.com>`.
+5. **First deploy check**: `https://maw3edlb.com/api/health` returns `{"status":"ok","db":"up"}`; sign up a test business at `/signup`.
+6. **cron-job.org** (after the first deploy; each job is a POST with header `x-cron-secret: <production CRON_SECRET>`): `/api/jobs/reminders` every 5 minutes, `/api/jobs/waitlist-expiry` every 5 minutes, `/api/jobs/cleanup` daily (once the launch-gates PR is merged). Turn on failure notifications.
+7. **GitHub**: Actions variable `APP_URL=https://maw3edlb.com` and secret `CRON_SECRET` (enables the backup scheduler workflow); protect `main` (require a pull request and the CI check).
+8. **Rollback and safety notes**: migrations run BEFORE the new code goes live, so keep them additive (expand/contract: add a column first, remove the old one in a later release). Prisma has no automatic rollback: if a migration fails halfway, later deploys refuse until it is resolved (`prisma migrate resolve --rolled-back <name>` against the production DIRECT string) or the Neon production branch is restored from a point in time. `vercel build --prod` run on a laptop with pulled production variables WOULD migrate production: do not run it locally. Build logs show the database host name (never the password) and are visible to the Vercel team.
+9. **Phone test**: open `https://maw3edlb.com/b/<slug>` on a real phone, book, check the confirmation email, open the confirm and cancel links.
