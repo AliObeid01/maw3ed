@@ -1,5 +1,8 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
+import { POST as cancelAppointment } from '@/app/api/appointments/[id]/cancel/route';
+import { GET as getAppointment } from '@/app/api/appointments/[id]/route';
+import { POST as postAppointment } from '@/app/api/appointments/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { GET as previewInvite } from '@/app/api/invites/[token]/route';
 import { GET as me } from '@/app/api/me/route';
@@ -13,7 +16,8 @@ import { GET as listStaff, POST as postStaff } from '@/app/api/staff/route';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, signup } from './helpers/api';
-import { newClient, setupSchema, truncateAll } from './helpers/db';
+import { at, bookingBody, bookPublicly, newScenario, NOW } from './helpers/booking';
+import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 
 /**
  * Tenant isolation scaffold. Two businesses; business A's session must never see or touch business B's
@@ -106,9 +110,60 @@ describe('tenant isolation: routes that exist now', () => {
   });
 });
 
+/** One booking in each business (public engine), under a frozen clock. */
+async function twoBookings() {
+  vi.useFakeTimers({ toFake: ['Date'], now: NOW });
+  const prisma = newPrisma();
+  try {
+    const aScn = await newScenario(prisma, { businessId: a.info.business.id });
+    const bScn = await newScenario(prisma, { businessId: b.info.business.id });
+    const ra = await bookPublicly(
+      a.body.slug,
+      bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('07:00')),
+    );
+    const rb = await bookPublicly(
+      b.body.slug,
+      bookingBody(bScn.serviceId, bScn.staffIds[0]!, at('07:00')),
+    );
+    return { aAppt: ra.body!.appointment.id as string, bAppt: rb.body!.appointment.id as string };
+  } finally {
+    vi.useRealTimers();
+    await prisma.$disconnect();
+  }
+}
+
 describe('tenant isolation: arrives with later routes (P2)', () => {
-  it.todo('GET /api/appointments/{id} with business B’s id and A’s session -> 404');
-  it.todo('PATCH/DELETE /api/appointments/{id} cross-tenant -> 404 and B’s row unchanged');
+  it('GET /api/appointments/{id} with business B’s id and A’s session -> 404', async () => {
+    const { bAppt } = await twoBookings();
+    const res = await call(getAppointment, `/api/appointments/${bAppt}`, {
+      cookie: a.cookie,
+      params: { id: bAppt },
+    });
+    expect(res.status).toBe(404);
+    expect(JSON.stringify(res.body)).not.toContain('Client');
+  });
+  it('POST /api/appointments/{id}/cancel cross-tenant -> 404 and B’s row unchanged (no PATCH/DELETE routes exist)', async () => {
+    const { bAppt } = await twoBookings();
+    const res = await call(cancelAppointment, `/api/appointments/${bAppt}/cancel`, {
+      method: 'POST',
+      cookie: a.cookie,
+      params: { id: bAppt },
+    });
+    expect(res.status).toBe(404);
+    expect(
+      (await pg.query('SELECT status FROM "Appointment" WHERE id = $1', [bAppt])).rows[0].status,
+    ).toBe('BOOKED');
+    expect(
+      (
+        await pg.query(`SELECT DISTINCT status FROM "ReminderJob" WHERE "appointmentId" = $1`, [
+          bAppt,
+        ])
+      ).rows,
+    ).toEqual([{ status: 'PENDING' }]);
+    const routeModule = await import('@/app/api/appointments/[id]/route');
+    expect(Object.keys(routeModule)).not.toContain('PATCH');
+    expect(Object.keys(routeModule)).not.toContain('DELETE');
+  });
   it.todo('GET /api/clients/{id} cross-tenant -> 404');
   it.todo('GET /api/clients list never includes business B’s clients');
   it('PATCH /api/services/{id} cross-tenant -> 404 and B’s row unchanged (no DELETE route exists)', async () => {
@@ -171,5 +226,26 @@ describe('tenant isolation: arrives with later routes (P2)', () => {
       (await pg.query('SELECT active FROM "StaffMember" WHERE id = $1', [id])).rows[0].active,
     ).toBe(true);
   });
-  it.todo('POST /api/appointments with B’s serviceId/staffId/clientId from A’s session -> 404');
+  it('POST /api/appointments with B’s serviceId or staffId from A’s session -> 404', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: NOW });
+    const prisma = newPrisma();
+    try {
+      const aScn = await newScenario(prisma, { businessId: a.info.business.id });
+      const bScn = await newScenario(prisma, { businessId: b.info.business.id });
+      const withB = await call(postAppointment, '/api/appointments', {
+        cookie: a.cookie,
+        body: bookingBody(bScn.serviceId, aScn.staffIds[0]!, at('07:00')),
+      });
+      expect(withB.status).toBe(404);
+      const staffB = await call(postAppointment, '/api/appointments', {
+        cookie: a.cookie,
+        body: bookingBody(aScn.serviceId, bScn.staffIds[0]!, at('07:00')),
+      });
+      expect(staffB.status).toBe(404);
+      expect((await pg.query('SELECT 1 FROM "Appointment"')).rowCount).toBe(0);
+    } finally {
+      vi.useRealTimers();
+      await prisma.$disconnect();
+    }
+  });
 });

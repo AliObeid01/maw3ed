@@ -103,6 +103,73 @@ export const appointmentRepo = {
       });
     }),
 
+  /** Signed-link resolution: the token carries only the appointment id, so this is the one unscoped lookup. */
+  async businessIdOf(appointmentId: string): Promise<string | null> {
+    const row = await db.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { businessId: true },
+    });
+    return row?.businessId ?? null;
+  },
+
+  findForLink: (businessId: string, id: string) =>
+    db.appointment.findFirst({
+      where: { id, businessId },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        confirmedAt: true,
+        clientId: true,
+        service: { select: { id: true, name: true, durationMin: true, price: true } },
+        staff: { select: { id: true, displayName: true } },
+        business: {
+          select: { name: true, slug: true, timezone: true, locale: true, cancelCutoffMin: true },
+        },
+      },
+    }),
+
+  /** BOOKED -> CONFIRMED. Stays in the exclusion constraint. False when the status was not BOOKED. */
+  async confirmByLink(businessId: string, id: string, now: Date): Promise<boolean> {
+    const res = await db.appointment.updateMany({
+      where: { id, businessId, status: 'BOOKED' },
+      data: { status: 'CONFIRMED', confirmedAt: now },
+    });
+    return res.count === 1;
+  },
+
+  /**
+   * Client cancel via link, in ONE transaction: the status change (which frees the slot), the pending
+   * reminders going SKIPPED and, for a late cancel, the client's lateCancels counter. False when the
+   * appointment was not in a cancellable state (a concurrent cancel won).
+   */
+  cancelByLink: (businessId: string, id: string, now: Date, late: boolean) =>
+    db.$transaction(async (tx) => {
+      const current = await tx.appointment.findFirst({
+        where: { id, businessId },
+        select: { clientId: true },
+      });
+      if (!current) return false;
+      const res = await tx.appointment.updateMany({
+        where: { id, businessId, status: { in: ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'] } },
+        data: {
+          status: late ? 'LATE_CANCEL' : 'CANCELLED',
+          cancelledAt: now,
+          cancelledVia: 'LINK',
+        },
+      });
+      if (res.count !== 1) return false;
+      await reminderJobRepo.skipPending(businessId, tx, id);
+      if (late) {
+        await tx.client.updateMany({
+          where: { id: current.clientId, businessId },
+          data: { lateCancels: { increment: 1 } },
+        });
+      }
+      return true;
+    }),
+
   /**
    * Cancel by staff: CANCELLED frees the slot (drops out of the exclusion constraint) and pending reminder
    * jobs become SKIPPED, in one transaction. Returns false when the appointment is not in a cancellable

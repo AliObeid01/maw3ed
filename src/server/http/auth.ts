@@ -1,4 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { verifyToken, type TokenAction, type TokenPayload } from '@/server/domain/tokens';
+import { requireLinkSecret } from '@/server/env';
+import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { sessionService } from '@/server/services/session';
 import { readSessionToken } from './cookies';
 import { AppError } from './errors';
@@ -14,11 +17,14 @@ export interface SessionIdentity {
   refresh?: { token: string; expiresAt: Date };
 }
 
-/** Signed-link identity (appointment or waitlist offer). Filled in by the tokens work (P1.6). */
+/** Verified signed-link identity: the appointment the token names and the action it was issued for. */
 export interface TokenIdentity {
   businessId: string;
+  /** The appointment id. */
   subjectId: string;
-  action: string;
+  action: TokenAction;
+  /** Epoch seconds. */
+  exp: number;
 }
 
 /** Cookie -> Session -> Membership. 401 for a missing, unknown, expired or orphaned session. */
@@ -39,10 +45,35 @@ export function requireRole(ctx: { role?: RoleName }, ...allowed: RoleName[]): v
   if (!ctx.role || !allowed.includes(ctx.role)) throw AppError.forbidden();
 }
 
-/** Signed token verification arrives with P1.6/P2.x. Until then, token routes answer 501. */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export async function resolveToken(_req: Request, _params: unknown): Promise<TokenIdentity> {
-  throw AppError.notImplemented('Token auth is not available yet.');
+/**
+ * Signed-link guard. Verifies the HMAC token from the `token` path parameter against the route's accepted
+ * actions. Malformed, forged, unknown or wrong-purpose tokens all answer the same 404 (nothing is
+ * revealed); only a genuinely signed token that has expired answers 410 LINK_EXPIRED. The business is
+ * resolved from the appointment the token names, never from the request.
+ */
+export async function resolveToken(
+  rawToken: unknown,
+  acts: readonly TokenAction[],
+  now: Date = new Date(),
+): Promise<TokenIdentity> {
+  const token = typeof rawToken === 'string' ? rawToken : '';
+  const secret = requireLinkSecret();
+  let payload: TokenPayload | undefined;
+  for (const act of acts) {
+    const result = verifyToken(token, secret, now, act);
+    if (result.ok) {
+      payload = result.payload;
+      break;
+    }
+    if (result.reason === 'expired') throw AppError.gone();
+    if (result.reason !== 'wrong_action') throw AppError.notFound();
+  }
+  if (!payload) throw AppError.notFound();
+  // Waitlist offer tokens (`o`) are resolved by the waitlist routes, not here.
+  if (payload.a === undefined) throw AppError.notFound();
+  const businessId = await appointmentRepo.businessIdOf(payload.a);
+  if (!businessId) throw AppError.notFound();
+  return { businessId, subjectId: payload.a, action: payload.act, exp: payload.exp };
 }
 
 const digest = (value: string) => createHash('sha256').update(value).digest();

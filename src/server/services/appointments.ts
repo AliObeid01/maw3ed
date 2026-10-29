@@ -106,13 +106,20 @@ export const appointmentsService = {
           );
       } else {
         ctx.logger.info({ businessId: ctx.businessId, appointmentId: id }, 'appointment cancelled');
-        await onSlotFreed(ctx, {
-          appointmentId: id,
-          serviceId: current.service.id,
-          staffId: current.staff.id,
-          startAt: current.startAt,
-          endAt: current.endAt,
-        });
+        try {
+          await onSlotFreed(ctx, {
+            appointmentId: id,
+            serviceId: current.service.id,
+            staffId: current.staff.id,
+            startAt: current.startAt,
+            endAt: current.endAt,
+          });
+        } catch {
+          ctx.logger.error(
+            { businessId: ctx.businessId, appointmentId: id },
+            'onSlotFreed failed after a committed cancel',
+          );
+        }
       }
     }
     const row = await appointmentRepo.findById(ctx.businessId, id);
