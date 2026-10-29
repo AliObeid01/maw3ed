@@ -9,6 +9,7 @@ const base: PlanInput = {
   status: 'BOOKED',
   cancelledVia: null,
   startAt: past,
+  endAt: new Date('2026-11-04T08:30:00Z'),
   now: NOW,
   target: 'ATTENDED',
 };
@@ -16,6 +17,20 @@ const base: PlanInput = {
 describe('planOutcome', () => {
   it('rejects an appointment that has not started', () => {
     expect(planOutcome({ ...base, startAt: future })).toEqual({ kind: 'not_started' });
+  });
+  it('ATTENDED needs the appointment to have ended; NO_SHOW and LATE_CANCEL only need it to have started', () => {
+    const inProgress = { ...base, startAt: past, endAt: future };
+    expect(planOutcome({ ...inProgress, target: 'ATTENDED' })).toEqual({ kind: 'not_ended' });
+    expect(planOutcome({ ...inProgress, status: 'NO_SHOW', target: 'ATTENDED' })).toEqual({
+      kind: 'not_ended',
+    });
+    expect(planOutcome({ ...inProgress, target: 'NO_SHOW' }).kind).toBe('apply');
+    expect(planOutcome({ ...inProgress, target: 'LATE_CANCEL' }).kind).toBe('apply');
+    expect(planOutcome({ ...inProgress, endAt: NOW, target: 'ATTENDED' }).kind).toBe('apply');
+    // a repeat of an outcome already recorded stays a no-op
+    expect(planOutcome({ ...inProgress, status: 'ATTENDED', target: 'ATTENDED' })).toEqual({
+      kind: 'noop',
+    });
   });
   it('allows an appointment that starts exactly now', () => {
     expect(planOutcome({ ...base, startAt: NOW }).kind).toBe('apply');

@@ -42,6 +42,12 @@ export const outcomesService = {
             undefined,
             'This appointment has not started yet.',
           );
+        case 'not_ended':
+          throw AppError.conflict(
+            'NOT_ENDED',
+            undefined,
+            'This appointment is still in progress; it can be marked attended once it ends.',
+          );
         case 'conflict':
           throw AppError.conflict(
             'CONFLICT',
@@ -49,6 +55,11 @@ export const outcomesService = {
             'This appointment cannot be marked with that outcome.',
           );
         case 'applied':
+          if (res.drift)
+            ctx.logger.warn(
+              { businessId: ctx.businessId, appointmentId: id },
+              'client counter drift: a correction found its counter already at 0',
+            );
           ctx.logger.info(
             { businessId: ctx.businessId, appointmentId: id, outcome, userId: ctx.userId },
             'appointment outcome recorded',

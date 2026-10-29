@@ -136,9 +136,53 @@ describe('PATCH /api/appointments/{id}/outcome: transitions and counters', () =>
     expect(row.outcomeMarkedById).not.toBeNull();
   });
 
-  it('an appointment that started but has not ended can already be marked', async () => {
-    const { appt } = await fixture({ startAt: ONGOING });
-    expect((await mark(a.cookie, appt.id, { outcome: 'ATTENDED' })).status).toBe(200);
+  describe('an appointment in progress (guarantee 1: the slot must stay held)', () => {
+    // ONGOING runs 07:45-08:15Z, NOW is 08:00Z.
+    it('ATTENDED is refused with 409 NOT_ENDED, the row is unchanged and the slot cannot be double booked', async () => {
+      const { client, appt } = await fixture({ startAt: ONGOING });
+      const res = await mark(a.cookie, appt.id, { outcome: 'ATTENDED' });
+      expect(res.status).toBe(409);
+      expect(res.body!.error.code).toBe('NOT_ENDED');
+      expect((await apptRow(appt.id)).status).toBe('BOOKED');
+      expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 0 });
+      const other = await seedClient(prisma, a.businessId);
+      await expect(
+        seedAppointment(prisma, {
+          businessId: a.businessId,
+          clientId: other.id,
+          staffId: aScn.staffIds[0]!,
+          serviceId: aScn.serviceId,
+          startAt: '2026-11-02T08:05:00.000Z',
+        }),
+      ).rejects.toThrow(/appointment_no_overlap/);
+    });
+
+    it('NO_SHOW is allowed once it started (it frees the slot on purpose)', async () => {
+      const { appt } = await fixture({ startAt: ONGOING });
+      expect((await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' })).status).toBe(200);
+      const other = await seedClient(prisma, a.businessId);
+      await expect(
+        seedAppointment(prisma, {
+          businessId: a.businessId,
+          clientId: other.id,
+          staffId: aScn.staffIds[0]!,
+          serviceId: aScn.serviceId,
+          startAt: '2026-11-02T08:05:00.000Z',
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('ATTENDED works once the appointment has ended; a correction to ATTENDED is also refused while in progress', async () => {
+      const { client, appt } = await fixture({ startAt: ONGOING });
+      await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' });
+      const early = await mark(a.cookie, appt.id, { outcome: 'ATTENDED' });
+      expect(early.status).toBe(409);
+      expect(early.body!.error.code).toBe('NOT_ENDED');
+      expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+      vi.setSystemTime(new Date('2026-11-02T08:15:00Z'));
+      expect((await mark(a.cookie, appt.id, { outcome: 'ATTENDED' })).status).toBe(200);
+      expect(await counters(client.id)).toEqual({ attended: 1, noShows: 0, lateCancels: 0 });
+    });
   });
 
   it('a correction moves one count between counters in the same step', async () => {

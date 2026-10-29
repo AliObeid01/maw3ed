@@ -13,12 +13,14 @@ export interface PlanInput {
   /** Set by the link / staff cancel flows. A LATE_CANCEL with a value here was already counted by that flow. */
   cancelledVia: 'LINK' | 'STAFF' | 'SYSTEM' | null;
   startAt: Date;
+  endAt: Date;
   now: Date;
   target: OutcomeTarget;
 }
 
 export type OutcomePlan =
   | { kind: 'not_started' }
+  | { kind: 'not_ended' }
   | { kind: 'conflict' }
   | { kind: 'noop' }
   | { kind: 'apply'; decrement: CounterField | null; increment: CounterField };
@@ -33,8 +35,24 @@ export type OutcomePlan =
  * - A LATE_CANCEL written by the cancel flow (cancelledVia set) is already counted and final: marking it
  *   again as LATE_CANCEL is a no-op, anything else conflicts (a cancelled appointment cannot be attended).
  * - CANCELLED and PENDING_PAYMENT never take an outcome.
+ * - Guarantee 1: BOOKED / CONFIRMED hold the slot in appointment_no_overlap. Leaving that set re-opens the
+ *   appointment's remaining time and buffer, so ATTENDED (which means "it happened") requires endAt <= now
+ *   (NOT_ENDED otherwise). NO_SHOW and LATE_CANCEL may follow once startAt has passed: they free the slot on
+ *   purpose. No route moves a past appointment back to BOOKED / CONFIRMED (the link confirm only accepts
+ *   BOOKED), so a correction can never re-enter the constraint set.
  */
 export function planOutcome(input: PlanInput): OutcomePlan {
+  const plan = decide(input);
+  if (
+    plan.kind === 'apply' &&
+    input.target === 'ATTENDED' &&
+    input.endAt.getTime() > input.now.getTime()
+  )
+    return { kind: 'not_ended' };
+  return plan;
+}
+
+function decide(input: PlanInput): OutcomePlan {
   const { status, target } = input;
   if (input.startAt.getTime() > input.now.getTime()) return { kind: 'not_started' };
 

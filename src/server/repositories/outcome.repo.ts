@@ -18,11 +18,13 @@ export type MarkOutcomeResult =
   | { kind: 'not_found' }
   /** The status changed between the read and the conditional update: the caller re-evaluates. */
   | { kind: 'raced' }
-  | { kind: 'not_started' | 'conflict' | 'noop' | 'applied'; row: OutcomeRow };
+  | { kind: 'not_started' | 'not_ended' | 'conflict' | 'noop'; row: OutcomeRow }
+  | { kind: 'applied'; drift: boolean; row: OutcomeRow };
 
 /** Past appointments with no outcome yet: ended, still BOOKED or CONFIRMED. */
 const queueWhere = (businessId: string, now: Date) => ({
   businessId,
+  startAt: { lte: now },
   endAt: { lte: now },
   status: { in: ['BOOKED', 'CONFIRMED'] as ('BOOKED' | 'CONFIRMED')[] },
 });
@@ -46,7 +48,7 @@ export const outcomeRepo = {
     db.$transaction(async (tx) => {
       const current = await tx.appointment.findFirst({
         where: { id, businessId },
-        select: { status: true, cancelledVia: true, startAt: true, clientId: true },
+        select: { status: true, cancelledVia: true, startAt: true, endAt: true, clientId: true },
       });
       if (!current) return { kind: 'not_found' } as const;
       const load = () =>
@@ -56,6 +58,7 @@ export const outcomeRepo = {
         status: current.status,
         cancelledVia: current.cancelledVia,
         startAt: current.startAt,
+        endAt: current.endAt,
         now,
         target,
       });
@@ -67,12 +70,14 @@ export const outcomeRepo = {
       });
       if (res.count !== 1) return { kind: 'raced' } as const;
 
+      let drift = false;
       if (plan.decrement) {
         const field: CounterField = plan.decrement;
-        await tx.client.updateMany({
+        const dec = await tx.client.updateMany({
           where: { id: current.clientId, businessId, [field]: { gt: 0 } },
           data: { [field]: { decrement: 1 } },
         });
+        drift = dec.count === 0; // the counter was already 0: it had drifted from the appointments
       }
       await tx.client.updateMany({
         where: { id: current.clientId, businessId },
@@ -80,7 +85,7 @@ export const outcomeRepo = {
       });
       // A client who called too late will not receive the reminders that were still pending.
       if (target === 'LATE_CANCEL') await reminderJobRepo.skipPending(businessId, tx, id);
-      return { kind: 'applied', row: await load() } as const;
+      return { kind: 'applied', drift, row: await load() } as const;
     }),
 
   listQueue: (businessId: string, now: Date, limit: number) =>

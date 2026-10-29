@@ -68,7 +68,7 @@ registry.registerPath({
   path: '/api/appointments/{id}/outcome',
   summary: 'Record attended / no-show / late cancel (and correct it later)',
   description:
-    'Only for appointments that have started (409 NOT_STARTED). Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
+    'Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW and LATE_CANCEL are allowed once it started. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
   tags: ['outcomes'],
   security: session,
   request: { params: OutcomeParams, body: { content: json(OutcomeBody) } },
@@ -78,7 +78,7 @@ registry.registerPath({
     401: errorResponses[401],
     403: errorResponses[403],
     404: errorResponses[404],
-    409: err('NOT_STARTED or CONFLICT'),
+    409: err('NOT_STARTED, NOT_ENDED or CONFLICT'),
   },
 });
 registry.registerPath({
