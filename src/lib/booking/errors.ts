@@ -77,7 +77,7 @@ export function classifyBookingError(error: unknown): BookingFailure {
         const field = match[1] as DetailsField;
         // The server text is English only, but its length complaint is how a too-long name is told apart from an empty one.
         const tooLong =
-          field === 'name' && /\b80\b|<=|at most|too (long|big)|characters/i.test(error.fields[name] ?? '');
+          field === 'name' && /\b80\b|<=|at most|too (long|big)/i.test(error.fields[name] ?? '');
         fields[field] = tooLong ? 'nameTooLong' : FIELD_ERRORS[field];
       }
       else other = true;

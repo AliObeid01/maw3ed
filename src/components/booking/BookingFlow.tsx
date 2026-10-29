@@ -196,12 +196,12 @@ export function BookingFlow({ slug }: { slug: string }) {
   const step = resolved?.step;
   const day = resolved?.day;
   useEffect(() => {
-    if (booked || step !== 'details' || windowRes.loading || selectedSlot) return;
+    if (booked || taken || step !== 'details' || windowRes.loading || selectedSlot) return;
     // (Queued: this is a reaction to loaded data, not a render-time state change.)
     const failed = !!windowRes.error;
     queueMicrotask(() => setNotice(failed ? undefined : 'slotGone'));
     go({ step: 'time', service: resolved?.serviceId, staff: resolved?.staffId, day }, 'replace');
-  }, [booked, step, windowRes.loading, windowRes.error, selectedSlot, go, resolved?.serviceId, resolved?.staffId, day]);
+  }, [booked, taken, step, windowRes.loading, windowRes.error, selectedSlot, go, resolved?.serviceId, resolved?.staffId, day]);
 
   // Focus the new step's heading when the person moves between steps (not on the first render, not on every
   // re-render). The heading itself is the announcement; there is no second live region for the same change.

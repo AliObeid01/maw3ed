@@ -112,7 +112,72 @@ test.describe('states', () => {
     await mockLinkApi(page);
     const response = await page.goto('/l/tok123');
     expect(response!.headers()['referrer-policy']).toBe('no-referrer');
+    expect(response!.headers()['cache-control']).toBe('no-store');
     await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+  });
+});
+
+test.describe('?lang= on a real signed token', () => {
+  // Signed tokens are <base64url>.<base64url>: the dot must not exempt the page from the proxy.
+  const token = 'eyJhIjoiYiJ9-_abc.c2ln_nature-123';
+
+  test('sets the cookie and redirects to the same token without the parameter', async ({ page, context }) => {
+    await mockLinkApi(page);
+    await page.goto(`/l/${token}?lang=ar`);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    const url = new URL(page.url());
+    expect(url.pathname).toBe(`/l/${token}`);
+    expect(url.search).toBe('');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    expect((await context.cookies()).find((c) => c.name === 'locale')).toMatchObject({ value: 'ar' });
+    await expect(page.getByRole('heading', { name: 'يرجى تأكيد موعدك' })).toBeVisible();
+  });
+});
+
+test.describe('server answers on the action', () => {
+  test('403 WRONG_LINK_ACTION shows a clear message and keeps the buttons', async ({ page }) => {
+    const { calls } = await open(page, { act: 'view', postError: 403 });
+    await page.getByRole('button', { name: "Yes, I'll be there" }).click();
+    await expect(page.getByRole('alert').filter({ hasText: "This link can't do that" })).toBeVisible();
+    await expect(page.getByRole('button', { name: "Yes, I'll be there" })).toBeVisible();
+    expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+  });
+
+  test('409 refetches the appointment and shows what it is now (cancelled elsewhere)', async ({ page }) => {
+    const { calls } = await open(page, { act: 'view', postError: 409 });
+    await page.getByRole('button', { name: "Yes, I'll be there" }).click();
+    await expect(page.getByRole('heading', { name: 'Appointment cancelled' })).toBeVisible();
+    await expect(page.getByRole('button', { name: "Yes, I'll be there" })).toHaveCount(0);
+    expect(calls.map((c) => c.method)).toEqual(['GET', 'POST', 'GET']);
+  });
+
+  test('"already cancelled" after a late cancel is shown as a late cancellation, not "no fee"', async ({
+    page,
+  }) => {
+    await open(page, { act: 'cancel', alreadyCancelledLate: true });
+    await page.getByRole('button', { name: "I can't come, cancel" }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Yes, cancel appointment' }).click();
+    await expect(page.getByRole('heading', { name: 'Appointment cancelled' })).toBeVisible();
+    await expect(page.getByText(/was a late cancellation/)).toBeVisible();
+    await expect(page.getByText('No fee was charged.')).toHaveCount(0);
+  });
+
+  test('opening the cancel dialog re-reads the appointment so the wording is current', async ({ page }) => {
+    await open(page, { act: 'cancel', cutoffPassesAfterFirstGet: true });
+    // At load the cutoff has not passed...
+    await expect(page.getByText(/Free cancellation until/).first()).toBeVisible();
+    await page.getByRole('button', { name: "I can't come, cancel" }).click();
+    // ...but by the time the dialog opens it has.
+    const dialog = page.getByRole('dialog', { name: 'Cancel this appointment?' });
+    await expect(dialog).toContainText('This is a late cancellation');
+  });
+
+  test('a pending-payment appointment on a confirm link explains why there is nothing to press', async ({
+    page,
+  }) => {
+    await open(page, { act: 'confirm', status: 'PENDING_PAYMENT' });
+    await expect(page.getByText(/waiting for its deposit/)).toBeVisible();
+    await expect(page.getByRole('button', { name: "Yes, I'll be there" })).toHaveCount(0);
   });
 });
 

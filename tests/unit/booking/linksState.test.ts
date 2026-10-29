@@ -6,6 +6,7 @@ import {
   cancelNoteKind,
   classifyLinkError,
   screenFor,
+  screenAfter,
   screenForResult,
   tokenCanCancel,
 } from '@/lib/links/state';
@@ -82,6 +83,14 @@ describe('screens', () => {
     expect(screenForResult('cancelled')).toBe('cancelled');
     expect(screenForResult('already_cancelled')).toBe('cancelled');
     expect(screenForResult('late_cancelled')).toBe('lateCancelled');
+  });
+
+  it('shows "already cancelled" as late or free by the appointment status', () => {
+    expect(screenAfter('already_cancelled', link({ status: 'LATE_CANCEL' }))).toBe('lateCancelled');
+    expect(screenAfter('already_cancelled', link({ status: 'CANCELLED' }))).toBe('cancelled');
+    expect(screenAfter('already_cancelled', link({ status: 'BOOKED' }))).toBe('cancelled');
+    expect(screenAfter('late_cancelled', link({ status: 'LATE_CANCEL' }))).toBe('lateCancelled');
+    expect(screenAfter('confirmed', link({ status: 'CONFIRMED' }))).toBe('confirmed');
   });
 
   it('words the cancel dialog by cutoff', () => {

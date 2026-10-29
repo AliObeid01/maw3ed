@@ -8,7 +8,7 @@ import {
   type BookingBody,
 } from '@/lib/api/booking';
 import { classifyBookingError, validateDetails } from '@/lib/booking/errors';
-import { loadSlotWindow } from '@/lib/booking/window';
+import { loadSlotWindow, readWindowLength, rememberWindowLength } from '@/lib/booking/window';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -139,6 +139,24 @@ describe('classifyBookingError', () => {
   });
 });
 
+describe('name length', () => {
+  const api = (fields: Record<string, string>) =>
+    parseErrorBody(400, { error: { code: 'VALIDATION_FAILED', message: 'x', fields } });
+  it('tells a too-long name from an empty one in a 400', () => {
+    expect(
+      classifyBookingError(api({ 'client.name': 'Too big: expected string to have <=80 characters' })),
+    ).toMatchObject({ fields: { name: 'nameTooLong' } });
+    expect(
+      classifyBookingError(api({ 'client.name': 'Too small: expected string to have >=1 characters' })),
+    ).toMatchObject({ fields: { name: 'nameRequired' } });
+  });
+  it('checks the length before sending', () => {
+    const ok = { name: 'x'.repeat(80), dial: '+961', phone: '71 234 567', email: '' };
+    expect(validateDetails(ok)).toEqual({});
+    expect(validateDetails({ ...ok, name: 'x'.repeat(81) })).toEqual({ name: 'nameTooLong' });
+  });
+});
+
 describe('validateDetails', () => {
   const ok = { name: 'Maya', dial: '+961', phone: '71 234 567', email: '' };
   it('accepts a complete form with no email', () => {
@@ -189,6 +207,29 @@ describe('loadSlotWindow', () => {
     );
     expect(fetchSlots.mock.calls.map((c) => c[1].to)).toEqual(['2026-11-14', '2026-11-07', '2026-11-03']);
     expect(window.coveredDays).toEqual(['2026-11-01', '2026-11-02', '2026-11-03']);
+  });
+
+  it('starts at the remembered window length instead of probing 14 again', async () => {
+    const fetchSlots = vi.fn<(slug: string, q: { from: string; to: string }) => Promise<typeof slots>>(async () => slots);
+    await loadSlotWindow('s', { serviceId: 's1' }, 'Asia/Beirut', now, undefined, fetchSlots as never, 3);
+    expect(fetchSlots).toHaveBeenCalledTimes(1);
+    expect(fetchSlots.mock.calls[0]![1]).toMatchObject({ from: '2026-11-01', to: '2026-11-03' });
+  });
+
+  it('remembers a short window per business and ignores a full one', () => {
+    const store = new Map<string, string>();
+    const storage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+    };
+    expect(readWindowLength('a', storage)).toBe(14);
+    rememberWindowLength('a', 3, storage);
+    expect(readWindowLength('a', storage)).toBe(3);
+    expect(readWindowLength('b', storage)).toBe(14);
+    rememberWindowLength('b', 14, storage);
+    expect(store.size).toBe(1);
+    store.set([...store.keys()][0]!, 'garbage');
+    expect(readWindowLength('a', storage)).toBe(14);
   });
 
   it('does not retry other failures', async () => {
