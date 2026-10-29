@@ -242,13 +242,14 @@ describe('GET /api/dashboard/today', () => {
   });
 
   it('400 for a malformed or impossible date, a range or unknown params; 401 without a session', async () => {
-    for (const q of [
+    const bad: Record<string, string>[] = [
       { date: '2026-02-31' },
       { date: 'tomorrow' },
       { date: '2026-11-04T00:00:00Z' },
       { date: '2026-11-04', to: '2026-11-05' },
       { businessId: b.businessId },
-    ]) {
+    ];
+    for (const q of bad) {
       const res = await day(a.cookie, q);
       expect(res.status).toBe(400);
       expect(res.body!.error.code).toBe('VALIDATION_FAILED');

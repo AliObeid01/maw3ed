@@ -190,14 +190,14 @@ describe('GET /api/clients', () => {
   });
 
   it('400 for a bad sort, limit, cursor or unknown param (including businessId); 401 without a session', async () => {
-    for (const q of [
+    const bad: Record<string, string>[] = [
       { sort: 'oldest' },
       { limit: '0' },
       { limit: '101' },
       { cursor: '!!!' },
       { businessId: b.businessId },
-    ])
-      expect((await list(a.cookie, q)).status).toBe(400);
+    ];
+    for (const q of bad) expect((await list(a.cookie, q)).status).toBe(400);
     const forged = await list(a.cookie, { cursor: Buffer.from('xyz').toString('base64url') });
     expect(forged.status).toBe(400);
     expect((await list(undefined)).status).toBe(401);
