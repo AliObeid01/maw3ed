@@ -76,7 +76,17 @@ describe('setup API client', () => {
 
   it('unwraps list envelopes', async () => {
     mockFetch(200, {
-      services: [{ id: 's1', name: 'Haircut', durationMin: 30, bufferMin: 10, price: 15, active: true, sortOrder: 0 }],
+      services: [
+        {
+          id: 's1',
+          name: 'Haircut',
+          durationMin: 30,
+          bufferMin: 10,
+          price: 15,
+          active: true,
+          sortOrder: 0,
+        },
+      ],
     });
     const services = await listServices();
     expect(services).toHaveLength(1);
@@ -85,9 +95,15 @@ describe('setup API client', () => {
 
   it('maps the error envelope, keeping field messages', async () => {
     mockFetch(400, {
-      error: { code: 'VALIDATION_ERROR', message: 'raw', fields: { name: 'Required', price: ['Too low', 'x'] } },
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'raw',
+        fields: { name: 'Required', price: ['Too low', 'x'] },
+      },
     });
-    const error = await createService({ name: '', durationMin: 30, bufferMin: 0, price: 1 }).catch((e) => e);
+    const error = await createService({ name: '', durationMin: 30, bufferMin: 0, price: 1 }).catch(
+      (e) => e,
+    );
     expect(error).toBeInstanceOf(ApiError);
     expect(error.status).toBe(400);
     expect(error.code).toBe('VALIDATION_ERROR');
@@ -95,7 +111,10 @@ describe('setup API client', () => {
   });
 
   it('turns a network failure into NETWORK and an unknown body into HTTP_<status>', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => Promise.reject(new TypeError('boom'))));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => Promise.reject(new TypeError('boom'))),
+    );
     await expect(getBusiness()).rejects.toMatchObject({ code: 'NETWORK', status: 0 });
     mockFetch(502, '<html>');
     await expect(getBusiness()).rejects.toMatchObject({ code: 'HTTP_502', status: 502 });

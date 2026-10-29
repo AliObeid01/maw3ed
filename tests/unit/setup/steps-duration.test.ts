@@ -20,7 +20,14 @@ describe('deriveSetupSteps', () => {
       shareSeen: false,
       hasReceptionist: false,
     });
-    expect(steps.map((s) => s.id)).toEqual(['business', 'services', 'staff', 'hours', 'share', 'invite']);
+    expect(steps.map((s) => s.id)).toEqual([
+      'business',
+      'services',
+      'staff',
+      'hours',
+      'share',
+      'invite',
+    ]);
     expect(doneCount).toBe(1);
     expect(percent).toBe(17);
     expect(steps.find((s) => s.current)?.id).toBe('services');
@@ -98,7 +105,9 @@ describe('duration helpers', () => {
 
 describe('share link helpers', () => {
   it('builds the public booking URL without double slashes', () => {
-    expect(bookingUrl('https://maw3ed.com/', 'studio-nour')).toBe('https://maw3ed.com/b/studio-nour');
+    expect(bookingUrl('https://maw3ed.com/', 'studio-nour')).toBe(
+      'https://maw3ed.com/b/studio-nour',
+    );
     expect(displayUrl('https://maw3ed.com/b/studio-nour')).toBe('maw3ed.com/b/studio-nour');
   });
 
@@ -106,6 +115,8 @@ describe('share link helpers', () => {
     const url = whatsappShareUrl('Book here: https://x.test/b/a b?c=1&d');
     expect(url.startsWith('https://wa.me/?text=')).toBe(true);
     expect(url).not.toContain(' ');
-    expect(decodeURIComponent(url.split('text=')[1]!)).toBe('Book here: https://x.test/b/a b?c=1&d');
+    expect(decodeURIComponent(url.split('text=')[1]!)).toBe(
+      'Book here: https://x.test/b/a b?c=1&d',
+    );
   });
 });
