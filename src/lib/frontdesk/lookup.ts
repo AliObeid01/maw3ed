@@ -1,4 +1,5 @@
 import type { ClientHit } from '@/lib/api/dashboard';
+import { isE164 } from '@/lib/dashboard/phone';
 
 export const LOOKUP_DELAY_MS = 350;
 /** Fewer digits than this match too many people to be useful. */
@@ -17,7 +18,8 @@ export const lookupDigits = (phone: string) => phone.replace(/\D/g, '');
 export function pickClient(hits: ClientHit[], phone: string): ClientHit | undefined {
   const typed = lookupDigits(phone);
   if (!typed) return undefined;
-  return hits.find((h) => lookupDigits(h.phone) === typed);
+  // An anonymised client's tombstone phone must never match a number someone types.
+  return hits.find((h) => isE164(h.phone) && lookupDigits(h.phone) === typed);
 }
 
 /**

@@ -86,7 +86,10 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   const { signOut, signingOut } = useSignOut();
   const { summary } = useSummary();
   const badges = { reminders: summary?.whatsappDue ?? 0, outcomes: summary?.outcomesToMark ?? 0 };
-  const isToday = activeId === 'today';
+  // Detail pages keep their parent's nav item but carry their own title (board 4.5, 4.7).
+  const isAppointment = pathname.startsWith('/app/appointments/');
+  const isClient = pathname.startsWith('/app/clients/');
+  const isToday = activeId === 'today' && !isAppointment;
   const announcement = summary
     ? [
         tn('badge.reminders', { count: badges.reminders }),
@@ -119,7 +122,11 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       title={
         isToday
           ? t('today.greeting', { name: session.userName, part: greetingFor(session.timezone) })
-          : t(`titles.${activeId}`)
+          : isAppointment
+            ? t('titles.appointment')
+            : isClient
+              ? t('titles.client')
+              : t(`titles.${activeId}`)
       }
       hideBusiness={session.role !== 'OWNER'}
       onSignOut={signOut}
