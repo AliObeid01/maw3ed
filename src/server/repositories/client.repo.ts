@@ -89,39 +89,43 @@ export const clientRepo = {
    * "Delete on request" (NFR-04) as an anonymisation, in ONE transaction: future active appointments are
    * cancelled (slot freed, pending reminders skipped), open waitlist entries (and their open offers) are
    * closed, then the client row loses name, phone and email. Counters stay so the history keeps its totals.
-   * Returns null when the client is not in this business (or is already anonymised).
+   * Returns null when the client is not in this business or is already anonymised: a second DELETE of the
+   * same client therefore answers 404.
    */
   anonymise: (businessId: string, id: string, now: Date) =>
     db.$transaction(async (tx) => {
-      const client = await tx.client.findFirst({
-        where: { id, businessId, NOT: { phone: { startsWith: TOMBSTONE_PHONE_PREFIX } } },
-        select: { id: true },
-      });
-      if (!client) return null;
+      // Lock the client row first: a concurrent booking's insert (FK key share) waits for this transaction,
+      // and a concurrent second DELETE waits, then finds the tombstone and answers 404.
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Client"
+        WHERE "id" = ${id} AND "businessId" = ${businessId} AND "phone" NOT LIKE ${`${TOMBSTONE_PHONE_PREFIX}%`}
+        FOR UPDATE`;
+      if (locked.length !== 1) return null;
 
-      const future = await tx.appointment.findMany({
-        where: {
-          businessId,
-          clientId: id,
-          startAt: { gt: now },
-          status: { in: ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'] },
-        },
-        select: { id: true, serviceId: true, staffId: true, startAt: true, endAt: true },
-      });
-      const freed: typeof future = [];
-      for (const a of future) {
-        const res = await tx.appointment.updateMany({
-          where: {
-            id: a.id,
-            businessId,
-            status: { in: ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'] },
-          },
-          data: { status: 'CANCELLED', cancelledAt: now, cancelledVia: 'STAFF' },
+      const ACTIVE = ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'] as const;
+      const freed: {
+        id: string;
+        serviceId: string;
+        staffId: string;
+        startAt: Date;
+        endAt: Date;
+      }[] = [];
+      const cancelFuture = async () => {
+        const future = await tx.appointment.findMany({
+          where: { businessId, clientId: id, startAt: { gt: now }, status: { in: [...ACTIVE] } },
+          select: { id: true, serviceId: true, staffId: true, startAt: true, endAt: true },
         });
-        if (res.count !== 1) continue;
-        await reminderJobRepo.skipPending(businessId, tx, a.id);
-        freed.push(a);
-      }
+        for (const a of future) {
+          const res = await tx.appointment.updateMany({
+            where: { id: a.id, businessId, status: { in: [...ACTIVE] } },
+            data: { status: 'CANCELLED', cancelledAt: now, cancelledVia: 'STAFF' },
+          });
+          if (res.count !== 1) continue;
+          await reminderJobRepo.skipPending(businessId, tx, a.id);
+          freed.push(a);
+        }
+      };
+      await cancelFuture();
 
       const entries = await tx.waitlistEntry.findMany({
         where: { businessId, clientId: id, status: 'OPEN' },
@@ -143,8 +147,32 @@ export const clientRepo = {
         where: { id, businessId },
         data: { name: DELETED_CLIENT_NAME, phone: tombstonePhone(id), email: null },
       });
+      // Sweep again after the tombstone: anything that became visible while we worked is cancelled too.
+      await cancelFuture();
       return { freed };
     }),
+
+  /**
+   * Recompute attended / noShows / lateCancels from the appointment table (the counters are a cache of it).
+   * One client, or every client of the business. Not wired to a route: a repair tool for counter drift.
+   * Returns the number of client rows whose counters changed.
+   */
+  async reconcileClientCounters(businessId: string, clientId?: string): Promise<number> {
+    const only = clientId ? Prisma.sql`AND c."id" = ${clientId}` : Prisma.empty;
+    const changed = await db.$executeRaw`
+      UPDATE "Client" c SET
+        "attended" = t.attended, "noShows" = t."noShows", "lateCancels" = t."lateCancels"
+      FROM (
+        SELECT c2."id",
+          (SELECT count(*) FROM "Appointment" a WHERE a."clientId" = c2."id" AND a."businessId" = c2."businessId" AND a."status" = 'ATTENDED')::int AS attended,
+          (SELECT count(*) FROM "Appointment" a WHERE a."clientId" = c2."id" AND a."businessId" = c2."businessId" AND a."status" = 'NO_SHOW')::int AS "noShows",
+          (SELECT count(*) FROM "Appointment" a WHERE a."clientId" = c2."id" AND a."businessId" = c2."businessId" AND a."status" = 'LATE_CANCEL')::int AS "lateCancels"
+        FROM "Client" c2 WHERE c2."businessId" = ${businessId}
+      ) t
+      WHERE c."id" = t."id" AND c."businessId" = ${businessId} ${only}
+        AND (c."attended", c."noShows", c."lateCancels") IS DISTINCT FROM (t.attended, t."noShows", t."lateCancels")`;
+    return changed;
+  },
 
   /**
    * Find-or-create by (businessId, E.164 phone), safe under concurrency (ON CONFLICT DO NOTHING).

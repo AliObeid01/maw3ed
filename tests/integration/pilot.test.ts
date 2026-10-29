@@ -235,7 +235,10 @@ describe('GET /api/pilot/report', () => {
     const a1 = await add('2026-10-20T06:00:00Z', 'ATTENDED', { confirmed: true });
     await add('2026-10-20T08:00:00Z', 'ATTENDED');
     await add('2026-10-21T06:00:00Z', 'NO_SHOW');
-    await add('2026-10-22T06:00:00Z', 'LATE_CANCEL', { cancelledVia: 'LINK' });
+    const lateCancelled = await add('2026-10-22T06:00:00Z', 'LATE_CANCEL', {
+      cancelledVia: 'LINK',
+      confirmed: true,
+    });
     await add('2026-10-22T09:00:00Z', 'CANCELLED', { cancelledVia: 'LINK' });
     await add('2026-10-25T21:30:00Z', 'ATTENDED'); // Sun 23:30 local: still the DST week
     // Week of Mon 26 Oct.
@@ -251,7 +254,7 @@ describe('GET /api/pilot/report', () => {
     await add('2026-11-03T06:00:00Z', 'NO_SHOW');
     const a4 = await add('2026-11-03T08:00:00Z', 'NO_SHOW');
     await add('2026-11-04T06:00:00Z', 'BOOKED'); // started, not yet marked: counts as an appointment only
-    await add('2026-11-04T12:00:00Z', 'BOOKED'); // still to come: not part of the pilot yet
+    const future = await add('2026-11-04T12:00:00Z', 'CONFIRMED', { confirmed: true }); // still to come: not part of the pilot yet
     const a5 = await add('2026-11-03T10:00:00Z', 'CONFIRMED', { confirmed: true });
     void a5;
     await add('2026-11-03T12:00:00Z', 'PENDING_PAYMENT'); // not an appointment yet: excluded everywhere
@@ -262,6 +265,9 @@ describe('GET /api/pilot/report', () => {
     await sent(a3.id, 'H2', 'EMAIL');
     await sent(a4.id, 'H24', 'EMAIL');
     await sent(a5.id, 'BOOKING', 'EMAIL');
+    // Reminded but not yet started, or cancelled: outside the confirm-rate population.
+    await sent(future.id, 'H24', 'EMAIL');
+    await sent(lateCancelled.id, 'H24', 'EMAIL');
     // Waitlist: 3 freed slots offered (a1, a2, a3); slot a1 was offered to two clients and rebooked by one.
     const e1 = await waitlistEntry();
     const e2 = await waitlistEntry();

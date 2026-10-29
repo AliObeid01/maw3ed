@@ -106,6 +106,27 @@ describe('GET /api/dashboard/summary', () => {
     }
   });
 
+  it('whatsappDue is the same count as the due list at every point in time', async () => {
+    await bookPublicly(a.slug, bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('07:00')));
+    await bookPublicly(a.slug, bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('09:00')));
+    const seen = new Set<number>();
+    for (const iso of [
+      '2026-11-02T08:00:00Z',
+      '2026-11-03T08:00:00Z',
+      '2026-11-03T10:00:00Z',
+      '2026-11-04T05:30:00Z',
+      '2026-11-04T07:30:00Z',
+      '2026-11-04T12:00:00Z',
+    ]) {
+      vi.setSystemTime(new Date(iso));
+      const list = await call(whatsappDue, '/api/reminders/whatsapp-due', { cookie: a.cookie });
+      const res = await sum(a.cookie);
+      expect(res.body!.whatsappDue, iso).toBe(list.body!.count);
+      seen.add(list.body!.count);
+    }
+    expect(seen.size).toBeGreaterThan(1); // the count really changes as the windows open and close
+  });
+
   it('is scoped per business, 401 without a session, 400 for unexpected params is not applicable', async () => {
     await add('2026-10-30T06:00:00Z');
     expect((await sum(b.cookie)).body).toEqual({ whatsappDue: 0, outcomesToMark: 0 });
@@ -140,6 +161,7 @@ describe('GET /api/dashboard/today', () => {
       source: 'WAITLIST',
       createdAt: new Date('2026-11-01T08:00:00Z'),
     });
+    await add('2026-11-04T14:00:00Z', { status: 'PENDING_PAYMENT' }); // listed, never counted
     await add('2026-11-04T21:30:00Z', {}, a, aScn, { name: 'LateNight' });
     await add('2026-11-04T22:00:00Z', {}, a, aScn, { name: 'DayAfter' });
     await add('2026-11-04T09:00:00Z', {}, b, bScn, { name: 'OtherTenantPerson' });
@@ -161,14 +183,14 @@ describe('GET /api/dashboard/today', () => {
     expect(listed).not.toContain('DayBefore');
     expect(listed).not.toContain('DayAfter');
     expect(listed).not.toContain('OtherTenantPerson');
-    expect(body.appointments).toHaveLength(8); // 6 live + CANCELLED + LATE_CANCEL (flagged by status)
+    expect(body.appointments).toHaveLength(9); // 6 live + CANCELLED + LATE_CANCEL + PENDING_PAYMENT (flagged by status)
     const starts = body.appointments.map((x: any) => x.startAt);
     expect(starts).toEqual([...starts].sort());
     expect(body.stats).toEqual({
       appointments: 6,
       confirmed: 1,
       noReply: 5,
-      refilledFromWaitlist: 1,
+      refilledFromWaitlist: 2, // both WAITLIST-source appointments that start on the viewed date
     });
     expect(body.staff.map((s: any) => s.id)).toContain(aScn.staffIds[0]); // plus the bookable owner
 
@@ -196,6 +218,28 @@ describe('GET /api/dashboard/today', () => {
     expect(body.whatsappDue).toBe(wa.body!.count);
     const statuses = body.appointments.map((x: any) => x.status);
     expect(statuses).toEqual(expect.arrayContaining(['CANCELLED', 'LATE_CANCEL']));
+  });
+
+  it('noReply only counts BOOKED appointments that have not started; refills follow the viewed date', async () => {
+    vi.setSystemTime(new Date('2026-11-03T09:30:00Z'));
+    await add('2026-11-03T08:00:00Z', {}, a, aScn, { name: 'Started, unmarked' }); // an outcome to mark
+    await add('2026-11-03T12:00:00Z', {}, a, aScn, { name: 'Still to come' });
+    await add('2026-11-03T13:00:00Z', {
+      source: 'WAITLIST',
+      createdAt: new Date('2026-10-20T00:00:00Z'),
+    });
+    await add('2026-11-04T13:00:00Z', {
+      source: 'WAITLIST',
+      createdAt: new Date('2026-11-03T09:00:00Z'),
+    });
+    const res = await day(a.cookie, { date: '2026-11-03' });
+    expect(res.body!.stats).toEqual({
+      appointments: 3,
+      confirmed: 0,
+      noReply: 2,
+      refilledFromWaitlist: 1,
+    });
+    expect((await day(a.cookie, { date: '2026-11-04' })).body!.stats.refilledFromWaitlist).toBe(1);
   });
 
   it('defaults to today in the business timezone and counts outcomes still to mark', async () => {

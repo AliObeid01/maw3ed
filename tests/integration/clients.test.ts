@@ -17,6 +17,7 @@ import {
   type Tenant,
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
+import { clientRepo } from '@/server/repositories/client.repo';
 import { e164, newStaffCookie, seedAppointment, seedClient } from './helpers/outcomes';
 
 let pg: Client;
@@ -419,6 +420,84 @@ describe('DELETE /api/clients/{id}', () => {
       name: 'Twin',
       phone: v.phone,
     });
+  });
+});
+
+describe('DELETE /api/clients/{id}: concurrency', () => {
+  it('two simultaneous deletes: exactly one 204, the other 404, and the future booking is cancelled once', async () => {
+    const booked = await bookPublicly(
+      a.slug,
+      bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('07:00'), { name: 'Racer' }),
+    );
+    const clientId = (
+      await pg.query('SELECT "clientId" FROM "Appointment" WHERE id = $1', [
+        booked.body!.appointment.id,
+      ])
+    ).rows[0].clientId as string;
+    const results = await Promise.all([del(a.cookie, clientId), del(a.cookie, clientId)]);
+    expect(results.map((r) => r.status).sort()).toEqual([204, 404]);
+    expect(
+      (
+        await pg.query('SELECT status, "cancelledVia" FROM "Appointment" WHERE id = $1', [
+          booked.body!.appointment.id,
+        ])
+      ).rows[0],
+    ).toEqual({ status: 'CANCELLED', cancelledVia: 'STAFF' });
+  });
+});
+
+describe('clientRepo.reconcileClientCounters', () => {
+  it('recomputes counters from the appointments, for one client or the whole business only', async () => {
+    const mk = async (
+      counters: Record<string, number>,
+      statuses: string[],
+      tenant = a,
+      scn = aScn,
+    ) => {
+      const c = await seedClient(prisma, tenant.businessId, counters);
+      for (const [i, status] of statuses.entries())
+        await seedAppointment(prisma, {
+          businessId: tenant.businessId,
+          clientId: c.id,
+          staffId: scn.staffIds[0]!,
+          serviceId: scn.serviceId,
+          startAt: new Date(
+            Date.parse('2026-09-01T06:00:00Z') +
+              (c.id.length + i) * 3_600_000 * 24 +
+              Math.random() * 1000,
+          ).toISOString(),
+          status: status as any,
+        });
+      return c;
+    };
+    const drifted = await mk({ attended: 9, noShows: 0, lateCancels: 5 }, [
+      'ATTENDED',
+      'ATTENDED',
+      'NO_SHOW',
+      'BOOKED',
+      'CANCELLED',
+    ]);
+    const other = await mk({ attended: 7 }, ['ATTENDED']);
+    const clean = await mk({ attended: 1 }, ['ATTENDED']);
+    const foreign = await mk({ attended: 4 }, ['NO_SHOW'], b, bScn);
+
+    expect(await clientRepo.reconcileClientCounters(a.businessId, drifted.id)).toBe(1);
+    const row = async (id: string) =>
+      (
+        await pg.query('SELECT attended, "noShows", "lateCancels" FROM "Client" WHERE id = $1', [
+          id,
+        ])
+      ).rows[0];
+    expect(await row(drifted.id)).toEqual({ attended: 2, noShows: 1, lateCancels: 0 });
+    expect((await row(other.id)).attended).toBe(7); // untouched: only one client was asked for
+
+    expect(await clientRepo.reconcileClientCounters(a.businessId)).toBe(1); // `other` only; the rest already match
+    expect((await row(other.id)).attended).toBe(1);
+    expect((await row(clean.id)).attended).toBe(1);
+    expect((await row(foreign.id)).attended).toBe(4); // another business is never touched
+    expect(await clientRepo.reconcileClientCounters(a.businessId)).toBe(0);
+    // a client id from another business changes nothing
+    expect(await clientRepo.reconcileClientCounters(a.businessId, foreign.id)).toBe(0);
   });
 });
 
