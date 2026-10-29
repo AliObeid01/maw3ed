@@ -1,7 +1,7 @@
 'use client';
 
 import { BellRing, Compass, Check, WifiOff, ChevronLeft } from 'lucide-react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { FormBanner } from '@/components/auth/formKit';
@@ -34,6 +34,7 @@ import { useLocaleHint } from '@/lib/useLocaleHint';
 
 const mainClass =
   'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-10 md:px-8 md:pt-7';
+const HOW_STEPS = ['s1', 's2', 's3'] as const;
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 /** Order the fields appear on the page: the first invalid one gets focus. */
 const FIELD_IDS: Record<JoinField, string> = {
@@ -51,6 +52,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   const t = useTranslations('waitlist');
   const tErr = useTranslations('waitlist.errors');
   const pathname = usePathname();
+  const router = useRouter();
   const search = useSearchParams();
   const business = useResource((signal) => getPublicBusiness(slug, signal), slug);
   const data = business.data;
@@ -59,9 +61,10 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   useLocaleHint(data?.business.locale, pathname);
 
   const [now] = useState(() => new Date());
-  const [serviceId, setServiceId] = useState<string>();
-  const [staffId, setStaffId] = useState<string>();
-  const [range, setRange] = useState<{ from: string; to: string }>();
+  // What the person changed; until then the URL prefill and the defaults show (no effect needed).
+  const [pickedService, setPickedService] = useState<string>();
+  const [pickedStaff, setPickedStaff] = useState<string | null>();
+  const [pickedRange, setPickedRange] = useState<{ from: string; to: string }>();
   const [name, setName] = useState('');
   const [dial, setDial] = useState(DEFAULT_DIAL);
   const [phone, setPhone] = useState('');
@@ -80,19 +83,21 @@ export function JoinWaitlist({ slug }: { slug: string }) {
     [data],
   );
 
-  // Prefill once the catalogue is known: ids from the URL that do not exist are dropped.
-  const prefilled = useRef(false);
-  useEffect(() => {
-    if (!data || prefilled.current) return;
-    prefilled.current = true;
-    const s = search.get('service');
-    const p = search.get('staff');
+  const searchText = search.toString();
+  const prefill = useMemo(() => {
+    const q = new URLSearchParams(searchText);
+    const s = q.get('service');
+    const p = q.get('staff');
     const svc = s && ID.test(s) ? services.find((x) => x.id === s) : undefined;
-    setServiceId(svc?.id ?? (services.length === 1 ? services[0]!.id : undefined));
-    const eligible = svc ? data.staff.filter((x) => x.serviceIds.includes(svc.id)) : [];
-    if (svc && p && eligible.some((x) => x.id === p)) setStaffId(p);
-    setRange(defaultRange(now, data.business.timezone, readWindowLength(slug)));
-  }, [data, search, services, now, slug]);
+    const serviceId = svc?.id ?? (services.length === 1 ? services[0]!.id : undefined);
+    const eligible = svc && data ? data.staff.filter((x) => x.serviceIds.includes(svc.id)) : [];
+    return { serviceId, staffId: svc && p && eligible.some((x) => x.id === p) ? p : undefined };
+  }, [searchText, services, data]);
+  const serviceId = pickedService ?? prefill.serviceId;
+  const staffId = pickedStaff === undefined ? (pickedService ? undefined : prefill.staffId) : (pickedStaff ?? undefined);
+  const range = pickedRange ?? (data ? defaultRange(now, data.business.timezone, readWindowLength(slug)) : undefined);
+  const setRange = (updater: (r: { from: string; to: string }) => { from: string; to: string }) =>
+    setPickedRange(updater(range!));
 
   // Focus the first invalid field (in page order), else the banner, after a failed submit.
   useEffect(() => {
@@ -315,7 +320,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
         >
           <span className="text-[13px] font-semibold tracking-[0.08em] text-muted uppercase">{t('how.title')}</span>
           <ol className="m-0 flex list-none flex-col gap-4 p-0">
-            {(['s1', 's2', 's3'] as const).map((k, i) => (
+            {HOW_STEPS.map((k, i) => (
               <li key={k} className="flex items-start gap-3">
                 <span
                   aria-hidden="true"
@@ -336,7 +341,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
           <div className="flex items-center gap-3">
             <IconButton
               label={t('back')}
-              onClick={() => (window.history.length > 1 ? window.history.back() : (window.location.href = bookHref))}
+              onClick={() => (window.history.length > 1 ? router.back() : router.push(bookHref))}
             >
               <ChevronLeft size={20} aria-hidden="true" className="rtl:-scale-x-100" />
             </IconButton>
@@ -367,8 +372,8 @@ export function JoinWaitlist({ slug }: { slug: string }) {
                   disabled={pending}
                   error={err(errors.service)}
                   onChange={(e) => {
-                    setServiceId(e.target.value || undefined);
-                    setStaffId(undefined);
+                    setPickedService(e.target.value || '');
+                    setPickedStaff(null);
                     clearField('service');
                   }}
                 >
@@ -386,7 +391,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
                   disabled={pending || !service}
                   error={err(errors.staff)}
                   onChange={(e) => {
-                    setStaffId(e.target.value || undefined);
+                    setPickedStaff(e.target.value || null);
                     clearField('staff');
                   }}
                 >
