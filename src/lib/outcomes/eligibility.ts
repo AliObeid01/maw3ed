@@ -11,7 +11,7 @@ export function outcomeWindow(startAt: string, endAt: string, now: Date): Outcom
 }
 
 /** `current` = already recorded (shown pressed, not tappable). The other two reasons explain a disabled button. */
-export type OptionState = 'enabled' | 'current' | 'notStarted' | 'notEnded';
+export type OptionState = 'enabled' | 'current' | 'notStarted' | 'notEnded' | 'locked';
 
 export type OutcomeOptions =
   | { open: false }
@@ -44,6 +44,8 @@ export function outcomeOptions(
   const stateFor = (outcome: Outcome): OptionState => {
     if (outcome === current) return 'current';
     if (window === 'upcoming') return 'notStarted';
+    // A late cancel is final for Attended and No-show (the cancel flow records it and the server answers 409 CONFLICT).
+    if (current === 'LATE_CANCEL') return 'locked';
     if (outcome === 'ATTENDED' && window === 'inProgress') return 'notEnded';
     return 'enabled';
   };

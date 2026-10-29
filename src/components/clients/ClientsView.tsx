@@ -18,6 +18,7 @@ import { initialList, listReducer } from '@/lib/clients/state';
 import { cn } from '@/lib/cn';
 import { dayRelation } from '@/lib/dashboard/agenda';
 import { formatPhone, initials } from '@/lib/dashboard/phone';
+import { useClientLabel } from '@/components/app/useClientLabel';
 
 export const SEARCH_DEBOUNCE_MS = 300;
 const GRID = 'md:grid md:grid-cols-[1.6fr_1.3fr_0.6fr_0.8fr_0.9fr_1.2fr_20px] md:items-center md:gap-3';
@@ -38,6 +39,8 @@ function CountPill({ value, tone }: { value: number; tone: 'danger' | 'warning' 
 }
 
 function ClientItem({ client, timezone }: { client: ClientRow; timezone: string }) {
+  const label = useClientLabel();
+  const name = label(client);
   const t = useTranslations('app.clients');
   const f = useBookingFormat(timezone);
   const last = client.lastVisitAt
@@ -49,7 +52,7 @@ function ClientItem({ client, timezone }: { client: ClientRow; timezone: string 
     <li className="border-b border-row last:border-b-0">
       <Link
         href={`/app/clients/${client.id}`}
-        aria-label={t('openAria', { name: client.name })}
+        aria-label={t('openAria', { name })}
         className={cn(
           'flex min-h-[72px] flex-col gap-2 px-4 py-3.5 text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas md:min-h-[64px] md:px-[22px] md:py-3',
           GRID,
@@ -63,10 +66,10 @@ function ClientItem({ client, timezone }: { client: ClientRow; timezone: string 
               client.repeatNoShow ? 'bg-danger-soft text-danger' : 'bg-brand-avatar text-brand',
             )}
           >
-            {initials(client.name)}
+            {initials(name)}
           </span>
           <span className="flex min-w-0 flex-col gap-0.5 md:flex-row md:items-center md:gap-2">
-            <span className="truncate font-semibold">{client.name}</span>
+            <span className="truncate font-semibold">{name}</span>
             {client.repeatNoShow ? (
               <NoShowBadge count={client.noShows} className="self-start md:self-auto" />
             ) : null}
@@ -91,7 +94,7 @@ function ClientItem({ client, timezone }: { client: ClientRow; timezone: string 
         <span className="hidden tabular-nums md:block">
           <CountPill
             value={client.noShows}
-            tone={client.noShows >= 2 ? 'danger' : client.noShows === 1 ? 'warning' : 'none'}
+            tone={client.repeatNoShow ? 'danger' : client.noShows > 0 ? 'warning' : 'none'}
           />
         </span>
         <span className="hidden tabular-nums md:block">{client.lateCancels}</span>
@@ -144,7 +147,10 @@ export function ClientsView() {
 
   // First page of the current search/sort. Every restart bumps `seq`, so an answer to an older one is ignored.
   const { seq, search, sort } = state;
+  const moreAbort = useRef<AbortController | null>(null);
   useEffect(() => {
+    // A new search or sort also cancels a "Load more" still on its way.
+    moreAbort.current?.abort();
     const controller = new AbortController();
     getClients({ search, sort }, controller.signal)
       .then((page) => dispatch({ type: 'loaded', seq, page }))
@@ -156,11 +162,15 @@ export function ClientsView() {
   }, [seq, search, sort]);
 
   const loadMore = () => {
-    if (!state.nextCursor || state.loadingMore) return;
+    if (!state.nextCursor || state.loadingMore || state.status !== 'ready') return;
     dispatch({ type: 'loadMore' });
-    getClients({ search: state.search, sort: state.sort, cursor: state.nextCursor })
+    const controller = new AbortController();
+    moreAbort.current = controller;
+    getClients({ search: state.search, sort: state.sort, cursor: state.nextCursor }, controller.signal)
       .then((page) => dispatch({ type: 'moreLoaded', seq: state.seq, page }))
-      .catch(() => dispatch({ type: 'moreFailed', seq: state.seq }));
+      .catch(() => {
+        if (!controller.signal.aborted) dispatch({ type: 'moreFailed', seq: state.seq });
+      });
   };
 
   const onText = (value: string) => {
@@ -201,6 +211,7 @@ export function ClientsView() {
             inputMode="search"
             enterKeyHint="search"
             autoComplete="off"
+            maxLength={80}
             value={text}
             onChange={(e) => onText(e.target.value)}
             placeholder={t('searchPlaceholder')}

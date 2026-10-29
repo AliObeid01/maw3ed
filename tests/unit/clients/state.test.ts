@@ -127,6 +127,15 @@ describe('clients list state', () => {
     expect(listReducer(failed, { type: 'retry' })).toMatchObject({ status: 'loading', seq: 1 });
   });
 
+  it('a restart clears the cursor so Load more cannot page through the previous search', () => {
+    const s = run([
+      { type: 'loaded', seq: 0, page: page(['1'], 'c') },
+      { type: 'filter', search: 'x', sort: 'name' },
+    ]);
+    expect(s.nextCursor).toBeNull();
+    expect(listReducer(s, { type: 'loadMore' })).toBe(s);
+  });
+
   it('mergePage keeps order and ignores repeats', () => {
     expect(mergePage([row('1')], [row('1'), row('2')]).map((c) => c.id)).toEqual(['1', '2']);
   });

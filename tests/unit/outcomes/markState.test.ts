@@ -98,17 +98,36 @@ describe('mark state machine', () => {
     expect(justMarked(s)).toHaveLength(1);
   });
 
-  it('404 and CONFLICT remove the card for good (it cannot be marked)', () => {
-    for (const kind of ['notFound', 'conflict'] as const) {
-      const s = run([
-        { type: 'tap', item: a, outcome: 'ATTENDED' },
-        { type: 'fail', id: 'a', failure: { kind } },
-      ]);
-      expect(s.entries.a!.phase).toBe('gone');
-      expect(pendingItems([a], s)).toEqual([]);
-      expect(justMarked(s)).toEqual([]);
-      expect(canMark(s, 'a')).toBe(false);
-    }
+  it('only a 404 removes the card for good', () => {
+    const s = run([
+      { type: 'tap', item: a, outcome: 'ATTENDED' },
+      { type: 'fail', id: 'a', failure: { kind: 'notFound' } },
+    ]);
+    expect(s.entries.a!.phase).toBe('gone');
+    expect(pendingItems([a], s)).toEqual([]);
+    expect(justMarked(s)).toEqual([]);
+    expect(canMark(s, 'a')).toBe(false);
+  });
+
+  it('a 409 CONFLICT on a first mark keeps the card in the queue with a retry and still counts it as waiting', () => {
+    const s = run([
+      { type: 'tap', item: a, outcome: 'ATTENDED' },
+      { type: 'fail', id: 'a', failure: { kind: 'conflict' } },
+    ]);
+    expect(s.entries.a).toMatchObject({ phase: 'failed', outcome: null, error: { kind: 'conflict' } });
+    expect(pendingItems([a], s).map((i) => i.id)).toEqual(['a']);
+    expect(canMark(s, 'a')).toBe(true);
+    expect(remainingCount(1, [a], s)).toBe(1);
+  });
+
+  it('a 409 CONFLICT on a correction rolls back to the confirmed outcome', () => {
+    const s = run([
+      { type: 'tap', item: a, outcome: 'NO_SHOW' },
+      { type: 'ok', id: 'a', outcome: 'NO_SHOW' },
+      { type: 'tap', item: a, outcome: 'ATTENDED' },
+      { type: 'fail', id: 'a', failure: { kind: 'conflict' } },
+    ]);
+    expect(s.entries.a).toMatchObject({ phase: 'done', outcome: 'NO_SHOW' });
   });
 
   it('a late answer for a card that is not saving is ignored', () => {

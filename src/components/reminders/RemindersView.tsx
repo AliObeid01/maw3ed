@@ -22,7 +22,8 @@ import {
 } from '@/lib/api/reminders';
 import { useResource } from '@/lib/api/useResource';
 import { dayRelation } from '@/lib/dashboard/agenda';
-import { formatPhone } from '@/lib/dashboard/phone';
+import { formatPhone, telUrl } from '@/lib/dashboard/phone';
+import { isRepeatNoShow } from '@/lib/clientFlags';
 import {
   deriveReminder,
   idleMark,
@@ -146,9 +147,9 @@ function ActionCell({
             <PhoneOff size={16} aria-hidden="true" />
             {t('noPhone')}
           </span>
-          {item.client.phone ? (
+          {telUrl(item.client.phone) ? (
             <a
-              href={`tel:${item.client.phone}`}
+              href={telUrl(item.client.phone) ?? undefined}
               className="inline-flex min-h-11 items-center text-brand underline"
             >
               {t('callInstead')}
@@ -164,7 +165,7 @@ function ClientCell({ item }: { item: ReminderItem }) {
     <span className="flex min-w-0 flex-col gap-0.5">
       <span className="flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
         {item.client.name}
-        {item.client.noShows > 1 ? <NoShowBadge count={item.client.noShows} /> : null}
+        {isRepeatNoShow(item.client.noShows) ? <NoShowBadge count={item.client.noShows} /> : null}
       </span>
       <span className="text-[13px] text-muted">
         <bdi dir="ltr">{formatPhone(item.client.phone)}</bdi>

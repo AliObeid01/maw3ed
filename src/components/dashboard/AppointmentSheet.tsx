@@ -11,7 +11,8 @@ import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { cancelAppointment, type TodayAppointment } from '@/lib/api/dashboard';
 import { apptTone } from '@/lib/dashboard/agenda';
-import { formatPhone, whatsappChatUrl } from '@/lib/dashboard/phone';
+import { formatPhone, telUrl, whatsappChatUrl } from '@/lib/dashboard/phone';
+import { useClientLabel } from '@/components/app/useClientLabel';
 import { chipTone, toneLabelKey } from './apptStyles';
 
 const CANCELLABLE = new Set(['BOOKED', 'CONFIRMED']);
@@ -42,6 +43,7 @@ export function AppointmentSheet({
   const ts = useTranslations('ui.status');
   const f = useBookingFormat(timezone);
   const errorMessage = useErrorMessage();
+  const label = useClientLabel();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string>();
@@ -60,7 +62,7 @@ export function AppointmentSheet({
     try {
       await cancelAppointment(appt.id);
       setConfirming(false);
-      onCancelled(t('cancelledToast', { name: appt.client.name }));
+      onCancelled(t('cancelledToast', { name }));
     } catch (e) {
       setError(errorMessage(e));
     } finally {
@@ -70,6 +72,8 @@ export function AppointmentSheet({
 
   const tone = appt ? apptTone(appt) : 'booked';
   const wa = appt ? whatsappChatUrl(appt.client.phone) : null;
+  const tel = appt ? telUrl(appt.client.phone) : null;
+  const name = appt ? label(appt.client) : '';
 
   return (
     <>
@@ -82,8 +86,8 @@ export function AppointmentSheet({
         {appt ? (
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xl font-semibold">{appt.client.name}</span>
-              {appt.client.repeatNoShow ? <NoShowBadge count={appt.client.noShows} /> : null}
+              <span className="text-xl font-semibold">{name}</span>
+              {appt.client.repeatNoShow && tel ?<NoShowBadge count={appt.client.noShows} /> : null}
             </div>
             <dl className="m-0 flex flex-col">
               <Row label={t('status')}>
@@ -102,22 +106,24 @@ export function AppointmentSheet({
               </Row>
               {appt.confirmedAt ? <Row label={t('confirmation')}>{t('confirmedByClient')}</Row> : null}
             </dl>
-            <div className="grid grid-cols-2 gap-2">
-              <ButtonLink
-                href={`tel:${appt.client.phone}`}
-                variant="secondary"
-                size="row"
-                aria-label={t('callAria', { name: appt.client.name })}
-              >
-                <Phone size={18} aria-hidden="true" />
-                {t('call')}
-              </ButtonLink>
+            <div className="grid grid-cols-2 gap-2 empty:hidden">
+              {tel ? (
+                <ButtonLink
+                  href={tel}
+                  variant="secondary"
+                  size="row"
+                  aria-label={t('callAria', { name: name })}
+                >
+                  <Phone size={18} aria-hidden="true" />
+                  {t('call')}
+                </ButtonLink>
+              ) : null}
               {wa ? (
                 <a
                   href={wa}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={t('whatsappAria', { name: appt.client.name })}
+                  aria-label={t('whatsappAria', { name })}
                   className="inline-flex h-[46px] items-center justify-center gap-2 rounded-pill border border-line bg-surface px-5 text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
                 >
                   <MessageCircle size={18} aria-hidden="true" />
@@ -143,7 +149,7 @@ export function AppointmentSheet({
           }
         }}
         title={t('confirmTitle')}
-        description={appt ? t('confirmBody', { name: appt.client.name }) : undefined}
+        description={appt ? t('confirmBody', { name }) : undefined}
         closeLabel={t('close')}
       >
         <div className="flex flex-col gap-3">

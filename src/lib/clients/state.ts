@@ -45,6 +45,7 @@ const restart = (state: ListState, search: string, sort: ClientSort): ListState 
   search,
   sort,
   status: 'loading',
+  nextCursor: null,
   loadingMore: false,
   moreFailed: false,
   error: undefined,

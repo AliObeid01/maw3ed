@@ -3,7 +3,7 @@
 import { CalendarX2, ChevronLeft, MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
 import { useAppSession } from '@/components/app/SessionContext';
@@ -23,7 +23,8 @@ import { getAppointment, markOutcome, type AppointmentDetail, type Outcome } fro
 import { errorKey } from '@/lib/setup/errors';
 import { useResource } from '@/lib/api/useResource';
 import { apptTone, dayRelation } from '@/lib/dashboard/agenda';
-import { formatPhone, initials, whatsappChatUrl } from '@/lib/dashboard/phone';
+import { formatPhone, initials, isDeletedClient, telUrl, whatsappChatUrl } from '@/lib/dashboard/phone';
+import { useClientLabel } from '@/components/app/useClientLabel';
 import { outcomeOptions, type OutcomeOptions } from '@/lib/outcomes/eligibility';
 import { outcomeFailure, type OutcomeFailure } from '@/lib/outcomes/state';
 import { toneLabelKey } from '@/components/dashboard/apptStyles';
@@ -38,6 +39,26 @@ function useNow(ms = 30_000) {
     return () => clearInterval(id);
   }, [ms]);
   return now;
+}
+
+/** The client's name block: a link to their history, or plain text when there is no page to open. */
+function ClientHead({
+  href,
+  ariaLabel,
+  children,
+}: {
+  href: string | null;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  const cls = 'flex min-w-[180px] flex-[1_1_180px] flex-col gap-0.5 text-ink no-underline';
+  return href ? (
+    <Link href={href} aria-label={ariaLabel} className={cls}>
+      {children}
+    </Link>
+  ) : (
+    <div className={cls}>{children}</div>
+  );
 }
 
 function Skeletons() {
@@ -61,11 +82,16 @@ function OutcomeCard({
   options,
   timezone,
   onMarked,
+  onStale,
+  clientName,
 }: {
   appt: AppointmentDetail;
   options: Extract<OutcomeOptions, { open: true }>;
   timezone: string;
   onMarked: (status: string) => void;
+  /** The server disagreed with what this page showed (409 CONFLICT / NOT_STARTED): reload the truth. */
+  onStale: () => void;
+  clientName: string;
 }) {
   const t = useTranslations('app.appointment.outcome');
   const to = useTranslations('app.outcomes');
@@ -86,11 +112,12 @@ function OutcomeCard({
     try {
       const result = await markOutcome(appt.id, outcome);
       onMarked(result.appointment.status);
-      toast.show(to('marked', { name: appt.client.name, outcome: ts(statusKey[outcome]) }));
+      toast.show(to('marked', { name: clientName, outcome: ts(statusKey[outcome]) }));
     } catch (error) {
       const next = outcomeFailure(error);
       setFailure(next);
       toast.show(failureText(next), 'error');
+      if (next.kind === 'conflict' || next.kind === 'notStarted') onStale();
     } finally {
       busy.current = false;
       setPending(null);
@@ -104,9 +131,11 @@ function OutcomeCard({
       ? t('upcoming', { time: f.time(appt.startAt) })
       : options.window === 'inProgress'
         ? t('inProgress', { time: f.time(appt.endAt) })
-        : options.current
-          ? t('recorded', { outcome: ts(statusKey[options.current]) })
-          : t('ended', { name: appt.client.name });
+        : options.current === 'LATE_CANCEL'
+          ? t('lateCancelFinal')
+          : options.current
+            ? t('recorded', { outcome: ts(statusKey[options.current]) })
+            : t('ended', { name: clientName });
   return (
     <Card as="section" size="sm" padding="compact" aria-labelledby="outcome-title" className="flex flex-col gap-3">
       <h2 id="outcome-title" className="m-0 text-lg font-semibold">
@@ -116,7 +145,7 @@ function OutcomeCard({
         {hint}
       </p>
       <OutcomeButtons
-        name={appt.client.name}
+        name={clientName}
         states={options.options}
         pending={pending}
         onPick={pick}
@@ -143,6 +172,7 @@ export function AppointmentView({ id }: { id: string }) {
   const errorMessage = useErrorMessage();
   const { refresh } = useSummary();
   const now = useNow();
+  const label = useClientLabel();
   const res = useResource((signal) => getAppointment(id, signal), id);
   const [confirming, setConfirming] = useState(false);
   const [cancelling, setCancelling] = useState(false);
@@ -212,6 +242,9 @@ export function AppointmentView({ id }: { id: string }) {
   const cancellable =
     (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') && now.getTime() < Date.parse(appt.startAt);
   const wa = whatsappChatUrl(appt.client.phone);
+  const tel = telUrl(appt.client.phone);
+  const deleted = isDeletedClient(appt.client.phone);
+  const clientName = label(appt.client);
   const counts = `${t('noShowCount', { count: appt.client.noShows })}${
     appt.client.lateCancels ? `, ${t('lateCancelCount', { count: appt.client.lateCancels })}` : ''
   }`;
@@ -220,10 +253,10 @@ export function AppointmentView({ id }: { id: string }) {
   const sheet = {
     call: tc('call'),
     whatsapp: tc('whatsapp'),
-    callAria: tc('callAria', { name: appt.client.name }),
-    whatsappAria: tc('whatsappAria', { name: appt.client.name }),
+    callAria: tc('callAria', { name: clientName }),
+    whatsappAria: tc('whatsappAria', { name: clientName }),
     confirmTitle: tc('confirmTitle'),
-    confirmBody: tc('confirmBody', { name: appt.client.name }),
+    confirmBody: tc('confirmBody', { name: clientName }),
     close: tc('close'),
     confirmYes: tc('confirmYes'),
     confirmKeep: tc('confirmKeep'),
@@ -236,7 +269,7 @@ export function AppointmentView({ id }: { id: string }) {
     try {
       await cancelAppointment(appt.id);
       setConfirming(false);
-      toast.show(tc('cancelledToast', { name: appt.client.name }));
+      toast.show(tc('cancelledToast', { name: clientName }));
       res.setData({ ...appt, status: 'CANCELLED' });
       refresh();
       res.reload();
@@ -281,6 +314,8 @@ export function AppointmentView({ id }: { id: string }) {
               appt={appt}
               options={options}
               timezone={timezone}
+              clientName={clientName}
+              onStale={res.reload}
               onMarked={(status) => {
                 res.setData({ ...appt, status });
                 res.reload();
@@ -300,32 +335,35 @@ export function AppointmentView({ id }: { id: string }) {
             aria-hidden="true"
             className="flex size-[52px] shrink-0 items-center justify-center rounded-pill bg-brand-avatar text-lg font-semibold text-brand"
           >
-            {initials(appt.client.name)}
+            {initials(clientName)}
           </span>
-          <Link
-            href={`/app/clients/${appt.client.id}`}
-            aria-label={t('clientHistoryAria', { name: appt.client.name })}
-            className="flex min-w-[180px] flex-[1_1_180px] flex-col gap-0.5 text-ink no-underline"
+          <ClientHead
+            // An anonymised client has no history page (it would 404).
+            href={deleted ? null : `/app/clients/${appt.client.id}`}
+            ariaLabel={t('clientHistoryAria', { name: clientName })}
           >
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-semibold">
-              {appt.client.name}
-              {appt.client.repeatNoShow ? <NoShowBadge count={appt.client.noShows} /> : null}
+              {clientName}
+              {appt.client.repeatNoShow && !deleted ? <NoShowBadge count={appt.client.noShows} /> : null}
             </span>
             <span className="text-sm text-muted">
-              <bdi dir="ltr">{formatPhone(appt.client.phone)}</bdi> · {counts}
+              <bdi dir="ltr">{formatPhone(appt.client.phone)}</bdi>
+              {deleted ? null : <> · {counts}</>}
             </span>
-          </Link>
+          </ClientHead>
           <div className="flex w-full gap-2 sm:w-auto">
-            <ButtonLink
-              href={`tel:${appt.client.phone}`}
-              variant="secondary"
-              size="row"
-              aria-label={sheet.callAria}
-              className="flex-1 sm:flex-none"
-            >
-              <Phone size={18} aria-hidden="true" />
-              {sheet.call}
-            </ButtonLink>
+            {tel ? (
+              <ButtonLink
+                href={tel}
+                variant="secondary"
+                size="row"
+                aria-label={sheet.callAria}
+                className="flex-1 sm:flex-none"
+              >
+                <Phone size={18} aria-hidden="true" />
+                {sheet.call}
+              </ButtonLink>
+            ) : null}
             {wa ? (
               <a
                 href={wa}

@@ -40,7 +40,7 @@ function OutcomeButton({
   const ts = useTranslations('ui.status');
   const disabled = state !== 'enabled' || anyPending;
   const label = ts(labelKey[outcome]);
-  const blocked = state === 'notEnded' || state === 'notStarted';
+  const blocked = state === 'notEnded' || state === 'notStarted' || state === 'locked';
   return (
     <button
       type="button"

@@ -26,7 +26,7 @@ export function outcomeFailure(error: unknown): OutcomeFailure {
  *  - saving: request in flight; `outcome` is shown optimistically.
  *  - done: the server confirmed `outcome`.
  *  - failed: first mark failed; the card is back in the queue with an error.
- *  - gone: 404 / 409 CONFLICT; nothing more to do here, the card is hidden.
+ *  - gone: 404 only (the appointment no longer exists); the card is hidden. A 409 is never final here: the card stays with the message and a retry.
  */
 export type Entry = {
   item: QueueItem;
@@ -95,7 +95,7 @@ export function markReducer(state: MarkState, event: MarkEvent): MarkState {
       if (!prev || prev.phase !== 'saving') return state;
       const { kind } = event.failure;
       let next: Entry;
-      if (kind === 'notFound' || kind === 'conflict') {
+      if (kind === 'notFound') {
         next = { ...prev, phase: 'gone', error: event.failure };
       } else if (prev.confirmed) {
         // A correction failed: the card keeps showing what is really recorded.
@@ -110,7 +110,7 @@ export function markReducer(state: MarkState, event: MarkEvent): MarkState {
 
 /**
  * Cards in the queue: server items with no local entry, first marks that failed, and first marks still in flight.
- * A card whose first mark is saving STAYS where it is (buttons disabled, spinner on the one tapped) and only moves
+& is saving STAYS where it is (buttons disabled, spinner on the one tapped) and only moves
  * to "Just marked" once the server confirmed it. Removing it at once would slide the next card under the finger,
  * and a double tap would mark the wrong client.
  */

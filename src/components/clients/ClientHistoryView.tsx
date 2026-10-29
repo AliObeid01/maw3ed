@@ -22,7 +22,7 @@ import { useToast } from '@/components/ui/Toast';
 import { deleteClient, getClient, type ClientDetail, type HistoryItem } from '@/lib/api/outcomes';
 import { useResource } from '@/lib/api/useResource';
 import { apptTone } from '@/lib/dashboard/agenda';
-import { formatPhone, initials } from '@/lib/dashboard/phone';
+import { formatPhone, initials, telUrl } from '@/lib/dashboard/phone';
 import { errorKey } from '@/lib/setup/errors';
 
 /** The API returns the latest 50 appointments. */
@@ -204,7 +204,7 @@ export function ClientHistoryView({ id }: { id: string }) {
             </span>
             <span className="text-xl font-semibold">{client.name}</span>
             <a
-              href={`tel:${client.phone}`}
+              href={telUrl(client.phone) ?? undefined}
               className="inline-flex min-h-11 items-center text-[15px] text-muted no-underline hover:underline"
             >
               <bdi dir="ltr">{formatPhone(client.phone)}</bdi>

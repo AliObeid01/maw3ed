@@ -1,7 +1,4 @@
-/** A client with at least this many recorded no-shows is flagged as a repeat no-show (FR-23). */
-export const REPEAT_NO_SHOW_THRESHOLD = 2;
-
-export const isRepeatNoShow = (noShows: number): boolean => noShows >= REPEAT_NO_SHOW_THRESHOLD;
+export { REPEAT_NO_SHOW_THRESHOLD, isRepeatNoShow } from '@/lib/clientFlags';
 
 /** Anonymised clients keep their row (appointments reference it) but lose every personal field. */
 export const DELETED_CLIENT_NAME = 'Deleted client';

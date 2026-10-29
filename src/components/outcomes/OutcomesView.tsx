@@ -31,6 +31,8 @@ import {
   type Entry,
 } from '@/lib/outcomes/state';
 import { chipTone } from '@/components/dashboard/apptStyles';
+import { useClientLabel } from '@/components/app/useClientLabel';
+import { isRepeatNoShow } from '@/lib/clientFlags';
 import { OutcomeButtons } from './OutcomeButtons';
 import { useFailureText } from './useFailureText';
 
@@ -67,6 +69,7 @@ function QueueCard({
   onPick: (item: QueueItem, outcome: Outcome) => void;
 }) {
   const t = useTranslations('app.outcomes');
+  const label = useClientLabel();
   const failure = useFailureText();
   return (
     <Card
@@ -78,19 +81,19 @@ function QueueCard({
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-semibold">
           <Link
             href={`/app/appointments/${item.id}`}
-            aria-label={t('openAria', { name: item.client.name })}
+            aria-label={t('openAria', { name: label(item.client) })}
             className="text-ink no-underline hover:underline"
           >
-            {item.client.name}
+            {label(item.client)}
           </Link>
-          {item.client.noShows > 1 ? <NoShowBadge count={item.client.noShows} /> : null}
+          {isRepeatNoShow(item.client.noShows) ? <NoShowBadge count={item.client.noShows} /> : null}
         </span>
         <span className="text-sm text-muted">
           <When item={item} timezone={timezone} />
         </span>
       </div>
       <OutcomeButtons
-        name={item.client.name}
+        name={label(item.client)}
         pending={entry?.phase === 'saving' ? entry.outcome : null}
         onPick={(o) => onPick(item, o)}
       />
@@ -113,6 +116,7 @@ function MarkedRow({
   onPick: (item: QueueItem, outcome: Outcome) => void;
 }) {
   const t = useTranslations('app.outcomes');
+  const label = useClientLabel();
   const ts = useTranslations('ui.status');
   const failure = useFailureText();
   const f = useBookingFormat(timezone);
@@ -131,7 +135,7 @@ function MarkedRow({
             href={`/app/appointments/${item.id}`}
             className="font-semibold text-ink no-underline hover:underline"
           >
-            {item.client.name}
+            {label(item.client)}
           </Link>
           {' · '}
           <bdi dir="ltr" className="tabular-nums">
@@ -149,7 +153,7 @@ function MarkedRow({
           size="md"
           aria-expanded={changing}
           disabled={saving}
-          aria-label={t('changeAria', { name: item.client.name })}
+          aria-label={t('changeAria', { name: label(item.client) })}
           onClick={() => setChanging((v) => !v)}
           className="px-3 text-sm font-medium"
         >
@@ -163,7 +167,7 @@ function MarkedRow({
       ) : null}
       {changing && !saving ? (
         <OutcomeButtons
-          name={item.client.name}
+          name={label(item.client)}
           states={{ [outcome]: 'current' }}
           onPick={(o) => {
             setChanging(false);
@@ -194,6 +198,7 @@ function Skeletons() {
 /** Board 4.4: ended appointments that still need Attended / No-show / Late cancel. */
 export function OutcomesView() {
   const t = useTranslations('app.outcomes');
+  const label = useClientLabel();
   const ts = useTranslations('ui.status');
   const { timezone } = useAppSession();
   const toast = useToast();
@@ -220,7 +225,7 @@ export function OutcomesView() {
     try {
       await markOutcome(item.id, outcome);
       dispatch({ type: 'ok', id: item.id, outcome });
-      toast.show(t('marked', { name: item.client.name, outcome: ts(statusKey[outcome]) }));
+      toast.show(t('marked', { name: label(item.client), outcome: ts(statusKey[outcome]) }));
     } catch (error) {
       const failure = outcomeFailure(error);
       dispatch({ type: 'fail', id: item.id, failure });
