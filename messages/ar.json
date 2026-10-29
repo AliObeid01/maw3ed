@@ -137,10 +137,77 @@
       "minutesLong": "{count, plural, zero {# دقيقة} one {دقيقة} two {دقيقتان} few {# دقائق} many {# دقيقة} other {# دقيقة}}"
     },
     "today": {
-      "greeting": "أهلاً بك، {name}",
-      "soonTitle": "سيظهر يومك هنا",
-      "soonBody": "التقويم اليومي قادم قريباً. أكمل الإعداد ليتمكن العملاء من الحجز عندك.",
-      "setupCta": "افتح الإعداد"
+      "greeting": "{part, select, morning {صباح الخير، {name}} afternoon {مساء الخير، {name}} other {مساء الخير، {name}}}",
+      "loading": "جارٍ تحميل يومك",
+      "staffFilter": "تصفية حسب الفريق",
+      "all": "الكل",
+      "reminderPending": "تذكير واتساب لم يُرسل بعد",
+      "calendarLabel": "تقويم اليوم",
+      "dayNav": {
+        "label": "اختر اليوم",
+        "prev": "اليوم السابق",
+        "today": "اليوم",
+        "next": "اليوم التالي"
+      },
+      "stats": {
+        "appointmentsToday": "مواعيد اليوم",
+        "appointments": "المواعيد",
+        "confirmed": "مؤكدة",
+        "noReply": "بلا رد بعد",
+        "refilled": "عُوّضت من قائمة الانتظار"
+      },
+      "empty": {
+        "titleToday": "لا حجوزات اليوم بعد",
+        "title": "لا حجوزات في هذا اليوم",
+        "body": "تظهر الحجوزات الجديدة هنا فور وصولها.",
+        "cta": "حجز جديد"
+      },
+      "doFirst": {
+        "eyebrow": "ابدأ بهذا",
+        "title": "{count, plural, one {تذكير واتساب واحد مستحق} two {تذكيران مستحقان على واتساب} few {# تذكيرات واتساب مستحقة} many {# تذكيرًا على واتساب مستحقًا} other {# تذكير واتساب مستحق}}",
+        "cta": "أرسل الآن",
+        "allSentTitle": "أُرسلت كل التذكيرات",
+        "allSentBody": "لا شيء لإرساله على واتساب الآن."
+      },
+      "needsYou": {
+        "eyebrow": "بانتظارك",
+        "title": "{count, plural, one {نتيجة واحدة للتسجيل} two {نتيجتان للتسجيل} few {# نتائج للتسجيل} many {# نتيجة للتسجيل} other {# نتيجة للتسجيل}}"
+      },
+      "waitlist": {
+        "title": "نشاط قائمة الانتظار",
+        "empty": "لا نشاط في قائمة الانتظار بعد.",
+        "type": {
+          "claimed": "تم الحجز",
+          "offered": "تم العرض",
+          "expired": "انتهى"
+        },
+        "line": {
+          "claimed": "حجز {name} الساعة {time} مع {staff}",
+          "offered": "أُرسل موعد {day} {time} إلى {count, plural, one {شخص} two {شخصين} few {# أشخاص} other {# شخصًا}}",
+          "expired": "انتهى عرض {day} {time}"
+        }
+      },
+      "sheet": {
+        "title": "الموعد",
+        "close": "إغلاق",
+        "status": "الحالة",
+        "when": "الوقت",
+        "service": "الخدمة",
+        "staff": "مع",
+        "phone": "الهاتف",
+        "confirmation": "التأكيد",
+        "confirmedByClient": "أكّده العميل",
+        "call": "اتصال",
+        "callAria": "اتصل بـ {name}",
+        "whatsapp": "واتساب",
+        "whatsappAria": "افتح محادثة واتساب مع {name}",
+        "cancel": "إلغاء الموعد",
+        "cancelledToast": "أُلغي موعد {name}",
+        "confirmTitle": "إلغاء هذا الموعد؟",
+        "confirmBody": "يصبح الوقت متاحًا من جديد. لن يُبلَّغ {name} تلقائيًا.",
+        "confirmYes": "نعم، ألغِه",
+        "confirmKeep": "أبقِه"
+      }
     },
     "setup": {
       "welcome": "أهلاً بك، {name}",
@@ -423,6 +490,77 @@
         "alt": "رمز QR يفتح صفحة الحجز لدى {name}",
         "failed": "تعذّر رسم رمز QR.",
         "download": "تنزيل رمز QR"
+      }
+    },
+    "dashboard": {
+      "noShows": "{count, plural, one {لم يحضر مرة واحدة} two {لم يحضر مرتين} few {لم يحضر # مرات} many {لم يحضر # مرة} other {لم يحضر # مرة}}"
+    },
+    "remindersDue": {
+      "intro": "يفتح كل زر واتساب على هذا الجهاز والرسالة جاهزة، مع روابط التأكيد والإلغاء. تُسجَّل كمرسلة باسمك، فلا يرسلها أحد مرتين.",
+      "loading": "جارٍ تحميل التذكيرات",
+      "listLabel": "تذكيرات واتساب للإرسال",
+      "toSend": "{count} للإرسال",
+      "allDone": "أُرسلت كلها",
+      "today": "اليوم",
+      "tomorrow": "غدًا",
+      "col": {
+        "client": "العميل",
+        "appointment": "الموعد",
+        "reminder": "التذكير"
+      },
+      "send": "أرسل عبر واتساب",
+      "sendAria": "أرسل التذكير إلى {name} عبر واتساب",
+      "sentBy": "أرسله {name}، {time}",
+      "sentByYou": "أرسله {name} الآن",
+      "sentByNoTime": "أرسله {name}",
+      "someone": "زميل",
+      "noPhone": "لا رقم صالح",
+      "callInstead": "اتصل بدلًا من ذلك",
+      "retryBody": "فُتح واتساب لكن تعذّر تسجيل الرسالة كمرسلة. قد تكون أُرسلت فعلًا، تحقق قبل إرسالها مجددًا.",
+      "retryCta": "سجّلها كمرسلة",
+      "emptyTitle": "أُرسلت كل التذكيرات",
+      "emptyBody": "تظهر التذكيرات الجديدة هنا عند استحقاقها.",
+      "stale": "تعذّر تحديث القائمة. نعرض آخر نسخة."
+    },
+    "frontDesk": {
+      "loading": "جارٍ تحميل نموذج الحجز",
+      "anyone": "أي شخص متاح",
+      "client": {
+        "title": "العميل",
+        "name": "الاسم الكامل",
+        "email": "البريد الإلكتروني (اختياري)",
+        "searching": "جارٍ البحث عن هذا الرقم…",
+        "newClient": "عميل جديد",
+        "returning": "عميل عائد",
+        "returningVisits": "{count, plural, one {عميل عائد · زيارة واحدة} two {عميل عائد · زيارتان} few {عميل عائد · # زيارات} many {عميل عائد · # زيارة} other {عميل عائد · # زيارة}}",
+        "returningSummary": "عميل عائد: {name}"
+      },
+      "service": {
+        "title": "الخدمة",
+        "selected": "{name} · {duration}"
+      },
+      "staff": {
+        "title": "مع"
+      },
+      "times": {
+        "title": "اليوم والوقت",
+        "pickService": "اختر خدمة لعرض الأوقات الفارغة."
+      },
+      "walkIn": "حضور مباشر الآن",
+      "taken": "حُجز الوقت {time} للتو. اختر وقتًا آخر.",
+      "notice": {
+        "slotGone": "اختر وقتًا أولًا.",
+        "noWalkIn": "لا يوجد وقت فارغ للحجز الآن."
+      },
+      "summary": "{name} · {service} · {day} {start} – {end} · مع {staff}",
+      "summaryNoName": "عميل جديد",
+      "summaryEmpty": "اختر خدمة ووقتًا لعرض الملخص.",
+      "book": "احجز الموعد",
+      "done": {
+        "title": "تم الحجز",
+        "summary": "{name} · {service} · {day}، {time} · مع {staff}",
+        "another": "احجز موعدًا آخر",
+        "backToToday": "العودة إلى اليوم"
       }
     }
   },

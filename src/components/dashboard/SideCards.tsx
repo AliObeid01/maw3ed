@@ -107,6 +107,7 @@ function ActivityLine({ item, timezone }: { item: WaitlistActivity; timezone: st
 export function WaitlistActivityCard({ timezone }: { timezone: string }) {
   const t = useTranslations('app.today.waitlist');
   const te = useTranslations('app.errors');
+  const retryLabel = te('retry');
   const res = useResource((signal) => getWaitlistActivity(5, signal), 'waitlist');
   usePolling(res.reload);
   return (
@@ -128,7 +129,7 @@ export function WaitlistActivityCard({ timezone }: { timezone: string }) {
         <div role="alert" className="flex flex-col items-start gap-2">
           <p className="m-0 text-sm text-muted">{te(errorKey(res.error))}</p>
           <Button variant="secondary" size="md" onClick={res.reload}>
-            {te('retry')}
+            {retryLabel}
           </Button>
         </div>
       ) : (

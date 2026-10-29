@@ -325,6 +325,7 @@ export function FrontDeskForm() {
       })
     : undefined;
   const bannerText = banner ? tErr(banner) : undefined;
+  const noTimesText = tt('noTimesDay');
 
   const chip = (active: boolean) =>
     cn(
@@ -466,7 +467,7 @@ export function FrontDeskForm() {
               </p>
             ) : null}
             {slotsOfDay.length === 0 ? (
-              <p className="m-0 text-[15px] text-muted">{tt('noTimesDay')}</p>
+              <p className="m-0 text-[15px] text-muted">{noTimesText}</p>
             ) : (
               <SlotGrid
                 slots={slotsOfDay}

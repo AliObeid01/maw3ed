@@ -137,10 +137,77 @@
       "minutesLong": "{count, plural, one {# minute} other {# minutes}}"
     },
     "today": {
-      "greeting": "Good to see you, {name}",
-      "soonTitle": "Your day will appear here",
-      "soonBody": "The daily calendar is coming soon. Finish setting up so clients can book you.",
-      "setupCta": "Open setup"
+      "greeting": "{part, select, morning {Good morning, {name}} afternoon {Good afternoon, {name}} other {Good evening, {name}}}",
+      "loading": "Loading your day",
+      "staffFilter": "Filter by team member",
+      "all": "All",
+      "reminderPending": "WhatsApp reminder still to send",
+      "calendarLabel": "Day calendar",
+      "dayNav": {
+        "label": "Choose day",
+        "prev": "Previous day",
+        "today": "Today",
+        "next": "Next day"
+      },
+      "stats": {
+        "appointmentsToday": "Appointments today",
+        "appointments": "Appointments",
+        "confirmed": "Confirmed",
+        "noReply": "No reply yet",
+        "refilled": "Refilled from waitlist"
+      },
+      "empty": {
+        "titleToday": "Nothing booked today yet",
+        "title": "Nothing booked this day",
+        "body": "New bookings appear here as soon as they come in.",
+        "cta": "New booking"
+      },
+      "doFirst": {
+        "eyebrow": "Do this first",
+        "title": "{count, plural, one {# WhatsApp reminder due} other {# WhatsApp reminders due}}",
+        "cta": "Send now",
+        "allSentTitle": "All reminders sent",
+        "allSentBody": "Nothing to send on WhatsApp right now."
+      },
+      "needsYou": {
+        "eyebrow": "Needs you",
+        "title": "{count, plural, one {# outcome to mark} other {# outcomes to mark}}"
+      },
+      "waitlist": {
+        "title": "Waitlist activity",
+        "empty": "No waitlist activity yet.",
+        "type": {
+          "claimed": "Claimed",
+          "offered": "Offered",
+          "expired": "Expired"
+        },
+        "line": {
+          "claimed": "{name} took {time} with {staff}",
+          "offered": "{day} {time} sent to {count, plural, one {# person} other {# people}}",
+          "expired": "{day} {time} offer expired"
+        }
+      },
+      "sheet": {
+        "title": "Appointment",
+        "close": "Close",
+        "status": "Status",
+        "when": "When",
+        "service": "Service",
+        "staff": "With",
+        "phone": "Phone",
+        "confirmation": "Confirmation",
+        "confirmedByClient": "Confirmed by the client",
+        "call": "Call",
+        "callAria": "Call {name}",
+        "whatsapp": "WhatsApp",
+        "whatsappAria": "Open a WhatsApp chat with {name}",
+        "cancel": "Cancel appointment",
+        "cancelledToast": "{name}'s appointment was cancelled",
+        "confirmTitle": "Cancel this appointment?",
+        "confirmBody": "The time becomes free again. {name} is not told automatically.",
+        "confirmYes": "Yes, cancel it",
+        "confirmKeep": "Keep it"
+      }
     },
     "setup": {
       "welcome": "Welcome, {name}",
@@ -423,6 +490,77 @@
         "alt": "QR code that opens the booking page of {name}",
         "failed": "Could not draw the QR code.",
         "download": "Download QR code"
+      }
+    },
+    "dashboard": {
+      "noShows": "{count, plural, one {# no-show} other {# no-shows}}"
+    },
+    "remindersDue": {
+      "intro": "Each button opens WhatsApp on this device with the message ready, including the confirm and cancel links. It's marked sent with your name, so nobody sends it twice.",
+      "loading": "Loading reminders",
+      "listLabel": "WhatsApp reminders to send",
+      "toSend": "{count} to send",
+      "allDone": "All sent",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "col": {
+        "client": "Client",
+        "appointment": "Appointment",
+        "reminder": "Reminder"
+      },
+      "send": "Send on WhatsApp",
+      "sendAria": "Send the reminder to {name} on WhatsApp",
+      "sentBy": "Sent by {name}, {time}",
+      "sentByYou": "Sent by {name}, just now",
+      "sentByNoTime": "Sent by {name}",
+      "someone": "a teammate",
+      "noPhone": "No valid phone",
+      "callInstead": "Call instead",
+      "retryBody": "WhatsApp opened, but we could not record it as sent. The message may already be sent, so check before sending again.",
+      "retryCta": "Mark as sent",
+      "emptyTitle": "All reminders sent",
+      "emptyBody": "New reminders show up here when they are due.",
+      "stale": "We couldn't refresh the list. Showing the last version."
+    },
+    "frontDesk": {
+      "loading": "Loading the booking form",
+      "anyone": "Anyone available",
+      "client": {
+        "title": "Client",
+        "name": "Full name",
+        "email": "Email (optional)",
+        "searching": "Looking for this number…",
+        "newClient": "New client",
+        "returning": "Returning client",
+        "returningVisits": "{count, plural, one {Returning client · # visit} other {Returning client · # visits}}",
+        "returningSummary": "{count, plural, =0 {Returning client {name}} one {Returning client {name}, 1 no-show} other {Returning client {name}, # no-shows}}"
+      },
+      "service": {
+        "title": "Service",
+        "selected": "{name} · {duration}"
+      },
+      "staff": {
+        "title": "With"
+      },
+      "times": {
+        "title": "Day and time",
+        "pickService": "Pick a service to see free times."
+      },
+      "walkIn": "Walk-in now",
+      "taken": "{time} was just taken. Pick another time.",
+      "notice": {
+        "slotGone": "Pick a time first.",
+        "noWalkIn": "No free time left to book right now."
+      },
+      "summary": "{name} · {service} · {day} {start} – {end} · with {staff}",
+      "summaryNoName": "New client",
+      "summaryEmpty": "Pick a service and a time to see the summary.",
+      "book": "Book appointment",
+      "done": {
+        "title": "Booked",
+        "summary": "{name} · {service} · {day}, {time} · with {staff}",
+        "another": "Book another",
+        "backToToday": "Back to Today"
       }
     }
   },

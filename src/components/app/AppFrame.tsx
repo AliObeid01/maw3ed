@@ -87,6 +87,12 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   const { summary } = useSummary();
   const badges = { reminders: summary?.whatsappDue ?? 0, outcomes: summary?.outcomesToMark ?? 0 };
   const isToday = activeId === 'today';
+  const announcement = summary
+    ? [
+        tn('badge.reminders', { count: badges.reminders }),
+        tn('badge.outcomes', { count: badges.outcomes }),
+      ].join('. ')
+    : '';
   return (
     <>
       <AppShell
@@ -129,9 +135,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       </AppShell>
       {/* Polite announcement when the badge counts change (the visible digits are hidden from AT). */}
       <div role="status" aria-live="polite" className="sr-only">
-        {summary
-          ? `${tn('badge.reminders', { count: badges.reminders })}. ${tn('badge.outcomes', { count: badges.outcomes })}`
-          : ''}
+        {announcement}
       </div>
     </>
   );
