@@ -14,6 +14,8 @@ export function NewBookingFab({
   className?: string;
 }) {
   const t = useTranslations('app.nav');
+  // On the booking screen itself the sticky Book button owns the thumb zone; the FAB would sit on top of it.
+  if (active) return null;
   return (
     <Link
       href={href}
