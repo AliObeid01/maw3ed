@@ -1,3 +1,4 @@
+import { isRepeatNoShow } from '@/server/domain/clientFlags';
 import { MAX_APPOINTMENT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
@@ -16,7 +17,7 @@ const toItem = (a: Row) => ({
   endAt: a.endAt,
   status: a.status,
   source: a.source,
-  client: a.client,
+  client: { ...a.client, repeatNoShow: isRepeatNoShow(a.client.noShows) },
   service: {
     id: a.service.id,
     name: a.service.name,

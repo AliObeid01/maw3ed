@@ -79,8 +79,7 @@ export function classifyBookingError(error: unknown): BookingFailure {
         const tooLong =
           field === 'name' && /\b80\b|<=|at most|too (long|big)/i.test(error.fields[name] ?? '');
         fields[field] = tooLong ? 'nameTooLong' : FIELD_ERRORS[field];
-      }
-      else other = true;
+      } else other = true;
     }
     if (Object.keys(fields).length > 0 && !other) {
       return { kind: 'failed', fields, banner: 'fixFields', newAttempt: false };

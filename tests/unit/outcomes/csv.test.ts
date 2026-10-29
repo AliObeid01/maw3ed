@@ -14,9 +14,12 @@ describe('csvCell', () => {
     expect(csvCell('l1\nl2')).toBe('"l1\nl2"');
     expect(csvCell('l1\r\nl2')).toBe('"l1\r\nl2"');
   });
-  it.each(['=1+1', '+96171123456', '-5', '@SUM(A1)', '\tx', '\rx'])('prefixes %j with a quote', (v) => {
-    expect(csvCell(v).startsWith("'") || csvCell(v).startsWith('"\'')).toBe(true);
-  });
+  it.each(['=1+1', '+96171123456', '-5', '@SUM(A1)', '\tx', '\rx'])(
+    'prefixes %j with a quote',
+    (v) => {
+      expect(csvCell(v).startsWith("'") || csvCell(v).startsWith('"\'')).toBe(true);
+    },
+  );
   it('does not prefix a formula character in the middle', () => {
     expect(csvCell('a=b')).toBe('a=b');
   });

@@ -29,7 +29,12 @@ export interface Counts {
   lateCancels: number;
 }
 
-export const emptyCounts = (): Counts => ({ appointments: 0, attended: 0, noShows: 0, lateCancels: 0 });
+export const emptyCounts = (): Counts => ({
+  appointments: 0,
+  attended: 0,
+  noShows: 0,
+  lateCancels: 0,
+});
 
 /** Percentage, or null when there is nothing to divide by. */
 export function noShowRate(attended: number, noShows: number): number | null {
@@ -89,9 +94,12 @@ export function weekWindows(now: Date, timezone: string, weeks: number): WeekWin
 export function weeklyCounts(rows: ReportRow[], windows: WeekWindow[]) {
   return windows.map((w) => {
     const counts = emptyCounts();
-    for (const r of rows)
-      if (r.startAt >= w.startUtc && r.startAt < w.endUtc) addRow(counts, r);
-    return { weekStart: w.weekStart, ...counts, noShowRate: noShowRate(counts.attended, counts.noShows) };
+    for (const r of rows) if (r.startAt >= w.startUtc && r.startAt < w.endUtc) addRow(counts, r);
+    return {
+      weekStart: w.weekStart,
+      ...counts,
+      noShowRate: noShowRate(counts.attended, counts.noShows),
+    };
   });
 }
 
@@ -104,4 +112,33 @@ export function daysCovered(from: string, to: string): number {
   const a = DateTime.fromISO(from, { zone: 'utc' });
   const b = DateTime.fromISO(to, { zone: 'utc' });
   return Math.max(0, Math.round(b.diff(a, 'days').days) + 1);
+}
+
+export const MAX_BASELINE_DAYS = 31;
+
+export interface BaselineInput {
+  fromDate: string;
+  toDate: string;
+  appointments: number;
+  noShows: number;
+  lateCancels: number;
+}
+
+/** Field errors for an owner-entered baseline. `today` is the business-local 'yyyy-MM-dd' (injected). */
+export function validateBaseline(input: BaselineInput, today: string): Record<string, string> {
+  const fields: Record<string, string> = {};
+  const from = DateTime.fromISO(input.fromDate, { zone: 'utc' });
+  const to = DateTime.fromISO(input.toDate, { zone: 'utc' });
+  if (!from.isValid) fields.fromDate = 'Use a real date like 2026-10-01.';
+  if (!to.isValid) fields.toDate = 'Use a real date like 2026-10-31.';
+  if (from.isValid && to.isValid) {
+    if (input.toDate < input.fromDate)
+      fields.toDate = 'The end date must not be before the start date.';
+    else if (daysCovered(input.fromDate, input.toDate) > MAX_BASELINE_DAYS)
+      fields.toDate = `The baseline period is at most ${MAX_BASELINE_DAYS} days.`;
+  }
+  if (to.isValid && input.toDate > today)
+    fields.toDate = 'The baseline period cannot end in the future.';
+  if (input.noShows > input.appointments) fields.noShows = 'No-shows cannot exceed appointments.';
+  return fields;
 }

@@ -18,7 +18,8 @@ export function useBookingFormat(timezone: string) {
   const { money, duration } = useAppFormat();
   const zoned = { ...LATIN, timeZone: timezone } as const;
   const utc = { ...LATIN, timeZone: 'UTC' } as const;
-  const time = (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone).toFormat('H:mm');
+  const time = (iso: string) =>
+    DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone).toFormat('H:mm');
 
   return {
     money,
@@ -27,7 +28,12 @@ export function useBookingFormat(timezone: string) {
     time,
     /** "Thu 29 Oct" */
     day: (iso: string) =>
-      format.dateTime(new Date(iso), { ...zoned, weekday: 'short', day: 'numeric', month: 'short' }),
+      format.dateTime(new Date(iso), {
+        ...zoned,
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }),
     /** "Thu, 29 October" for the cutoff and long sentences */
     dayLong: (iso: string) =>
       format.dateTime(new Date(iso), { ...zoned, weekday: 'long', day: 'numeric', month: 'long' }),

@@ -5,13 +5,18 @@ import {
   daysCovered,
   noShowRate,
   round1,
+  validateBaseline,
   weekWindows,
   weeklyCounts,
   type ReportRow,
 } from '@/server/domain/pilotMetrics';
 
 const TZ = 'Asia/Beirut';
-const row = (iso: string, status: string, cancelledVia: ReportRow['cancelledVia'] = null): ReportRow => ({
+const row = (
+  iso: string,
+  status: string,
+  cancelledVia: ReportRow['cancelledVia'] = null,
+): ReportRow => ({
   startAt: new Date(iso),
   status,
   cancelledVia,
@@ -93,6 +98,36 @@ describe('weeklyCounts', () => {
   it('a week with no marked outcomes has a null rate', () => {
     const w = weekWindows(new Date('2026-11-04T08:00:00Z'), TZ, 1);
     expect(weeklyCounts([row('2026-11-02T08:00:00Z', 'BOOKED')], w)[0]!.noShowRate).toBeNull();
+  });
+});
+
+describe('validateBaseline', () => {
+  const ok = {
+    fromDate: '2026-10-01',
+    toDate: '2026-10-31',
+    appointments: 100,
+    noShows: 15,
+    lateCancels: 3,
+  };
+  const today = '2026-11-04';
+  it('accepts a valid baseline, including exactly 31 days and ending today', () => {
+    expect(validateBaseline(ok, today)).toEqual({});
+    expect(
+      validateBaseline({ ...ok, fromDate: '2026-10-05', toDate: '2026-11-04' }, today),
+    ).toEqual({});
+  });
+  it('rejects 32 days, reversed dates, the future and noShows above appointments', () => {
+    expect(
+      validateBaseline({ ...ok, fromDate: '2026-10-01', toDate: '2026-11-01' }, today),
+    ).toHaveProperty('toDate');
+    expect(
+      validateBaseline({ ...ok, fromDate: '2026-10-10', toDate: '2026-10-09' }, today),
+    ).toHaveProperty('toDate');
+    expect(validateBaseline({ ...ok, toDate: '2026-11-05' }, today)).toHaveProperty('toDate');
+    expect(validateBaseline({ ...ok, noShows: 101 }, today)).toHaveProperty('noShows');
+  });
+  it('rejects an impossible calendar date', () => {
+    expect(validateBaseline({ ...ok, fromDate: '2026-02-31' }, today)).toHaveProperty('fromDate');
   });
 });
 

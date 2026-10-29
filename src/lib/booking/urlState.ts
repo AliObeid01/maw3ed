@@ -90,7 +90,8 @@ export function resolveBookingState(
   const base = { serviceId: service.id, staffSkipped, eligible };
   if (!staffId) return { ...base, step: 'staff' };
 
-  const day = params.day && (!visibleDays || visibleDays.includes(params.day)) ? params.day : undefined;
+  const day =
+    params.day && (!visibleDays || visibleDays.includes(params.day)) ? params.day : undefined;
   const time = day ? params.time : undefined;
   const chosen = { ...base, staffId, day, time };
   if (params.step === 'details' && day && time) return { ...chosen, step: 'details' };

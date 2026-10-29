@@ -126,6 +126,7 @@ const AppointmentItem = BookedAppointment.extend({
     name: z.string(),
     phone: z.string(),
     noShows: z.number().int(),
+    repeatNoShow: z.boolean(),
     lateCancels: z.number().int(),
   }),
 });

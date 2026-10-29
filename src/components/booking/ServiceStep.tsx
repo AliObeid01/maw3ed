@@ -28,7 +28,9 @@ export function ServiceStep({
       {offered.length === 0 ? (
         <Card className="flex flex-col gap-1.5 text-center">
           <h3 className="m-0 text-lg font-semibold">{t('emptyTitle')}</h3>
-          <p className="m-0 text-[15px] text-muted">{t('emptyBody', { name: data.business.name })}</p>
+          <p className="m-0 text-[15px] text-muted">
+            {t('emptyBody', { name: data.business.name })}
+          </p>
         </Card>
       ) : (
         <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 md:grid-cols-2">

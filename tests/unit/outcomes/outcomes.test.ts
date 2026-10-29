@@ -5,7 +5,13 @@ import { planOutcome, type PlanInput } from '@/server/domain/outcomes';
 const NOW = new Date('2026-11-04T12:00:00Z');
 const past = new Date('2026-11-04T08:00:00Z');
 const future = new Date('2026-11-04T15:00:00Z');
-const base: PlanInput = { status: 'BOOKED', cancelledVia: null, startAt: past, now: NOW, target: 'ATTENDED' };
+const base: PlanInput = {
+  status: 'BOOKED',
+  cancelledVia: null,
+  startAt: past,
+  now: NOW,
+  target: 'ATTENDED',
+};
 
 describe('planOutcome', () => {
   it('rejects an appointment that has not started', () => {
@@ -14,18 +20,21 @@ describe('planOutcome', () => {
   it('allows an appointment that starts exactly now', () => {
     expect(planOutcome({ ...base, startAt: NOW }).kind).toBe('apply');
   });
-  it.each(['BOOKED', 'CONFIRMED'] as const)('from %s increments only the target counter', (status) => {
-    expect(planOutcome({ ...base, status, target: 'NO_SHOW' })).toEqual({
-      kind: 'apply',
-      decrement: null,
-      increment: 'noShows',
-    });
-    expect(planOutcome({ ...base, status, target: 'LATE_CANCEL' })).toEqual({
-      kind: 'apply',
-      decrement: null,
-      increment: 'lateCancels',
-    });
-  });
+  it.each(['BOOKED', 'CONFIRMED'] as const)(
+    'from %s increments only the target counter',
+    (status) => {
+      expect(planOutcome({ ...base, status, target: 'NO_SHOW' })).toEqual({
+        kind: 'apply',
+        decrement: null,
+        increment: 'noShows',
+      });
+      expect(planOutcome({ ...base, status, target: 'LATE_CANCEL' })).toEqual({
+        kind: 'apply',
+        decrement: null,
+        increment: 'lateCancels',
+      });
+    },
+  );
   it('a correction moves one count from the old counter to the new one', () => {
     expect(planOutcome({ ...base, status: 'NO_SHOW', target: 'ATTENDED' })).toEqual({
       kind: 'apply',
@@ -43,13 +52,19 @@ describe('planOutcome', () => {
       expect(planOutcome({ ...base, status: s, target: s })).toEqual({ kind: 'noop' });
   });
   it('a late cancel recorded by the cancel flow is final', () => {
-    expect(planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'LATE_CANCEL' })).toEqual({
+    expect(
+      planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'LATE_CANCEL' }),
+    ).toEqual({
       kind: 'noop',
     });
-    expect(planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'ATTENDED' })).toEqual({
+    expect(
+      planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'ATTENDED' }),
+    ).toEqual({
       kind: 'conflict',
     });
-    expect(planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'NO_SHOW' })).toEqual({
+    expect(
+      planOutcome({ ...base, status: 'LATE_CANCEL', cancelledVia: 'LINK', target: 'NO_SHOW' }),
+    ).toEqual({
       kind: 'conflict',
     });
   });

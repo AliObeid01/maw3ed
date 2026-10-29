@@ -201,7 +201,18 @@ export function BookingFlow({ slug }: { slug: string }) {
     const failed = !!windowRes.error;
     queueMicrotask(() => setNotice(failed ? undefined : 'slotGone'));
     go({ step: 'time', service: resolved?.serviceId, staff: resolved?.staffId, day }, 'replace');
-  }, [booked, taken, step, windowRes.loading, windowRes.error, selectedSlot, go, resolved?.serviceId, resolved?.staffId, day]);
+  }, [
+    booked,
+    taken,
+    step,
+    windowRes.loading,
+    windowRes.error,
+    selectedSlot,
+    go,
+    resolved?.serviceId,
+    resolved?.staffId,
+    day,
+  ]);
 
   // Focus the new step's heading when the person moves between steps (not on the first render, not on every
   // re-render). The heading itself is the announcement; there is no second live region for the same change.
@@ -263,7 +274,12 @@ export function BookingFlow({ slug }: { slug: string }) {
     : undefined;
   const price = service ? f.money(service.price) : undefined;
 
-  const stepIds = ['service', ...(resolved.staffSkipped ? [] : ['staff']), 'time', 'details'] as const;
+  const stepIds = [
+    'service',
+    ...(resolved.staffSkipped ? [] : ['staff']),
+    'time',
+    'details',
+  ] as const;
   const labelFor = (id: (typeof stepIds)[number]) => t(`steps.${id}`);
   const valueFor = (id: (typeof stepIds)[number]) =>
     id === 'service'

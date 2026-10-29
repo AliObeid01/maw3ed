@@ -55,11 +55,7 @@ export function TimeStep(props: TimeStepProps) {
     const picked = props.time ? findSlotByLocalTime(fresh, timezone, props.time) : undefined;
     return (
       <section className="flex min-w-0 flex-[999_1_320px] flex-col gap-4.5">
-        <StepHeading
-          title={t('taken.title')}
-          onBack={props.onBack}
-          headingRef={props.headingRef}
-        />
+        <StepHeading title={t('taken.title')} onBack={props.onBack} headingRef={props.headingRef} />
         <div
           role="alert"
           className="flex items-start gap-3 rounded-[20px] border border-warning-line bg-warning-soft p-4 text-warning-deep"
@@ -137,7 +133,9 @@ export function TimeStep(props: TimeStepProps) {
           </Button>
         </div>
       ) : covered.length === 0 ? (
-        <p className="m-0 text-[15px] text-muted">{t('time.noTimesAtAll', { days: days.length })}</p>
+        <p className="m-0 text-[15px] text-muted">
+          {t('time.noTimesAtAll', { days: days.length })}
+        </p>
       ) : (
         <>
           <DayStrip
