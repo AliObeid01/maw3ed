@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { verifyToken, type TokenAction, type TokenPayload } from '@/server/domain/tokens';
 import { requireLinkSecret } from '@/server/env';
 import { appointmentRepo } from '@/server/repositories/appointment.repo';
+import { waitlistRepo } from '@/server/repositories/waitlist.repo';
 import { sessionService } from '@/server/services/session';
 import { readSessionToken } from './cookies';
 import { AppError } from './errors';
@@ -65,15 +66,22 @@ export async function resolveToken(
       payload = result.payload;
       break;
     }
-    if (result.reason === 'expired') throw AppError.gone();
+    if (result.reason === 'expired')
+      throw act === 'claim'
+        ? AppError.gone('OFFER_EXPIRED', 'This offer has expired.')
+        : AppError.gone();
     if (result.reason !== 'wrong_action') throw AppError.notFound();
   }
   if (!payload) throw AppError.notFound();
-  // Waitlist offer tokens (`o`) are resolved by the waitlist routes, not here.
-  if (payload.a === undefined) throw AppError.notFound();
-  const businessId = await appointmentRepo.businessIdOf(payload.a);
+  // Offer tokens name an offer (`o`, action 'claim'); every other token names an appointment (`a`).
+  const subject = payload.o ?? payload.a;
+  if (subject === undefined) throw AppError.notFound();
+  const businessId =
+    payload.o !== undefined
+      ? await waitlistRepo.businessIdOfOffer(payload.o)
+      : await appointmentRepo.businessIdOf(payload.a!);
   if (!businessId) throw AppError.notFound();
-  return { businessId, subjectId: payload.a, action: payload.act, exp: payload.exp };
+  return { businessId, subjectId: subject, action: payload.act, exp: payload.exp };
 }
 
 const digest = (value: string) => createHash('sha256').update(value).digest();

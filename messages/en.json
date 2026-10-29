@@ -552,6 +552,14 @@
       "heading": "Your appointment is in about 2 hours",
       "intro": "This is a reminder of your appointment at {business}."
     },
+    "offer": {
+      "subject": "A spot opened up: {service} on {date} at {time}",
+      "heading": "A spot just opened up",
+      "intro": "You are on the waitlist at {business} and a time you wanted is free.",
+      "claim": "Take this spot",
+      "expires": "This offer is held for you until {until}. The first person to confirm gets it.",
+      "linkNote": "If you no longer want it, ignore this email."
+    },
     "whatsapp": {
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
       "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
