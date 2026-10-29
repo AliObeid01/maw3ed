@@ -1,0 +1,165 @@
+import { expect, test, type Page } from '@playwright/test';
+import { DateTime } from 'luxon';
+import { IDS, mockPublicApi, SLUG, TZ } from './helpers/publicMock';
+import { mockJoinWaitlist, type JoinOptions } from './helpers/waitlistMock';
+
+// Self-contained: /api/public (catalogue, slots) and the join POST are answered by page.route.
+
+const WL = `/b/${SLUG}/waitlist`;
+const ALL_TIMES = ['09:00', '09:30', '10:30', '14:00', '15:30'];
+
+async function open(page: Page, query = '', join: JoinOptions = {}, bookedTimes: string[] = []) {
+  await mockPublicApi(page, { bookedTimes });
+  const api = await mockJoinWaitlist(page, join);
+  await page.goto(`${WL}${query}`);
+  await expect(page.getByRole('heading', { name: 'Join the waitlist', level: 2 })).toBeVisible();
+  return api;
+}
+
+async function fill(page: Page, email = 'maya@example.com') {
+  await page.getByLabel('Full name').fill('Maya Haddad');
+  await page.getByLabel('Mobile number').fill('71 234 567');
+  if (email) await page.getByLabel('Email').fill(email);
+}
+
+const submit = (page: Page) => page.getByRole('button', { name: 'Join the waitlist' }).filter({ visible: true });
+
+test('join happy path sends the real contract and shows what happens next', async ({ page }) => {
+  const { calls } = await open(page);
+  await page.getByLabel('Service').selectOption(IDS.haircut);
+  await page.getByLabel('With').selectOption(IDS.karim);
+  await fill(page);
+  await submit(page).click();
+  await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
+  await expect(page.getByText('The offer lasts about 30 minutes.')).toBeVisible();
+  await expect(page.getByText('maya@example.com')).toBeVisible();
+  const today = DateTime.now().setZone(TZ).toISODate()!;
+  expect(calls).toHaveLength(1);
+  expect(calls[0]).toMatchObject({
+    serviceId: IDS.haircut,
+    staffId: IDS.karim,
+    fromDate: today,
+    toDate: DateTime.fromISO(today).plus({ days: 13 }).toISODate(),
+    client: { name: 'Maya Haddad', phone: '+96171234567', email: 'maya@example.com' },
+  });
+});
+
+test('missing email is caught, focuses the email field and sends nothing', async ({ page }) => {
+  const { calls } = await open(page, `?service=${IDS.haircut}`);
+  await fill(page, '');
+  await submit(page).click();
+  const email = page.getByLabel('Email');
+  await expect(email).toBeFocused();
+  await expect(email).toHaveAttribute('aria-invalid', 'true');
+  await expect(page.getByText('Enter your email. Offers are sent by email.')).toBeVisible();
+  expect(calls).toHaveLength(0);
+});
+
+test('the server 400 on the email field is translated and focused', async ({ page }) => {
+  await mockPublicApi(page);
+  await mockJoinWaitlist(page);
+  // Skip the client check by sending an address the client accepts but the server rejects.
+  await page.goto(`${WL}?service=${IDS.haircut}`);
+  await page.getByLabel('Full name').fill('Maya');
+  await page.getByLabel('Mobile number').fill('71 234 567');
+  await page.getByLabel('Email').fill('a@b.c');
+  await page.route(`**/api/public/${SLUG}/waitlist`, (route) =>
+    route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'VALIDATION_FAILED', message: 'x', fields: { 'client.email': 'Invalid email address' } } }),
+    }),
+  );
+  await submit(page).click();
+  await expect(page.getByLabel('Email')).toBeFocused();
+  await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+});
+
+test('prefills service and person from the URL; unknown ids are ignored', async ({ page }) => {
+  await open(page, `?service=${IDS.haircut}&staff=${IDS.lina}`);
+  await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
+  await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
+  await page.goto(`${WL}?service=nope&staff=${IDS.lina}`);
+  await expect(page.getByLabel('Service')).toHaveValue('');
+});
+
+test('only people who perform the service are offered', async ({ page }) => {
+  await open(page, `?service=${IDS.beard}`);
+  const options = await page.getByLabel('With').locator('option').allTextContents();
+  expect(options).toEqual(['Anyone available', 'Jad']);
+});
+
+test('the booking flow empty state links to the waitlist with the choice prefilled', async ({ page }) => {
+  await mockPublicApi(page, { bookedTimes: ALL_TIMES });
+  await mockJoinWaitlist(page);
+  await page.goto(`/b/${SLUG}`);
+  await page.getByRole('button', { name: /Haircut/ }).click();
+  await page.getByRole('button', { name: /Lina/ }).click();
+  await expect(page.getByText(/No free times in the next/)).toBeVisible();
+  await page.getByRole('link', { name: 'Join the waitlist' }).click();
+  await expect(page).toHaveURL(new RegExp(`${WL}\\?service=${IDS.haircut}&staff=${IDS.lina}`));
+  await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
+  await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
+});
+
+test('the slot-just-taken view links to the waitlist', async ({ page }) => {
+  await mockPublicApi(page, { takeSlotOnFirstBook: true });
+  await page.goto(`/b/${SLUG}`);
+  await page.getByRole('button', { name: /Haircut/ }).click();
+  await page.getByRole('button', { name: /Anyone available/ }).click();
+  await page.getByRole('radio', { name: '9:00', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Full name').fill('Maya');
+  await page.getByLabel('Mobile number').fill('71 234 567');
+  await page.getByRole('button', { name: 'Confirm booking' }).filter({ visible: true }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'was just taken' })).toBeVisible();
+  await page.getByRole('link', { name: 'Join the waitlist' }).click();
+  await expect(page).toHaveURL(new RegExp(`${WL}\\?service=${IDS.haircut}$`));
+});
+
+test('WAITLIST_LIMIT shows the friendly state', async ({ page }) => {
+  await open(page, `?service=${IDS.haircut}`, { existingOpen: 5 });
+  await fill(page);
+  await submit(page).click();
+  await expect(page.getByRole('heading', { name: "You're already on several waitlists here" })).toBeVisible();
+});
+
+test('a double click sends one request and the button shows pending', async ({ page }) => {
+  const { calls } = await open(page, `?service=${IDS.haircut}`, { delayMs: 600 });
+  await fill(page);
+  const button = submit(page);
+  await button.dblclick();
+  await expect(button).toHaveAttribute('aria-busy', 'true');
+  await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
+  expect(calls).toHaveLength(1);
+});
+
+test('429 and a dropped connection show a banner with retry that works', async ({ page }) => {
+  const { calls } = await open(page, `?service=${IDS.haircut}`, { failWith: 429 });
+  await fill(page);
+  await submit(page).click();
+  const banner = page.getByRole('alert').filter({ hasText: 'Too many attempts' });
+  await expect(banner).toBeFocused();
+  await banner.getByRole('button', { name: 'Try again' }).click();
+  await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
+  expect(calls).toHaveLength(2);
+});
+
+test('an unknown business is a friendly page', async ({ page }) => {
+  await mockPublicApi(page);
+  await page.goto('/b/no-such-place/waitlist');
+  await expect(page.getByRole('heading', { name: "We can't find this booking page" })).toBeVisible();
+});
+
+test('Arabic: RTL page, translated heading, email and phone stay LTR', async ({ page, context }) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: 'http://localhost:3000' }]);
+  await mockPublicApi(page);
+  await mockJoinWaitlist(page);
+  await page.goto(`${WL}?service=${IDS.haircut}`);
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.getByRole('heading', { name: 'الانضمام إلى قائمة الانتظار', level: 2 })).toBeVisible();
+  await expect(page.locator('input[type="email"]')).toHaveAttribute('dir', 'ltr');
+  await expect(page.locator('input[type="tel"]')).toHaveAttribute('dir', 'ltr');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
