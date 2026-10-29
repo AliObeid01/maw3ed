@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON bodies */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { GET as getLink, POST as postLink } from '@/app/api/links/[token]/route';

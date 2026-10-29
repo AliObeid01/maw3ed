@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON bodies */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { POST as cancelAppointment } from '@/app/api/appointments/[id]/cancel/route';
