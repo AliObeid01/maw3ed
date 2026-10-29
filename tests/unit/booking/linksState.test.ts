@@ -114,9 +114,7 @@ describe('classifyLinkError', () => {
 describe('links API client', () => {
   afterEach(() => vi.unstubAllGlobals());
   const mock = (status: number, body: unknown) => {
-    const fn = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
-      async () => new Response(JSON.stringify(body), { status }),
-    );
+    const fn = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify(body), { status }));
     vi.stubGlobal('fetch', fn);
     return fn;
   };

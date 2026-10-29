@@ -13,9 +13,7 @@ import { loadSlotWindow, readWindowLength, rememberWindowLength } from '@/lib/bo
 afterEach(() => vi.unstubAllGlobals());
 
 function mockFetch(status: number, body: unknown) {
-  const fn = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(
-    async () => new Response(JSON.stringify(body), { status }),
-  );
+  const fn = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>(async () => new Response(JSON.stringify(body), { status }));
   vi.stubGlobal('fetch', fn);
   return fn;
 }
@@ -101,15 +99,8 @@ describe('classifyBookingError', () => {
 
   it('maps 400 client.* fields to translated field errors, never the server text', () => {
     expect(
-      classifyBookingError(
-        api(400, 'VALIDATION_FAILED', { 'client.phone': 'Enter a valid phone' }),
-      ),
-    ).toEqual({
-      kind: 'failed',
-      fields: { phone: 'phoneInvalid' },
-      banner: 'fixFields',
-      newAttempt: false,
-    });
+      classifyBookingError(api(400, 'VALIDATION_FAILED', { 'client.phone': 'Enter a valid phone' })),
+    ).toEqual({ kind: 'failed', fields: { phone: 'phoneInvalid' }, banner: 'fixFields', newAttempt: false });
     expect(
       classifyBookingError(
         api(400, 'VALIDATION_FAILED', { 'client.name': 'x', 'client.email': 'y' }),
@@ -118,9 +109,7 @@ describe('classifyBookingError', () => {
   });
 
   it('treats a 400 about anything else as a spent attempt with a generic message', () => {
-    expect(
-      classifyBookingError(api(400, 'VALIDATION_FAILED', { 'idempotency-key': 'x' })),
-    ).toMatchObject({
+    expect(classifyBookingError(api(400, 'VALIDATION_FAILED', { 'idempotency-key': 'x' }))).toMatchObject({
       banner: 'generic',
       newAttempt: true,
     });
@@ -142,9 +131,7 @@ describe('classifyBookingError', () => {
   });
 
   it('drops the key after 422 IDEMPOTENCY_KEY_REUSED and 404', () => {
-    expect(classifyBookingError(api(422, 'IDEMPOTENCY_KEY_REUSED'))).toMatchObject({
-      newAttempt: true,
-    });
+    expect(classifyBookingError(api(422, 'IDEMPOTENCY_KEY_REUSED'))).toMatchObject({ newAttempt: true });
     expect(classifyBookingError(api(404, 'NOT_FOUND'))).toMatchObject({
       banner: 'notFound',
       newAttempt: true,
@@ -157,14 +144,10 @@ describe('name length', () => {
     parseErrorBody(400, { error: { code: 'VALIDATION_FAILED', message: 'x', fields } });
   it('tells a too-long name from an empty one in a 400', () => {
     expect(
-      classifyBookingError(
-        api({ 'client.name': 'Too big: expected string to have <=80 characters' }),
-      ),
+      classifyBookingError(api({ 'client.name': 'Too big: expected string to have <=80 characters' })),
     ).toMatchObject({ fields: { name: 'nameTooLong' } });
     expect(
-      classifyBookingError(
-        api({ 'client.name': 'Too small: expected string to have >=1 characters' }),
-      ),
+      classifyBookingError(api({ 'client.name': 'Too small: expected string to have >=1 characters' })),
     ).toMatchObject({ fields: { name: 'nameRequired' } });
   });
   it('checks the length before sending', () => {
@@ -193,9 +176,7 @@ describe('loadSlotWindow', () => {
   const slots = [{ startAt: '2026-11-03T08:30:00Z', endAt: '2026-11-03T09:00:00Z' }];
 
   it('asks once for 14 local days starting today in the business timezone and groups by local day', async () => {
-    const fetchSlots = vi.fn<
-      (slug: string, q: { from: string; to: string }) => Promise<typeof slots>
-    >(async () => slots);
+    const fetchSlots = vi.fn<(slug: string, q: { from: string; to: string }) => Promise<typeof slots>>(async () => slots);
     const window = await loadSlotWindow(
       'studio-nour',
       { serviceId: 's1' },
@@ -205,19 +186,13 @@ describe('loadSlotWindow', () => {
       fetchSlots as never,
     );
     expect(fetchSlots).toHaveBeenCalledTimes(1);
-    expect(fetchSlots.mock.calls[0]![1]).toEqual({
-      serviceId: 's1',
-      from: '2026-11-01',
-      to: '2026-11-14',
-    });
+    expect(fetchSlots.mock.calls[0]![1]).toEqual({ serviceId: 's1', from: '2026-11-01', to: '2026-11-14' });
     expect(window.coveredDays).toHaveLength(14);
     expect(Object.keys(window.byDay)).toEqual(['2026-11-03']);
   });
 
   it('retries with a shorter range when the booking window is shorter than 14 days', async () => {
-    const outOfWindow = new ApiError(400, 'VALIDATION_FAILED', 'x', {
-      to: 'Bookings open up to 5 days ahead.',
-    });
+    const outOfWindow = new ApiError(400, 'VALIDATION_FAILED', 'x', { to: 'Bookings open up to 5 days ahead.' });
     const fetchSlots = vi.fn(async (_slug: string, q: { to: string }) => {
       if (q.to > '2026-11-06') throw outOfWindow;
       return slots;
@@ -230,27 +205,13 @@ describe('loadSlotWindow', () => {
       undefined,
       fetchSlots as never,
     );
-    expect(fetchSlots.mock.calls.map((c) => c[1].to)).toEqual([
-      '2026-11-14',
-      '2026-11-07',
-      '2026-11-03',
-    ]);
+    expect(fetchSlots.mock.calls.map((c) => c[1].to)).toEqual(['2026-11-14', '2026-11-07', '2026-11-03']);
     expect(window.coveredDays).toEqual(['2026-11-01', '2026-11-02', '2026-11-03']);
   });
 
   it('starts at the remembered window length instead of probing 14 again', async () => {
-    const fetchSlots = vi.fn<
-      (slug: string, q: { from: string; to: string }) => Promise<typeof slots>
-    >(async () => slots);
-    await loadSlotWindow(
-      's',
-      { serviceId: 's1' },
-      'Asia/Beirut',
-      now,
-      undefined,
-      fetchSlots as never,
-      3,
-    );
+    const fetchSlots = vi.fn<(slug: string, q: { from: string; to: string }) => Promise<typeof slots>>(async () => slots);
+    await loadSlotWindow('s', { serviceId: 's1' }, 'Asia/Beirut', now, undefined, fetchSlots as never, 3);
     expect(fetchSlots).toHaveBeenCalledTimes(1);
     expect(fetchSlots.mock.calls[0]![1]).toMatchObject({ from: '2026-11-01', to: '2026-11-03' });
   });

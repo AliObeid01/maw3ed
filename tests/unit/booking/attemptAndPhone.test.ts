@@ -3,10 +3,7 @@ import type { BookingBody } from '@/lib/api/booking';
 import { createAttemptKeys } from '@/lib/booking/attempt';
 import { assemblePhone, phoneLooksComplete } from '@/lib/booking/phone';
 
-const body = (
-  patch: Partial<BookingBody> = {},
-  client: Partial<BookingBody['client']> = {},
-): BookingBody => ({
+const body = (patch: Partial<BookingBody> = {}, client: Partial<BookingBody['client']> = {}): BookingBody => ({
   serviceId: 's1',
   staffId: 'anyone',
   startAt: '2026-11-03T08:30:00Z',

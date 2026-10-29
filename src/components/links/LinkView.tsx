@@ -43,9 +43,7 @@ export function LinkView({ token }: { token: string }) {
   const pathname = usePathname();
   useLocaleHint(resource.data?.business.locale, pathname);
 
-  const failure: LinkFailure | undefined = resource.error
-    ? classifyLinkError(resource.error)
-    : gone;
+  const failure: LinkFailure | undefined = resource.error ? classifyLinkError(resource.error) : gone;
 
   if (failure === 'invalid' || failure === 'expired') {
     return (
@@ -82,7 +80,12 @@ export function LinkView({ token }: { token: string }) {
 
   const current: Shown = shown ?? { link: resource.data, screen: screenFor(resource.data) };
   return (
-    <LinkBody token={token} shown={current} onShown={setShown} onGone={(kind) => setGone(kind)} />
+    <LinkBody
+      token={token}
+      shown={current}
+      onShown={setShown}
+      onGone={(kind) => setGone(kind)}
+    />
   );
 }
 
@@ -223,9 +226,7 @@ function LinkBody({
         ) : null}
         {buttons.length === 0 ? (
           <Callout>
-            {appointment.status === 'PENDING_PAYMENT'
-              ? t('noActions.pendingPayment')
-              : t('noActions.generic')}
+            {appointment.status === 'PENDING_PAYMENT' ? t('noActions.pendingPayment') : t('noActions.generic')}
           </Callout>
         ) : null}
         {link.act === 'confirm' && link.canCancel ? (
@@ -236,15 +237,8 @@ function LinkBody({
   } else if (screen === 'confirmed') {
     body = (
       <Card className="flex flex-col gap-5 md:p-8">
-        <Banner
-          tone="success"
-          icon={<Check size={30} strokeWidth={3} />}
-          title={t('confirmedScreen.title')}
-        >
-          {t('confirmedScreen.body', {
-            name: business.name,
-            when: `${f.day(appointment.startAt)} · ${f.time(appointment.startAt)}`,
-          })}
+        <Banner tone="success" icon={<Check size={30} strokeWidth={3} />} title={t('confirmedScreen.title')}>
+          {t('confirmedScreen.body', { name: business.name, when: `${f.day(appointment.startAt)} · ${f.time(appointment.startAt)}` })}
         </Banner>
         {tile}
         {tokenCanCancel(link) ? (
@@ -270,11 +264,7 @@ function LinkBody({
   } else if (screen === 'cancelled' || screen === 'lateCancelled') {
     body = (
       <Card className="flex flex-col gap-5 md:p-8">
-        <Banner
-          tone="muted"
-          icon={<X size={28} strokeWidth={2.5} />}
-          title={t('cancelledScreen.title')}
-        >
+        <Banner tone="muted" icon={<X size={28} strokeWidth={2.5} />} title={t('cancelledScreen.title')}>
           {screen === 'lateCancelled'
             ? t('cancelledScreen.bodyLate', { name: business.name })
             : t('cancelledScreen.bodyFree')}
@@ -294,11 +284,7 @@ function LinkBody({
   } else {
     body = (
       <Card className="flex flex-col gap-5 md:p-8">
-        <Banner
-          tone="muted"
-          icon={<Check size={28} strokeWidth={2.5} />}
-          title={t('overScreen.title')}
-        >
+        <Banner tone="muted" icon={<Check size={28} strokeWidth={2.5} />} title={t('overScreen.title')}>
           {t('overScreen.body', { name: business.name })}
         </Banner>
         {tile}
@@ -326,9 +312,7 @@ function LinkBody({
           </Card>
           {showCutoff ? (
             <Callout icon={<Bell />}>
-              {late
-                ? t('side.lateCancel', { cutoff })
-                : t('side.freeCancel', { cutoff, name: business.name })}
+              {late ? t('side.lateCancel', { cutoff }) : t('side.freeCancel', { cutoff, name: business.name })}
             </Callout>
           ) : null}
           <p className="m-0 px-1 text-[13px] text-muted">{t('side.privacy')}</p>
@@ -339,11 +323,7 @@ function LinkBody({
         open={dialog}
         onOpenChange={(open) => !pending && setDialog(open)}
         title={t('cancelDialog.title')}
-        description={
-          late
-            ? t('cancelDialog.late', { cutoff, name: business.name })
-            : t('cancelDialog.free', { cutoff })
-        }
+        description={late ? t('cancelDialog.late', { cutoff, name: business.name }) : t('cancelDialog.free', { cutoff })}
         closeLabel={t('cancelDialog.close')}
       >
         <div className="flex flex-col gap-3 pt-2">

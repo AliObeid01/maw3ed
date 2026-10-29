@@ -47,9 +47,7 @@ const windowKey = (slug: string) => `maw3ed:slot-window:${slug}`;
 /** The window length discovered earlier in this browser session for a business (14 when unknown). */
 export function readWindowLength(
   slug: string,
-  storage: Pick<Storage, 'getItem'> | undefined = typeof sessionStorage === 'undefined'
-    ? undefined
-    : sessionStorage,
+  storage: Pick<Storage, 'getItem'> | undefined = typeof sessionStorage === 'undefined' ? undefined : sessionStorage,
 ): number {
   try {
     const n = Number(storage?.getItem(windowKey(slug)));
@@ -63,9 +61,7 @@ export function readWindowLength(
 export function rememberWindowLength(
   slug: string,
   days: number,
-  storage: Pick<Storage, 'setItem'> | undefined = typeof sessionStorage === 'undefined'
-    ? undefined
-    : sessionStorage,
+  storage: Pick<Storage, 'setItem'> | undefined = typeof sessionStorage === 'undefined' ? undefined : sessionStorage,
 ) {
   try {
     if (days < DAY_WINDOW) storage?.setItem(windowKey(slug), String(days));
