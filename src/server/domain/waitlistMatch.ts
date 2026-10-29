@@ -45,23 +45,28 @@ export function matchEntries(input: {
   const today = DateTime.fromMillis(input.now.getTime(), {
     zone: input.slot.timezone,
   }).toISODate()!;
-  return input.candidates
-    .filter(
-      (c) =>
-        c.fromDate <= slotDate &&
-        slotDate <= c.toDate &&
-        c.toDate >= today &&
-        (c.staffId === null || c.staffId === input.slot.staffId) &&
-        !input.excludeClientIds.has(c.clientId) &&
-        !input.busyClientIds.has(c.clientId) &&
-        !input.alreadyOfferedEntryIds.has(c.entryId),
-    )
-    .sort(
-      (a, b) =>
-        a.createdAt.getTime() - b.createdAt.getTime() ||
-        (a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0),
-    )
-    .slice(0, input.limit ?? OFFER_BATCH_SIZE);
+  const seenClients = new Set<string>();
+  return (
+    input.candidates
+      .filter(
+        (c) =>
+          c.fromDate <= slotDate &&
+          slotDate <= c.toDate &&
+          c.toDate >= today &&
+          (c.staffId === null || c.staffId === input.slot.staffId) &&
+          !input.excludeClientIds.has(c.clientId) &&
+          !input.busyClientIds.has(c.clientId) &&
+          !input.alreadyOfferedEntryIds.has(c.entryId),
+      )
+      .sort(
+        (a, b) =>
+          a.createdAt.getTime() - b.createdAt.getTime() ||
+          (a.entryId < b.entryId ? -1 : a.entryId > b.entryId ? 1 : 0),
+      )
+      // One place per client: a client with several entries only gets the earliest one's offer.
+      .filter((c) => (seenClients.has(c.clientId) ? false : (seenClients.add(c.clientId), true)))
+      .slice(0, input.limit ?? OFFER_BATCH_SIZE)
+  );
 }
 
 /**

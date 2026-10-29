@@ -34,6 +34,9 @@ export interface WaitlistDeps {
   appUrl: () => string;
   /** Test seam passed to `book()` (provokes a lost race on a claim). */
   afterAvailability?: BookDeps['afterAvailability'];
+  /** Monotonic ms clock and wall-clock budget for the expiry run (default performance.now, 45 s). */
+  monotonic?: () => number;
+  budgetMs?: number;
 }
 
 export const defaultWaitlistDeps: WaitlistDeps = {
@@ -136,6 +139,18 @@ export async function joinWaitlist(
 
 // ---- offers: creation and delivery ---------------------------------------------------------------
 
+/** A failed bookkeeping write must not look like a failed send: the resend sweep is idempotent anyway. */
+async function recordEmailed(offer: OfferRow, deps: WaitlistDeps, logger: Logger) {
+  try {
+    await waitlistRepo.markEmailed(offer.businessId, offer.id, deps.now());
+  } catch (error) {
+    logger.error(
+      { offerId: offer.id, err: safeError(error) },
+      'waitlist offer emailedAt not saved',
+    );
+  }
+}
+
 /** Send one offer email. Never throws: a failed send is logged and the offer simply lapses unclaimed. */
 async function deliverOffer(
   offer: OfferRow,
@@ -143,10 +158,11 @@ async function deliverOffer(
   cfg: { secret: string; appUrl: string; provider: EmailProvider },
   logger: Logger,
 ): Promise<boolean> {
-  const email = offer.entry.client.email;
+  // Offers go ONLY to the address supplied with the entry, never to the client record (see join).
+  const email = offer.entry.contactEmail;
   const ctxLog = { offerId: offer.id, businessId: offer.businessId, batch: offer.batch };
   if (!email) {
-    logger.warn(ctxLog, 'waitlist offer not emailed: client has no email');
+    logger.warn(ctxLog, 'waitlist offer not emailed: entry has no contact email');
     return false;
   }
   const token = signToken(
@@ -173,11 +189,13 @@ async function deliverOffer(
       idempotencyKey: offerEmailKey(offer.id),
     });
     logger.info({ ...ctxLog, providerMessageId: sent.providerMessageId }, 'waitlist offer sent');
+    await recordEmailed(offer, deps, logger);
     return true;
   } catch (error) {
     const code = error instanceof EmailSendError ? error.code : 'send_error';
     if (code === IDEMPOTENT_MISMATCH) {
       logger.warn({ ...ctxLog, code }, 'provider already accepted this offer key');
+      await recordEmailed(offer, deps, logger);
       return true;
     }
     logger.error({ ...ctxLog, code }, 'waitlist offer email failed');
@@ -232,41 +250,39 @@ export async function offerFreedSlot(
 
   const candidates = await waitlistRepo.openCandidates(businessId, freed.serviceId);
   if (candidates.length === 0) return 0;
-  const [busy, offered] = await Promise.all([
-    waitlistRepo.busyClientIds(
-      businessId,
-      [...new Set(candidates.map((c) => c.clientId))],
-      freed.startAt,
-      freed.endAt,
-    ),
-    waitlistRepo.offeredFor(businessId, freedAppointmentId),
-  ]);
-  const picks = matchEntries({
-    slot: { staffId: freed.staffId, startAt: freed.startAt, timezone: business.timezone },
-    candidates,
-    now,
-    excludeClientIds: new Set([freed.clientId]),
-    busyClientIds: busy,
-    alreadyOfferedEntryIds: offered.entryIds,
-    limit: OFFER_BATCH_SIZE,
-  });
-  if (picks.length === 0) return 0;
-
-  const batch = offered.maxBatch + 1;
-  const created = await waitlistRepo.createOffers(
+  const busy = await waitlistRepo.busyClientIds(
     businessId,
-    picks.map((p) => ({
+    [...new Set(candidates.map((c) => c.clientId))],
+    freed.startAt,
+    freed.endAt,
+  );
+  // Serialised per slot inside createBatch: the loser of two overlapping runs finds live offers.
+  const created = await waitlistRepo.createBatch(businessId, freedAppointmentId, (prior) =>
+    matchEntries({
+      slot: { staffId: freed.staffId, startAt: freed.startAt, timezone: business.timezone },
+      candidates,
+      now,
+      excludeClientIds: new Set([freed.clientId, ...prior.clientIds]),
+      busyClientIds: busy,
+      alreadyOfferedEntryIds: prior.entryIds,
+      limit: OFFER_BATCH_SIZE,
+    }).map((p) => ({
       entryId: p.entryId,
       staffId: freed.staffId,
       startAt: freed.startAt,
       endAt: freed.endAt,
       expiresAt,
       freedFromAppointmentId: freedAppointmentId,
-      batch,
     })),
   );
+  if (created.length === 0) return 0;
   logger.info(
-    { businessId, appointmentId: freedAppointmentId, batch, offers: created.length },
+    {
+      businessId,
+      appointmentId: freedAppointmentId,
+      batch: created[0]!.batch,
+      offers: created.length,
+    },
     'waitlist offers created',
   );
   await deliverOffers(created, deps, logger);
@@ -342,8 +358,16 @@ export const offersService = {
     const now = deps.now();
     if (o.status === 'EXPIRED' || (o.status === 'OPEN' && now.getTime() >= o.expiresAt.getTime()))
       throw AppError.gone('OFFER_EXPIRED', 'This offer has expired.');
-    if (o.status === 'SUPERSEDED' || (o.status === 'OPEN' && o.entry.status !== 'OPEN'))
+    if (o.status === 'SUPERSEDED')
       throw AppError.conflict('SLOT_TAKEN', { slots: [] }, 'Someone else took this spot.');
+    // An entry that is already fulfilled (another slot claimed) or cancelled must not book anything new.
+    // A CLAIMED offer is the replay path and goes on to book() with the same key.
+    if (o.status !== 'CLAIMED' && o.entry.status !== 'OPEN')
+      throw AppError.conflict(
+        'CONFLICT',
+        undefined,
+        'This waitlist entry is no longer active, so the offer cannot be claimed.',
+      );
 
     let result: BookingResult;
     try {
@@ -370,6 +394,9 @@ export const offersService = {
       }
       throw error;
     }
+    // A repeat claim must not hand back a booking that has since been cancelled.
+    if (result.replay && !IS_ACTIVE(result.appointment.status))
+      throw AppError.conflict('CONFLICT', undefined, 'That booking was cancelled.');
     // Idempotent bookkeeping: also repairs a claim that booked but crashed before recording.
     await waitlistRepo.markClaimed(businessId, {
       offerId: o.id,
@@ -392,6 +419,36 @@ export interface ExpiryResult {
   offered: number;
 }
 
+/** The route's maxDuration is 60 s. */
+export const EXPIRY_RUN_BUDGET_MS = 45_000;
+/** Do not resend an offer in its first minute: the original send may still be in flight. */
+const RESEND_AFTER_MS = 60_000;
+
+/** Offers whose first email failed (provider outage) are sent again; the offer-id key makes it safe. */
+async function resendUnsent(
+  now: Date,
+  deps: WaitlistDeps,
+  logger: Logger,
+  clock: () => number,
+  startedAt: number,
+  budgetMs: number,
+) {
+  const due = await waitlistRepo.unsentOffers(now, new Date(now.getTime() - RESEND_AFTER_MS), 100);
+  const byBusiness = new Map<string, string[]>();
+  for (const d of due)
+    byBusiness.set(d.businessId, [...(byBusiness.get(d.businessId) ?? []), d.id]);
+  for (const [businessId, ids] of byBusiness) {
+    if (clock() - startedAt > budgetMs) return;
+    try {
+      const offers = await waitlistRepo.findOffers(businessId, ids);
+      const sent = await deliverOffers(offers, deps, logger.child({ businessId }));
+      logger.info({ businessId, offers: offers.length, sent }, 'waitlist offers resent');
+    } catch (error) {
+      logger.error({ businessId, err: safeError(error) }, 'waitlist offer resend failed');
+    }
+  }
+}
+
 /**
  * Cron: expire due offers, then offer the next batch for every freed slot with no live offer left.
  * Overlapping runs are safe: expiry is one conditional UPDATE and offer creation is
@@ -402,10 +459,18 @@ export async function runWaitlistExpiry(
   deps: WaitlistDeps = defaultWaitlistDeps,
 ): Promise<ExpiryResult> {
   const now = deps.now();
+  const clock = deps.monotonic ?? (() => performance.now());
+  const startedAt = clock();
+  const budgetMs = deps.budgetMs ?? EXPIRY_RUN_BUDGET_MS;
   const expired = await waitlistRepo.expireDue(now);
+  await resendUnsent(now, deps, logger, clock, startedAt, budgetMs);
   const slots = await waitlistRepo.cascadeCandidates(now, 200);
   let offered = 0;
   for (const slot of slots) {
+    if (clock() - startedAt > budgetMs) {
+      logger.warn({ remaining: slots.length }, 'waitlist expiry run out of time; rest next run');
+      break;
+    }
     const log = logger.child({ businessId: slot.businessId });
     try {
       offered += await offerFreedSlot(

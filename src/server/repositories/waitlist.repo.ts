@@ -35,12 +35,14 @@ const offerSelect = {
   freedFromAppointmentId: true,
   claimedAppointmentId: true,
   createdAt: true,
+  emailedAt: true,
   staff: { select: { id: true, displayName: true } },
   entry: {
     select: {
       id: true,
       status: true,
       serviceId: true,
+      contactEmail: true,
       client: { select: { id: true, name: true, phone: true, email: true } },
       service: { select: { id: true, name: true, durationMin: true, price: true } },
     },
@@ -101,7 +103,7 @@ export const waitlistRepo = {
   join: (businessId: string, input: NewEntry, maxOpen: number): Promise<JoinResult> =>
     db.$transaction(
       async (tx) => {
-        const client = await clientRepo.upsertByPhone(businessId, tx, input.client, false);
+        const client = await clientRepo.findOrCreateUntouched(businessId, tx, input.client);
         await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`waitlist:${client.id}`}))`;
         const from = toStoredDate(input.fromDate);
         const to = toStoredDate(input.toDate);
@@ -127,6 +129,7 @@ export const waitlistRepo = {
           data: {
             businessId,
             clientId: client.id,
+            contactEmail: input.client.email,
             serviceId: input.serviceId,
             staffId: input.staffId,
             fromDate: from,
@@ -301,39 +304,97 @@ export const waitlistRepo = {
     return new Set(rows.map((r) => r.clientId));
   },
 
-  /** Entries that already got an offer for this freed slot, and the highest batch used. */
+  /** Entries and clients that already got an offer for this freed slot, and the highest batch used. */
   async offeredFor(businessId: string, freedFromAppointmentId: string) {
     const rows = await db.waitlistOffer.findMany({
       where: { businessId, freedFromAppointmentId },
-      select: { entryId: true, batch: true },
+      select: { entryId: true, batch: true, entry: { select: { clientId: true } } },
     });
     return {
       entryIds: new Set(rows.map((r) => r.entryId)),
+      clientIds: new Set(rows.map((r) => r.entry.clientId)),
       maxBatch: rows.reduce((m, r) => Math.max(m, r.batch), 0),
     };
   },
 
   /**
-   * INSERT ... ON CONFLICT (entryId, freedFromAppointmentId) DO NOTHING RETURNING: only the rows this call
-   * really inserted come back, so of two overlapping runs exactly one sends the emails.
+   * Create the next batch for a freed slot, serialised per slot: under a transaction-scoped advisory lock
+   * it re-checks that no offer is still OPEN or CLAIMED, reads which entries/clients were already
+   * offered, lets `plan` pick the new rows (pure, no I/O) and inserts them with ON CONFLICT DO NOTHING
+   * RETURNING. Overlapping runs therefore queue up, and the loser finds live offers and inserts nothing,
+   * so a slot never has more than one batch open. Only the rows this call inserted come back.
    */
-  async createOffers(businessId: string, rows: NewOffer[]): Promise<OfferRow[]> {
-    if (rows.length === 0) return [];
-    const inserted = await db.waitlistOffer.createManyAndReturn({
-      data: rows.map((r) => ({ ...r, businessId, status: 'OPEN' as const })),
-      skipDuplicates: true,
-      select: { id: true },
-    });
-    return waitlistRepo.findOffers(
-      businessId,
-      inserted.map((r) => r.id),
+  async createBatch(
+    businessId: string,
+    freedFromAppointmentId: string,
+    plan: (prior: {
+      entryIds: Set<string>;
+      clientIds: Set<string>;
+      maxBatch: number;
+    }) => Omit<NewOffer, 'batch'>[],
+  ): Promise<OfferRow[]> {
+    const ids = await db.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`offer:${freedFromAppointmentId}`}))`;
+        const live = await tx.waitlistOffer.count({
+          where: { businessId, freedFromAppointmentId, status: { in: ['OPEN', 'CLAIMED'] } },
+        });
+        if (live > 0) return [];
+        const prior = await tx.waitlistOffer.findMany({
+          where: { businessId, freedFromAppointmentId },
+          select: { entryId: true, batch: true, entry: { select: { clientId: true } } },
+        });
+        const maxBatch = prior.reduce((m, r) => Math.max(m, r.batch), 0);
+        const rows = plan({
+          entryIds: new Set(prior.map((r) => r.entryId)),
+          clientIds: new Set(prior.map((r) => r.entry.clientId)),
+          maxBatch,
+        });
+        if (rows.length === 0) return [];
+        const inserted = await tx.waitlistOffer.createManyAndReturn({
+          data: rows.map((r) => ({
+            ...r,
+            batch: maxBatch + 1,
+            businessId,
+            status: 'OPEN' as const,
+          })),
+          skipDuplicates: true,
+          select: { id: true },
+        });
+        return inserted.map((r) => r.id);
+      },
+      { maxWait: 15_000, timeout: 30_000 },
     );
+    return waitlistRepo.findOffers(businessId, ids);
   },
 
+  /** The offer email was accepted by the provider. */
+  async markEmailed(businessId: string, offerId: string, at: Date) {
+    await db.waitlistOffer.updateMany({
+      where: { id: offerId, businessId, emailedAt: null },
+      data: { emailedAt: at },
+    });
+  },
+
+  /** OPEN, unexpired offers whose email never went out (provider outage): safe to resend by key. */
+  unsentOffers: (now: Date, olderThan: Date, limit: number) =>
+    db.waitlistOffer.findMany({
+      where: {
+        status: 'OPEN',
+        emailedAt: null,
+        expiresAt: { gt: now },
+        createdAt: { lte: olderThan },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+      select: { id: true, businessId: true },
+    }),
+
   /**
-   * Claim bookkeeping in one transaction: this offer CLAIMED (only from OPEN or already CLAIMED by the
-   * same appointment), its entry FULFILLED, and every other OPEN offer for this freed slot or for this
-   * entry SUPERSEDED (first claim wins).
+   * Claim bookkeeping in ONE transaction, keyed by the offer id. The booking exists, so the record must say
+   * so even if the offer expired or was superseded, or the entry was cancelled, while book() ran:
+   * the offer becomes CLAIMED (from OPEN, EXPIRED or SUPERSEDED), the entry FULFILLED (from OPEN or
+   * CANCELLED), and every other OPEN offer for this freed slot or this entry SUPERSEDED.
    */
   markClaimed: (
     businessId: string,
@@ -341,11 +402,11 @@ export const waitlistRepo = {
   ) =>
     db.$transaction(async (tx) => {
       await tx.waitlistOffer.updateMany({
-        where: { id: a.offerId, businessId, status: 'OPEN' },
+        where: { id: a.offerId, businessId, status: { in: ['OPEN', 'EXPIRED', 'SUPERSEDED'] } },
         data: { status: 'CLAIMED', claimedAppointmentId: a.appointmentId },
       });
       await tx.waitlistEntry.updateMany({
-        where: { id: a.entryId, businessId, status: 'OPEN' },
+        where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
         data: { status: 'FULFILLED' },
       });
       await tx.waitlistOffer.updateMany({
@@ -390,9 +451,22 @@ export const waitlistRepo = {
     return db.$queryRaw<Array<{ businessId: string; freedFromAppointmentId: string }>>`
       SELECT o."businessId", o."freedFromAppointmentId"
       FROM "WaitlistOffer" o
+      WHERE o."startAt" > ${now.toISOString()}::timestamptz
       GROUP BY o."businessId", o."freedFromAppointmentId"
-      HAVING MIN(o."startAt") > ${now.toISOString()}::timestamptz
-        AND COUNT(*) FILTER (WHERE o."status" IN ('OPEN', 'CLAIMED')) = 0
+      HAVING COUNT(*) FILTER (WHERE o."status" IN ('OPEN', 'CLAIMED')) = 0
+        AND EXISTS (
+          SELECT 1
+          FROM "WaitlistEntry" e
+          JOIN "Appointment" f ON f."id" = o."freedFromAppointmentId"
+          WHERE e."businessId" = o."businessId"
+            AND e."serviceId" = f."serviceId"
+            AND e."status" = 'OPEN'
+            AND e."clientId" <> f."clientId"
+            AND NOT EXISTS (
+              SELECT 1 FROM "WaitlistOffer" x
+              WHERE x."entryId" = e."id" AND x."freedFromAppointmentId" = o."freedFromAppointmentId"
+            )
+        )
       ORDER BY MIN(o."startAt") ASC
       LIMIT ${limit}`;
   },

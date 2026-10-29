@@ -47,6 +47,17 @@ describe('matchEntries', () => {
     expect(match('2026-11-05T09:00:00Z', candidates)).toEqual(['a', 'b', 'c']);
   });
 
+  it('gives one client at most one place, keeping the earliest entry', () => {
+    const candidates = [
+      cand('late', { clientId: 'same', createdAt: new Date('2026-10-05T00:00:00Z') }),
+      cand('early', { clientId: 'same', createdAt: new Date('2026-10-01T00:00:00Z') }),
+      cand('b', { createdAt: new Date('2026-10-02T00:00:00Z') }),
+      cand('c', { createdAt: new Date('2026-10-03T00:00:00Z') }),
+      cand('d', { createdAt: new Date('2026-10-04T00:00:00Z') }),
+    ];
+    expect(match('2026-11-05T09:00:00Z', candidates)).toEqual(['early', 'b', 'c']);
+  });
+
   it('breaks createdAt ties by entry id', () => {
     expect(match('2026-11-05T09:00:00Z', [cand('z'), cand('m')])).toEqual(['m', 'z']);
   });
