@@ -31,3 +31,22 @@ PAYMENT_PROVIDER=fake    # or "whish"
 SENTRY_DSN=
 ```
 Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
+
+---
+
+## Production deployment checklist (maw3edlb.com)
+
+The `production` Neon branch exists (the `dev` branch was created from it) but is EMPTY. The first production deploy applies every migration (`scripts/vercel-build.mjs` runs `prisma migrate deploy` for Vercel production builds only; previews never run migrations). Never put the dev connection strings in Vercel Production, and never run the seed against production.
+
+1. **Secrets** (new values, never the local `.env` ones; never paste them in chat or commit them): generate three with
+   `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"` for `SESSION_SECRET`, `LINK_SECRET` and `CRON_SECRET`. All three must differ.
+2. **Neon** (project `maw3ed`, branch `production`, Connect): pooling ON gives `DATABASE_URL` (host contains `-pooler`); pooling OFF gives `DIRECT_URL`.
+3. **Vercel**: import the GitHub repo (Next.js is auto-detected; leave build/install commands, `vercel.json` is not needed because the `vercel-build` script is used), Node.js 22, attach `maw3edlb.com` as the production domain and redirect `www` to it.
+   - Production environment variables: `DATABASE_URL`, `DIRECT_URL`, `APP_URL=https://maw3edlb.com`, `NEXT_PUBLIC_APP_URL=https://maw3edlb.com`, `SESSION_SECRET`, `LINK_SECRET`, `CRON_SECRET`, `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM`.
+   - Preview environment variables: the same names with the DEV Neon strings and `EMAIL_PROVIDER=fake`, so previews never touch production data or send real mail.
+   - A production build that is missing or mis-setting any of these fails with the variable NAMES listed (values are never printed).
+4. **Resend**: create an API key, add the sending domain (use a subdomain such as `mail.maw3edlb.com`), add the DNS records Resend shows in Vercel DNS, wait for Verified, optionally add a DMARC TXT record (`_dmarc`, `v=DMARC1; p=none`). `EMAIL_FROM` example: `Maw3ed <reminders@mail.maw3edlb.com>`.
+5. **First deploy check**: `https://maw3edlb.com/api/health` returns `{"status":"ok","db":"up"}`; sign up a test business at `/signup`.
+6. **cron-job.org** (after the first deploy; each job is a POST with header `x-cron-secret: <production CRON_SECRET>`): `/api/jobs/reminders` every 5 minutes, `/api/jobs/waitlist-expiry` every 5 minutes, `/api/jobs/cleanup` daily (once the launch-gates PR is merged). Turn on failure notifications.
+7. **GitHub**: Actions variable `APP_URL=https://maw3edlb.com` and secret `CRON_SECRET` (enables the backup scheduler workflow); protect `main` (require a pull request and the CI check).
+8. **Phone test**: open `https://maw3edlb.com/b/<slug>` on a real phone, book, check the confirmation email, open the confirm and cancel links.
