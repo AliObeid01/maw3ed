@@ -9,7 +9,8 @@ export type ApptTone =
   | 'noShow'
   | 'lateCancel'
   | 'cancelled'
-  | 'waitlist';
+  | 'waitlist'
+  | 'pendingPayment';
 
 export function apptTone(appt: Pick<TodayAppointment, 'status' | 'source'>): ApptTone {
   switch (appt.status) {
@@ -19,6 +20,8 @@ export function apptTone(appt: Pick<TodayAppointment, 'status' | 'source'>): App
       return 'noShow';
     case 'LATE_CANCEL':
       return 'lateCancel';
+    case 'PENDING_PAYMENT':
+      return 'pendingPayment';
     case 'CANCELLED':
       return 'cancelled';
     case 'CONFIRMED':

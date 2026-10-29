@@ -33,8 +33,20 @@ export function changeView(
   return {
     direction: changePoints < 0 ? 'down' : 'up',
     points: Number.isInteger(points) ? points.toFixed(0) : points.toFixed(1),
-    relative: changeRelativePct === null ? null : String(Math.round(Math.abs(changeRelativePct))),
+    relative: relativeText(changeRelativePct),
   };
+}
+
+/**
+ * Relative change as text: whole percent from 1%, one decimal below 1%, and null (omitted) when it would read "0%"
+ * next to a non-zero number of points or when the baseline rate was 0.
+ */
+export function relativeText(changeRelativePct: number | null): string | null {
+  if (changeRelativePct === null) return null;
+  const abs = Math.abs(changeRelativePct);
+  if (abs >= 1) return String(Math.round(abs));
+  const one = round1(abs);
+  return one === 0 ? null : one.toFixed(1);
 }
 
 export type RateSide = {
@@ -49,6 +61,8 @@ export type RateSide = {
 export type PilotView = {
   daysCovered: number;
   pilot: RateSide;
+  /** Started appointments in the pilot that still have no outcome (booked or confirmed). */
+  unmarked: number;
   baseline: RateSide | null;
   change: ChangeView;
   /** 0-100 bar widths on a shared scale. */
@@ -83,6 +97,7 @@ export function buildPilotView(report: PilotReport): PilotView {
   const scaleMax = niceMax(Math.max(pilot.noShowRate ?? 0, pilot.baselineRate ?? 0) * 1.25);
   return {
     daysCovered: pilot.daysCovered,
+    unmarked: Math.max(0, pilot.appointments - pilot.attended - pilot.noShows - pilot.lateCancels),
     pilot: {
       rate: formatPercent(pilot.noShowRate),
       noShows: pilot.noShows,
@@ -123,6 +138,8 @@ export type WeekBar = {
   of: number;
   /** Show the week label under this bar (thinned out when there are many weeks). */
   showLabel: boolean;
+  /** No marked outcomes that week: drawn as a "no data" marker, never as a 0% bar. */
+  noData: boolean;
 };
 
 export type WeeklyChart = {
@@ -133,6 +150,10 @@ export type WeeklyChart = {
   baselinePct: number | null;
   weeks: WeekBar[];
   hasData: boolean;
+  /** First Monday shown and the last day of the last week shown (weekStart + 6 days), `yyyy-MM-dd`; null without weeks. */
+  range: { from: string; to: string } | null;
+  /** Some weeks have no marked outcomes (the legend explains the marker). */
+  hasGaps: boolean;
 };
 
 /** Label every week up to 6 columns, then every 2nd (up to 12), then every 3rd: keeps 360 px readable. */
@@ -161,7 +182,22 @@ export function buildWeeklyChart(report: PilotReport): WeeklyChart {
       noShows: w.noShows,
       of: w.attended + w.noShows,
       showLabel: i % every === 0,
+      noData: w.noShowRate === null,
     })),
     hasData: rates.some((r) => r !== null),
+    range:
+      report.weekly.length === 0
+        ? null
+        : {
+            from: report.weekly[0]!.weekStart,
+            to: addDays(report.weekly[report.weekly.length - 1]!.weekStart, 6),
+          },
+    hasGaps: rates.some((r) => r === null),
   };
+}
+
+/** Calendar-day arithmetic on a `yyyy-MM-dd` (UTC, so DST never shifts it). */
+export function addDays(ymd: string, days: number): string {
+  const [y, m, d] = ymd.split('-').map(Number) as [number, number, number];
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }

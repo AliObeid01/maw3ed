@@ -112,13 +112,26 @@ export function validateBaseline(
   };
 }
 
-/** Map a 400 `fields` object from the server onto form fields (unknown keys are ignored). */
+/**
+ * Map a 400 `fields` object from the server onto form fields (unknown keys are ignored). The server's text decides
+ * which of our messages fits: a field can fail for more than one reason ("No-shows cannot exceed appointments" is
+ * only one of the ways `noShows` can be wrong).
+ */
 export function serverFieldErrors(fields: Record<string, string>): BaselineErrors {
   const out: BaselineErrors = {};
+  const has = (field: string, pattern: RegExp) => pattern.test(fields[field] ?? '');
   if (fields.fromDate) out.fromDate = 'dateInvalid';
-  if (fields.toDate) out.toDate = 'dateInvalid';
-  if (fields.appointments) out.appointments = 'numberInvalid';
-  if (fields.noShows) out.noShows = 'noShowsAbove';
+  if (fields.toDate) {
+    out.toDate = has('toDate', /before the start/i)
+      ? 'toBeforeFrom'
+      : has('toDate', /at most \d+ days/i)
+        ? 'tooLong'
+        : has('toDate', /future/i)
+          ? 'future'
+          : 'dateInvalid';
+  }
+  if (fields.appointments) out.appointments = has('appointments', /at most 10000|10,?000/i) ? 'tooMany' : 'numberInvalid';
+  if (fields.noShows) out.noShows = has('noShows', /exceed|more than/i) ? 'noShowsAbove' : 'numberInvalid';
   if (fields.lateCancels) out.lateCancels = 'numberInvalid';
   return out;
 }

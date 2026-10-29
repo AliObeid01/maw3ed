@@ -23,6 +23,10 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
     return <p className="m-0 py-6 text-center text-sm text-muted">{t('empty')}</p>;
   }
 
+  const legendBaseline = t.rich('legendBaseline', {
+    rate: formatPercent(chart.baselineRate),
+    num: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
+  });
   const summary = t('summary', {
     count: chart.weeks.length,
     baseline: chart.baselineRate === null ? t('noBaseline') : formatPercent(chart.baselineRate),
@@ -41,7 +45,16 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
               aria-hidden="true"
               className="inline-block h-0 w-5 border-t-2 border-dashed border-warning"
             />
-            {t('legendBaseline', { rate: formatPercent(chart.baselineRate) })}
+            {legendBaseline}
+          </li>
+        ) : null}
+        {chart.hasGaps ? (
+          <li className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="inline-block h-2.5 w-3 rounded-t-[3px] border border-dashed border-muted bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(98_105_103/0.35)_3px_4px)]"
+            />
+            {t('legendNoData')}
           </li>
         ) : null}
       </ul>
@@ -68,15 +81,23 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
               <div className="absolute inset-0 flex items-end gap-1.5 px-1.5">
                 {chart.weeks.map((w) => (
                   <div key={w.weekStart} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end">
-                    {showValues && w.rate !== null ? (
+                    {showValues ? (
                       <span className="mb-0.5 text-[11px] leading-none font-semibold text-ink tabular-nums">
                         {w.label}
                       </span>
                     ) : null}
-                    <span
-                      className="w-full max-w-9 rounded-t-md bg-brand transition-[height] duration-200 ease-out"
-                      style={{ height: `${w.heightPct}%` }}
-                    />
+                    {w.noData ? (
+                      // No marked outcomes that week: a hatched stub, never a 0% bar.
+                      <span
+                        data-testid="no-data-week"
+                        className="h-2 w-full max-w-9 rounded-t-md border border-dashed border-muted bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(98_105_103/0.35)_3px_4px)]"
+                      />
+                    ) : (
+                      <span
+                        className="w-full max-w-9 rounded-t-md bg-brand transition-[height] duration-200 ease-out"
+                        style={{ height: `${w.heightPct}%` }}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

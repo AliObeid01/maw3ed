@@ -1,4 +1,5 @@
 import { API_BASE, ApiError, parseErrorBody } from '@/lib/api/auth';
+import { addDays } from '@/lib/pilot/viewModel';
 
 /** File name from a Content-Disposition header, or `fallback`. Only a plain, safe name is accepted. */
 export function filenameFrom(header: string | null, fallback: string): string {
@@ -7,7 +8,16 @@ export function filenameFrom(header: string | null, fallback: string): string {
   return name && /^[\w.-]+$/.test(name) ? name : fallback;
 }
 
-export const csvPath = (from: string, to: string) =>
+/** The server exports at most 366 local days (inclusive). */
+export const MAX_EXPORT_DAYS = 366;
+
+/** `from` moved up to `to - 365 days` when the range is longer than the server allows. */
+export function clampExportRange(from: string, to: string): { from: string; to: string; clamped: boolean } {
+  const earliest = addDays(to, -(MAX_EXPORT_DAYS - 1));
+  return from < earliest ? { from: earliest, to, clamped: true } : { from, to, clamped: false };
+}
+
+export const csvPath =(from: string, to: string) =>
   `/api/pilot/export.csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
 
 /**

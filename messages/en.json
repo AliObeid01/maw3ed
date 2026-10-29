@@ -18,7 +18,8 @@
       "offered": "Offered",
       "claimed": "Claimed",
       "reminder2h": "2 h",
-      "reminder24h": "24 h"
+      "reminder24h": "24 h",
+      "pendingPayment": "Awaiting payment"
     }
   },
   "public": {
@@ -112,7 +113,8 @@
       "cancel": "Cancel",
       "save": "Save",
       "saving": "Saving…",
-      "done": "Done"
+      "done": "Done",
+      "deletedClient": "Deleted client"
     },
     "errors": {
       "network": "No connection. Check your internet and try again.",
@@ -617,7 +619,8 @@
         "upcoming": "You can mark the outcome once the appointment starts, at {time}.",
         "inProgress": "Attended can be marked after {time}, when the appointment ends. No-show and Late cancel are available now.",
         "ended": "Did {name} come? Mark it so the history stays accurate.",
-        "recorded": "Recorded as {outcome}. You can change it if it was a mistake."
+        "recorded": "Recorded as {outcome}. You can change it if it was a mistake.",
+        "lateCancelFinal": "A late cancel is final. It cannot be changed to Attended or No-show."
       }
     },
     "clients": {
@@ -681,23 +684,24 @@
       "loading": "Loading the pilot report",
       "export": "Export CSV",
       "exported": "CSV downloaded",
-      "stale": "Could not refresh. Showing the last numbers.",
+      "stale": "Could not load that period. Showing the last {count, plural, one {# week} other {# weeks}}.",
       "smallNumbers": "With a few dozen appointments, one no-show moves the rate by several points. Read it as a direction, not proof, and keep the counts in view.",
       "weeks": {
-        "label": "Period",
-        "option": "{count} weeks"
+        "label": "Weeks shown",
+        "option": "{count, plural, one {# week} other {# weeks}}"
       },
       "hero": {
-        "eyebrow": "No-show rate · {days, plural, one {# day} other {# days}}",
+        "eyebrow": "No-show rate · since {from}",
         "same": "No change",
-        "lower": "{points} {n, plural, one {point} other {points}}{hasRelative, select, yes { · {relative}% lower} other { lower}}",
-        "higher": "{points} {n, plural, one {point} other {points}}{hasRelative, select, yes { · {relative}% higher} other { higher}}",
-        "counts": "{noShows, plural, one {# no-show} other {# no-shows}} of {of} appointments",
+        "lower": "<num>{points}</num> {count, plural, one {point} other {points}}{hasRelative, select, yes { · <num>{relative}%</num> lower} other { lower}}",
+        "higher": "<num>{points}</num> {count, plural, one {point} other {points}}{hasRelative, select, yes { · <num>{relative}%</num> higher} other { higher}}",
+        "counts": "<num>{noShows}</num> {noShows, plural, one {no-show} other {no-shows}} of <num>{of}</num> held or missed",
         "noOutcomes": "No outcomes marked in this period yet. Mark outcomes to see your rate.",
         "withMaw3ed": "With Maw3ed",
         "before": "Your book before",
         "noBaseline": "Enter your numbers from before the pilot to compare.",
-        "definition": "Rate = no-shows divided by (attended + no-shows). Cancellations and late cancels are not counted."
+        "definition": "Rate = no-shows divided by (attended + no-shows). Cancellations and late cancels are not counted.",
+        "unmarked": "{count, plural, one {# appointment still needs an outcome} other {# appointments still need an outcome}}"
       },
       "signals": {
         "label": "Supporting numbers",
@@ -706,19 +710,19 @@
         "noReminders": "No reminders sent yet",
         "cancelledByLink": "Cancelled by link",
         "cancelledByLinkNote": "slots freed early",
-        "refilledValue": "{refilled} of {offered}",
+        "refilledValue": "<num>{refilled}</num> of <num>{offered}</num>",
         "refilled": "Refilled",
-        "refilledNote": "from the waitlist · {rate}",
+        "refilledNote": "from the waitlist · <num>{rate}</num>",
         "noWaitlist": "No freed slots offered yet"
       },
       "chart": {
         "title": "Weekly no-show rate",
-        "range": "{from} to {to}",
+        "range": "Last {count, plural, one {# week} other {# weeks}}: {from} to {to}",
         "empty": "No marked outcomes in these weeks yet.",
         "summary": "Bar chart of the no-show rate for {count, plural, one {# week} other {# weeks}}. Baseline: {baseline}.",
         "noBaseline": "not entered",
         "legendRate": "Weekly rate",
-        "legendBaseline": "Baseline {rate}",
+        "legendBaseline": "Baseline <num>{rate}</num>",
         "caption": "Weekly no-show rate with the numbers behind each week",
         "showTable": "Show as a table",
         "col": {
@@ -726,7 +730,8 @@
           "noShows": "No-shows",
           "held": "Held or missed",
           "rate": "Rate"
-        }
+        },
+        "legendNoData": "No marked outcomes"
       },
       "baseline": {
         "title": "Baseline from your book",
@@ -752,7 +757,8 @@
           "noShowsAbove": "No-shows cannot be more than the appointments.",
           "tooMany": "That is more than 10,000."
         }
-      }
+      },
+      "exportClamped": "Exports the latest {count} days, the most the server allows."
     }
   },
   "auth": {

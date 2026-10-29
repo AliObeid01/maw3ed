@@ -18,7 +18,8 @@
       "offered": "تم العرض",
       "claimed": "تم الحجز",
       "reminder2h": "ساعتان",
-      "reminder24h": "24 ساعة"
+      "reminder24h": "24 ساعة",
+      "pendingPayment": "بانتظار الدفع"
     }
   },
   "public": {
@@ -112,7 +113,8 @@
       "cancel": "إلغاء",
       "save": "حفظ",
       "saving": "جارٍ الحفظ…",
-      "done": "تم"
+      "done": "تم",
+      "deletedClient": "عميل محذوف"
     },
     "errors": {
       "network": "لا يوجد اتصال. تحقق من الإنترنت وحاول مرة أخرى.",
@@ -617,7 +619,8 @@
         "upcoming": "يمكنك تسجيل النتيجة عند بدء الموعد، في {time}.",
         "inProgress": "يمكن تسجيل «حضر» بعد {time}، عند انتهاء الموعد. «لم يحضر» و«إلغاء متأخر» متاحان الآن.",
         "ended": "هل حضر {name}؟ سجّل النتيجة ليبقى السجل دقيقًا.",
-        "recorded": "سُجّل: {outcome}. يمكنك التغيير إن كان خطأ."
+        "recorded": "سُجّل: {outcome}. يمكنك التغيير إن كان خطأ.",
+        "lateCancelFinal": "الإلغاء المتأخر نهائي. لا يمكن تغييره إلى «حضر» أو «لم يحضر»."
       }
     },
     "clients": {
@@ -681,23 +684,24 @@
       "loading": "جارٍ تحميل تقرير التجربة",
       "export": "تصدير CSV",
       "exported": "تم تنزيل ملف CSV",
-      "stale": "تعذّر التحديث. نعرض آخر الأرقام.",
+      "stale": "تعذّر تحميل تلك الفترة. نعرض آخر {count, plural, one {أسبوع} two {أسبوعين} few {{count} أسابيع} many {{count} أسبوعًا} other {{count} أسبوع}}.",
       "smallNumbers": "مع بضع عشرات من المواعيد، يحرّك غياب واحد النسبة عدة نقاط. اقرأها كاتجاه لا كدليل، وأبقِ الأعداد أمامك.",
       "weeks": {
-        "label": "الفترة",
-        "option": "{count} أسابيع"
+        "label": "الأسابيع المعروضة",
+        "option": "{count, plural, one {أسبوع} two {أسبوعين} few {{count} أسابيع} many {{count} أسبوعًا} other {{count} أسبوع}}"
       },
       "hero": {
-        "eyebrow": "نسبة عدم الحضور · {days, plural, one {يوم} two {يومان} few {# أيام} many {# يومًا} other {# يوم}}",
+        "eyebrow": "نسبة عدم الحضور · منذ {from}",
         "same": "بلا تغيير",
-        "lower": "{points} نقطة{hasRelative, select, yes { · أقل بنسبة {relative}%} other { أقل}}",
-        "higher": "{points} نقطة{hasRelative, select, yes { · أعلى بنسبة {relative}%} other { أعلى}}",
-        "counts": "{noShows, plural, one {غياب} two {غيابان} few {# غيابات} many {# غيابًا} other {# غياب}} من {of} موعدًا",
+        "lower": "<num>{points}</num> نقطة{hasRelative, select, yes { · أقل بنسبة <num>{relative}%</num>} other { أقل}}",
+        "higher": "<num>{points}</num> نقطة{hasRelative, select, yes { · أعلى بنسبة <num>{relative}%</num>} other { أعلى}}",
+        "counts": "<num>{noShows}</num> {noShows, plural, one {غياب} two {غيابان} few {غيابات} many {غيابًا} other {غياب}} من <num>{of}</num> موعدًا تم أو فات",
         "noOutcomes": "لم تُسجَّل نتائج في هذه الفترة بعد. سجّل النتائج لترى نسبتك.",
         "withMaw3ed": "مع موعد",
         "before": "دفترك قبل التجربة",
         "noBaseline": "أدخل أرقامك قبل التجربة للمقارنة.",
-        "definition": "النسبة = عدد من لم يحضروا مقسومًا على (من حضروا + من لم يحضروا). لا تُحتسب الإلغاءات والإلغاءات المتأخرة."
+        "definition": "النسبة = عدد من لم يحضروا مقسومًا على (من حضروا + من لم يحضروا). لا تُحتسب الإلغاءات والإلغاءات المتأخرة.",
+        "unmarked": "{count, plural, one {موعد واحد ينتظر تسجيل النتيجة} two {موعدان ينتظران تسجيل النتيجة} few {{count} مواعيد تنتظر تسجيل النتيجة} many {{count} موعدًا ينتظر تسجيل النتيجة} other {{count} موعد ينتظر تسجيل النتيجة}}"
       },
       "signals": {
         "label": "أرقام داعمة",
@@ -706,19 +710,19 @@
         "noReminders": "لم تُرسل تذكيرات بعد",
         "cancelledByLink": "أُلغيت بالرابط",
         "cancelledByLinkNote": "أوقات تحررت مبكرًا",
-        "refilledValue": "{refilled} من {offered}",
+        "refilledValue": "<num>{refilled}</num> من <num>{offered}</num>",
         "refilled": "أُعيد ملؤها",
-        "refilledNote": "من قائمة الانتظار · {rate}",
+        "refilledNote": "من قائمة الانتظار · <num>{rate}</num>",
         "noWaitlist": "لم تُعرض أوقات متاحة بعد"
       },
       "chart": {
         "title": "نسبة عدم الحضور أسبوعيًا",
-        "range": "من {from} إلى {to}",
+        "range": "آخر {count, plural, one {أسبوع} two {أسبوعين} few {{count} أسابيع} many {{count} أسبوعًا} other {{count} أسبوع}}: من {from} إلى {to}",
         "empty": "لا نتائج مسجّلة في هذه الأسابيع بعد.",
-        "summary": "مخطط أعمدة لنسبة عدم الحضور لمدة {count} أسابيع. الأساس: {baseline}.",
+        "summary": "مخطط أعمدة لنسبة عدم الحضور لمدة {count, plural, one {أسبوع} two {أسبوعين} few {{count} أسابيع} many {{count} أسبوعًا} other {{count} أسبوع}}. الأساس: {baseline}.",
         "noBaseline": "غير مُدخل",
         "legendRate": "النسبة الأسبوعية",
-        "legendBaseline": "الأساس {rate}",
+        "legendBaseline": "الأساس <num>{rate}</num>",
         "caption": "نسبة عدم الحضور الأسبوعية مع الأرقام خلف كل أسبوع",
         "showTable": "عرض كجدول",
         "col": {
@@ -726,7 +730,8 @@
           "noShows": "لم يحضر",
           "held": "تم أو فات",
           "rate": "النسبة"
-        }
+        },
+        "legendNoData": "لا نتائج مسجّلة"
       },
       "baseline": {
         "title": "أساس من دفترك",
@@ -752,7 +757,8 @@
           "noShowsAbove": "لا يمكن أن يزيد عدد من لم يحضروا عن المواعيد.",
           "tooMany": "هذا أكثر من 10,000."
         }
-      }
+      },
+      "exportClamped": "يصدّر آخر {count} يومًا، وهو الحد الأقصى المسموح."
     }
   },
   "auth": {

@@ -74,6 +74,7 @@ export function BaselineForm({
   const [formError, setFormError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const busy = useRef(false);
+  const today = todayIn(timezone);
   const formRef = useRef<HTMLFormElement>(null);
 
   const set = (field: BaselineField) => (value: string) => {
@@ -91,7 +92,7 @@ export function BaselineForm({
     event.preventDefault();
     if (busy.current) return;
     setFormError(undefined);
-    const result = validateBaseline(values, todayIn(timezone));
+    const result = validateBaseline(values, today);
     if (!result.ok) {
       setErrors(result.errors);
       focusFirst(result.errors);
@@ -141,6 +142,7 @@ export function BaselineForm({
         <Input
           name="fromDate"
           type="date"
+          max={today}
           label={t('from')}
           error={err('fromDate')}
           autoComplete="off"
@@ -152,6 +154,7 @@ export function BaselineForm({
         <Input
           name="toDate"
           type="date"
+          max={today}
           label={t('to')}
           error={err('toDate')}
           autoComplete="off"

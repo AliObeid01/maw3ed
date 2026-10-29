@@ -221,7 +221,8 @@ export function OutcomesView() {
     busy.current.add(item.id);
     dispatch({ type: 'tap', item, outcome });
     const wasWaiting = !marks.entries[item.id] || marks.entries[item.id]!.phase === 'failed';
-    if (wasWaiting) setOutcomesToMark(left - 1);
+    // Functional update: two quick taps each take one off the current badge, not the same `left - 1`.
+    if (wasWaiting) setOutcomesToMark((current) => current - 1);
     try {
       await markOutcome(item.id, outcome);
       dispatch({ type: 'ok', id: item.id, outcome });
