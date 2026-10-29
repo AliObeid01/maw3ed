@@ -272,15 +272,15 @@ export async function runReminders(
 
   // Reminders finish before any booking confirmation starts, so the budget cut-off drops confirmations
   // first (NFR-10).
-  const queue = [
-    ...claimed.filter((j) => j.kind !== 'BOOKING'),
-    ...claimed.filter((j) => j.kind === 'BOOKING'),
-  ];
+  const reminders = claimed.filter((j) => j.kind !== 'BOOKING');
+  const queue = [...reminders, ...claimed.filter((j) => j.kind === 'BOOKING')];
   let next = 0;
   while (next < queue.length) {
     if (!stopRun && clock() - startedAt > budgetMs) stopRun = 'budget';
     if (stopRun) break;
-    const chunk = queue.slice(next, next + CONCURRENCY);
+    // A chunk never mixes the two phases, so every reminder is recorded before a confirmation starts.
+    const phaseEnd = next < reminders.length ? reminders.length : queue.length;
+    const chunk = queue.slice(next, Math.min(next + CONCURRENCY, phaseEnd));
     next += chunk.length;
     const settled = await Promise.allSettled(chunk.map(process));
     settled.forEach((r, i) => {

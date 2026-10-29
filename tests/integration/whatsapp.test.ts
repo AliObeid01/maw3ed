@@ -159,6 +159,23 @@ describe('GET /api/reminders/whatsapp-due', () => {
     expect((await list(a.cookie)).body).toEqual({ count: 0, items: [] });
   });
 
+  it('a stored phone that is not E.164 is flagged, not a 500 for the whole list', async () => {
+    const bad = await book(a, aScn, '07:00');
+    const good = await book(a, aScn, '08:00', '71 765 432');
+    await pg.query(
+      `UPDATE "Client" SET phone = 'not-a-phone' WHERE id = (SELECT "clientId" FROM "Appointment" WHERE id = $1)`,
+      [bad],
+    );
+    vi.setSystemTime(new Date(H24_DUE.getTime() + 3_600_000));
+    const res = await list(a.cookie);
+    expect(res.status).toBe(200);
+    expect(res.body!.count).toBe(2);
+    const byAppt = (id: string) => res.body!.items.find((i: any) => i.appointment.id === id);
+    expect(byAppt(bad)).toMatchObject({ whatsappUrl: null, phoneInvalid: true });
+    expect(byAppt(good).phoneInvalid).toBe(false);
+    expect(byAppt(good).whatsappUrl).toMatch(/^https:\/\/wa\.me\/96171765432\?text=/);
+  });
+
   it('only shows the session business’s reminders, to OWNER and STAFF; 401 without a session', async () => {
     const aId = await book();
     const bId = await book(b, bScn);

@@ -408,7 +408,7 @@ describe('daily email budget (NFR-10)', () => {
   it('at 95 the booking confirmation is skipped before any reminder', async () => {
     const appt = await book(a, scn, 'b@example.test', '07:00');
     // 94 sent today; H24 (a reminder) and BOOKING are both due. The reminder sends first -> 95 -> BOOKING skipped.
-    const t = new Date('2026-11-03T08:00:00Z');
+    const t = new Date('2026-11-03T07:00:00Z');
     await fillBudget(94, new Date('2026-11-03T06:00:00Z'));
     const run = await runReminders(deps(t));
     expect(run).toMatchObject({ claimed: 2, sent: 1, skipped: 1 });

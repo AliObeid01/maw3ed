@@ -15,6 +15,14 @@ import {
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 
+const hook = vi.hoisted(() => ({ fail: false, calls: 0 }));
+vi.mock('@/server/services/slotFreed', () => ({
+  onSlotFreed: async () => {
+    hook.calls++;
+    if (hook.fail) throw new Error('waitlist hook exploded');
+  },
+}));
+
 let pg: Client;
 let prisma: PrismaClient;
 let a: Tenant;
@@ -298,6 +306,44 @@ describe('POST cancel', () => {
     const id = await book();
     await pg.query(`UPDATE "Appointment" SET status = 'CANCELLED' WHERE id = $1`, [id]);
     expect((await act(tok(id, 'cancel'), 'cancel')).body!.result).toBe('already_cancelled');
+  });
+});
+
+describe('slot-freed hook failures and races', () => {
+  it('a throwing onSlotFreed after a committed cancel does not 500 the client', async () => {
+    const id = await book();
+    hook.fail = true;
+    hook.calls = 0;
+    try {
+      const res = await act(tok(id, 'cancel'), 'cancel');
+      expect(res.status).toBe(200);
+      expect(res.body!.result).toBe('cancelled');
+      expect(hook.calls).toBe(1);
+      expect((await row(id)).status).toBe('CANCELLED');
+    } finally {
+      hook.fail = false;
+    }
+  });
+
+  it('confirm racing cancel: the cancel always wins, the confirm gets a coherent answer', async () => {
+    for (let i = 0; i < 3; i++) {
+      await pg.query('DELETE FROM "ReminderJob"');
+      await pg.query('DELETE FROM "Appointment"');
+      await pg.query('DELETE FROM "Client"');
+      const id = await book();
+      const t = tok(id, 'view');
+      const [confirm, cancel] = await Promise.all([act(t, 'confirm'), act(t, 'cancel')]);
+      expect(cancel.status).toBe(200);
+      expect(cancel.body!.result).toBe('cancelled');
+      if (confirm.status === 200) expect(confirm.body!.result).toBe('confirmed');
+      else {
+        expect(confirm.status).toBe(409);
+        expect(confirm.body!.error.code).toBe('CONFLICT');
+      }
+      // Never ends CONFIRMED after a successful cancel, and the slot is free.
+      expect((await row(id)).status).toBe('CANCELLED');
+      expect(await lateCancels(id)).toBe(0);
+    }
   });
 });
 
