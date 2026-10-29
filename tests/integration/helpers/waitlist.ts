@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- test helper: response bodies are untyped JSON */
 import { POST as acceptInvite } from '@/app/api/invites/[token]/accept/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { POST as cancelAppointment } from '@/app/api/appointments/[id]/cancel/route';
@@ -6,7 +5,7 @@ import { GET as getOffer } from '@/app/api/offers/[token]/route';
 import { POST as claimOffer } from '@/app/api/offers/[token]/claim/route';
 import { POST as joinPost } from '@/app/api/public/[slug]/waitlist/route';
 import { POST as expiryJob } from '@/app/api/jobs/waitlist-expiry/route';
-import { expiryFor, offerExpiryFor, signToken } from '@/server/domain/tokens';
+import { offerExpiryFor, signToken } from '@/server/domain/tokens';
 import { fakeEmailProvider } from '@/server/providers/email';
 import type { PrismaClient } from '../../../src/generated/prisma/client';
 import { call, PASSWORD, unique } from './api';
@@ -33,7 +32,8 @@ export const staffCancel = (cookie: string, id: string) =>
     params: { id },
   });
 
-export const offerGet = (token: string) => call(getOffer, `/api/offers/${token}`, { params: { token } });
+export const offerGet = (token: string) =>
+  call(getOffer, `/api/offers/${token}`, { params: { token } });
 export const offerClaim = (token: string, body: unknown = {}) =>
   call(claimOffer, `/api/offers/${token}/claim`, { params: { token }, body });
 
@@ -114,4 +114,3 @@ export async function staffSession(ownerCookie: string) {
   return accepted.cookie as string;
 }
 
-export { expiryFor };
