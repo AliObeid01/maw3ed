@@ -61,6 +61,12 @@ describe('slot generation load (NFR-09)', () => {
     expect(anyone.length).toBeLessThanOrEqual(14 * 47);
   });
 
+  it('always-on generous bound (1500 ms) catches order-of-magnitude regressions', () => {
+    const t0 = performance.now();
+    run();
+    expect(performance.now() - t0).toBeLessThan(1500);
+  });
+
   it.skipIf(skip)('generates + merges in well under 300 ms (median of 5 runs)', () => {
     run(); // warm up the JIT and zone cache
     const times: number[] = [];

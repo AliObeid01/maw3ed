@@ -1,3 +1,4 @@
+import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { db } from './db';
 import { clientRepo } from './client.repo';
 import { reminderJobRepo, type NewReminderJob } from './reminderJob.repo';
@@ -23,11 +24,13 @@ export interface NewBooking {
   source: 'PUBLIC' | 'FRONT_DESK' | 'WAITLIST';
   idempotencyKey?: string | undefined;
   client: { name: string; phone: string; email?: string | undefined };
+  /** True only for a session-authenticated front-desk booking: see clientRepo.upsertByPhone. */
+  overwriteContact: boolean;
   reminders: NewReminderJob[];
 }
 
 /** Statuses that count towards a staff member's day for the "anyone" fairness pick. */
-const COUNTED_STATUSES = ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT', 'ATTENDED', 'NO_SHOW'] as const;
+const COUNTED_STATUSES = [...SLOT_HOLDING_STATUSES, 'ATTENDED', 'NO_SHOW'] as const;
 
 export const appointmentRepo = {
   findById: (businessId: string, id: string) =>
@@ -72,7 +75,12 @@ export const appointmentRepo = {
    */
   create: (businessId: string, data: NewBooking) =>
     db.$transaction(async (tx) => {
-      const client = await clientRepo.upsertByPhone(businessId, tx, data.client);
+      const client = await clientRepo.upsertByPhone(
+        businessId,
+        tx,
+        data.client,
+        data.overwriteContact,
+      );
       const appointment = await tx.appointment.create({
         data: {
           businessId,

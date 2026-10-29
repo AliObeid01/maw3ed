@@ -1,3 +1,4 @@
+import { getServerEnv } from '@/server/env';
 import { requireRole } from '@/server/http/auth';
 import { AppError, fromDbError } from '@/server/http/errors';
 import type { RouteContext, SessionContext } from '@/server/http/withRoute';
@@ -25,6 +26,7 @@ export const invitesService = {
     const now = deps.now();
     // Resolve the provider first: a misconfiguration (e.g. fake in production) fails before any row is written.
     const provider = getEmailProvider();
+    const appUrl = getServerEnv().APP_URL; // also before any write; no localhost fallback in production
     if (await membershipRepo.hasMemberWithEmail(ctx.businessId, input.email))
       throw AppError.conflict('ALREADY_MEMBER', undefined, 'That person is already on your team.');
     const business = await businessRepo.findById(ctx.businessId);
@@ -38,7 +40,7 @@ export const invitesService = {
       expiresAt: new Date(now.getTime() + INVITE_TTL_MS),
     });
 
-    const acceptUrl = `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/invite/${token}`;
+    const acceptUrl = `${appUrl}/invite/${token}`;
     try {
       const message = inviteEmail({
         businessName: business.name,

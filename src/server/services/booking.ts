@@ -3,6 +3,7 @@ import { localDayOf } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
 import { pickStaff } from '@/server/domain/slots';
 import { expiryFor, signToken } from '@/server/domain/tokens';
+import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
 import { AppError, pgErrorCode } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
 import { appointmentRepo } from '@/server/repositories/appointment.repo';
@@ -24,20 +25,25 @@ export interface BookInput {
   client: { name: string; phone: string; email?: string | undefined };
   source: 'PUBLIC' | 'FRONT_DESK' | 'WAITLIST';
   idempotencyKey?: string | undefined;
+  /**
+   * Front-desk walk-ins: skip the business's minimum notice. The booking window, working hours, time off
+   * and the exclusion constraint still apply. Only the session-authenticated front-desk path sets this.
+   */
+  ignoreMinNotice?: boolean;
 }
 
 export interface BookDeps {
   now: () => Date;
   linkSecret: () => string;
+  appUrl: () => string;
+  /** Test seam: runs after the availability read and before the insert (to provoke a lost race). */
+  afterAvailability?: (info: { candidates: string[] }) => Promise<void>;
 }
 
 export const defaultBookDeps: BookDeps = {
   now: () => new Date(),
-  linkSecret: () => {
-    const secret = process.env.LINK_SECRET;
-    if (!secret) throw new Error('LINK_SECRET is not set');
-    return secret;
-  },
+  linkSecret: () => requireLinkSecret(),
+  appUrl: () => getServerEnv().APP_URL,
 };
 
 type Stored = NonNullable<Awaited<ReturnType<typeof appointmentRepo.findById>>>;
@@ -74,13 +80,18 @@ export function appointmentSummary(a: Stored) {
   };
 }
 
-function manageLink(a: Stored, deps: BookDeps): string {
-  const token = signToken({ a: a.id, act: 'view', exp: expiryFor(a.startAt) }, deps.linkSecret());
-  return `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/$/, '')}/l/${token}`;
+interface LinkConfig {
+  secret: string;
+  appUrl: string;
 }
 
-function result(a: Stored, replay: boolean, deps: BookDeps): BookingResult {
-  return { replay, appointment: appointmentSummary(a), links: { manage: manageLink(a, deps) } };
+function manageLink(a: Stored, cfg: LinkConfig): string {
+  const token = signToken({ a: a.id, act: 'view', exp: expiryFor(a.startAt) }, cfg.secret);
+  return `${cfg.appUrl.replace(/\/+$/, '')}/l/${token}`;
+}
+
+function result(a: Stored, replay: boolean, cfg: LinkConfig): BookingResult {
+  return { replay, appointment: appointmentSummary(a), links: { manage: manageLink(a, cfg) } };
 }
 
 const slotTaken = (slots: PublicSlot[]) =>
@@ -97,6 +108,10 @@ export async function book(
   deps: BookDeps = defaultBookDeps,
 ): Promise<BookingResult> {
   const { businessId } = ctx;
+  // Everything the response needs is resolved BEFORE any write: a misconfiguration must never surface
+  // after the booking has committed (the customer would see a 500 for a booking that exists).
+  const cfg: LinkConfig = { secret: deps.linkSecret(), appUrl: deps.appUrl() };
+  if (cfg.secret.length < 32 || !/^https?:\/\//.test(cfg.appUrl)) throw misconfiguredError();
   const phone = normalizePhone(input.client.phone);
   if (!phone) throw AppError.validation({ 'client.phone': 'Enter a valid phone number.' });
   const now = deps.now();
@@ -120,7 +135,7 @@ export async function book(
         'This Idempotency-Key was already used for a different booking.',
       );
     ctx.logger.info({ businessId, appointmentId: stored.id }, 'booking replayed (idempotent)');
-    return result(stored, true, deps);
+    return result(stored, true, cfg);
   };
 
   if (key) {
@@ -128,8 +143,10 @@ export async function book(
     if (existing) return replayOf(existing);
   }
 
-  const business = await publicBusinessRepo.findById(businessId);
-  if (!business) throw AppError.notFound();
+  const loaded = await publicBusinessRepo.findById(businessId);
+  if (!loaded) throw AppError.notFound();
+  // Walk-ins: slot generation itself is untouched; only this call gets minNoticeMin = 0.
+  const business = input.ignoreMinNotice ? { ...loaded, minNoticeMin: 0 } : loaded;
   const day = localDayOf(input.startAt, business.timezone);
   const query = {
     serviceId: input.serviceId,
@@ -163,6 +180,7 @@ export async function book(
     : await appointmentRepo.countByStaff(businessId, remaining, day.startUtc, day.endUtc);
   const slot = avail.slots.find((s) => s.startAt.getTime() === startMs)!;
   const reminders = plannedJobs(input.startAt, now);
+  await deps.afterAvailability?.({ candidates: [...remaining] });
 
   while (remaining.length > 0) {
     const pick = specific ?? pickStaff(remaining, counts)!;
@@ -176,13 +194,15 @@ export async function book(
         source: input.source,
         idempotencyKey: key,
         client: { name: input.client.name, phone, email: input.client.email },
+        // Only an authenticated front-desk booking may change an existing client's contact details.
+        overwriteContact: input.source === 'FRONT_DESK',
         reminders,
       });
       ctx.logger.info(
         { businessId, appointmentId: stored.id, staffId: pick, source: input.source },
         'appointment booked',
       );
-      return result(stored, false, deps);
+      return result(stored, false, cfg);
     } catch (error) {
       const pg = pgErrorCode(error);
       const code = (error as { code?: unknown } | null)?.code;

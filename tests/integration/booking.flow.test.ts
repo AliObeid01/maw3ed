@@ -236,7 +236,7 @@ describe('reminder jobs (FR-15)', () => {
 });
 
 describe('client upsert by phone', () => {
-  it('different formats of one number share one Client; name/email update only when provided and different', async () => {
+  it('B1: a PUBLIC booking never replaces an existing client’s name or email (only fills an empty email)', async () => {
     const { serviceId, staffIds } = await newScenario(prisma, t);
     const clients = async () =>
       (
@@ -259,13 +259,54 @@ describe('client upsert by phone', () => {
       client: { name: 'Rana K', phone: '0096171987654' }, // no email: must not wipe it
     });
     expect([a.status, b.status, c.status]).toEqual([201, 201, 201]);
-    const rows = await clients();
-    expect(rows).toEqual([{ name: 'Rana K', email: 'rana@example.test', phone: '+96171987654' }]);
+    // different phone formats share one Client; the name stays; the EMPTY email was filled once
+    expect(await clients()).toEqual([
+      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
+    ]);
+    // the hijack attempt: victim's phone with another name and email changes nothing
+    const evil = await bookPublicly(t.slug, {
+      ...bookingBody(serviceId, staffIds[0]!, at('10:00')),
+      client: { name: 'Mallory', phone: '71 987 654', email: 'mallory@evil.test' },
+    });
+    expect(evil.status).toBe(201);
+    expect(await clients()).toEqual([
+      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
+    ]);
     const ids = await pg.query(
       `SELECT DISTINCT "clientId" FROM "Appointment" WHERE "serviceId" = $1`,
       [serviceId],
     );
     expect(ids.rowCount).toBe(1);
+  });
+
+  it('B1: a session-authenticated FRONT DESK booking may update name and email', async () => {
+    const { serviceId, staffIds } = await newScenario(prisma, t);
+    await bookPublicly(t.slug, {
+      ...bookingBody(serviceId, staffIds[0]!, at('07:00')),
+      client: { name: 'Lina', phone: '71 765 432', email: 'lina@example.test' },
+    });
+    const desk = await bookAtFrontDesk(t.cookie, {
+      ...bookingBody(serviceId, staffIds[0]!, at('08:00')),
+      client: { name: 'Lina Haddad', phone: '71 765 432', email: 'lina.new@example.test' },
+    });
+    expect(desk.status).toBe(201);
+    const row = (
+      await pg.query(`SELECT name, email FROM "Client" WHERE "businessId" = $1 AND phone = $2`, [
+        t.businessId,
+        '+96171765432',
+      ])
+    ).rows;
+    expect(row).toEqual([{ name: 'Lina Haddad', email: 'lina.new@example.test' }]);
+    // omitted email never wipes
+    await bookAtFrontDesk(t.cookie, {
+      ...bookingBody(serviceId, staffIds[0]!, at('09:00')),
+      client: { name: 'Lina Haddad', phone: '71 765 432' },
+    });
+    const again = await pg.query(
+      `SELECT email FROM "Client" WHERE phone = '+96171765432' AND "businessId" = $1`,
+      [t.businessId],
+    );
+    expect(again.rows[0].email).toBe('lina.new@example.test');
   });
 
   it('the same phone in two businesses is two clients', async () => {

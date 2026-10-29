@@ -81,6 +81,7 @@ export const appointmentsService = {
         startAt: new Date(body.startAt),
         client: body.client,
         source: 'FRONT_DESK',
+        ignoreMinNotice: true, // reception can book a client who is walking in now
         idempotencyKey,
       },
       deps,

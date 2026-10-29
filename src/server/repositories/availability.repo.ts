@@ -1,7 +1,9 @@
 import { db } from './db';
 
-/** Statuses that block a slot: the same set as the appointment_no_overlap constraint. */
-export const BLOCKING_STATUSES = ['BOOKED', 'CONFIRMED'] as const;
+import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
+
+/** Statuses that block a slot: the same set as the appointment_no_overlap constraint (see slotStatuses.ts). */
+export const BLOCKING_STATUSES = SLOT_HOLDING_STATUSES;
 
 export interface AvailabilityQuery {
   serviceId: string;
