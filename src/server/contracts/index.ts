@@ -4,6 +4,7 @@ import './auth';
 import './setup';
 import './booking';
 import './reminders';
+import './outcomes';
 import './waitlist';
 
 export { buildOpenApiDocument, registry } from './registry';

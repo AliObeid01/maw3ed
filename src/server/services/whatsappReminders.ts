@@ -23,7 +23,25 @@ const defaults: WhatsappDeps = {
   appUrl: () => getServerEnv().APP_URL,
 };
 
+/** The one selection rule for a PENDING WhatsApp job: shared by the list and the count-only badge query. */
+function pendingIsDue(
+  kind: 'H24' | 'H2',
+  a: { status: string; startAt: Date },
+  now: Date,
+): boolean {
+  const active = (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(a.status);
+  return sendDecision(kind, a.startAt, now, active) !== 'SKIP';
+}
+
 export const whatsappRemindersService = {
+  /** Count of due PENDING reminders only: equals due().count but builds no signed links and loads no names. */
+  async dueCount(ctx: SessionContext, now: () => Date = () => new Date()): Promise<number> {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const at = now();
+    const rows = await reminderJobRepo.listPendingWhatsappLean(ctx.businessId, at);
+    return rows.filter((r) => pendingIsDue(r.kind as 'H24' | 'H2', r.appointment, at)).length;
+  },
+
   async due(ctx: SessionContext, deps: WhatsappDeps = defaults) {
     requireRole(ctx, 'OWNER', 'STAFF');
     const now = deps.now();
@@ -42,10 +60,7 @@ export const whatsappRemindersService = {
     for (const r of rows) {
       const a = r.appointment;
       const kind = r.kind as 'H24' | 'H2';
-      if (r.status === 'PENDING') {
-        const active = (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(a.status);
-        if (sendDecision(kind, a.startAt, now, active) === 'SKIP') continue;
-      }
+      if (r.status === 'PENDING' && !pendingIsDue(kind, a, now)) continue;
       const link = (act: 'confirm' | 'cancel') =>
         `${appUrl}/l/${signToken({ a: a.id, act, exp: expiryFor(a.startAt) }, secret)}`;
       const text = renderWhatsappMessage({

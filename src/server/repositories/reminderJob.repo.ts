@@ -235,6 +235,19 @@ export const reminderJobRepo = {
       select: whatsappSelect,
     }),
 
+  /** Lean variant of the pending half of listWhatsapp (same WHERE): only what the send decision needs. */
+  listPendingWhatsappLean: (businessId: string, now: Date) =>
+    db.reminderJob.findMany({
+      where: {
+        businessId,
+        channel: 'WHATSAPP',
+        kind: { in: ['H24', 'H2'] },
+        status: 'PENDING',
+        dueAt: { lte: now },
+      },
+      select: { kind: true, appointment: { select: { status: true, startAt: true } } },
+    }),
+
   findWhatsapp: (businessId: string, id: string) =>
     db.reminderJob.findFirst({
       where: { id, businessId, channel: 'WHATSAPP' },
