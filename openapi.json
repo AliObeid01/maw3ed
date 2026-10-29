@@ -1490,6 +1490,525 @@
         "required": [
           "appointment"
         ]
+      },
+      "LinkActionBody": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "confirm",
+              "cancel"
+            ]
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "ReminderRunSummary": {
+        "type": "object",
+        "properties": {
+          "claimed": {
+            "type": "integer"
+          },
+          "sent": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "failed": {
+            "type": "integer"
+          },
+          "requeued": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "claimed",
+          "sent",
+          "skipped",
+          "failed",
+          "requeued"
+        ]
+      },
+      "WaitlistExpirySummary": {
+        "type": "object",
+        "properties": {
+          "expired": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "expired"
+        ]
+      },
+      "LinkView": {
+        "type": "object",
+        "properties": {
+          "act": {
+            "type": "string",
+            "enum": [
+              "view",
+              "confirm",
+              "cancel"
+            ]
+          },
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string"
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMin": {
+                    "type": "integer"
+                  },
+                  "price": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMin",
+                  "price"
+                ]
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "startAt",
+              "endAt",
+              "status",
+              "service",
+              "staff"
+            ]
+          },
+          "business": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "timezone",
+              "locale"
+            ]
+          },
+          "canConfirm": {
+            "type": "boolean"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "cancelCutoffAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pastCutoff": {
+            "type": "boolean"
+          },
+          "confirmedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "act",
+          "appointment",
+          "business",
+          "canConfirm",
+          "canCancel",
+          "cancelCutoffAt",
+          "pastCutoff",
+          "confirmedAt"
+        ]
+      },
+      "LinkResult": {
+        "type": "object",
+        "properties": {
+          "act": {
+            "type": "string",
+            "enum": [
+              "view",
+              "confirm",
+              "cancel"
+            ]
+          },
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string"
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMin": {
+                    "type": "integer"
+                  },
+                  "price": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMin",
+                  "price"
+                ]
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "startAt",
+              "endAt",
+              "status",
+              "service",
+              "staff"
+            ]
+          },
+          "business": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "timezone",
+              "locale"
+            ]
+          },
+          "canConfirm": {
+            "type": "boolean"
+          },
+          "canCancel": {
+            "type": "boolean"
+          },
+          "cancelCutoffAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "pastCutoff": {
+            "type": "boolean"
+          },
+          "confirmedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "cancelled",
+              "late_cancelled",
+              "already_confirmed",
+              "already_cancelled"
+            ]
+          }
+        },
+        "required": [
+          "act",
+          "appointment",
+          "business",
+          "canConfirm",
+          "canCancel",
+          "cancelCutoffAt",
+          "pastCutoff",
+          "confirmedAt",
+          "result"
+        ]
+      },
+      "WhatsappDue": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "H24",
+                    "H2"
+                  ]
+                },
+                "dueAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "appointment": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "staff": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "displayName"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "startAt",
+                    "service",
+                    "staff"
+                  ]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    },
+                    "noShows": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "phone",
+                    "noShows"
+                  ]
+                },
+                "whatsappUrl": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "PENDING",
+                    "SENT"
+                  ]
+                },
+                "sentBy": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "sentAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "kind",
+                "dueAt",
+                "appointment",
+                "client",
+                "whatsappUrl",
+                "status",
+                "sentBy",
+                "sentAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "count",
+          "items"
+        ]
+      },
+      "WhatsappMarkSent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "SENT"
+            ]
+          },
+          "sentBy": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ]
+          },
+          "sentAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "sentBy",
+          "sentAt"
+        ]
       }
     },
     "parameters": {}
@@ -3536,6 +4055,380 @@
           },
           "409": {
             "description": "CONFLICT: the appointment already has an outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/reminders": {
+      "post": {
+        "summary": "Send due reminder emails (cron every 5 min; idempotent)",
+        "tags": [
+          "jobs"
+        ],
+        "security": [
+          {
+            "cronSecret": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReminderRunSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/waitlist-expiry": {
+      "post": {
+        "summary": "Expire waitlist offers (cron)",
+        "tags": [
+          "jobs"
+        ],
+        "security": [
+          {
+            "cronSecret": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Expiry summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistExpirySummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/links/{token}": {
+      "get": {
+        "summary": "Read an appointment through a signed link (no side effects)",
+        "description": "Authenticated by the signed token in the path. Malformed or unknown tokens: 404. Expired: 410 LINK_EXPIRED.",
+        "tags": [
+          "links"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Link or offer expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Confirm or cancel through a signed link",
+        "description": "A confirm token can only confirm, a cancel token only cancel (403 WRONG_LINK_ACTION); a view token may do either. Repeats answer 200 with already_* results.",
+        "tags": [
+          "links"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkActionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "WRONG_LINK_ACTION",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT: the appointment is cancelled or has an outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Link or offer expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/whatsapp-due": {
+      "get": {
+        "summary": "WhatsApp reminders due now, plus those sent in the last 12 hours",
+        "tags": [
+          "reminders"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Due list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappDue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reminders/{id}/mark-sent": {
+      "post": {
+        "summary": "Record that this WhatsApp reminder was sent (first caller wins)",
+        "tags": [
+          "reminders"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Marked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WhatsappMarkSent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "ALREADY_SENT with error.data { sentBy, sentAt }",
             "content": {
               "application/json": {
                 "schema": {
