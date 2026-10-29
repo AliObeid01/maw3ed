@@ -94,6 +94,16 @@ describe('soft policies (N5): memory first, Postgres only past 50% of the limit'
     expect((await l.consume('slots', 'ip')).limited).toBe(false);
   });
 
+  it('concurrent requests never re-send the same backlog: exactly `limit` are allowed', async () => {
+    const { store, hits } = memStore();
+    const l = createRateLimiter({ now: () => T0, store });
+    const results = await Promise.all(
+      Array.from({ length: limit + 40 }, () => l.consume('slots', 'ip')),
+    );
+    expect(results.filter((r) => !r.limited)).toHaveLength(limit);
+    expect(hits.reduce((n, h) => n + h.amount, 0)).toBeLessThanOrEqual(limit + 40);
+  });
+
   it('mutating policies always write', async () => {
     const { store, hits } = memStore();
     const l = createRateLimiter({ now: () => T0, store });

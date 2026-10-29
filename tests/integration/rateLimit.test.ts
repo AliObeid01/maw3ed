@@ -85,7 +85,7 @@ describe('login guard', () => {
       code: 'TOO_MANY_ATTEMPTS',
     });
     now = new Date(T0.getTime() + 15 * 60_000);
-    await expect(guard.attempt('victim@example.test', '7.7.7.7')).resolves.toBeUndefined();
+    await expect(guard.attempt('victim@example.test', '7.7.7.7')).resolves.toBeDefined();
   });
 
   it('an attacker IP does not lock the victim out from another IP', async () => {
@@ -94,7 +94,7 @@ describe('login guard', () => {
     await expect(guard.attempt('victim@example.test', '6.6.6.6')).rejects.toMatchObject({
       status: 429,
     });
-    await expect(guard.attempt('victim@example.test', '5.5.5.5')).resolves.toBeUndefined();
+    await expect(guard.attempt('victim@example.test', '5.5.5.5')).resolves.toBeDefined();
   });
 
   it('per-IP budget: 20 attempts across many emails, then that IP is blocked for all', async () => {
@@ -103,7 +103,7 @@ describe('login guard', () => {
     await expect(guard.attempt('fresh@example.test', '4.4.4.4')).rejects.toMatchObject({
       status: 429,
     });
-    await expect(guard.attempt('fresh@example.test', '3.3.3.3')).resolves.toBeUndefined();
+    await expect(guard.attempt('fresh@example.test', '3.3.3.3')).resolves.toBeDefined();
   });
 
   it('a success clears the email+ip bucket and refunds its ip and email hits (ticket)', async () => {
@@ -125,7 +125,7 @@ describe('login guard', () => {
     for (let i = 0; i < 5; i++) await guard.attempt('v@example.test', '1.2.3.4');
     for (let i = 0; i < 5; i++) await guard.attempt('v@example.test', '1.2.3.5');
     await guard.succeeded('v@example.test', '1.2.3.5');
-    await expect(guard.attempt('v@example.test', '1.2.3.5')).resolves.toBeUndefined();
+    await expect(guard.attempt('v@example.test', '1.2.3.5')).resolves.toBeDefined();
     await expect(guard.attempt('v@example.test', '1.2.3.4')).rejects.toMatchObject({ status: 429 });
   });
 

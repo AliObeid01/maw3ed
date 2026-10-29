@@ -8,6 +8,11 @@ import {
 } from './rateLimitPolicies';
 
 export const STORE_TIMEOUT_MS = 300;
+/** Test/ops override; the default is the production value. */
+const configuredTimeout = () => {
+  const n = Number(process.env.RATE_LIMIT_TIMEOUT_MS);
+  return Number.isFinite(n) && n > 0 ? n : STORE_TIMEOUT_MS;
+};
 /** Structured log event name to alert on: the limiter store failed or timed out and we let traffic through. */
 export const FAIL_OPEN_EVENT = 'rate_limit_fail_open';
 
@@ -81,7 +86,7 @@ export function createRateLimiter(overrides: Partial<RateLimitDeps> = {}): RateL
     now: () => new Date(),
     store: rateLimitRepo,
     logger: rootLogger,
-    timeoutMs: STORE_TIMEOUT_MS,
+    timeoutMs: configuredTimeout(),
     ...overrides,
   };
   let failOpens = 0;
@@ -143,14 +148,14 @@ export function createRateLimiter(overrides: Partial<RateLimitDeps> = {}): RateL
         amount = entry.count - entry.synced; // catch Postgres up to what this instance has seen
       }
 
+      // Claim the catch-up BEFORE awaiting: concurrent requests must not each re-send the same backlog.
+      if (entry) entry.synced += amount;
       try {
         const res = await run(() => deps.store.hit(key, windowSec, limit, now, amount));
-        if (entry) {
-          entry.synced += amount;
-          if (res.limited) entry.limited = true;
-        }
+        if (entry && res.limited) entry.limited = true;
         return res;
       } catch (error) {
+        if (entry) entry.synced -= amount;
         failOpen('hit', policy, error);
         if (!opts.memoryFallback) return { limited: false, retryAfterSec: 0, count: 0 };
         const fb = memEntry(`fallback:${key}`, windowSec, now);

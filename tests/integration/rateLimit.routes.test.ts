@@ -172,7 +172,10 @@ describe('per-IP route limits (L6)', () => {
   it('fails open: when the limiter store errors the request is still served', async () => {
     const spy = vi.spyOn(rateLimitRepo, 'hit').mockRejectedValue(new Error('store down'));
     try {
-      const res = await call(slugCheck, '/api/auth/slug-check', { query: { slug: 'free-name-1' } });
+      const res = await call(slugCheck, '/api/auth/slug-check', {
+        query: { slug: 'free-name-1' },
+        headers: { 'x-vercel-forwarded-for': '198.18.200.1' },
+      });
       expect(res.status).toBe(200);
       expect(res.body).toMatchObject({ available: true });
       expect(spy).toHaveBeenCalled();
@@ -205,7 +208,7 @@ describe('per-IP route limits (L6)', () => {
     expect((await call(c.handler, c.path, withIp(c, `2001:db8::ffff`))).status).toBe(429);
     expect((await call(c.handler, c.path, withIp(c, `2001:db8:0:1::1`))).status).not.toBe(429);
     // IPv4-mapped form shares the IPv4 bucket.
-    for (let i = 0; i < limit; i++) await call(c.handler, c.path, withIp(c, '92.0.2.9'));
+    for (let i = 0; i < limit; i++) await call(c.handler, c.path, withIp(c, '192.0.2.9'));
     expect((await call(c.handler, c.path, withIp(c, '::ffff:192.0.2.9'))).status).toBe(429);
   });
 

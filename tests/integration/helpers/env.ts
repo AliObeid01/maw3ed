@@ -19,3 +19,5 @@ if ((process.env.LINK_SECRET ?? '').length < 32)
 // Route-level per-IP limits are off by default (many tests fire hundreds of requests from one fake
 // address). tests/integration/rateLimit.routes.test.ts switches them on. The login guard is always on.
 process.env.RATE_LIMIT_DISABLED = '1';
+// The remote test database is slow under concurrent bursts; production uses 300 ms.
+process.env.RATE_LIMIT_TIMEOUT_MS = '15000';
