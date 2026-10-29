@@ -23,7 +23,7 @@ const setup = (extra: Parameters<typeof appt>[4] = {}, startMinutes = -120, dura
   ({
     clients: [{ ...MAYA }, { ...NADINE }],
     appointments: [appt('apone', 'clmaya', startMinutes, duration, extra)],
-  }) as const;
+  });
 
 test('shows the details: time, service, staff, source, status, client with call and WhatsApp', async ({ page }) => {
   await mockOutcomesApi(page, setup({ status: 'CONFIRMED', source: 'PUBLIC' }, 180, 30));
