@@ -14,12 +14,12 @@ import { PrismaClient } from '../../../src/generated/prisma/client';
  * it only ever touches `itest`, and refuses any other schema name. In CI the same variable points at a
  * throwaway postgres:16 service and the helper behaves identically.
  */
-export const TEST_SCHEMA = 'itest';
+export const TEST_SCHEMA = process.env.ITEST_SCHEMA ?? 'itest';
 
 const MIGRATIONS_DIR = path.resolve(import.meta.dirname, '../../../prisma/migrations');
 
 function assertSafeSchema(name: string) {
-  if (name !== TEST_SCHEMA || !/^[a-z_][a-z0-9_]*$/.test(name)) {
+  if (name !== TEST_SCHEMA || !/^itest[a-z0-9_]*$/.test(name)) {
     throw new Error(
       `Refusing to touch schema "${name}"; integration tests only use "${TEST_SCHEMA}".`,
     );
