@@ -39,6 +39,9 @@ describe('pickClient', () => {
     expect(pickClient([hit('+96170555218')], '+9617055521')).toBeUndefined();
     expect(pickClient([], '+96170555218')).toBeUndefined();
   });
+  it('never matches an anonymised client, even when the digits of its tombstone equal what was typed', () => {
+    expect(pickClient([hit('deleted:abc123456789', 'Deleted client')], '123456789')).toBeUndefined();
+  });
 });
 
 describe('createLookup', () => {

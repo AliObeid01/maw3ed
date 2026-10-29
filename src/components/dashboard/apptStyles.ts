@@ -10,6 +10,7 @@ export const blockTint: Record<ApptTone, string> = {
   lateCancel: 'bg-warning-soft text-warning-deep',
   cancelled: 'bg-divider text-muted line-through',
   waitlist: 'bg-amber-soft text-brand-deep',
+  pendingPayment: 'bg-amber-soft text-amber',
 };
 
 export const chipTone: Record<ApptTone, ChipTone> = {
@@ -20,6 +21,7 @@ export const chipTone: Record<ApptTone, ChipTone> = {
   lateCancel: 'warning',
   cancelled: 'muted',
   waitlist: 'amber',
+  pendingPayment: 'amber',
 };
 
 /** Keys under `ui.status`. */
@@ -31,4 +33,5 @@ export const toneLabelKey: Record<ApptTone, string> = {
   lateCancel: 'lateCancel',
   cancelled: 'cancelled',
   waitlist: 'waitlist',
+  pendingPayment: 'pendingPayment',
 };
