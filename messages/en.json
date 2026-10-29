@@ -80,6 +80,350 @@
       "title": "More",
       "close": "Close",
       "signOut": "Sign out"
+    },
+    "titles": {
+      "today": "Today",
+      "reminders": "Reminders due",
+      "outcomes": "Mark outcome",
+      "clients": "Clients",
+      "pilot": "Pilot report",
+      "setup": "Setup",
+      "services": "Services",
+      "staff": "Staff",
+      "hours": "Hours and time off",
+      "settings": "Business settings",
+      "share": "Booking link",
+      "book": "New booking"
+    },
+    "frame": {
+      "account": "Account",
+      "close": "Close",
+      "signOut": "Sign out",
+      "signOutFailed": "Could not sign you out. Check your connection and try again.",
+      "subtitle": "{name} · {role}",
+      "role": {
+        "OWNER": "Owner",
+        "STAFF": "Staff"
+      }
+    },
+    "shared": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving…",
+      "done": "Done"
+    },
+    "errors": {
+      "network": "No connection. Check your internet and try again.",
+      "unauthorized": "Your session has ended. Please sign in again.",
+      "forbidden": "Only the owner can change this.",
+      "notFound": "We could not find that. Refresh the page and try again.",
+      "validation": "Some details need another look. Check the fields and try again.",
+      "hasFutureAppointments": "This has upcoming appointments. Move or cancel them first.",
+      "alreadyMember": "That person already has a login for this business.",
+      "rateLimited": "Too many attempts. Wait a moment and try again.",
+      "server": "Something went wrong on our side. Please try again.",
+      "generic": "Something went wrong. Please try again.",
+      "ownerOnlyTitle": "Only the owner can change this",
+      "ownerOnlyBody": "Ask the owner of your business to update these settings.",
+      "loadTitle": "We could not load this",
+      "retry": "Try again"
+    },
+    "format": {
+      "min": "{count} min",
+      "hours": "{count} h",
+      "hoursMin": "{hours} h {minutes}",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "hoursLong": "{count, plural, one {# hour} other {# hours}}",
+      "minutesLong": "{count, plural, one {# minute} other {# minutes}}"
+    },
+    "today": {
+      "greeting": "Good to see you, {name}",
+      "soonTitle": "Your day will appear here",
+      "soonBody": "The daily calendar is coming soon. Finish setting up so clients can book you.",
+      "setupCta": "Open setup"
+    },
+    "setup": {
+      "welcome": "Welcome, {name}",
+      "title": "Set up {name}",
+      "subtitle": "About 10 minutes, all from your phone or here.",
+      "progressLabel": "Setup progress",
+      "progress": "{done} of {total} done",
+      "nextHint": "Next step · about {minutes} min",
+      "done": "(done)",
+      "steps": {
+        "business": {
+          "title": "Business details",
+          "hint": "Name, link, timezone",
+          "doneHint": "Name, link, timezone"
+        },
+        "services": {
+          "title": "Services",
+          "hint": "What clients can book",
+          "doneHint": "{count, plural, =0 {Services added} one {# service added} other {# services added}}"
+        },
+        "staff": {
+          "title": "Staff and who does what",
+          "hint": "Who clients can book",
+          "doneHint": "Bookable staff added"
+        },
+        "hours": {
+          "title": "Working hours and time off",
+          "hint": "Per staff member",
+          "doneHint": "Hours set"
+        },
+        "share": {
+          "title": "Share your booking link",
+          "hint": "Instagram, WhatsApp, Google Maps",
+          "doneHint": "Link ready to share"
+        },
+        "invite": {
+          "title": "Invite your receptionist",
+          "hint": "They join as Staff",
+          "doneHint": "Invite sent"
+        }
+      }
+    },
+    "services": {
+      "add": "Add service",
+      "listLabel": "Services",
+      "col": {
+        "service": "Service",
+        "duration": "Duration",
+        "buffer": "Buffer",
+        "price": "Price",
+        "active": "Active"
+      },
+      "hidden": "hidden",
+      "editNamed": "Edit {name}",
+      "activeSwitch": "{name} active",
+      "bufferShort": "{value} buffer",
+      "shown": "{name} is bookable again",
+      "hiddenToast": "{name} is hidden from clients",
+      "created": "{name} added",
+      "saved": "{name} saved",
+      "emptyTitle": "No services yet",
+      "emptyBody": "Add what you offer, how long it takes and the price. Clients pick from this list.",
+      "newTitle": "New service",
+      "editTitle": "Edit {name}",
+      "close": "Close",
+      "field": {
+        "name": "Name",
+        "namePlaceholder": "e.g. Kids haircut",
+        "duration": "Duration",
+        "buffer": "Buffer after",
+        "price": "Price ({currency})",
+        "bufferHint": "Buffer is cleaning or prep time blocked after each appointment.",
+        "active": "Active"
+      },
+      "errors": {
+        "nameRequired": "Enter a name for this service.",
+        "nameTooLong": "Keep the name under {max} characters.",
+        "priceInvalid": "Enter a price like 15 or 12.50.",
+        "fieldInvalid": "Please check this value.",
+        "checkFields": "Some details need another look. Check the highlighted fields."
+      }
+    },
+    "staff": {
+      "add": "Add staff member",
+      "listLabel": "Staff",
+      "close": "Close",
+      "thisPerson": "this person",
+      "newTitle": "New staff member",
+      "editTitle": "Edit {name}",
+      "created": "{name} added",
+      "saved": "{name} saved",
+      "emptyTitle": "No staff yet",
+      "emptyBody": "Add the people clients can book. You can give them working hours next.",
+      "role": {
+        "owner": "Owner",
+        "login": "Has a login"
+      },
+      "serviceCount": "{count, plural, =0 {No services} one {# service} other {# services}}",
+      "status": {
+        "inactive": "Inactive",
+        "bookable": "Bookable",
+        "notBookable": "Not bookable"
+      },
+      "field": {
+        "displayName": "Display name",
+        "bookable": "Clients can book {name}",
+        "bookableSwitch": "Clients can book this person",
+        "services": "Services {name} performs"
+      },
+      "noServices": "There are no services to choose from yet.",
+      "noServicesLink": "Add services",
+      "deactivate": "Deactivate",
+      "reactivate": "Reactivate",
+      "saveChanges": "Save changes",
+      "create": "Add staff member",
+      "errors": {
+        "nameRequired": "Enter a display name.",
+        "nameTooLong": "Keep the name under {max} characters.",
+        "fieldInvalid": "Please check this value.",
+        "hasFutureAppointments": "{name} has upcoming appointments. Move or cancel them before deactivating."
+      },
+      "invites": {
+        "title": "Receptionist logins",
+        "body": "Invite someone to run the calendar. They join as Staff.",
+        "cta": "Invite receptionist",
+        "pending": "Pending invites",
+        "expires": "Expires {date}",
+        "loadFailed": "Could not load pending invites.",
+        "retry": "Try again"
+      },
+      "invite": {
+        "title": "Invite receptionist",
+        "description": "They get an email with a link to create their login.",
+        "close": "Close",
+        "email": "Email",
+        "emailPlaceholder": "name@example.com",
+        "emailInvalid": "Enter a valid email address.",
+        "hint": "The link expires in 7 days.",
+        "send": "Send invite",
+        "sent": "Invite sent to {email}.",
+        "devLink": "Invite link (testing only)",
+        "copyLink": "Copy invite link",
+        "copied": "Link copied",
+        "copyFailed": "Could not copy. Select the link and copy it manually."
+      }
+    },
+    "hours": {
+      "whose": "Whose hours",
+      "weekly": "Weekly hours",
+      "dayOff": "Day off",
+      "add": "+ Add",
+      "addTo": "Edit or add hours on {day}",
+      "editInterval": "Edit {day}, {from} to {to}",
+      "save": "Save hours",
+      "saved": "Hours saved",
+      "serverOverlap": "Some hours overlap or are not valid. Fix them and save again.",
+      "problem": {
+        "invalid": "Enter a valid time.",
+        "endBeforeStart": "Closing time must be after opening time.",
+        "overlap": "These hours overlap.",
+        "tooMany": "At most {max} blocks per day."
+      },
+      "emptyTitle": "Add a bookable staff member first",
+      "emptyBody": "Working hours are set per person. Add someone clients can book, then come back.",
+      "emptyCta": "Go to staff",
+      "editor": {
+        "title": "{day} hours",
+        "close": "Close",
+        "opens": "Opens",
+        "closes": "Closes",
+        "remove": "Remove these hours",
+        "dayOff": "Day off. Add hours to open this day.",
+        "add": "Add hours",
+        "copyTo": "Copy to other days",
+        "copyNote": "Replaces the hours on the selected days with {day}.",
+        "cancel": "Cancel",
+        "apply": "Apply",
+        "problem": {
+          "invalid": "Enter a valid time.",
+          "endBeforeStart": "Closing time must be after opening time.",
+          "overlap": "These hours overlap.",
+          "tooMany": "At most {max} blocks per day."
+        }
+      },
+      "timeOff": {
+        "title": "Time off",
+        "empty": "No time off planned.",
+        "remove": "Remove time off",
+        "from": "From",
+        "to": "To",
+        "timezoneHint": "Times are in {timezone}.",
+        "reason": "Reason",
+        "reasons": {
+          "VACATION": "Vacation",
+          "SICK": "Sick",
+          "OTHER": "Other"
+        },
+        "add": "Add time off",
+        "added": "Time off added",
+        "removed": "Time off removed",
+        "allDay": "{range} · all day",
+        "sameDay": "{date} · {from} – {to}",
+        "span": "{from} – {to}",
+        "errors": {
+          "required": "Pick a date and time.",
+          "endBeforeStart": "The end must be after the start.",
+          "checkDates": "Check the dates and try again."
+        }
+      }
+    },
+    "settings": {
+      "business": "Business",
+      "rules": "Booking rules",
+      "save": "Save settings",
+      "saved": "Settings saved",
+      "minutes": "{count} min",
+      "equals": "{value}",
+      "field": {
+        "name": "Name",
+        "link": "Booking page link",
+        "linkHint": "Your link is fixed so shared links keep working.",
+        "timezone": "Timezone",
+        "timezoneHint": "Clock changes are handled automatically.",
+        "zonesCommon": "Common",
+        "zonesAll": "All timezones",
+        "slotStep": "Time slots every",
+        "window": "Booking window",
+        "windowHint": "How far ahead clients can book",
+        "notice": "Minimum notice",
+        "noticeHint": "No bookings closer than this",
+        "cutoff": "Cancellation cutoff",
+        "cutoffHint": "Later cancels count as late"
+      },
+      "units": {
+        "days": "days",
+        "min": "min",
+        "hours": "hours"
+      },
+      "plan": {
+        "label": "Your plan",
+        "name": "Free",
+        "detail": "1 bookable staff member",
+        "cta": "See Pro"
+      },
+      "errors": {
+        "nameRequired": "Enter your business name.",
+        "nameTooLong": "Keep the name under {max} characters.",
+        "range": "Enter a whole number from {min} to {max}.",
+        "fieldInvalid": "Please check this value.",
+        "checkFields": "Some details need another look. Check the highlighted fields."
+      }
+    },
+    "share": {
+      "live": "Live and taking bookings",
+      "notReady": "Not ready for bookings yet",
+      "finishSetup": "Finish setup",
+      "copy": "Copy link",
+      "copiedShort": "Copied",
+      "copied": "Booking link copied",
+      "copyFailed": "Could not copy. Select the link and copy it manually.",
+      "open": "Open page",
+      "where": "Put it where clients find you",
+      "whatsapp": {
+        "title": "WhatsApp status",
+        "body": "Post the link with a ready-made message.",
+        "message": "Book your next appointment at {name}: {url}",
+        "action": "Open WhatsApp"
+      },
+      "instagram": {
+        "title": "Instagram bio",
+        "body": "Copy the link for your profile."
+      },
+      "maps": {
+        "title": "Google Maps",
+        "body": "Add it as your business's booking link."
+      },
+      "qr": {
+        "title": "Scan to book",
+        "body": "Print this code for your counter, window or business card.",
+        "alt": "QR code that opens the booking page of {name}",
+        "failed": "Could not draw the QR code.",
+        "download": "Download QR code"
+      }
     }
   },
   "auth": {

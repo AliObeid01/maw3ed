@@ -26,6 +26,7 @@ type Props = {
   activeId: ActiveId;
   badges?: NavBadges;
   hrefs: Record<ActiveId, string>;
+  hideBusiness?: boolean;
   className?: string;
 };
 
@@ -105,7 +106,7 @@ export function BusinessSection({
 }
 
 /** Board 21: 256 px sidebar for `lg+`. */
-export function AppSidebar({ business, activeId, badges, hrefs, className }: Props) {
+export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, className }: Props) {
   const t = useTranslations('app.nav');
   const appName = useTranslations('common')('appName');
   return (
@@ -142,7 +143,7 @@ export function AppSidebar({ business, activeId, badges, hrefs, className }: Pro
             <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} badges={badges} />
           ))}
         </ul>
-        <BusinessSection activeId={activeId} hrefs={hrefs} />
+        {hideBusiness ? null : <BusinessSection activeId={activeId} hrefs={hrefs} />}
       </nav>
 
       <ButtonLink
