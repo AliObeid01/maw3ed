@@ -45,12 +45,10 @@ export const UpdateBusinessBody = registry.register(
       cancelCutoffMin: z.number().int().min(0).max(10080),
       category: nullableText(40),
       address: nullableText(120),
-      listed: z
-        .boolean()
-        .openapi({
-          description:
-            'Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY).',
-        }),
+      listed: z.boolean().openapi({
+        description:
+          'Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY).',
+      }),
     })
     .partial()
     .strict(),
