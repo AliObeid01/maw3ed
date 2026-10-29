@@ -144,8 +144,6 @@ export type OutcomesOptions = {
   queueSkewMinutes?: number;
   /** Extra milliseconds before GET /api/clients answers, per exact search text. */
   clientDelays?: Record<string, number>;
-  /** The first N GET /api/clients requests answer 500. */
-  clientsFailures?: number;
   /** GET /api/pilot/report answers this status instead of a report. */
   reportStatus?: number;
 };
@@ -191,7 +189,6 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
   let baseline = options.baseline ?? null;
   const calls: Call[] = [];
   let outcomeAttempt = 0;
-  let clientRequests = 0;
   const script = options.outcomeScript ?? [];
 
   const byClient = (id: string) => clients.find((c) => c.id === id);
@@ -363,8 +360,6 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       if (cursor !== null && !/^[A-Za-z0-9_-]{1,40}$/.test(cursor)) {
         return apiError(route, 400, 'VALIDATION_FAILED', { fields: { cursor: 'Invalid cursor.' } });
       }
-      clientRequests += 1;
-      if (clientRequests <= (options.clientsFailures ?? 0)) return apiError(route, 500, 'INTERNAL');
       const search = (q.get('search') ?? '').trim();
       const delay = options.clientDelays?.[search];
       if (delay) await new Promise((r) => setTimeout(r, delay));
