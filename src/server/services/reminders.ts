@@ -74,7 +74,9 @@ function planFor(job: ClaimedJob, c: SendContext, now: Date, sentToday: number):
  *   requeue stuck SENDING -> claim (FOR UPDATE SKIP LOCKED) -> re-check -> send (job id = idempotency key)
  *   -> record. The clock is injected so tests control it.
  */
-export async function runReminders(deps: ReminderDeps = defaultReminderDeps()): Promise<RunSummary> {
+export async function runReminders(
+  deps: ReminderDeps = defaultReminderDeps(),
+): Promise<RunSummary> {
   const now = deps.now();
   const log = deps.logger;
   const summary: RunSummary = { claimed: 0, sent: 0, skipped: 0, failed: 0, requeued: 0 };
@@ -181,8 +183,7 @@ export async function runReminders(deps: ReminderDeps = defaultReminderDeps()): 
       );
     } catch (error) {
       summary.failed++;
-      const code =
-        error instanceof EmailSendError ? error.code : 'send_error';
+      const code = error instanceof EmailSendError ? error.code : 'send_error';
       const permanent = error instanceof EmailSendError && error.permanent;
       if (permanent || job.attempts >= MAX_ATTEMPTS) {
         await reminderJobRepo.markFailed(job.id, code);

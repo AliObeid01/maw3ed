@@ -3,5 +3,6 @@ import './health';
 import './auth';
 import './setup';
 import './booking';
+import './reminders';
 
 export { buildOpenApiDocument, registry } from './registry';

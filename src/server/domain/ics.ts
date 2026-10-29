@@ -21,7 +21,10 @@ export function escapeIcsText(value: string): string {
 
 /** `20261104T070000Z` */
 export function icsUtc(date: Date): string {
-  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  return date
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}Z$/, 'Z');
 }
 
 /** Fold to at most 75 octets per line (continuation lines start with one space), never inside a character. */

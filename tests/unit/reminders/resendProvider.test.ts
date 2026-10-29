@@ -52,9 +52,13 @@ describe('ResendEmailProvider', () => {
     const fetchMock = vi.fn(() => reply(200, { id: 'msg_2' }));
     await provider(fetchMock as unknown as typeof fetch).send({
       ...message,
-      attachments: [{ filename: 'a.ics', content: 'BEGIN:VCALENDAR\r\n', contentType: 'text/calendar' }],
+      attachments: [
+        { filename: 'a.ics', content: 'BEGIN:VCALENDAR\r\n', contentType: 'text/calendar' },
+      ],
     });
-    const body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
+    const body = JSON.parse(
+      (fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string,
+    );
     expect(body.attachments).toEqual([
       {
         filename: 'a.ics',
@@ -75,7 +79,8 @@ describe('ResendEmailProvider', () => {
     [500, false],
     [503, false],
   ])('HTTP %i -> permanent=%s', async (status, permanent) => {
-    const p = provider((() => reply(status, { message: 'provider text', name: 'x' })) as typeof fetch);
+    const p = provider((() =>
+      reply(status, { message: 'provider text', name: 'x' })) as typeof fetch);
     const err = await p.send(message).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(EmailSendError);
     expect((err as EmailSendError).permanent).toBe(permanent);
@@ -100,13 +105,17 @@ describe('ResendEmailProvider', () => {
   it('never leaks the API key, provider text or recipient in errors', async () => {
     const leaky = (() =>
       reply(401, { message: `Invalid key ${KEY} for client@example.test` })) as typeof fetch;
-    const err = (await provider(leaky).send(message).catch((e: unknown) => e)) as EmailSendError;
+    const err = (await provider(leaky)
+      .send(message)
+      .catch((e: unknown) => e)) as EmailSendError;
     const dump = JSON.stringify({ m: err.message, c: err.code, s: String(err), st: err.stack });
     expect(dump).not.toContain(KEY);
     expect(dump).not.toContain('client@example.test');
     expect(dump).not.toContain('Invalid key');
     const network = (() => Promise.reject(new Error(`boom ${KEY}`))) as typeof fetch;
-    const err2 = (await provider(network).send(message).catch((e: unknown) => e)) as EmailSendError;
+    const err2 = (await provider(network)
+      .send(message)
+      .catch((e: unknown) => e)) as EmailSendError;
     expect(JSON.stringify({ m: err2.message, s: String(err2), st: err2.stack })).not.toContain(KEY);
   });
 
@@ -115,7 +124,12 @@ describe('ResendEmailProvider', () => {
       new Promise((_resolve, reject) => {
         init.signal?.addEventListener('abort', () => reject(new DOMException('x', 'TimeoutError')));
       })) as unknown as typeof fetch;
-    const p = new ResendEmailProvider({ apiKey: KEY, from: 'a@b.test', fetch: hang, timeoutMs: 20 });
+    const p = new ResendEmailProvider({
+      apiKey: KEY,
+      from: 'a@b.test',
+      fetch: hang,
+      timeoutMs: 20,
+    });
     const err = (await p.send(message).catch((e: unknown) => e)) as EmailSendError;
     expect(err.permanent).toBe(false);
     expect(err.code).toBe('resend_network');

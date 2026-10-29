@@ -153,7 +153,11 @@ export const appointmentRepo = {
       if (!current) return false;
       const res = await tx.appointment.updateMany({
         where: { id, businessId, status: { in: ['BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'] } },
-        data: { status: late ? 'LATE_CANCEL' : 'CANCELLED', cancelledAt: now, cancelledVia: 'LINK' },
+        data: {
+          status: late ? 'LATE_CANCEL' : 'CANCELLED',
+          cancelledAt: now,
+          cancelledVia: 'LINK',
+        },
       });
       if (res.count !== 1) return false;
       await reminderJobRepo.skipPending(businessId, tx, id);

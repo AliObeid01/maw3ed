@@ -2,12 +2,7 @@ import type { EmailProvider } from './EmailProvider';
 import { FakeEmailProvider } from './FakeEmailProvider';
 import { ResendEmailProvider } from './ResendEmailProvider';
 
-export type {
-  EmailAttachment,
-  EmailMessage,
-  EmailProvider,
-  EmailResult,
-} from './EmailProvider';
+export type { EmailAttachment, EmailMessage, EmailProvider, EmailResult } from './EmailProvider';
 export { EmailSendError } from './EmailProvider';
 export { ResendEmailProvider } from './ResendEmailProvider';
 export { FakeEmailProvider } from './FakeEmailProvider';
