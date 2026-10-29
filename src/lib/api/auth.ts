@@ -76,10 +76,14 @@ async function readJson(res: Response): Promise<unknown> {
   }
 }
 
-async function request<S extends z.ZodType>(
+export async function request<S extends z.ZodType>(
   path: string,
   schema: S,
-  init: { method?: 'GET' | 'POST'; body?: unknown; signal?: AbortSignal } = {},
+  init: {
+    method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+    body?: unknown;
+    signal?: AbortSignal;
+  } = {},
 ): Promise<z.infer<S>> {
   let res: Response;
   try {
@@ -129,3 +133,5 @@ export const acceptInvite = (token: string, body: { name: string; password: stri
     method: 'POST',
     body,
   });
+
+export const logout = () => request('/api/auth/logout', z.unknown(), { method: 'POST' });
