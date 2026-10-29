@@ -103,7 +103,7 @@ test('Walk-in now picks the earliest free slot from now', async ({ page }) => {
     .filter((s) => Date.parse(s) >= now)
     .sort()[0]!;
   const expected = DateTime.fromISO(earliest).setZone(TZ).toFormat('H:mm');
-  const checked = page.getByRole('radio', { checked: true });
+  const checked = times(page).getByRole('radio', { checked: true });
   await expect(checked).toHaveCount(1);
   await expect(checked).toHaveText(expected);
 });
@@ -121,7 +121,7 @@ test('SLOT_TAKEN: shows the slot-just-taken state with fresh slots and books ano
   const struck = page.getByRole('radio', { name: takenLabel, exact: true }).first();
   await expect(struck).toBeDisabled();
   // Nothing is selected until a new time is picked; the form is still filled in.
-  await expect(page.getByRole('radio', { checked: true })).toHaveCount(0);
+  await expect(times(page).getByRole('radio', { checked: true })).toHaveCount(0);
   await expect(page.getByLabel('Full name')).toHaveValue('Sara Mansour');
   await expect(page.getByRole('button', { name: 'Book appointment' })).toBeEnabled();
 
