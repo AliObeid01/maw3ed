@@ -460,7 +460,7 @@ describe('cron auth', () => {
     expect((await r({})).status).toBe(401);
     const okRes = await r({ 'x-cron-secret': secretValue() });
     expect(okRes.status).toBe(200);
-    expect(okRes.body).toEqual({ expired: 0 });
+    expect(okRes.body).toEqual({ expired: 0, offered: 0 });
   });
 });
 
