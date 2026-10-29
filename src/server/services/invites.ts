@@ -72,6 +72,20 @@ export const invitesService = {
     };
   },
 
+  /** OWNER only. Pending = not accepted and not expired. Never exposes token material. */
+  async listPending(ctx: SessionContext, deps = defaultDeps) {
+    requireRole(ctx, 'OWNER');
+    const rows = await inviteRepo.listPending(ctx.businessId, deps.now());
+    return {
+      invites: rows.map((r) => ({
+        id: r.id,
+        email: r.email,
+        role: r.role,
+        expiresAt: r.expiresAt.toISOString(),
+      })),
+    };
+  },
+
   /** Public. Unknown, used and expired tokens are all the same 404. */
   async preview(token: string, deps = defaultDeps) {
     const invite = await inviteRepo.findOpenByTokenHash(sha256Hex(token), deps.now());

@@ -1,3 +1,5 @@
+import { IANAZone } from 'luxon';
+
 export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'app',
   'api',
@@ -42,12 +44,15 @@ export function slugProblem(slug: string): SlugProblem | undefined {
   return undefined;
 }
 
+let canonicalZones: ReadonlySet<string> | undefined;
+
+/**
+ * Only canonical IANA names: exact case ('asia/beirut' is rejected), no offsets ('+03:00'), no aliases the
+ * runtime does not list. Changing a business timezone later reinterprets stored local working hours.
+ */
 export function isValidTimezone(tz: string): boolean {
   if (!tz || tz.length > 64) return false;
-  try {
-    new Intl.DateTimeFormat('en', { timeZone: tz });
-    return true;
-  } catch {
-    return false;
-  }
+  canonicalZones ??= new Set([...Intl.supportedValuesOf('timeZone'), 'UTC']);
+  if (!canonicalZones.has(tz)) return false;
+  return IANAZone.isValidZone(tz);
 }

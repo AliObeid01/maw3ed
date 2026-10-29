@@ -24,6 +24,14 @@ export const inviteRepo = {
       return tx.invite.create({ data: { businessId, ...data } });
     }),
 
+  /** Not accepted and not expired, oldest first. */
+  listPending: (businessId: string, now: Date) =>
+    db.invite.findMany({
+      where: { businessId, acceptedAt: null, expiresAt: { gt: now } },
+      select: { id: true, email: true, role: true, expiresAt: true },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    }),
+
   /** Public lookup by token hash (the token itself is the credential); returns the business too. */
   findOpenByTokenHash: (tokenHash: string, now: Date) =>
     db.invite.findFirst({
