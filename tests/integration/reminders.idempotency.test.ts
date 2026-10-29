@@ -10,7 +10,15 @@ import { EmailSendError, fakeEmailProvider, type EmailProvider } from '@/server/
 import { runReminders, type ReminderDeps } from '@/server/services/reminders';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
-import { at, bookingBody, bookPublicly, newScenario, newTenant, NOW, type Tenant } from './helpers/booking';
+import {
+  at,
+  bookingBody,
+  bookPublicly,
+  newScenario,
+  newTenant,
+  NOW,
+  type Tenant,
+} from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 
 let pg: Client;
@@ -99,8 +107,9 @@ describe('no duplicate send', () => {
     const keys = fake.calls.map((c) => c.idempotencyKey);
     expect(keys).toHaveLength(8);
     expect(new Set(keys).size).toBe(8);
-    const rows = (await pg.query(`SELECT status, attempts FROM "ReminderJob" WHERE kind = 'BOOKING'`))
-      .rows;
+    const rows = (
+      await pg.query(`SELECT status, attempts FROM "ReminderJob" WHERE kind = 'BOOKING'`)
+    ).rows;
     expect(rows).toHaveLength(8);
     expect(rows.every((r) => r.status === 'SENT' && r.attempts === 1)).toBe(true);
     expect(ids).toHaveLength(8);
