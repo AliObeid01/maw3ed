@@ -11,7 +11,7 @@ import { createService, updateService, type Service } from '@/lib/api/setup';
 import { BUFFER_OPTIONS, DURATION_OPTIONS, parsePrice, withCurrent } from '@/lib/setup/duration';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
-import { useAppFormat } from './useAppFormat';
+import { useAppFormat } from '@/lib/useAppFormat';
 
 type FieldKey = 'name' | 'price';
 const NAME_MAX = 80;

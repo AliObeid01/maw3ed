@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
         source: '/invite/:path*',
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
       },
+      {
+        // The link token is a bearer secret (it can cancel an appointment): never send it in a Referer header.
+        source: '/l/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          // The page is per-token and per-moment (free vs late cancellation): never serve it from a shared cache.
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
     ];
   },
 };

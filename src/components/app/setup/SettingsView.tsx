@@ -29,7 +29,7 @@ import { utcOffsetLabel } from '@/lib/setup/time';
 import { HeaderActions } from '../HeaderActions';
 import { StickySaveBar } from '../StickySaveBar';
 import { LoadError, OwnerOnly, useErrorMessage, useSharedText } from '../states';
-import { useAppFormat } from './useAppFormat';
+import { useAppFormat } from '@/lib/useAppFormat';
 
 const FORM_ID = 'business-settings-form';
 const BOOKING_PATH = '/b/';

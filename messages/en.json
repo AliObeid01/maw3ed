@@ -630,5 +630,206 @@
       "serviceNotChosen": "Not chosen yet",
       "gallery": "Components"
     }
+  },
+  "booking": {
+    "pageTitle": "Book an appointment",
+    "loading": "Loading the booking page",
+    "heroFactReminders": "Reminders 24 h and 2 h before",
+    "stepAnnounce": "Step {current} of {total}: {label}",
+    "bookedAnnounce": "Your appointment is booked",
+    "steps": {
+      "service": "Service",
+      "staff": "Staff",
+      "time": "Day and time",
+      "details": "Your details"
+    },
+    "anyone": "Anyone available",
+    "notChosen": "Not chosen yet",
+    "service": {
+      "title": "Choose a service",
+      "emptyTitle": "Online booking isn't open yet",
+      "emptyBody": "{name} hasn't added services yet. Please check back soon."
+    },
+    "staff": {
+      "title": "Who would you like?",
+      "anyone": "Anyone available",
+      "anyoneHint": "Shows the most free times",
+      "fastest": "Fastest",
+      "groupLabel": "Choose who you'd like"
+    },
+    "time": {
+      "title": "Pick a day and time",
+      "dayStripLabel": "Choose a day",
+      "prevWeek": "Previous days",
+      "nextWeek": "Next days",
+      "timesLabel": "Times on {date}",
+      "morning": "Morning",
+      "afternoon": "Afternoon",
+      "evening": "Evening",
+      "dayAvailable": "{date}, {count, plural, one {# time} other {# times}} available",
+      "dayFull": "{date}, no free times",
+      "noTimesDay": "No free times on this day. Try another day.",
+      "noTimesAtAll": "No free times in the next {days} days. Please check back soon.",
+      "slotsFailed": "We couldn't load the free times.",
+      "timezoneNote": "Times are shown in {zone} time (UTC{offset}), where the business is.",
+      "pickDay": "Pick a day to see the free times.",
+      "noEligibleStaff": "No one offers this service yet. Pick another service."
+    },
+    "details": {
+      "title": "Your details",
+      "name": "Full name",
+      "phone": "Mobile number",
+      "countryCode": "Country code",
+      "email": "Email (optional)",
+      "emailPlaceholder": "For a calendar invite",
+      "consent": "Reminders by email and WhatsApp; no account needed.",
+      "reminder1": "Reminder 1",
+      "reminder2": "Reminder 2",
+      "reminderNote": "Each reminder has one-tap Confirm and Cancel links.",
+      "errorSummary": "Please fix the highlighted fields."
+    },
+    "summary": {
+      "service": "Service",
+      "with": "With",
+      "when": "When",
+      "price": "Price",
+      "serviceValue": "{name} · {duration}",
+      "whenValue": "{date} · {time}"
+    },
+    "cta": {
+      "continue": "Continue",
+      "confirm": "Confirm booking",
+      "bookInstead": "Book {time} instead",
+      "seeOtherDays": "See other days"
+    },
+    "side": {
+      "noAccount": "No account needed. Confirm or cancel from the reminder in one tap.",
+      "freeCancel": "Free cancellation up to the cutoff in your reminder"
+    },
+    "footer": {
+      "brand": "Bookings by Maw3ed · Fewer no-shows. More time.",
+      "privacy": "Your details are only shared with the business you book with."
+    },
+    "taken": {
+      "title": "Pick another time",
+      "heading": "{time} was just taken",
+      "body": "Someone booked it a moment ago. Here are the closest free times on {day}.",
+      "stillFree": "Still free on {day}",
+      "none": "Nothing is free on {day} any more. Try another day.",
+      "saved": "Your details are saved, so you won't need to type them again."
+    },
+    "booked": {
+      "eyebrow": "All done",
+      "title": "You're booked, {name}!",
+      "subtitle": "{when} · {service} with {staff}",
+      "calendar": "Your confirmation email has a calendar invite (.ics) attached, so you can add this to your calendar.",
+      "nextTitle": "What happens next",
+      "next1Title": "Reminder 24 h before",
+      "next1Body": "We'll remind you on {when}.",
+      "next2Title": "Second reminder 2 h before",
+      "next2Body": "{when}",
+      "next3Title": "Can't make it?",
+      "next3Body": "Confirm or cancel from any reminder, or from your booking link.",
+      "detailsTitle": "Booking details",
+      "manage": "Confirm or cancel your booking",
+      "manageHint": "Keep this link. It stops working when your appointment starts.",
+      "another": "Book another appointment"
+    },
+    "errors": {
+      "network": "We couldn't reach the server. Check your connection and try again.",
+      "tooMany": "Too many attempts. Please wait a moment and try again.",
+      "generic": "Something went wrong. Please try again.",
+      "notFound": "This booking page isn't available any more.",
+      "fixFields": "Please check the highlighted fields.",
+      "nameRequired": "Enter your name.",
+      "phoneInvalid": "Enter a valid mobile number.",
+      "emailInvalid": "Enter a valid email address.",
+      "retry": "Try again",
+      "nameTooLong": "Use {max} characters or fewer.",
+      "slotGone": "That time is no longer available. Please pick another."
+    },
+    "notFound": {
+      "title": "We can't find this booking page",
+      "body": "Check the link you were given, or ask the business to send it again.",
+      "action": "Go to Maw3ed"
+    },
+    "loadFailed": {
+      "title": "We couldn't load this page",
+      "body": "Check your connection and try again.",
+      "retry": "Try again"
+    }
+  },
+  "link": {
+    "pageTitle": "Your appointment",
+    "loading": "Loading your appointment",
+    "eyebrow": "Your appointment",
+    "title": {
+      "confirm": "Please confirm your appointment",
+      "cancel": "Need to cancel?",
+      "view": "Your appointment"
+    },
+    "confirmOnlyHint": "Can't make it? Use the cancel link in your reminder message.",
+    "details": "{service} with {staff} · {price}",
+    "when": "{date} · {start} – {end}",
+    "monthDay": "{month} {day}",
+    "status": {
+      "waiting": "Waiting for your reply",
+      "confirmed": "Confirmed"
+    },
+    "actions": {
+      "confirm": "Yes, I'll be there",
+      "cancel": "I can't come, cancel"
+    },
+    "cancelDialog": {
+      "title": "Cancel this appointment?",
+      "free": "Free cancellation until {cutoff}.",
+      "late": "This is a late cancellation. Free cancellation ended {cutoff}, so {name} may charge a fee.",
+      "yes": "Yes, cancel appointment",
+      "keep": "Keep my appointment",
+      "close": "Close"
+    },
+    "confirmedScreen": {
+      "title": "You're confirmed",
+      "body": "Thanks! {name} will see you on {when}.",
+      "cancelHint": "Plans changed? You can still cancel from this page."
+    },
+    "cancelledScreen": {
+      "title": "Appointment cancelled",
+      "bodyFree": "Thanks for letting us know. No fee was charged.",
+      "bodyLate": "Thanks for letting us know. This was a late cancellation, so {name} may follow up.",
+      "freed": "Your slot is free again for someone else. You just helped another client.",
+      "bookNew": "Book a new time"
+    },
+    "overScreen": {
+      "title": "This appointment is over",
+      "body": "There's nothing left to do here. Thanks for visiting {name}."
+    },
+    "side": {
+      "bookAgain": "Book another time",
+      "freeCancel": "Free cancellation until {cutoff}. After that, {name} may charge a fee.",
+      "lateCancel": "Free cancellation ended {cutoff}. Cancelling now counts as a late cancellation.",
+      "privacy": "This link is just for you and expires after your appointment."
+    },
+    "invalid": {
+      "title": "This link isn't valid",
+      "body": "It may be incomplete. Open the link from your latest reminder, or contact the business.",
+      "action": "Go to Maw3ed"
+    },
+    "expired": {
+      "title": "This link has expired",
+      "body": "Links stop working when the appointment starts. You're welcome to book a new time.",
+      "action": "Go to Maw3ed"
+    },
+    "errors": {
+      "wrongAction": "This link can't do that. Open the link from your latest reminder.",
+      "notAllowed": "This can't be changed any more. Please contact the business.",
+      "network": "We couldn't reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again.",
+      "retry": "Try again"
+    },
+    "noActions": {
+      "pendingPayment": "This appointment is waiting for its deposit, so it can't be confirmed yet.",
+      "generic": "There is nothing to do with this link right now."
+    }
   }
 }
