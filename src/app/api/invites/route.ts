@@ -1,8 +1,12 @@
 import { InviteBody } from '@/server/contracts/auth';
-import { created, withRoute } from '@/server/http/withRoute';
+import { created, ok, withRoute } from '@/server/http/withRoute';
 import { invitesService } from '@/server/services/invites';
 
 export const dynamic = 'force-dynamic';
+
+export const GET = withRoute({ auth: 'session', roles: ['OWNER'] }, async ({ ctx }) =>
+  ok(await invitesService.listPending(ctx)),
+);
 
 export const POST = withRoute(
   { auth: 'session', roles: ['OWNER'], body: InviteBody },
