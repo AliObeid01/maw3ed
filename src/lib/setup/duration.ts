@@ -32,16 +32,24 @@ export function cutoffFromDisplay(value: number, unit: 'hours' | 'min'): number 
   return unit === 'hours' ? value * 60 : value;
 }
 
+/** Arabic-Indic (٠-٩) and Persian (۰-۹) digits to Latin, and the Arabic decimal separator (٫) to a dot. */
+export function normaliseDigits(text: string): string {
+  return text
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/٫/g, '.');
+}
+
 /** Parses a whole-number field; null for empty or non-numeric text. */
 export function parseWhole(text: string): number | null {
-  const trimmed = text.trim();
+  const trimmed = normaliseDigits(text).trim();
   if (!/^\d{1,6}$/.test(trimmed)) return null;
   return Number(trimmed);
 }
 
 /** Parses a price typed with `.` or `,` as the decimal mark; null when invalid or negative. */
 export function parsePrice(text: string): number | null {
-  const normalised = text.trim().replace(',', '.');
+  const normalised = normaliseDigits(text).trim().replace(',', '.');
   if (!/^\d{1,7}(\.\d{1,2})?$/.test(normalised)) return null;
   return Number(normalised);
 }

@@ -119,6 +119,7 @@
       "notFound": "We could not find that. Refresh the page and try again.",
       "validation": "Some details need another look. Check the fields and try again.",
       "hasFutureAppointments": "This has upcoming appointments. Move or cancel them first.",
+      "alreadyMember": "That person already has a login for this business.",
       "rateLimited": "Too many attempts. Wait a moment and try again.",
       "server": "Something went wrong on our side. Please try again.",
       "generic": "Something went wrong. Please try again.",

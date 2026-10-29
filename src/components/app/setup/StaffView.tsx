@@ -141,6 +141,11 @@ function StaffInner() {
   const invites = useResource(listInvites, 'invites');
   const [selected, setSelected] = useState<string | 'new' | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [resetCount, setResetCount] = useState(0);
+  const closeEditor = () => {
+    setSelected(null);
+    setResetCount((n) => n + 1);
+  };
 
   const list = staff.data;
   const serviceList = services.data;
@@ -240,17 +245,22 @@ function StaffInner() {
         <EditorHost
           desktop={desktop}
           open={currentId !== null}
-          onOpenChange={(open) => (open ? undefined : setSelected(null))}
+          onOpenChange={(open) => (open ? undefined : closeEditor())}
           title={panelTitle}
           closeLabel={t('close')}
           panelClassName="min-w-0 flex-[999_1_420px] border border-line p-6"
         >
           <StaffForm
-            key={member?.id ?? 'new'}
+            key={`${member?.id ?? 'new'}:${resetCount}`}
             member={member}
             services={serviceList}
             onSaved={onSaved}
-            onCancel={() => setSelected(null)}
+            onPartialSave={(saved) =>
+              staff.setData((current) =>
+                (current ?? []).map((m) => (m.id === saved.id ? saved : m)),
+              )
+            }
+            onCancel={closeEditor}
           />
         </EditorHost>
       </div>

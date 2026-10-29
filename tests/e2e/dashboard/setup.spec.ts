@@ -321,7 +321,9 @@ test.describe('3.6 staff', () => {
     await page.getByLabel('Display name').fill('Karim A.');
     await page.getByRole('button', { name: 'Beard trim' }).click();
     await page.getByRole('button', { name: 'Save changes' }).click();
-    await expect(page.getByRole('status')).toContainText('Karim A. saved');
+    await expect(
+      page.getByRole('status').filter({ hasText: 'Karim A. saved' }).first(),
+    ).toBeVisible();
     expect(calls.find((c) => c.method === 'PATCH' && c.path === '/api/staff/p2')?.body).toEqual({
       displayName: 'Karim A.',
       bookable: true,

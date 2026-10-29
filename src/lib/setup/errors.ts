@@ -7,6 +7,7 @@ export type SetupErrorKey =
   | 'notFound'
   | 'validation'
   | 'hasFutureAppointments'
+  | 'alreadyMember'
   | 'rateLimited'
   | 'server'
   | 'generic';
@@ -16,6 +17,7 @@ export function errorKey(error: unknown): SetupErrorKey {
   if (!(error instanceof ApiError)) return 'generic';
   if (error.code === 'NETWORK') return 'network';
   if (error.code === 'HAS_FUTURE_APPOINTMENTS') return 'hasFutureAppointments';
+  if (error.code === 'ALREADY_MEMBER') return 'alreadyMember';
   if (error.status === 401) return 'unauthorized';
   if (error.status === 403) return 'forbidden';
   if (error.status === 404) return 'notFound';

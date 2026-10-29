@@ -2,6 +2,7 @@
 
 import { useId, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { radioGroupKeyDown } from './radioKeys';
 
 export type SegmentedOption<T extends string | number> = { value: T; label: ReactNode };
 
@@ -28,6 +29,7 @@ export function Segmented<T extends string | number>({
       <div
         role="radiogroup"
         aria-labelledby={labelId}
+        onKeyDown={(e) => radioGroupKeyDown(e, (i) => onChange(options[i]!.value))}
         className="grid gap-1 rounded-2xl bg-canvas p-1"
         style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
       >
@@ -39,6 +41,7 @@ export function Segmented<T extends string | number>({
               type="button"
               role="radio"
               aria-checked={checked}
+              tabIndex={checked ? 0 : -1}
               disabled={disabled}
               onClick={() => onChange(option.value)}
               className={cn(

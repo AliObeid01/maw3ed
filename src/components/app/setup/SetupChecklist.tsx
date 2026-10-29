@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { getBusiness, listInvites, listServices, listStaff, type Business } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { cn } from '@/lib/cn';
-import { SHARE_SEEN_KEY, deriveSetupSteps, stepHrefs, type SetupStepId } from '@/lib/setup/steps';
+import { deriveSetupSteps, shareSeenKey, stepHrefs, type SetupStepId } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
 import { LoadError, OwnerOnly } from '../states';
 
@@ -42,9 +42,9 @@ const subscribeStorage = (cb: () => void) => {
   window.addEventListener('storage', cb);
   return () => window.removeEventListener('storage', cb);
 };
-const readShareSeen = () => {
+const readShareSeen = (slug: string) => {
   try {
-    return window.localStorage.getItem(SHARE_SEEN_KEY) === '1';
+    return window.localStorage.getItem(shareSeenKey(slug)) === '1';
   } catch {
     return false;
   }
@@ -73,7 +73,11 @@ function Checklist({
   userName: string;
 }) {
   const t = useTranslations('app.setup');
-  const shareSeen = useSyncExternalStore(subscribeStorage, readShareSeen, () => false);
+  const shareSeen = useSyncExternalStore(
+    subscribeStorage,
+    () => readShareSeen(business.slug),
+    () => false,
+  );
   const { steps, doneCount, percent } = deriveSetupSteps({
     flags: business.setup,
     shareSeen,

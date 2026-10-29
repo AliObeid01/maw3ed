@@ -16,6 +16,7 @@ import {
 } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { cn } from '@/lib/cn';
+import { radioGroupKeyDown } from '@/components/ui/radioKeys';
 import { HeaderActions } from '../HeaderActions';
 import { EmptyState, LoadError, OwnerOnly } from '../states';
 import { TimeOffPanel } from './TimeOffPanel';
@@ -37,6 +38,7 @@ function StaffSwitcher({
     <div
       role="radiogroup"
       aria-label={t('whose')}
+      onKeyDown={(e) => radioGroupKeyDown(e, (i) => onSelect(staff[i]!.id))}
       className={cn(
         'flex max-w-full gap-1 overflow-x-auto rounded-pill bg-divider p-1 [scrollbar-width:none]',
         className,
@@ -50,6 +52,7 @@ function StaffSwitcher({
             type="button"
             role="radio"
             aria-checked={checked}
+            tabIndex={checked ? 0 : -1}
             onClick={() => onSelect(member.id)}
             className={cn(
               'min-h-11 shrink-0 rounded-pill px-4 text-[15px] transition-colors duration-200 ease-out',
@@ -78,17 +81,16 @@ function HoursSkeleton() {
 }
 
 function StaffHours({ staffId }: { staffId: string }) {
-  const [now] = useState(() => Date.now());
   const hours = useResource((signal) => getStaffHours(staffId, signal), `hours:${staffId}`);
   const timeOff = useResource((signal) => listTimeOff(staffId, signal), `timeoff:${staffId}`);
 
   if (hours.error && !hours.data) return <LoadError error={hours.error} onRetry={hours.reload} />;
   if (!hours.data || (!timeOff.data && !timeOff.error)) return <HoursSkeleton />;
 
-  const upcoming = (timeOff.data ?? [])
-    .filter((item) => new Date(item.endAt).getTime() >= now)
-    .sort((a, b) => a.startAt.localeCompare(b.startAt));
-  const onChange = (next: TimeOff[]) => timeOff.setData(next);
+  // The API returns only upcoming and ongoing time off by default, so no client-side date filter.
+  const upcoming = [...(timeOff.data ?? [])].sort((a, b) => a.startAt.localeCompare(b.startAt));
+  const onChange = (update: (current: TimeOff[]) => TimeOff[]) =>
+    timeOff.setData((current) => update(current ?? []));
 
   return (
     <div className="flex flex-wrap items-start gap-5">

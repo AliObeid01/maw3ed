@@ -26,6 +26,12 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
+/** Configured public origin (NEXT_PUBLIC_APP_URL) or the one the page is served from. */
+export function publicOrigin(configured: string | undefined, current: string): string {
+  const value = (configured ?? '').trim();
+  return value || current;
+}
+
 /** Public booking address shown to owners, e.g. `maw3ed.com/b/studio-nour` (no protocol). */
 export function bookingUrl(origin: string, slug: string): string {
   return `${origin.replace(/\/+$/, '')}/b/${slug}`;

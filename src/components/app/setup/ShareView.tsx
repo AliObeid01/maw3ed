@@ -11,23 +11,29 @@ import { useToast } from '@/components/ui/Toast';
 import { getBusiness } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { cn } from '@/lib/cn';
-import { bookingUrl, copyText, displayUrl, whatsappShareUrl } from '@/lib/setup/clipboard';
-import { SHARE_SEEN_KEY } from '@/lib/setup/steps';
+import {
+  bookingUrl,
+  copyText,
+  displayUrl,
+  publicOrigin,
+  whatsappShareUrl,
+} from '@/lib/setup/clipboard';
+import { shareSeenKey } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
 import { LoadError, OwnerOnly } from '../states';
 
 const noopSubscribe = () => () => undefined;
 
-function markShared() {
+function markShared(slug: string) {
   try {
-    window.localStorage.setItem(SHARE_SEEN_KEY, '1');
+    window.localStorage.setItem(shareSeenKey(slug), '1');
   } catch {
     // private mode: the checklist simply keeps the step open
   }
 }
 
 /** Copies the link, flips the label to "Copied" for two seconds and tells screen readers via the toast. */
-function useCopy(url: string) {
+function useCopy(url: string, slug: string) {
   const t = useTranslations('app.share');
   const toast = useToast();
   const [copied, setCopied] = useState(false);
@@ -36,7 +42,7 @@ function useCopy(url: string) {
   const copy = async () => {
     const ok = await copyText(url);
     if (ok) {
-      markShared();
+      markShared(slug);
       setCopied(true);
       clearTimeout(timer.current);
       timer.current = setTimeout(() => setCopied(false), 2000);
@@ -183,13 +189,14 @@ function ShareBody({ ready, businessName }: { ready: boolean; businessName: stri
   const { slug } = useAppSession();
   const origin = useSyncExternalStore(
     noopSubscribe,
-    () => window.location.origin,
+    // NEXT_PUBLIC_APP_URL (public site address) wins; otherwise the origin the dashboard is served from.
+    () => publicOrigin(process.env.NEXT_PUBLIC_APP_URL, window.location.origin),
     () => '',
   );
   const url = origin ? bookingUrl(origin, slug) : '';
-  const hero = useCopy(url);
-  const instagram = useCopy(url);
-  const maps = useCopy(url);
+  const hero = useCopy(url, slug);
+  const instagram = useCopy(url, slug);
+  const maps = useCopy(url, slug);
 
   if (!url) return <ShareSkeleton />;
 
@@ -242,7 +249,7 @@ function ShareBody({ ready, businessName }: { ready: boolean; businessName: stri
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            onClick={markShared}
+            onClick={() => markShared(slug)}
             className={buttonClasses({
               variant: 'ghost',
               size: 'lg',
@@ -264,7 +271,7 @@ function ShareBody({ ready, businessName }: { ready: boolean; businessName: stri
           title={t('whatsapp.title')}
           body={t('whatsapp.body')}
           href={whatsappShareUrl(t('whatsapp.message', { name: businessName, url }))}
-          onClick={markShared}
+          onClick={() => markShared(slug)}
           action={
             <>
               {t('whatsapp.action')}

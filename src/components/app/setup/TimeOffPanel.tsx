@@ -30,7 +30,8 @@ export function TimeOffPanel({
 }: {
   staffId: string;
   items: TimeOff[];
-  onChange: (next: TimeOff[]) => void;
+  /** Functional update so overlapping add/remove requests never overwrite each other. */
+  onChange: (update: (current: TimeOff[]) => TimeOff[]) => void;
 }) {
   const t = useTranslations('app.hours.timeOff');
   const errorText = useErrorMessage();
@@ -104,7 +105,7 @@ export function TimeOffPanel({
     setPending(true);
     try {
       const created = await createTimeOff(staffId, { startAt, endAt, reason });
-      onChange([...items, created]);
+      onChange((current) => [...current, created]);
       setFrom('');
       setTo('');
       toast.show(t('added'));
@@ -121,7 +122,7 @@ export function TimeOffPanel({
     setRemovingId(item.id);
     try {
       await deleteTimeOff(staffId, item.id);
-      onChange(items.filter((i) => i.id !== item.id));
+      onChange((current) => current.filter((i) => i.id !== item.id));
       toast.show(t('removed'));
     } catch (error) {
       toast.show(errorText(error), 'error');

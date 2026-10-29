@@ -157,9 +157,7 @@ export function ServiceForm({
       />
       {service ? (
         <div className="flex min-h-[50px] items-center gap-3 rounded-input bg-canvas px-3.5">
-          <span id="service-active-label" className="flex-1 text-[15px] font-medium">
-            {t('field.active')}
-          </span>
+          <span className="flex-1 text-[15px] font-medium">{t('field.active')}</span>
           <Switch checked={active} onCheckedChange={setActive} label={t('field.active')} />
         </div>
       ) : null}

@@ -29,11 +29,14 @@ export function StaffForm({
   member,
   services,
   onSaved,
+  onPartialSave,
   onCancel,
 }: {
   member?: StaffMember;
   services: Service[];
   onSaved: (saved: StaffMember, created: boolean) => void;
+  /** The name/bookable change was saved but a later step failed: refresh the list without a success toast. */
+  onPartialSave: (saved: StaffMember) => void;
   onCancel: () => void;
 }) {
   const t = useTranslations('app.staff');
@@ -80,6 +83,7 @@ export function StaffForm({
     }
     setNameError(undefined);
     setPending('save');
+    let partial: StaffMember | undefined;
     try {
       if (!member) {
         const created = await createStaff({ displayName: name, bookable, serviceIds });
@@ -89,12 +93,14 @@ export function StaffForm({
       let saved = member;
       if (name !== member.displayName || bookable !== member.bookable) {
         saved = await updateStaff(member.id, { displayName: name, bookable });
+        partial = saved;
       }
       let ids = member.serviceIds;
       if (!sameSet(serviceIds, member.serviceIds))
         ids = await setStaffServices(member.id, serviceIds);
       onSaved({ ...saved, serviceIds: ids }, false);
     } catch (error) {
+      if (partial) onPartialSave(partial);
       if (invalidFields(error).includes('displayName')) setNameError(t('errors.fieldInvalid'));
       setBanner(errorText(error));
       focusFirstInvalid();

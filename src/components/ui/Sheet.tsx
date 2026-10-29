@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
+import { useToastMessage } from './Toast';
 
 export type SheetProps = {
   open: boolean;
@@ -35,6 +36,7 @@ export function Sheet({
   inline,
 }: SheetProps) {
   const Wrapper = inline ? Fragment : Dialog.Portal;
+  const toastMessage = useToastMessage();
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Wrapper>
@@ -48,6 +50,10 @@ export function Sheet({
             className,
           )}
         >
+          {/* Toasts raised while the sheet is open: the page-level live region is hidden by the dialog. */}
+          <div role="status" aria-live="polite" className="sr-only">
+            {toastMessage}
+          </div>
           <div
             aria-hidden="true"
             className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-pill bg-line md:hidden"

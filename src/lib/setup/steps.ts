@@ -52,4 +52,5 @@ export const stepHrefs: Record<SetupStepId, string> = {
   invite: '/app/staff',
 };
 
-export const SHARE_SEEN_KEY = 'maw3ed.shareSeen';
+/** Per business, so a second owner on the same browser does not inherit the tick. */
+export const shareSeenKey = (slug: string) => `maw3ed.shareSeen.${slug}`;

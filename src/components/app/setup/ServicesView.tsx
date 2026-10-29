@@ -108,14 +108,20 @@ function ServicesInner() {
   const errorText = useErrorMessage();
   const desktop = useIsDesktop();
   const services = useResource(listServices, 'services');
-  const [editing, setEditing] = useState<Service | 'new' | null>(null);
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<string | 'new' | null>(null);
+  const [pendingIds, setPendingIds] = useState<ReadonlySet<string>>(new Set());
+  // Bumped after a save or cancel so the always-mounted desktop panel starts empty again.
+  const [resetCount, setResetCount] = useState(0);
+  const closeEditor = () => {
+    setEditing(null);
+    setResetCount((n) => n + 1);
+  };
 
   const list = services.data;
   const openNew = () => setEditing('new');
 
   const toggle = async (service: Service, active: boolean) => {
-    setPendingId(service.id);
+    setPendingIds((ids) => new Set(ids).add(service.id));
     try {
       const saved = await updateService(service.id, { active });
       services.setData((current) => (current ?? []).map((s) => (s.id === saved.id ? saved : s)));
@@ -123,7 +129,11 @@ function ServicesInner() {
     } catch (error) {
       toast.show(errorText(error), 'error');
     } finally {
-      setPendingId(null);
+      setPendingIds((ids) => {
+        const next = new Set(ids);
+        next.delete(service.id);
+        return next;
+      });
     }
   };
 
@@ -133,7 +143,7 @@ function ServicesInner() {
         ? [...(current ?? []), saved]
         : (current ?? []).map((s) => (s.id === saved.id ? saved : s)),
     );
-    setEditing(null);
+    closeEditor();
     toast.show(t(created ? 'created' : 'saved', { name: saved.name }));
   };
 
@@ -141,10 +151,11 @@ function ServicesInner() {
     return <LoadError error={services.error} onRetry={services.reload} />;
   if (!list) return <ServicesSkeleton />;
 
-  const editingService = editing && editing !== 'new' ? editing : undefined;
+  const editingService =
+    editing && editing !== 'new' ? list.find((s) => s.id === editing) : undefined;
   const panelTitle = editingService ? t('editTitle', { name: editingService.name }) : t('newTitle');
   // On desktop the panel is always visible: with nothing selected it is the "New service" form.
-  const formKey = editingService?.id ?? 'new';
+  const formKey = `${editingService?.id ?? 'new'}:${resetCount}`;
 
   return (
     <>
@@ -197,8 +208,8 @@ function ServicesInner() {
                   <ServiceRow
                     key={service.id}
                     service={service}
-                    pending={pendingId === service.id}
-                    onEdit={() => setEditing(service)}
+                    pending={pendingIds.has(service.id)}
+                    onEdit={() => setEditing(service.id)}
                     onToggle={(active) => toggle(service, active)}
                   />
                 ))}
@@ -210,7 +221,7 @@ function ServicesInner() {
         <EditorHost
           desktop={desktop}
           open={editing !== null}
-          onOpenChange={(open) => (open ? undefined : setEditing(null))}
+          onOpenChange={(open) => (open ? undefined : closeEditor())}
           title={panelTitle}
           closeLabel={t('close')}
           panelClassName="max-w-[380px] flex-[1_1_300px] border-2 border-brand"
@@ -219,7 +230,7 @@ function ServicesInner() {
             key={formKey}
             service={editingService}
             onSaved={onSaved}
-            onCancel={() => setEditing(null)}
+            onCancel={closeEditor}
           />
         </EditorHost>
       </div>

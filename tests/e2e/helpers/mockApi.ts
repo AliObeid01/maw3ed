@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { rules, validate, validateHours } from './serverRules';
 
 /**
  * Stateful in-memory stand-in for the owner setup API. Every call is answered by page.route, so the
@@ -12,6 +13,10 @@ export type MockState = {
   hours: Record<string, Array<{ weekday: number; startLocal: string; endLocal: string }>>;
   timeOff: Record<string, Array<Record<string, unknown>>>;
   invites: Array<Record<string, unknown>>;
+  /** Staff ids that still have future appointments: deactivating them answers 409 HAS_FUTURE_APPOINTMENTS. */
+  staffWithFutureAppointments: string[];
+  /** Emails that already belong to the business: inviting them answers 409 ALREADY_MEMBER. */
+  memberEmails: string[];
 };
 
 export type MockCalls = { method: string; path: string; body?: unknown }[];
@@ -129,6 +134,8 @@ export function defaultState(): MockState {
       ],
     },
     invites: [],
+    staffWithFutureAppointments: [],
+    memberEmails: ['lina@example.com'],
   };
 }
 
@@ -156,7 +163,7 @@ const error = (route: Route, status: number, code: string, fields?: Record<strin
 
 export type MockOptions = {
   state?: MockState;
-  /** Answer every request with this status (for example 403 for a receptionist). */
+  /** Answer every request with this status: 401, 403 or 429 use the real error codes. */
   forceStatus?: number;
   /** Delay every answer (ms) to look at loading states. */
   delayMs?: number;
@@ -185,23 +192,36 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
     calls.push({ method, path, body });
 
     if (options.delayMs) await new Promise((r) => setTimeout(r, options.delayMs));
-    if (options.forceStatus) return error(route, options.forceStatus, 'FORBIDDEN');
+    if (options.forceStatus) {
+      const codes: Record<number, string> = {
+        401: 'UNAUTHENTICATED',
+        403: 'FORBIDDEN',
+        429: 'RATE_LIMITED',
+      };
+      return error(route, options.forceStatus, codes[options.forceStatus] ?? 'INTERNAL');
+    }
     if (options.override && (await options.override(route, method, path, body))) return;
 
     if (path === '/api/auth/logout') return route.fulfill({ status: 204 });
 
     if (path === '/api/business') {
-      if (method === 'PATCH') Object.assign(state.business, body);
+      if (method === 'PATCH') {
+        const v = validate(rules.updateBusiness, body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        Object.assign(state.business, v.data);
+      }
       return json(route, 200, state.business);
     }
 
     if (path === '/api/services') {
       if (method === 'POST') {
+        const v = validate(rules.createService, body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
         const created = {
           id: `s${++counter}`,
           active: true,
           sortOrder: state.services.length,
-          ...body,
+          ...v.data,
         };
         state.services.push(created);
         state.business.setup.hasServices = true;
@@ -213,13 +233,17 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
     if (svc) {
       const found = state.services.find((s) => s.id === svc[1]);
       if (!found) return error(route, 404, 'NOT_FOUND');
-      Object.assign(found, body);
+      const v = validate(rules.updateService, body);
+      if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+      Object.assign(found, v.data);
       return json(route, 200, found);
     }
 
     if (path === '/api/staff') {
       if (method === 'POST') {
-        const created = { id: `p${++counter}`, active: true, role: null, ...body };
+        const v = validate(rules.createStaff, body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        const created = { id: `p${++counter}`, active: true, role: null, ...v.data };
         state.staff.push(created);
         return json(route, 201, created);
       }
@@ -229,14 +253,18 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
     if (staffServices) {
       const found = state.staff.find((s) => s.id === staffServices[1]);
       if (!found) return error(route, 404, 'NOT_FOUND');
-      found.serviceIds = (body as { serviceIds: string[] }).serviceIds;
+      const v = validate(rules.setStaffServices, body);
+      if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+      found.serviceIds = v.data.serviceIds;
       return json(route, 200, { serviceIds: found.serviceIds });
     }
     const staffHours = /^\/api\/staff\/([^/]+)\/hours$/.exec(path);
     if (staffHours) {
       const id = staffHours[1]!;
       if (method === 'PUT') {
-        const intervals = (body as { intervals: MockState['hours'][string] }).intervals;
+        const v = validateHours(body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        const intervals = v.data.intervals;
         state.hours[id] = intervals;
         state.business.setup.hasHours = intervals.length > 0;
         return json(route, 200, { intervals });
@@ -253,27 +281,44 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
     if (timeOff) {
       const id = timeOff[1]!;
       if (method === 'POST') {
-        const created = { id: `t${++counter}`, ...body };
+        const v = validate(rules.createTimeOff, body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        if (new Date(v.data.endAt) <= new Date(v.data.startAt))
+          return error(route, 400, 'VALIDATION_ERROR', { endAt: 'End must be after start.' });
+        const created = { id: `t${++counter}`, ...v.data };
         state.timeOff[id] = [...(state.timeOff[id] ?? []), created];
         return json(route, 201, created);
       }
-      return json(route, 200, { items: state.timeOff[id] ?? [] });
+      // Like the server: only upcoming and ongoing time off unless ?includePast=1.
+      const includePast = ['1', 'true'].includes(url.searchParams.get('includePast') ?? '');
+      const now = Date.now();
+      const items = (state.timeOff[id] ?? []).filter(
+        (i) => includePast || new Date(i.endAt as string).getTime() >= now,
+      );
+      return json(route, 200, { items });
     }
     const staffOne = /^\/api\/staff\/([^/]+)$/.exec(path);
     if (staffOne) {
       const found = state.staff.find((s) => s.id === staffOne[1]);
       if (!found) return error(route, 404, 'NOT_FOUND');
-      Object.assign(found, body);
+      const v = validate(rules.updateStaff, body);
+      if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+      if (v.data.active === false && state.staffWithFutureAppointments.includes(found.id as string))
+        return error(route, 409, 'HAS_FUTURE_APPOINTMENTS');
+      Object.assign(found, v.data);
       return json(route, 200, found);
     }
 
     if (path === '/api/invites') {
       if (method === 'POST') {
+        const v = validate(rules.createInvite, body);
+        if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        if (state.memberEmails.includes(v.data.email.toLowerCase()))
+          return error(route, 409, 'ALREADY_MEMBER');
         const created = {
           id: `i${++counter}`,
-          role: 'STAFF',
           expiresAt: '2036-11-12T10:00:00Z',
-          ...body,
+          ...v.data,
         };
         state.invites.push(created);
         return json(route, 201, created);

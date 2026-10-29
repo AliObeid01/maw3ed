@@ -17,7 +17,13 @@ import { getBusiness, updateBusiness, type Business } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { timezoneGroups, timezoneLabel } from '@/lib/auth/timezones';
 import { cn } from '@/lib/cn';
-import { cutoffFromDisplay, cutoffToDisplay, cutoffUnit, parseWhole } from '@/lib/setup/duration';
+import { cutoffUnit, parseWhole } from '@/lib/setup/duration';
+import {
+  cutoffMinutes,
+  toSettingsValues,
+  type CutoffUnit,
+  type SettingsValues,
+} from '@/lib/setup/settingsForm';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { utcOffsetLabel } from '@/lib/setup/time';
 import { HeaderActions } from '../HeaderActions';
@@ -110,17 +116,11 @@ function SettingsForm({
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
 
-  const unit = cutoffUnit(business.cancelCutoffMin);
-  const initial = {
-    name: business.name,
-    timezone: business.timezone,
-    slotStepMin: business.slotStepMin,
-    window: String(business.bookingWindowDays),
-    notice: String(business.minNoticeMin),
-    cutoff: String(cutoffToDisplay(business.cancelCutoffMin, unit)),
-  };
-  const [values, setValues] = useState(initial);
-  const [baseline, setBaseline] = useState(initial);
+  // Chosen once from the loaded value; see toSettingsValues for why it must not follow the saved value.
+  const [unit] = useState<CutoffUnit>(() => cutoffUnit(business.cancelCutoffMin));
+  const [initial] = useState(() => toSettingsValues(business, unit));
+  const [values, setValues] = useState<SettingsValues>(initial);
+  const [baseline, setBaseline] = useState<SettingsValues>(initial);
   const [errors, setErrors] = useState<Partial<Record<'name' | NumberKey, string>>>({});
   const [banner, setBanner] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -145,11 +145,8 @@ function SettingsForm({
 
   const slotChoices = [...new Set([...SLOT_CHOICES, values.slotStepMin])].sort((a, b) => a - b);
 
-  const parsedMinutes = (key: NumberKey) => {
-    const n = parseWhole(values[key]);
-    if (n === null) return null;
-    return key === 'cutoff' ? cutoffFromDisplay(n, unit) : n;
-  };
+  const parsedMinutes = (key: NumberKey) =>
+    key === 'cutoff' ? cutoffMinutes(values.cutoff, unit) : parseWhole(values[key]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -188,14 +185,7 @@ function SettingsForm({
         minNoticeMin: notice!,
         cancelCutoffMin: cutoff!,
       });
-      const savedValues = {
-        name: saved.name,
-        timezone: saved.timezone,
-        slotStepMin: saved.slotStepMin,
-        window: String(saved.bookingWindowDays),
-        notice: String(saved.minNoticeMin),
-        cutoff: String(cutoffToDisplay(saved.cancelCutoffMin, unit)),
-      };
+      const savedValues = toSettingsValues(saved, unit);
       setValues(savedValues);
       setBaseline(savedValues);
       onSaved(saved);

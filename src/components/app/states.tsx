@@ -10,10 +10,18 @@ import { errorKey } from '@/lib/setup/errors';
 import { cn } from '@/lib/cn';
 import { useAppSession } from './SessionContext';
 
-/** Translated message for an error key, for banners and toasts. */
+/**
+ * Translated message for a failed request, for banners and toasts. A 401 (session ended mid-session) also sends
+ * the user to the sign-in page, so every mutation handles it the same way loads do.
+ */
 export function useErrorMessage() {
   const t = useTranslations('app.errors');
-  return (error: unknown) => t(errorKey(error));
+  const router = useRouter();
+  return (error: unknown) => {
+    const key = errorKey(error);
+    if (key === 'unauthorized') router.replace('/login');
+    return t(key);
+  };
 }
 
 /** Common button labels (cancel, save, saving, done). Returned as plain strings so JSX stays free of literals. */

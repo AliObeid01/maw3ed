@@ -21,6 +21,14 @@ const ToastContext = createContext<ToastApi>({ show: () => undefined });
 
 export const useToast = () => useContext(ToastContext);
 
+const ToastMessageContext = createContext<string>('');
+
+/**
+ * The text of the toast on screen. An open Sheet hides the rest of the page from assistive tech (so the
+ * main live region is silent); the Sheet mirrors this text in its own live region.
+ */
+export const useToastMessage = () => useContext(ToastMessageContext);
+
 const VISIBLE_MS = 4000;
 
 /**
@@ -45,7 +53,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   return (
     <ToastContext.Provider value={api}>
-      {children}
+      <ToastMessageContext.Provider value={toast?.message ?? ''}>
+        {children}
+      </ToastMessageContext.Provider>
       <div
         role="status"
         aria-live="polite"
