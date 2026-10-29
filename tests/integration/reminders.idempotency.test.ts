@@ -97,22 +97,56 @@ beforeEach(async () => {
 afterEach(() => vi.setSystemTime(NOW));
 
 describe('no duplicate send', () => {
-  it('two overlapping runs send each due job exactly once', async () => {
-    const ids: string[] = [];
-    for (let i = 0; i < 8; i++) ids.push((await book()).id);
-    const [r1, r2] = await Promise.all([runReminders(deps(NOW)), runReminders(deps(NOW))]);
+  it('overlapping runs (Promise.all) send each due job exactly once', async () => {
+    const wide = await newScenario(prisma, a, { staff: 3 });
+    const total = 36;
+    for (let i = 0; i < total; i++) {
+      const staffId = wide.staffIds[i % 3]!;
+      const slot = Math.floor(i / 3); // 12 half-hour slots from 07:00Z
+      const time = `${String(7 + Math.floor(slot / 2)).padStart(2, '0')}:${slot % 2 ? '30' : '00'}`;
+      const res = await bookPublicly(
+        a.slug,
+        bookingBody(wide.serviceId, staffId, at(time), { email: `o${i}@example.test` }),
+      );
+      expect(res.status).toBe(201);
+    }
+    const runs = await Promise.all([1, 2, 3, 4].map(() => runReminders(deps(NOW))));
 
-    expect(r1.claimed + r2.claimed).toBe(8);
-    expect(r1.sent + r2.sent).toBe(8);
+    expect(runs.reduce((n, r) => n + r.claimed, 0)).toBe(total);
+    expect(runs.reduce((n, r) => n + r.sent, 0)).toBe(total);
     const keys = fake.calls.map((c) => c.idempotencyKey);
-    expect(keys).toHaveLength(8);
-    expect(new Set(keys).size).toBe(8);
+    expect(keys).toHaveLength(total);
+    expect(new Set(keys).size).toBe(total);
     const rows = (
       await pg.query(`SELECT status, attempts FROM "ReminderJob" WHERE kind = 'BOOKING'`)
     ).rows;
-    expect(rows).toHaveLength(8);
+    expect(rows).toHaveLength(total);
     expect(rows.every((r) => r.status === 'SENT' && r.attempts === 1)).toBe(true);
-    expect(ids).toHaveLength(8);
+  });
+
+  it('a row locked by another transaction is skipped (SKIP LOCKED), not waited on, and sent later exactly once', async () => {
+    const [x, y] = [(await book()).id, (await book()).id];
+    const lockedJob = await job(x, 'BOOKING');
+    const holder = newClient();
+    await holder.connect();
+    try {
+      await holder.query('BEGIN');
+      await holder.query('SELECT id FROM "ReminderJob" WHERE id = $1 FOR UPDATE', [lockedJob.id]);
+      const timeout = new Promise<'blocked'>((r) => setTimeout(() => r('blocked'), 15_000));
+      const outcome = await Promise.race([runReminders(deps(NOW)), timeout]);
+      expect(outcome).not.toBe('blocked');
+      expect(outcome).toMatchObject({ claimed: 1, sent: 1 });
+      expect((await job(y, 'BOOKING')).status).toBe('SENT');
+      expect(fake.calls).toHaveLength(1);
+    } finally {
+      await holder.query('COMMIT');
+      await holder.end();
+    }
+    const later = await runReminders(deps(NOW));
+    expect(later).toMatchObject({ claimed: 1, sent: 1 });
+    expect(fake.calls.map((c) => c.idempotencyKey).sort()).toEqual(
+      [lockedJob.id, (await job(y, 'BOOKING')).id].sort(),
+    );
   });
 
   it('a repeated run later sends nothing more', async () => {
