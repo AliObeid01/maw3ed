@@ -1551,10 +1551,14 @@
         "properties": {
           "expired": {
             "type": "integer"
+          },
+          "offered": {
+            "type": "integer"
           }
         },
         "required": [
-          "expired"
+          "expired",
+          "offered"
         ]
       },
       "LinkView": {
@@ -2868,6 +2872,423 @@
           "outcomesToMark",
           "staff",
           "appointments"
+        ]
+      },
+      "JoinWaitlistBody": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "format": "cuid2"
+          },
+          "staffId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "cuid2"
+          },
+          "fromDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "toDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "phone": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 32
+              },
+              "email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "phone",
+              "email"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "serviceId",
+          "staffId",
+          "fromDate",
+          "toDate",
+          "client"
+        ],
+        "additionalProperties": false
+      },
+      "WaitlistJoined": {
+        "type": "object",
+        "properties": {
+          "entry": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "OPEN"
+                ]
+              },
+              "serviceId": {
+                "type": "string"
+              },
+              "staffId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "fromDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "toDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "serviceId",
+              "staffId",
+              "fromDate",
+              "toDate"
+            ]
+          }
+        },
+        "required": [
+          "entry"
+        ]
+      },
+      "ClaimBody": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "OfferView": {
+        "type": "object",
+        "properties": {
+          "offer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "OPEN",
+                  "CLAIMED",
+                  "EXPIRED",
+                  "TAKEN"
+                ]
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "expiresAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMin": {
+                    "type": "integer"
+                  },
+                  "price": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMin",
+                  "price"
+                ]
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "startAt",
+              "endAt",
+              "expiresAt",
+              "service",
+              "staff"
+            ]
+          },
+          "business": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "timezone",
+              "locale"
+            ]
+          },
+          "canClaim": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "offer",
+          "business",
+          "canClaim"
+        ]
+      },
+      "WaitlistList": {
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "phone"
+                  ]
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "staff": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                },
+                "fromDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "toDate": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "OPEN",
+                    "FULFILLED",
+                    "CANCELLED"
+                  ]
+                },
+                "createdAt": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "client",
+                "service",
+                "staff",
+                "fromDate",
+                "toDate",
+                "status",
+                "createdAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "entries"
+        ]
+      },
+      "WaitlistActivity": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "OFFERED",
+                    "CLAIMED",
+                    "EXPIRED"
+                  ]
+                },
+                "at": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "offerId": {
+                  "type": "string"
+                },
+                "slot": {
+                  "type": "object",
+                  "properties": {
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    },
+                    "staff": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "displayName"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "startAt",
+                    "service",
+                    "staff"
+                  ]
+                },
+                "offeredTo": {
+                  "type": "integer"
+                },
+                "claimedBy": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name"
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "at",
+                "offerId",
+                "slot",
+                "offeredTo",
+                "claimedBy"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
         ]
       }
     },
@@ -6058,6 +6479,440 @@
           },
           "403": {
             "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/{slug}/waitlist": {
+      "post": {
+        "summary": "Join the waitlist for a service and a date range (public)",
+        "description": "Email is required (offers are sent by email). An existing client keeps their stored name and email. A duplicate open entry (same client, service, staff, overlapping dates) returns the existing entry with 200. At most 5 open entries per client: 409 WAITLIST_LIMIT. Abuse limiting is launch gate L6.",
+        "tags": [
+          "waitlist"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/JoinWaitlistBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already on the waitlist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistJoined"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Joined",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistJoined"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "WAITLIST_LIMIT: too many open entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers/{token}": {
+      "get": {
+        "summary": "Read a waitlist offer through its signed link (no side effects)",
+        "tags": [
+          "waitlist"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Offer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OFFER_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/offers/{token}/claim": {
+      "post": {
+        "summary": "Claim a waitlist offer (books through the normal booking path)",
+        "description": "First claim wins: the loser gets 409 SLOT_TAKEN. A repeat of a successful claim returns the same booking with 200.",
+        "tags": [
+          "waitlist"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already claimed: the first booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResult"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Booked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "SLOT_TAKEN: someone else took this spot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "OFFER_EXPIRED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/waitlist": {
+      "get": {
+        "summary": "Waitlist entries (OWNER or STAFF)",
+        "tags": [
+          "waitlist"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "all"
+              ],
+              "default": "OPEN"
+            },
+            "required": false,
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entries, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/waitlist/activity": {
+      "get": {
+        "summary": "Recent refill activity, one item per freed slot (OWNER or STAFF)",
+        "tags": [
+          "waitlist"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Activity, newest first",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaitlistActivity"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/waitlist/{id}": {
+      "delete": {
+        "summary": "Cancel a waitlist entry (OWNER or STAFF)",
+        "tags": [
+          "waitlist"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cancelled (idempotent)"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CONFLICT: the entry was already fulfilled",
             "content": {
               "application/json": {
                 "schema": {

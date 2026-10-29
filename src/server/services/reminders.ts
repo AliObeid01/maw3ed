@@ -12,6 +12,7 @@ import {
   IDEMPOTENT_MISMATCH,
   type EmailProvider,
 } from '@/server/providers/email';
+import { waitlistRepo } from '@/server/repositories/waitlist.repo';
 import {
   reminderJobRepo,
   type ClaimedJob,
@@ -128,7 +129,11 @@ export async function runReminders(
   if (claimed.length === 0) return summary;
   await deps.afterClaim?.(claimed);
 
-  let sentToday = await reminderJobRepo.countSentEmailsSince(startOfUtcDay(now));
+  // Waitlist offer emails share the daily budget (NFR-10); they are never skipped, only counted.
+  const dayStart = startOfUtcDay(now);
+  let sentToday =
+    (await reminderJobRepo.countSentEmailsSince(dayStart)) +
+    (await waitlistRepo.countOffersSince(dayStart));
   if (sentToday >= EMAIL_BUDGET_WARN)
     log.warn(
       { sentToday, warnAt: EMAIL_BUDGET_WARN, bookingSkippedAt: EMAIL_BUDGET_SKIP_BOOKING },

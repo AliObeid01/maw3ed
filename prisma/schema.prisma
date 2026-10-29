@@ -362,15 +362,18 @@ model ReminderJob {
 }
 
 model WaitlistEntry {
-  id         String         @id @default(cuid(2))
-  businessId String
-  clientId   String
-  serviceId  String
-  staffId    String?
-  fromDate   DateTime       @db.Timestamptz(3)
-  toDate     DateTime       @db.Timestamptz(3)
-  status     WaitlistStatus @default(OPEN)
-  createdAt  DateTime       @default(now()) @db.Timestamptz(3)
+  id           String         @id @default(cuid(2))
+  businessId   String
+  clientId     String
+  serviceId    String
+  staffId      String?
+  fromDate     DateTime       @db.Timestamptz(3)
+  toDate       DateTime       @db.Timestamptz(3)
+  status       WaitlistStatus @default(OPEN)
+  // Where offers go. Supplied at join and never copied onto the Client: an unauthenticated caller must
+  // not be able to redirect an existing client's mail.
+  contactEmail String?
+  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
 
   business Business        @relation(fields: [businessId], references: [id])
   client   Client          @relation(fields: [clientId], references: [id])
@@ -394,6 +397,7 @@ model WaitlistOffer {
   claimedAppointmentId   String?
   freedFromAppointmentId String
   batch                  Int         @default(1)
+  emailedAt              DateTime?   @db.Timestamptz(3)
   createdAt              DateTime    @default(now()) @db.Timestamptz(3)
 
   business           Business      @relation(fields: [businessId], references: [id])

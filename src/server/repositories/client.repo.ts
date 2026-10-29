@@ -175,6 +175,23 @@ export const clientRepo = {
   },
 
   /**
+   * Find-or-create by (businessId, E.164 phone) that NEVER modifies an existing client (not even empty
+   * fields). Used by the unauthenticated waitlist join: whatever the caller supplies for an existing
+   * phone number must not reach that client's record.
+   */
+  async findOrCreateUntouched(
+    businessId: string,
+    tx: Prisma.TransactionClient,
+    input: { name: string; phone: string; email?: string | undefined },
+  ) {
+    await tx.client.createMany({
+      data: [{ businessId, name: input.name, phone: input.phone, email: input.email ?? null }],
+      skipDuplicates: true,
+    });
+    return tx.client.findFirstOrThrow({ where: { businessId, phone: input.phone } });
+  },
+
+  /**
    * Find-or-create by (businessId, E.164 phone), safe under concurrency (ON CONFLICT DO NOTHING).
    * Runs on the caller's transaction so a failed booking leaves no client behind.
    *

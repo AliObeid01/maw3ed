@@ -552,6 +552,14 @@
       "heading": "موعدك بعد ساعتين تقريباً",
       "intro": "هذا تذكير بموعدك لدى {business}."
     },
+    "offer": {
+      "subject": "توفّر موعد: {service} بتاريخ {date} الساعة {time}",
+      "heading": "توفّر موعد للتو",
+      "intro": "أنت على قائمة الانتظار لدى {business} وقد توفّر وقت كنت تريده.",
+      "claim": "احجز هذا الموعد",
+      "expires": "هذا العرض محفوظ لك حتى {until}. أول من يؤكد يحصل عليه.",
+      "linkNote": "إذا لم تعد ترغب به، تجاهل هذه الرسالة."
+    },
     "whatsapp": {
       "h24": "مرحباً {name}، تذكير من {business}: موعد {service} مع {staff} غداً، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}",
       "h2": "مرحباً {name}، تذكير من {business}: موعد {service} مع {staff} اليوم، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}"

@@ -25,7 +25,7 @@ export const RunSummaryDto = registry.register(
 );
 export const ExpirySummaryDto = registry.register(
   'WaitlistExpirySummary',
-  z.object({ expired: z.number().int() }),
+  z.object({ expired: z.number().int(), offered: z.number().int() }),
 );
 
 const LinkView = z.object({
