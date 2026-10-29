@@ -23,10 +23,11 @@ describe('email provider selection fails closed in production', () => {
     expect(() => isFakeEmail()).toThrow();
   });
 
-  it('production + resend gets past the guard (and is then not-implemented)', () => {
+  it('production + resend gets past the guard (and then needs its key)', () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('EMAIL_PROVIDER', 'resend');
-    expect(() => getEmailProvider()).toThrow(/not implemented/);
+    vi.stubEnv('RESEND_API_KEY', '');
+    expect(() => getEmailProvider()).toThrow(/RESEND_API_KEY/);
   });
 
   it('development + unset -> the fake', () => {

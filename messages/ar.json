@@ -522,6 +522,41 @@
       "inviteWrongPassword": "كلمة المرور غير صحيحة. إذا كان لديك حساب في موعد، أدخل كلمة مرور ذلك الحساب."
     }
   },
+  "email": {
+    "greeting": "مرحباً {name}،",
+    "labels": {
+      "service": "الخدمة",
+      "staff": "مع",
+      "when": "الموعد",
+      "business": "المكان"
+    },
+    "actions": {
+      "confirm": "تأكيد موعدي",
+      "cancel": "إلغاء موعدي",
+      "linkNote": "تتوقف هذه الروابط عن العمل عند بدء موعدك."
+    },
+    "calendar": "أرفقنا ملف تقويم لتتمكن من إضافة الموعد إلى تقويمك.",
+    "footer": "أُرسلت عبر موعد نيابةً عن {business}.",
+    "booking": {
+      "subject": "تم تأكيد الحجز: {service} بتاريخ {date}",
+      "heading": "تم تأكيد حجزك",
+      "intro": "لديك حجز لدى {business}. إليك التفاصيل."
+    },
+    "h24": {
+      "subject": "تذكير: {service} غداً الساعة {time}",
+      "heading": "موعدك غداً",
+      "intro": "هذا تذكير بموعدك لدى {business}."
+    },
+    "h2": {
+      "subject": "تذكير: {service} اليوم الساعة {time}",
+      "heading": "موعدك بعد ساعتين تقريباً",
+      "intro": "هذا تذكير بموعدك لدى {business}."
+    },
+    "whatsapp": {
+      "h24": "مرحباً {name}، تذكير من {business}: موعد {service} مع {staff} غداً، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}",
+      "h2": "مرحباً {name}، تذكير من {business}: موعد {service} مع {staff} اليوم، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}"
+    }
+  },
   "dev": {
     "ui": {
       "pageTitle": "معاينة الواجهة",

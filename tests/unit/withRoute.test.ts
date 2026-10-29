@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+import { resetServerEnv } from '@/server/env';
 import { AppError } from '@/server/http/errors';
 import { created, ok, withRoute } from '@/server/http/withRoute';
 
@@ -166,10 +167,17 @@ describe('withRoute auth modes', () => {
     expect(res2.status).toBe(401);
   });
 
-  it('answers 401 for session mode without a cookie and 501 for token mode until it lands', async () => {
+  it('answers 401 for session mode without a cookie and 404 for token mode without a valid token', async () => {
     const session = withRoute({ auth: 'session' }, async () => ok({}));
     expect((await session(new Request('http://localhost/x'))).status).toBe(401);
-    const token = withRoute({ auth: 'token' }, async () => ok({}));
-    expect((await token(new Request('http://localhost/x'))).status).toBe(501);
+    vi.stubEnv('LINK_SECRET', 'unit-test-link-secret-0123456789abcdef');
+    resetServerEnv();
+    try {
+      const token = withRoute({ auth: 'token', acts: ['view'] }, async () => ok({}));
+      expect((await token(new Request('http://localhost/x'))).status).toBe(404);
+    } finally {
+      vi.unstubAllEnvs();
+      resetServerEnv();
+    }
   });
 });

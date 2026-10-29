@@ -7,6 +7,7 @@ import {
   type RoleName,
   type TokenIdentity,
 } from './auth';
+import type { TokenAction } from '@/server/domain/tokens';
 import { sessionCookie } from './cookies';
 import { AppError, mapError, safeError, zodFields } from './errors';
 import { childLogger, type Logger } from './logger';
@@ -36,6 +37,8 @@ export interface RouteConfig {
   auth: AuthMode;
   /** Only meaningful for `session`. Wrong role -> 403. */
   roles?: readonly RoleName[];
+  /** Only meaningful for `token`: the link actions this route accepts. Anything else -> 404. */
+  acts?: readonly TokenAction[];
   params?: z.ZodType;
   query?: z.ZodType;
   /** Parsed from lower-cased request headers. Not `.strict()`: requests carry many unrelated headers. */
@@ -248,7 +251,10 @@ export function withRoute<C extends RouteConfig>(
       const body = config.body ? parse(config.body, await readBody(req), 'body') : undefined;
 
       if (config.auth === 'token') {
-        ctx.token = await resolveToken(req, params ?? rawParams);
+        ctx.token = await resolveToken(
+          ((params ?? rawParams) as Record<string, unknown>).token,
+          config.acts ?? [],
+        );
         ctx.businessId = ctx.token.businessId;
         ctx.logger = childLogger({ requestId, businessId: ctx.businessId });
       }
