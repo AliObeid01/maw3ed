@@ -1,0 +1,187 @@
+'use client';
+
+import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { HeaderActions } from '@/components/app/HeaderActions';
+import { useAppSession } from '@/components/app/SessionContext';
+import { EmptyState, LoadError } from '@/components/app/states';
+import { useSummary } from '@/components/app/SummaryContext';
+import { usePolling } from '@/components/app/usePolling';
+import { useBookingFormat } from '@/components/booking/useBookingFormat';
+import { ButtonLink } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { StatTile } from '@/components/ui/StatTile';
+import { useToast } from '@/components/ui/Toast';
+import { getToday, type TodayAppointment } from '@/lib/api/dashboard';
+import { useResource } from '@/lib/api/useResource';
+import { isActive, shiftDay, todayIn } from '@/lib/dashboard/agenda';
+import { useIsDesktop } from '@/lib/useMediaQuery';
+import { Agenda, StaffFilter } from './Agenda';
+import { AppointmentSheet } from './AppointmentSheet';
+import { CalendarGrid } from './CalendarGrid';
+import { DoThisFirst, NeedsYou, WaitlistActivityCard } from './SideCards';
+
+function DayNav({
+  isToday,
+  onShift,
+  onToday,
+}: {
+  isToday: boolean;
+  onShift: (delta: number) => void;
+  onToday: () => void;
+}) {
+  const t = useTranslations('app.today.dayNav');
+  return (
+    <div role="group" aria-label={t('label')} className="flex items-center gap-1.5">
+      <IconButton label={t('prev')} onClick={() => onShift(-1)}>
+        <ChevronLeft size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+      </IconButton>
+      <button
+        type="button"
+        onClick={onToday}
+        aria-current={isToday ? 'date' : undefined}
+        disabled={isToday}
+        className="h-11 rounded-pill border border-line bg-surface px-4 text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-default disabled:opacity-100 disabled:font-semibold disabled:text-brand"
+      >
+        {t('today')}
+      </button>
+      <IconButton label={t('next')} onClick={() => onShift(1)}>
+        <ChevronRight size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+      </IconButton>
+    </div>
+  );
+}
+
+function TodaySkeleton() {
+  const label = useTranslations('app.today')('loading');
+  return (
+    <div className="flex flex-col gap-[18px]" aria-busy="true" aria-label={label} role="status">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-[84px] rounded-tile" />
+        ))}
+      </div>
+      <Skeleton className="h-28 rounded-card" />
+      <div className="flex flex-col gap-2">
+        {[0, 1, 2].map((i) => (
+          <Skeleton key={i} className="h-[72px] rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Board 4.1: stats, the day (agenda on phones, calendar at `lg+`) and the side cards. */
+export function TodayView() {
+  const t = useTranslations('app.today');
+  const { timezone } = useAppSession();
+  const f = useBookingFormat(timezone);
+  const toast = useToast();
+  const { refresh: refreshSummary } = useSummary();
+  const desktop = useIsDesktop();
+  const [day, setDay] = useState(() => todayIn(timezone));
+  const [staffId, setStaffId] = useState<string>();
+  const [open, setOpen] = useState<TodayAppointment | null>(null);
+
+  const res = useResource((signal) => getToday(day, signal), day);
+  usePolling(res.reload);
+  const data = res.data;
+  const isToday = day === todayIn(timezone);
+
+  const stats = data?.stats;
+  const visibleCount = data ? data.appointments.filter(isActive).length : 0;
+
+  return (
+    <>
+      <HeaderActions>
+        <DayNav
+          isToday={isToday}
+          onShift={(delta) => setDay((d) => shiftDay(d, delta))}
+          onToday={() => setDay(todayIn(timezone))}
+        />
+      </HeaderActions>
+
+      {res.error && !data ? (
+        <LoadError error={res.error} onRetry={res.reload} />
+      ) : !data ? (
+        <TodaySkeleton />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatTile
+              value={stats!.appointments}
+              label={isToday ? t('stats.appointmentsToday') : t('stats.appointments')}
+            />
+            <StatTile value={stats!.confirmed} label={t('stats.confirmed')} tone="brand" />
+            <StatTile value={stats!.noReply} label={t('stats.noReply')} />
+            <StatTile value={stats!.refilledFromWaitlist} label={t('stats.refilled')} tone="amber" />
+          </div>
+
+          <div className="flex flex-col gap-[18px] lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+            <div className="flex flex-col gap-3.5 lg:col-start-2 lg:row-start-1">
+              <DoThisFirst count={data.whatsappDue} />
+              <NeedsYou count={data.outcomesToMark} />
+            </div>
+
+            <section
+              aria-labelledby="day-heading"
+              className="flex min-w-0 flex-col gap-3.5 lg:col-start-1 lg:row-span-2 lg:row-start-1"
+            >
+              <h2 id="day-heading" className="m-0 text-xl font-semibold">
+                {f.dayLong(`${day}T12:00:00Z`)}
+              </h2>
+              {visibleCount === 0 ? (
+                <EmptyState
+                  icon={<CalendarDays size={22} />}
+                  title={isToday ? t('empty.titleToday') : t('empty.title')}
+                  body={t('empty.body')}
+                  action={
+                    <ButtonLink href="/app/book" size="lg">
+                      <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
+                      {t('empty.cta')}
+                    </ButtonLink>
+                  }
+                />
+              ) : desktop ? (
+                <CalendarGrid
+                  appointments={data.appointments}
+                  staff={data.staff}
+                  timezone={timezone}
+                  onOpen={setOpen}
+                />
+              ) : (
+                <>
+                  <StaffFilter staff={data.staff} value={staffId} onChange={setStaffId} />
+                  <Agenda
+                    appointments={data.appointments}
+                    timezone={timezone}
+                    staffId={staffId}
+                    onOpen={setOpen}
+                  />
+                </>
+              )}
+            </section>
+
+            <div className="lg:col-start-2 lg:row-start-2">
+              <WaitlistActivityCard timezone={timezone} />
+            </div>
+          </div>
+        </>
+      )}
+
+      <AppointmentSheet
+        appointment={open}
+        timezone={timezone}
+        onClose={() => setOpen(null)}
+        onCancelled={(message) => {
+          setOpen(null);
+          toast.show(message);
+          res.reload();
+          refreshSummary();
+        }}
+      />
+    </>
+  );
+}

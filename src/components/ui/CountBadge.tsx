@@ -1,4 +1,5 @@
 import { cn } from '@/lib/cn';
+import { capCount } from '@/lib/dashboard/agenda';
 
 export type CountBadgeProps = {
   count: number;
@@ -20,7 +21,7 @@ export function CountBadge({ count, tone = 'danger', label, className }: CountBa
       )}
     >
       <span dir="ltr" aria-hidden={label ? true : undefined}>
-        {count > 99 ? '99+' : count}
+        {capCount(count)}
       </span>
       {label ? <span className="sr-only">{label}</span> : null}
     </span>

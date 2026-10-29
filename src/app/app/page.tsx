@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { TodayPlaceholder } from '@/components/app/TodayPlaceholder';
+import { TodayView } from '@/components/dashboard/TodayView';
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('app.titles');
@@ -8,5 +8,5 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function TodayPage() {
-  return <TodayPlaceholder />;
+  return <TodayView />;
 }

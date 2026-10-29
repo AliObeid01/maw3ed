@@ -64,8 +64,21 @@ export function deriveReminder(item: ReminderItem, mark: LocalMark = idleMark): 
   if (item.status === 'SENT') {
     return { kind: 'sent', by: item.sentBy, at: item.sentAt, fromOthers: true };
   }
-  if (item.phoneInvalid || !item.whatsappUrl) return { kind: 'noPhone' };
+  if (item.phoneInvalid || !isSafeWhatsappUrl(item.whatsappUrl)) return { kind: 'noPhone' };
   return { kind: 'pending' };
+}
+
+const WHATSAPP_HOSTS = new Set(['wa.me', 'api.whatsapp.com', 'web.whatsapp.com']);
+
+/** Only open https WhatsApp links from the server: anything else (javascript:, other hosts) is treated as no phone. */
+export function isSafeWhatsappUrl(url: string | null): url is string {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' && WHATSAPP_HOSTS.has(parsed.hostname);
+  } catch {
+    return false;
+  }
 }
 
 /** Items still to send: not SENT on the server and not already handled on this device. */

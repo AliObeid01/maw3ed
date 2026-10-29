@@ -49,6 +49,12 @@ describe('deriveReminder', () => {
     expect(deriveReminder(item('1', { phoneInvalid: true }))).toEqual({ kind: 'noPhone' });
     expect(deriveReminder(item('1', { whatsappUrl: null }))).toEqual({ kind: 'noPhone' });
   });
+  it('only opens https WhatsApp links', () => {
+    expect(deriveReminder(item('1', { whatsappUrl: 'javascript:alert(1)' })).kind).toBe('noPhone');
+    expect(deriveReminder(item('1', { whatsappUrl: 'https://evil.example/x' })).kind).toBe('noPhone');
+    expect(deriveReminder(item('1', { whatsappUrl: 'http://wa.me/1' })).kind).toBe('noPhone');
+    expect(deriveReminder(item('1', { whatsappUrl: 'https://wa.me/96170555218' })).kind).toBe('pending');
+  });
   it('a SENT item with an invalid phone is still just sent', () => {
     const sent = item('1', { status: 'SENT', phoneInvalid: true, whatsappUrl: null });
     expect(deriveReminder(sent).kind).toBe('sent');

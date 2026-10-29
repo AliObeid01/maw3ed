@@ -74,6 +74,19 @@ export function shiftDay(day: string, delta: number): string {
   return DateTime.fromISO(day, { zone: 'utc' }).plus({ days: delta }).toISODate()!;
 }
 
+/** Is this instant today, tomorrow or later, as a calendar day in the business timezone? */
+export function dayRelation(
+  iso: string,
+  timezone: string,
+  now: Date = new Date(),
+): 'today' | 'tomorrow' | 'other' {
+  const day = DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone).toISODate();
+  const today = todayIn(timezone, now);
+  if (day === today) return 'today';
+  if (day === shiftDay(today, 1)) return 'tomorrow';
+  return 'other';
+}
+
 export type Greeting = 'morning' | 'afternoon' | 'evening';
 
 /** Greeting for the business-local hour: morning before 12:00, afternoon until 18:00. */

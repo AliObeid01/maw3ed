@@ -2,16 +2,18 @@
 
 import { LogOut } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { logout } from '@/lib/api/auth';
+import { greetingFor } from '@/lib/dashboard/agenda';
 import { errorKey } from '@/lib/setup/errors';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
 import { SessionProvider, type AppSession } from './SessionContext';
+import { SummaryProvider, useSummary } from './SummaryContext';
 import { defaultHrefs, type ActiveId } from './nav';
 
 /** Which nav entry is active for a pathname (longest matching href wins; unknown pages fall back to Today). */
@@ -78,10 +80,16 @@ function useSignOut() {
 function Frame({ session, children }: { session: AppSession; children: ReactNode }) {
   const pathname = usePathname();
   const t = useTranslations('app');
+  const tn = useTranslations('app.nav');
+  const format = useFormatter();
   const activeId = activeIdFor(pathname);
   const { signOut, signingOut } = useSignOut();
+  const { summary } = useSummary();
+  const badges = { reminders: summary?.whatsappDue ?? 0, outcomes: summary?.outcomesToMark ?? 0 };
+  const isToday = activeId === 'today';
   return (
-    <AppShell
+    <>
+      <AppShell
       business={{
         name: session.businessName,
         subtitle: t('frame.subtitle', {
@@ -90,7 +98,23 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
         }),
       }}
       activeId={activeId}
-      title={t(`titles.${activeId}`)}
+      badges={badges}
+      eyebrow={
+        isToday
+          ? format.dateTime(new Date(), {
+              timeZone: session.timezone,
+              weekday: 'long',
+              day: 'numeric',
+              month: 'long',
+              numberingSystem: 'latn',
+            })
+          : undefined
+      }
+      title={
+        isToday
+          ? t('today.greeting', { name: session.userName, part: greetingFor(session.timezone) })
+          : t(`titles.${activeId}`)
+      }
       hideBusiness={session.role !== 'OWNER'}
       onSignOut={signOut}
       signingOut={signingOut}
@@ -102,7 +126,14 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       }
     >
       {children}
-    </AppShell>
+      </AppShell>
+      {/* Polite announcement when the badge counts change (the visible digits are hidden from AT). */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {summary
+          ? `${tn('badge.reminders', { count: badges.reminders })}. ${tn('badge.outcomes', { count: badges.outcomes })}`
+          : ''}
+      </div>
+    </>
   );
 }
 
@@ -111,7 +142,9 @@ export function AppFrame({ session, children }: { session: AppSession; children:
   return (
     <SessionProvider value={session}>
       <ToastProvider>
-        <Frame session={session}>{children}</Frame>
+        <SummaryProvider>
+          <Frame session={session}>{children}</Frame>
+        </SummaryProvider>
       </ToastProvider>
     </SessionProvider>
   );
