@@ -395,7 +395,13 @@ export function FrontDeskForm() {
                     }}
                     className={chip(s.id === serviceId)}
                   >
-                    {s.id === serviceId ? t('service.selected', { name: s.name, duration: f.duration(s.durationMin) }) : s.name}
+                    {s.id === serviceId
+                      ? t('service.selected', {
+                          // Isolate the (possibly Latin) name so Arabic text around it keeps its order.
+                          name: `⁨${s.name}⁩`,
+                          duration: f.duration(s.durationMin),
+                        })
+                      : s.name}
                   </button>
                 ))}
             </div>

@@ -194,7 +194,7 @@ test('choosing no time says so instead of doing nothing', async ({ page }) => {
 test('?service=&staff= prefill the choices; an unknown person falls back to anyone', async ({ page }) => {
   await mockDashboardApi(page, { clientsEndpoint: false });
   await page.goto(`/app/book?service=${IDS.blowdry}&staff=${IDS.karim}`);
-  await expect(page.getByRole('button', { name: /^Blow-dry/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.getByRole('button', { name: /Blow-dry/ })).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByLabel('With')).toHaveValue(IDS.karim);
   await page.goto(`/app/book?service=${IDS.beard}&staff=${IDS.karim}`);
   await expect(page.getByLabel('With')).toHaveValue('anyone');
@@ -214,7 +214,7 @@ test('layout: Book is pinned on phones and every control is at least 44px tall',
     expect(box.y + box.height).toBeLessThanOrEqual(viewport.height - 56);
     await expect(page.getByRole('link', { name: 'New booking' })).toHaveCount(0);
   }
-  for (const chip of await page.getByRole('button', { name: /^(Haircut|Blow-dry|Beard trim)/ }).all()) {
+  for (const chip of await page.getByRole('button', { name: /(Haircut|Blow-dry|Beard trim)/ }).all()) {
     expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   }
   const overflow = await page.evaluate(

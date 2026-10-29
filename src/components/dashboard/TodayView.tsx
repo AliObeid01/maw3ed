@@ -119,7 +119,7 @@ export function TodayView() {
             <StatTile value={stats!.refilledFromWaitlist} label={t('stats.refilled')} tone="amber" />
           </div>
 
-          <div className="flex flex-col gap-[18px] lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+          <div className="flex flex-col gap-[18px] lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_auto_1fr] lg:items-start lg:gap-x-[18px] lg:gap-y-3.5">
             <div className="flex flex-col gap-3.5 lg:col-start-2 lg:row-start-1">
               <DoThisFirst count={data.whatsappDue} />
               <NeedsYou count={data.outcomesToMark} />
@@ -127,7 +127,7 @@ export function TodayView() {
 
             <section
               aria-labelledby="day-heading"
-              className="flex min-w-0 flex-col gap-3.5 lg:col-start-1 lg:row-span-2 lg:row-start-1"
+              className="flex min-w-0 flex-col gap-3.5 lg:col-start-1 lg:row-span-3 lg:row-start-1"
             >
               <h2 id="day-heading" className="m-0 text-xl font-semibold">
                 {f.dayLong(`${day}T12:00:00Z`)}

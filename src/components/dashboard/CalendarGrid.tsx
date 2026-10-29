@@ -102,19 +102,26 @@ export function CalendarGrid({
                         blockTint[tone],
                         box.compact
                           ? 'items-center gap-1.5 rounded-[10px] px-2.5'
-                          : 'flex-col gap-0.5 rounded-xl px-2.5 py-2',
+                          : cn(
+                              'flex-col rounded-xl px-2.5',
+                              box.height < 60 ? 'justify-center gap-0 py-0.5 leading-4' : 'gap-0.5 py-2',
+                            ),
                       )}
                     >
-                      <span className="truncate text-[13px] font-semibold">{appt.client.name}</span>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 truncate text-[13px] font-semibold">
+                          {appt.client.name}
+                        </span>
+                        {appt.client.repeatNoShow && box.height < 60 ? (
+                          <NoShowBadge count={appt.client.noShows} className="ms-auto shrink-0" />
+                        ) : null}
+                      </span>
                       <span className="truncate text-xs">
                         <bdi dir="ltr">{f.time(appt.startAt)}</bdi> · {appt.service.name}
-                        {box.compact ? null : <> · {ts(toneLabelKey[tone])}</>}
+                        {box.compact || box.height < 60 ? null : <> · {ts(toneLabelKey[tone])}</>}
                       </span>
-                      {appt.client.repeatNoShow ? (
-                        <NoShowBadge
-                          count={appt.client.noShows}
-                          className={box.compact ? 'ms-auto shrink-0' : 'self-start'}
-                        />
+                      {appt.client.repeatNoShow && box.height >= 60 ? (
+                        <NoShowBadge count={appt.client.noShows} className="self-start" />
                       ) : null}
                     </button>
                   </div>

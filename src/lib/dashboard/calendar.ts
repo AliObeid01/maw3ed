@@ -43,8 +43,8 @@ export function blockBox(
   const durationMin = (Date.parse(appt.endAt) - Date.parse(appt.startAt)) / 60_000;
   const top = (offsetMin / ROW_MIN) * ROW_PX;
   const height = Math.max((durationMin / ROW_MIN) * ROW_PX, 24);
-  // A block shorter than one row (under 30 min... or about) shows a single line, like the board's short blocks.
-  return { top, height, compact: durationMin <= ROW_MIN };
+  // Under 30 minutes the block is shorter than a row: one line only. From 30 minutes it has room for two.
+  return { top, height, compact: durationMin < ROW_MIN };
 }
 
 /** Grid rows (1-based, after a 48 px header row) that a block starts on and spans, rounded out to whole 30-min rows. */
