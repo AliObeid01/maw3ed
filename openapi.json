@@ -2405,17 +2405,17 @@
           "appointments": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 1000000
+            "maximum": 10000
           },
           "noShows": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 1000000
+            "maximum": 10000
           },
           "lateCancels": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 1000000
+            "maximum": 10000
           }
         },
         "required": [
@@ -2445,7 +2445,8 @@
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
               },
               "appointments": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Appointments held or missed (attended + no-shows). Excludes cancellations and late cancels."
               },
               "noShows": {
                 "type": "integer"
@@ -2470,6 +2471,14 @@
       "PilotReport": {
         "type": "object",
         "properties": {
+          "rateDefinition": {
+            "type": "string",
+            "description": "Pilot rate definition to show next to the numbers."
+          },
+          "baselineDefinition": {
+            "type": "string",
+            "description": "What the baseline appointments field means."
+          },
           "baseline": {
             "type": [
               "object",
@@ -2485,7 +2494,8 @@
                 "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
               },
               "appointments": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Appointments held or missed (attended + no-shows). Excludes cancellations and late cancels."
               },
               "noShows": {
                 "type": "integer"
@@ -2617,34 +2627,39 @@
                   "number",
                   "null"
                 ],
-                "description": "Percent: of appointments that had at least one H24/H2 reminder SENT (email or WhatsApp), the share with confirmedAt set."
+                "description": "Percent. Population: appointments that already started, not CANCELLED, LATE_CANCEL or PENDING_PAYMENT, that had at least one H24 or H2 reminder SENT (email or WhatsApp). confirmRate = the share of them with confirmedAt set. The booking email carries the confirm link too, so a confirmation may pre-date the reminder."
               },
               "cancellationsViaLink": {
                 "type": "integer"
               },
+              "waitlistSlotsOffered": {
+                "type": "integer",
+                "description": "Freed slots offered to the waitlist: distinct freedFromAppointmentId of offers created in the pilot window."
+              },
               "waitlistRefills": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
+                "type": "integer",
+                "description": "Of those freed slots, the ones whose offer was CLAIMED (rebooked from the waitlist)."
               },
               "waitlistRefillRate": {
                 "type": [
                   "number",
                   "null"
                 ],
-                "description": "Percent: appointments with source WAITLIST / cancellations (CANCELLED + LATE_CANCEL) in the pilot."
+                "description": "Percent: waitlistRefills / waitlistSlotsOffered. Null when nothing was offered."
               }
             },
             "required": [
               "confirmRate",
               "cancellationsViaLink",
+              "waitlistSlotsOffered",
               "waitlistRefills",
               "waitlistRefillRate"
             ]
           }
         },
         "required": [
+          "rateDefinition",
+          "baselineDefinition",
           "baseline",
           "pilot",
           "weekly",
@@ -5288,7 +5303,7 @@
     "/api/appointments/{id}/outcome": {
       "patch": {
         "summary": "Record attended / no-show / late cancel (and correct it later)",
-        "description": "Only for appointments that have started (409 NOT_STARTED). Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).",
+        "description": "Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW and LATE_CANCEL are allowed once it started. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).",
         "tags": [
           "outcomes"
         ],
@@ -5369,7 +5384,7 @@
             }
           },
           "409": {
-            "description": "NOT_STARTED or CONFLICT",
+            "description": "NOT_STARTED, NOT_ENDED or CONFLICT",
             "content": {
               "application/json": {
                 "schema": {
@@ -5738,7 +5753,7 @@
       },
       "put": {
         "summary": "Set or replace the baseline (owner)",
-        "description": "toDate >= fromDate, at most 31 days, not in the future (business timezone); noShows <= appointments.",
+        "description": "appointments = held or missed (attended + no-shows), EXCLUDING cancellations and late cancels, which go in lateCancels; baseline rate = noShows / appointments, comparable with the pilot rate noShows / (attended + noShows). toDate >= fromDate, at most 31 days, not in the future (business timezone); noShows <= appointments; appointments + lateCancels <= 10000.",
         "tags": [
           "pilot"
         ],

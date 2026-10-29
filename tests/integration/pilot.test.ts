@@ -139,7 +139,8 @@ describe('pilot baseline', () => {
   it('400 for unknown fields (including businessId) and a missing field', async () => {
     expect((await put(a.cookie, { ...validBaseline, businessId: b.businessId })).status).toBe(400);
     expect((await put(a.cookie, { ...validBaseline, note: 'x' })).status).toBe(400);
-    const { lateCancels: _l, ...missing } = validBaseline;
+    const missing: Record<string, unknown> = { ...validBaseline };
+    delete missing.lateCancels;
     expect((await put(a.cookie, missing)).status).toBe(400);
   });
 

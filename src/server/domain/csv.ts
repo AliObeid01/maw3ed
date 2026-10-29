@@ -6,7 +6,6 @@ export const CSV_BOM = '﻿';
  * A cell is dangerous when, after leading whitespace / control characters (spreadsheets trim them, a leading
  * newline included), it starts with = + - @; a leading tab or CR is dangerous on its own.
  */
-// eslint-disable-next-line no-control-regex -- control characters are exactly what we look for
 const FORMULA_START = /^(?:[\t\r]|[\s\u0000-\u001f]*[=+\-@])/;
 /** A plain international phone number is left as is: an apostrophe in a phone column is worse than the risk. */
 const E164 = /^\+\d{8,15}$/;
