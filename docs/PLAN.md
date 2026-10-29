@@ -40,24 +40,24 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P2.5 BE** Booking confirmation email (kind BOOKING) + `.ics` attachment; email templates (react-email) for BOOKING/H24/H2. (FR-12, FR-13)
 - [x] **P2.6 BE** Links: `GET/POST /api/links/{token}` confirm/cancel; late cancel after the cutoff; cancel skips pending reminders and triggers the waitlist. Staff cancel `POST /api/appointments/{id}/cancel`. (FR-15, FR-17)
 - [x] **P2.7 BE** WhatsApp: `GET /api/reminders/whatsapp-due` (with prefilled `wa.me` URL), `POST /api/reminders/{id}/mark-sent` (conditional update; second call → 409 with "sent by X at T"). (FR-14)
-- [ ] **P2.8 BE** Waitlist: `POST /api/public/{slug}/waitlist`; on cancel → `domain/waitlistMatch` → offer batch (3) by email with signed claim token; `POST /api/offers/{token}/claim` through P2.3; `POST /api/jobs/waitlist-expiry` cascades until the slot is within min notice. (FR-18…20)
+- [x] **P2.8 BE** Waitlist: `POST /api/public/{slug}/waitlist`; on cancel → `domain/waitlistMatch` → offer batch (3) by email with signed claim token; `POST /api/offers/{token}/claim` through P2.3; `POST /api/jobs/waitlist-expiry` cascades until the slot is within min notice. (FR-18…20)
 - [x] **P2.9 QA (done as dedicated suites; the registry-wide validation sweep and the clients isolation todos remain)** Proof tests green: `booking.concurrency`, `reminders.idempotency`, `links`, `waitlist.claim`, `validation.routes`, `tenant.isolation` (all entities).
 - [x] **P2.10 FE** Booking stepper `/b/[slug]` 1.1–1.4 + 1.5 booked + 1.6 slot taken; mobile sticky summary/CTA; ≤ 4 screens. (FR-08, NFR-05)
-- [ ] **P2.11 FE** (2.1 confirm/cancel and 2.2 cancelled are DONE in #19; 1.7 join waitlist and 2.3 waitlist offer remain, with P2.8) 1.7 join waitlist; 2.3 waitlist offer.
+- [x] **P2.11 FE** (2.1 confirm/cancel and 2.2 cancelled are DONE in #19; 1.7 join waitlist and 2.3 waitlist offer remain, with P2.8) 1.7 join waitlist; 2.3 waitlist offer.
 - [x] **P2.12 FE** Setup 3.4 checklist, 3.5 services, 3.6 staff, 3.7 hours & time off (several intervals per day), 3.8 settings, 3.9 share link (copy, QR, WhatsApp/Instagram share).
-- [ ] **P2.13 FE** 4.1 Today (stat tiles, calendar grid `lg+`, agenda list mobile, "Do this first" WhatsApp card, "Needs you", waitlist activity).
-- [ ] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
-- [ ] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
+- [x] **P2.13 FE** 4.1 Today (stat tiles, calendar grid `lg+`, agenda list mobile, "Do this first" WhatsApp card, "Needs you", waitlist activity).
+- [x] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
+- [x] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
 - [x] **P2.16 QA** E2E `booking.spec.ts` (Pixel 5) green against preview.
 - [ ] **P2.17 H** cron-job.org jobs live; prod smoke on a real Android phone; **onboard pilots** (`docs/PILOT_PLAYBOOK.md`); enter baselines.
 
 ## Phase 3 — History, pilot report, extras (3–6 Nov)
-- [ ] **P3.1 BE** `PATCH /api/appointments/{id}/outcome` (ATTENDED / NO_SHOW / LATE_CANCEL; only after start; counters in the same transaction; idempotent re-mark adjusts counters). (FR-21)
-- [ ] **P3.2 BE** Mark-outcome queue query + badge count; `GET /api/clients`, `GET /api/clients/{id}` (visits, no-shows, late cancels, history); `DELETE /api/clients/{id}` (owner; anonymise past appointments). (FR-22, FR-23, NFR-04)
-- [ ] **P3.3 FE** 4.4 Mark outcome, 4.5 Appointment, 4.6 Clients, 4.7 Client history; `NoShowBadge` everywhere a booking shows. (FR-21…23)
-- [ ] **P3.4 BE** `GET/PUT /api/pilot/baseline`, `GET /api/pilot/report` (weekly no-show rate vs baseline, raw counts, abs/rel change, confirm rate, link cancels, refill rate). (FR-24)
-- [ ] **P3.5 FE** 4.8 Pilot report (accessible chart + table with raw counts; baseline form). (FR-24)
-- [ ] **P3.6 BE/FE** CSV export `GET /api/pilot/export.csv` + button. (FR-25)
+- [x] **P3.1 BE** `PATCH /api/appointments/{id}/outcome` (ATTENDED / NO_SHOW / LATE_CANCEL; only after start; counters in the same transaction; idempotent re-mark adjusts counters). (FR-21)
+- [x] **P3.2 BE** Mark-outcome queue query + badge count; `GET /api/clients`, `GET /api/clients/{id}` (visits, no-shows, late cancels, history); `DELETE /api/clients/{id}` (owner; anonymise past appointments). (FR-22, FR-23, NFR-04)
+- [x] **P3.3 FE** 4.4 Mark outcome, 4.5 Appointment, 4.6 Clients, 4.7 Client history; `NoShowBadge` everywhere a booking shows. (FR-21…23)
+- [x] **P3.4 BE** `GET/PUT /api/pilot/baseline`, `GET /api/pilot/report` (weekly no-show rate vs baseline, raw counts, abs/rel change, confirm rate, link cancels, refill rate). (FR-24)
+- [x] **P3.5 FE** 4.8 Pilot report (accessible chart + table with raw counts; baseline form). (FR-24)
+- [x] **P3.6 BE/FE** CSV export `GET /api/pilot/export.csv` + button. (FR-25)
 - [ ] **P3.7 FE** Arabic: full `ar.json`, RTL pass on every screen, Arabic email + WhatsApp templates, language toggle on public pages. (FR-28)
 - [ ] **P3.8 BE/FE** `PaymentProvider` + `FakePaymentProvider`; `/pricing` (5.1) Free vs Pro; test checkout sets `Business.plan`; Free limits to one bookable staff. (FR-27)
 - [ ] **P3.9 BE/FE** Deposit: settings (threshold, amount); new migration adds `PENDING_PAYMENT` to the constraint; hold 15 min; `/pay/[token]` (5.2); server-side verify; expiry job → cancel + waitlist; `WhishTestProvider` only if credentials arrive. (FR-26)
@@ -75,7 +75,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **F1 FE** Focus ring is invisible on `bg-hero` and `primary` buttons: white outline on dark surfaces + `outline-offset-2` (before the public hero, P2.10).
 - [x] **F2 FE** `Button`: add `ghost`/`danger` variants, 46 px row size, `loading` prop (spinner, `aria-busy`, disabled), `clsx`+`tailwind-merge` for className (P1.10).
 - [x] **F3 FE** `Logo`: optional `label` (decorative = `aria-hidden`), fix the SVG `fontFamily` to use the next/font CSS variable, `tone` prop for a white logo on the hero, derive height from width (P1.10).
-- [ ] **F4 FE/BE** `?lang=` handoff: `src/proxy.ts` (Next 16) sets the `locale` cookie from `?lang=` and forwards `x-locale`/`x-business-locale`; export `LOCALE_COOKIE` from `src/i18n/config.ts`; resolution order per the `i18n-rtl` skill. Needed before the public booking page (P2.10).
+- [x] **F4 FE/BE (done in #19: proxy sets the locale cookie; per-business default via a client hint, see F14)** `?lang=` handoff: `src/proxy.ts` (Next 16) sets the `locale` cookie from `?lang=` and forwards `x-locale`/`x-business-locale`; export `LOCALE_COOKIE` from `src/i18n/config.ts`; resolution order per the `i18n-rtl` skill. Needed before the public booking page (P2.10).
 - [ ] **F5 (viewport done in #7; timeZone remaining) FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
 - [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists. Unit-test `isLocale`/`dirFor` (P1.9).
 - [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
@@ -87,12 +87,12 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 
 ## Launch gates (must be done before the pilot goes live)
 
-- [ ] **L1 Shared login throttle.** Today's throttle is an in-memory map (per serverless instance, reset on cold start). Replace it with a shared store (Postgres table or Redis), keyed email + IP, plus a per-IP budget and a global argon2 concurrency/rate limit (this also protects signup, slug-check and unknown-email floods, which each cost an argon2 hash or a DB query). Known weakness until then: anyone can lock a victim out of login for 15 minutes by failing 5 times against their email.
-- [ ] **L2 Session and invite hygiene.** Cron job to purge expired `Session` and `Invite` rows; add an absolute session lifetime (e.g. 90 days) on top of the 30-day sliding expiry; add a "sign out other sessions" option.
+- [x] **L1 Shared login throttle.** Today's throttle is an in-memory map (per serverless instance, reset on cold start). Replace it with a shared store (Postgres table or Redis), keyed email + IP, plus a per-IP budget and a global argon2 concurrency/rate limit (this also protects signup, slug-check and unknown-email floods, which each cost an argon2 hash or a DB query). Known weakness until then: anyone can lock a victim out of login for 15 minutes by failing 5 times against their email.
+- [x] **L2 Session and invite hygiene.** Cron job to purge expired `Session` and `Invite` rows; add an absolute session lifetime (e.g. 90 days) on top of the 30-day sliding expiry; add a "sign out other sessions" option.
 - [ ] **L3 Staff removal revokes sessions.** When staff removal is built, delete that user's sessions for that business in the same transaction (otherwise a stale cookie revives access if they are re-added within 30 days).
 - [ ] **L4 No email verification at signup.** Consequence: an attacker can pre-register someone's address so that a later invite to it hits an existing account (accept then needs that account's password, so it fails for the real person). There is no account takeover, but it is a squatting/DoS vector. Decide whether to add email verification before launch.
-- [ ] **L5 Referrer-Policy.** Send `Referrer-Policy: no-referrer` on `/invite/[token]` and every other page that carries a token in its URL (confirm/cancel/offer/pay links), so tokens never leak through the Referer header.
-- [ ] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.
+- [x] **L5 Referrer-Policy (done for /invite, /l, /o)** Send `Referrer-Policy: no-referrer` on `/invite/[token]` and every other page that carries a token in its URL (confirm/cancel/offer/pay links), so tokens never leak through the Referer header.
+- [x] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.
 
 ## Follow-ups from Phase 2 reviews and the real-API journey (non-blocking)
 - [ ] **F13 BE** Expose `bookingWindowDays` and `cancelCutoffMin` in `GET /api/public/{slug}` so the booking page stops probing 14 -> 7 -> 3 -> 1 days and can say 'free cancellation until ...'.
@@ -105,6 +105,14 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
 
 ## Added scope: public directory (team decision, 29 Oct)
-- [ ] **D1 BE** `Business.published` flag (migration, default false for new businesses; the seeded demo businesses and existing rows published) + `published` and `publishedAt` in `GET/PATCH /api/business` (owner only; publishing requires at least one active service and one bookable staff member with hours, else 409 `NOT_READY` with the missing items); `GET /api/public/directory?query=&category=&cursor=&limit=` (public, no auth) returning only published businesses `{businesses:[{slug,name,category,address,serviceCount,fromPrice}], nextCursor}`; `GET /api/public/{slug}` and `/slots` and `POST .../bookings` return 404 for an UNPUBLISHED business (the owner previews via the dashboard); tests incl. tenant/unpublished isolation, no PII or owner data in the directory, pagination.
-- [ ] **D2 FE** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
+- [x] **D1 BE** `Business.published` flag (migration, default false for new businesses; the seeded demo businesses and existing rows published) + `published` and `publishedAt` in `GET/PATCH /api/business` (owner only; publishing requires at least one active service and one bookable staff member with hours, else 409 `NOT_READY` with the missing items); `GET /api/public/directory?query=&category=&cursor=&limit=` (public, no auth) returning only published businesses `{businesses:[{slug,name,category,address,serviceCount,fromPrice}], nextCursor}`; `GET /api/public/{slug}` and `/slots` and `POST .../bookings` return 404 for an UNPUBLISHED business (the owner previews via the dashboard); tests incl. tenant/unpublished isolation, no PII or owner data in the directory, pagination.
+- [ ] **D2 FE (see F24)** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
 - Out of scope: ratings, maps, filters beyond name/category, SEO pages.
+
+## Notes from the launch-gates and waitlist work (open follow-ups)
+- [ ] **F21 BE** Waitlist: the same entry claiming two DIFFERENT slots at the very same instant could book both (sequential case is blocked and tested); needs an atomic reservation on the entry.
+- [ ] **F22 QA** Flaky: `waitlist.test.ts > the limit holds under concurrent joins` (8 concurrent joins) failed in some full runs against the remote Neon dev database and passed alone and in CI; investigate whether it is a slow-DB timeout or a real race in the advisory-lock path.
+- [ ] **F23 BE** Add a one-click 'remove me from the waitlist' link to the offer email (today the only way off the list is contacting the business, a staff delete, or the end of the date range).
+- [ ] **F24 BE/FE** D2: public `/directory` page and the owner's 'list my business' toggle with the readiness checklist (the backend D1 uses `Business.listed`, opt-in, default false; unlisted businesses stay reachable by direct link: the plan text above says `published`, the implementation is `listed`).
+- [ ] **F25 BE** Argon2 concurrency cap is per instance on serverless; rate limits in Postgres are what bound the fleet. Revisit if the signup/login flood risk matters.
+- [ ] **F26 QA** Before launch run the reserved-slug check from docs/HUMAN_TASKS.md and the real-stack waitlist journey (cancel -> offer email -> claim in a browser): not yet run end to end against a real database.
