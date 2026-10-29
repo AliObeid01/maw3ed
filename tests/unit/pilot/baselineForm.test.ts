@@ -71,6 +71,19 @@ describe('form helpers', () => {
     expect(valuesFromBaseline(null).fromDate).toBe('');
   });
   it('maps server field errors, ignoring unknown keys', () => {
-    expect(serverFieldErrors({ noShows: 'x', other: 'y' })).toEqual({ noShows: 'noShowsAbove' });
+    expect(serverFieldErrors({ noShows: 'Expected a whole number', other: 'y' })).toEqual({
+      noShows: 'numberInvalid',
+    });
+  });
+  it('maps each server message to the matching text, not one text per field', () => {
+    expect(serverFieldErrors({ noShows: 'No-shows cannot exceed appointments.' })).toEqual({ noShows: 'noShowsAbove' });
+    expect(serverFieldErrors({ toDate: 'The baseline period cannot end in the future.' })).toEqual({ toDate: 'future' });
+    expect(serverFieldErrors({ toDate: 'The baseline period is at most 31 days.' })).toEqual({ toDate: 'tooLong' });
+    expect(serverFieldErrors({ toDate: 'The end date must not be before the start date.' })).toEqual({ toDate: 'toBeforeFrom' });
+    expect(serverFieldErrors({ toDate: 'Use a real date like 2026-10-31.' })).toEqual({ toDate: 'dateInvalid' });
+    expect(serverFieldErrors({ appointments: 'Appointments plus late cancels are at most 10000.' })).toEqual({
+      appointments: 'tooMany',
+    });
+    expect(serverFieldErrors({ appointments: 'Expected a whole number from 0 to 10000.' }).appointments).toBe('numberInvalid');
   });
 });

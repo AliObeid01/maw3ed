@@ -3,7 +3,9 @@ import { DateTime } from 'luxon';
 import {
   baselineRate,
   changeVsBaseline,
+  addRow,
   daysCovered,
+  emptyCounts,
   localDateOf,
   noShowRate,
   round1,
@@ -452,30 +454,28 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         }
         const now = new Date();
         const windows = weekWindows(now, TZ, weeks);
-        const rows = appointments.map((a) => ({
-          startAt: new Date(a.startAt),
-          status: a.status,
-          cancelledVia: a.cancelledVia ?? null,
-          source: a.source,
-        }));
+        // Like the server: only appointments that have started, over the WHOLE pilot (first appointment to today);
+        // `weeks` only decides how many weekly points come back.
+        const rows = appointments
+          .map((a) => ({
+            startAt: new Date(a.startAt),
+            status: a.status,
+            cancelledVia: a.cancelledVia ?? null,
+            source: a.source,
+          }))
+          .filter((r) => r.startAt <= now);
         const weekly = weeklyCounts(rows, windows).map((w) => ({
           ...w,
           noShowRate: w.noShowRate === null ? null : round1(w.noShowRate),
         }));
-        const total = weekly.reduce(
-          (acc, w) => ({
-            appointments: acc.appointments + w.appointments,
-            attended: acc.attended + w.attended,
-            noShows: acc.noShows + w.noShows,
-            lateCancels: acc.lateCancels + w.lateCancels,
-          }),
-          { appointments: 0, attended: 0, noShows: 0, lateCancels: 0 },
-        );
+        const total = emptyCounts();
+        for (const r of rows) addRow(total, r);
         const rate = noShowRate(total.attended, total.noShows);
         const base = baseline ? baselineRate(baseline.appointments, baseline.noShows) : null;
         const change = changeVsBaseline(rate, base);
-        const from = windows[0]!.weekStart;
         const to = localDateOf(now, TZ);
+        const earliest = rows.reduce<Date | null>((min, r) => (!min || r.startAt < min ? r.startAt : min), null);
+        const from = earliest ? localDateOf(earliest, TZ) : to;
         return json(route, 200, {
           rateDefinition: RATE_DEFINITION,
           baselineDefinition: BASELINE_DEFINITION,

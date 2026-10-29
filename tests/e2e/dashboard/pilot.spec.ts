@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { DateTime } from 'luxon';
 import { trackIntlErrors } from '../helpers/intlErrors';
 import { setRole } from '../helpers/mockApi';
-import { client, mockOutcomesApi, pilotHistory, TZ, type Baseline } from '../helpers/outcomesMock';
+import { appt, client, mockOutcomesApi, pilotHistory, TZ, type Baseline } from '../helpers/outcomesMock';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
 test.skip(!!process.env.BASE_URL, 'needs the fake-session dev server');
@@ -47,9 +47,9 @@ test('headline compares the pilot with the baseline, always with the raw counts 
   const h = hero(page);
   await expect(h).toContainText('9.2%');
   await expect(h).toContainText('With Maw3ed · 9.2%');
-  await expect(h).toContainText('7 no-shows of 76 appointments');
+  await expect(h).toContainText('7 no-shows of 76 held or missed');
   await expect(h).toContainText('Your book before · 17.9%');
-  await expect(h).toContainText('14 no-shows of 78 appointments');
+  await expect(h).toContainText('14 no-shows of 78 held or missed');
   await expect(h).toContainText('8.7 points · 49% lower');
   await expect(h).toContainText('No-shows divided by (attended + no-shows)');
   // The sample-size note: a direction, never a claim of significance.
@@ -177,7 +177,7 @@ test('a valid baseline is saved with numbers, confirmed with a toast, and the co
   await f.getByRole('button', { name: 'Save baseline' }).dblclick();
   await expect(page.getByRole('status').filter({ hasText: 'Baseline saved' })).toBeVisible();
   await expect(hero(page)).toContainText('Your book before · 17.9%');
-  await expect(hero(page)).toContainText('14 no-shows of 78 appointments');
+  await expect(hero(page)).toContainText('14 no-shows of 78 held or missed');
   await expect(f.getByRole('button', { name: 'Update baseline' })).toBeVisible();
   const puts = calls.filter((c) => c.method === 'PUT');
   expect(puts).toHaveLength(1);
@@ -236,6 +236,166 @@ test('no horizontal scroll and the chart fits at this width', async ({ page }) =
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
+// ---- review fixes ---------------------------------------------------------------------------------------
+
+const DAY = 24 * 60;
+const longDay = (ymdStr: string) =>
+  new Date(`${ymdStr}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' });
+
+test('the chart is labelled with the weeks it shows (first Monday to the end of the last week) and the control says "Weeks shown"', async ({
+  page,
+}) => {
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  const monday = today().startOf('week');
+  const from = ymd(monday.minus({ weeks: 3 }));
+  const to = ymd(monday.plus({ days: 6 }));
+  await expect(page.getByText(`Last 4 weeks: ${longDay(from)} to ${longDay(to)}`)).toBeVisible();
+  await expect(page.getByRole('radiogroup', { name: 'Weeks shown' })).toBeVisible();
+  await page.getByRole('radio', { name: '12 weeks' }).click();
+  await expect(
+    page.getByText(`Last 12 weeks: ${longDay(ymd(monday.minus({ weeks: 11 })))} to ${longDay(to)}`),
+  ).toBeVisible();
+  // The hero is the whole pilot, whatever period the chart shows.
+  await expect(page.getByRole('region', { name: /No-show rate · since/ })).toContainText('9.2%');
+});
+
+test('weeks without marked outcomes get a "no data" marker and a legend entry at every period length, never a 0% bar', async ({
+  page,
+}) => {
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  await page.getByText('Show as a table').click();
+  for (const n of [4, 8, 12]) {
+    await page.getByRole('radio', { name: `${n} weeks` }).click();
+    await expect(page.getByRole('img', { name: new RegExp(`for ${n} weeks`) })).toBeVisible();
+    const table = page.getByRole('table', { name: /Weekly no-show rate/ });
+    await expect(table.getByRole('row')).toHaveCount(n + 1);
+    const dashes = await table.getByRole('cell', { name: '—' }).count();
+    await expect(page.getByTestId('no-data-week')).toHaveCount(dashes);
+    if (n === 12) expect(dashes).toBeGreaterThan(5);
+    if (dashes > 0) await expect(page.getByText('No marked outcomes', { exact: true })).toBeVisible();
+  }
+});
+
+test('appointments that started but have no outcome are called out with a link to Mark outcome', async ({ page }) => {
+  await mockOutcomesApi(
+    page,
+    withHistory({
+      appointments: [
+        ...pilotHistory('clmaya', { attended: 69, noShows: 7, lateCancels: 4 }),
+        appt('unmarked1', 'clmaya', -3 * 60, 30),
+        appt('unmarked2', 'clmaya', -5 * 60, 30),
+      ],
+    }),
+  );
+  await page.goto('/app/pilot');
+  const link = hero(page).getByRole('link', { name: '2 appointments still need an outcome' });
+  await expect(link).toHaveAttribute('href', '/app/outcomes');
+  await expect(hero(page)).toContainText('of 76 held or missed');
+});
+
+test('nothing unmarked: no call-out', async ({ page }) => {
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  await expect(hero(page)).toContainText('9.2%');
+  await expect(page.getByText(/still needs? an outcome/)).toHaveCount(0);
+});
+
+test('a failed period switch keeps the control, the chart label and a note on the period that is shown, and retries', async ({
+  page,
+}) => {
+  await mockOutcomesApi(page, withHistory());
+  let failing = true;
+  await page.route('**/api/pilot/report?weeks=8', (route) =>
+    failing
+      ? route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'x' } }) })
+      : route.fallback(),
+  );
+  await page.goto('/app/pilot');
+  await expect(page.getByText(/Last 4 weeks:/)).toBeVisible();
+  await page.getByRole('radio', { name: '8 weeks' }).click();
+  await expect(page.getByText('Could not load that period. Showing the last 4 weeks.')).toBeVisible();
+  await expect(page.getByRole('radio', { name: '4 weeks' })).toBeChecked();
+  await expect(page.getByText(/Last 4 weeks:/)).toBeVisible();
+  failing = false;
+  await page.getByRole('radio', { name: '8 weeks' }).click();
+  await expect(page.getByText(/Last 8 weeks:/)).toBeVisible();
+  await expect(page.getByRole('radio', { name: '8 weeks' })).toBeChecked();
+});
+
+test('Export clamps a pilot longer than 366 days and says so', async ({ page }) => {
+  const { calls } = await mockOutcomesApi(
+    page,
+    withHistory({
+      appointments: [
+        ...pilotHistory('clmaya', { attended: 69, noShows: 7, lateCancels: 4 }),
+        appt('old', 'clmaya', -400 * DAY, 30, { status: 'ATTENDED' }),
+      ],
+    }),
+  );
+  await page.goto('/app/pilot');
+  await expect(page.getByText('Exports the latest 366 days, the most the server allows.')).toBeVisible();
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Export CSV' }).click();
+  await download;
+  const q = new URLSearchParams(calls.find((c) => c.path === '/api/pilot/export.csv')!.search);
+  expect(q.get('to')).toBe(ymd(today()));
+  expect(q.get('from')).toBe(ymd(today().minus({ days: 365 })));
+});
+
+test('a short pilot is exported whole, without a clamp note', async ({ page }) => {
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  await expect(hero(page)).toContainText('9.2%');
+  await expect(page.getByText(/the most the server allows/)).toHaveCount(0);
+});
+
+test('the baseline date inputs cannot pick a day after today', async ({ page }) => {
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  const f = form(page);
+  await expect(f.getByLabel('From')).toHaveAttribute('max', ymd(today()));
+  await expect(f.getByLabel('To')).toHaveAttribute('max', ymd(today()));
+});
+
+test('Arabic: only the numbers are left-to-right islands; the sentences keep the page direction', async ({ page }) => {
+  await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+
+  // Change chip: "8.7 نقطة · أقل بنسبة 49%"
+  const chip = page.locator('span', { hasText: 'نقطة' }).filter({ has: page.locator('bdi') }).last();
+  await expect(chip.locator('bdi[dir="ltr"]')).toHaveText(['8.7', '49%']);
+  const chipText = (await chip.innerText()).replace(/\s+/g, ' ');
+  expect(chipText).toContain('نقطة');
+  expect(chipText).toContain('أقل بنسبة');
+  // The words are outside any LTR island and the nearest dir attribute is the page's rtl.
+  expect(await chip.evaluate((el) => el.closest('[dir]')?.getAttribute('dir'))).toBe('rtl');
+  expect(await chip.evaluate((el) => el.querySelectorAll('bdi').length)).toBe(2);
+
+  // Signals: "5 من 7" keeps "من" between two isolated numbers, in a right-to-left sentence.
+  const tile = page.getByRole('region', { name: 'أرقام داعمة' }).locator('div', { hasText: 'أُعيد ملؤها' }).last();
+  const value = tile.locator('span').first();
+  await expect(value.locator('bdi[dir="ltr"]')).toHaveText(['5', '7']);
+  expect((await value.innerText()).replace(/\s+/g, ' ').trim()).toMatch(/^5 من 7$/);
+  expect(await value.evaluate((el) => el.closest('[dir]')?.getAttribute('dir'))).toBe('rtl');
+
+  // The counts line: numbers isolated, words not.
+  const counts = page.locator('section[aria-labelledby="pilot-hero"]').getByText(/تم أو فات/).first();
+  await expect(counts.locator('bdi[dir="ltr"]')).toHaveText(['7', '76']);
+  expect(await counts.evaluate((el) => el.closest('[dir]')?.getAttribute('dir'))).toBe('rtl');
+});
+
+test('Arabic week labels use the plural forms: 12 weeks reads "12 أسبوعًا"', async ({ page }) => {
+  await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+  await mockOutcomesApi(page, withHistory());
+  await page.goto('/app/pilot');
+  const group = page.getByRole('radiogroup', { name: 'الأسابيع المعروضة' });
+  await expect(group.getByRole('radio')).toHaveText(['4 أسابيع', '8 أسابيع', '12 أسبوعًا']);
+});
+
 test('RTL: Arabic pilot report, percentages and dates stay left-to-right, no horizontal scroll', async ({ page }) => {
   await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
   await mockOutcomesApi(page, withHistory());
@@ -243,8 +403,8 @@ test('RTL: Arabic pilot report, percentages and dates stay left-to-right, no hor
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByRole('region', { name: 'أرقام داعمة' })).toBeVisible();
   await expect(page.locator('bdi[dir="ltr"]', { hasText: '9.2%' }).first()).toBeVisible();
-  await expect(page.getByRole('group', { name: 'الفترة' })).toHaveCount(0); // a radiogroup, not a group
-  await expect(page.getByRole('radiogroup', { name: 'الفترة' })).toBeVisible();
+  await expect(page.getByRole('group', { name: 'الأسابيع المعروضة' })).toHaveCount(0); // a radiogroup, not a group
+  await expect(page.getByRole('radiogroup', { name: 'الأسابيع المعروضة' })).toBeVisible();
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );

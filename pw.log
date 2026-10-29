@@ -1,0 +1,8 @@
+
+Running 3 tests using 2 workers
+
+  ✓  1 [dashboard-desktop] › tests\e2e\dashboard\pilot.spec.ts:391:1 › Arabic week labels use the plural forms: 12 weeks reads "12 أسبوعًا" (1.9s)
+  ✓  2 [dashboard-desktop] › tests\e2e\dashboard\pilot.spec.ts:362:1 › Arabic: only the numbers are left-to-right islands; the sentences keep the page direction (2.0s)
+  ✓  3 [dashboard-desktop] › tests\e2e\dashboard\pilot.spec.ts:399:1 › RTL: Arabic pilot report, percentages and dates stay left-to-right, no horizontal scroll (722ms)
+
+  3 passed (8.0s)

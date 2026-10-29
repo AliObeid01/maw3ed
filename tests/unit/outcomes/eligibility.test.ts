@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { apptTone } from '@/lib/dashboard/agenda';
 import { outcomeOptions, outcomeWindow } from '@/lib/outcomes/eligibility';
 
 const START = '2026-10-29T08:00:00Z';
@@ -48,6 +49,17 @@ describe('outcomeOptions', () => {
   it('a correction to Attended during the appointment is still gated on the end', () => {
     const r = outcomeOptions(appt('NO_SHOW'), at('2026-10-29T08:10:00Z'));
     expect(r).toMatchObject({ options: { ATTENDED: 'notEnded', LATE_CANCEL: 'enabled' } });
+  });
+  it('a late cancel is final for Attended and No-show (the server answers 409 CONFLICT)', () => {
+    const r = outcomeOptions(appt('LATE_CANCEL'), at('2026-10-29T09:00:00Z'));
+    expect(r).toMatchObject({
+      current: 'LATE_CANCEL',
+      options: { ATTENDED: 'locked', NO_SHOW: 'locked', LATE_CANCEL: 'current' },
+    });
+  });
+  it('PENDING_PAYMENT has its own tone, not Booked', () => {
+    expect(apptTone({ status: 'PENDING_PAYMENT', source: 'PUBLIC' })).toBe('pendingPayment');
+    expect(apptTone({ status: 'BOOKED', source: 'PUBLIC' })).toBe('booked');
   });
   it('cancelled and unknown statuses never take an outcome', () => {
     expect(outcomeOptions(appt('CANCELLED'), at('2026-10-29T09:00:00Z'))).toEqual({ open: false });

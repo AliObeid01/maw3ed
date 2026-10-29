@@ -8,6 +8,8 @@ import {
   formatPercent,
   labelEvery,
   niceMax,
+  relativeText,
+  addDays,
 } from '@/lib/pilot/viewModel';
 
 const report = (over: Partial<PilotReport['pilot']> = {}, weekly: PilotReport['weekly'] = []): PilotReport => ({
@@ -72,6 +74,51 @@ describe('changeView', () => {
   });
   it('null without a baseline or data', () => {
     expect(changeView(null, null)).toBeNull();
+  });
+});
+
+describe('relativeText', () => {
+  it('whole percent from 1%, one decimal below, omitted when it would read 0%', () => {
+    expect(relativeText(-48.6)).toBe('49');
+    expect(relativeText(1)).toBe('1');
+    expect(relativeText(0.6)).toBe('0.6');
+    expect(relativeText(-0.34)).toBe('0.3');
+    expect(relativeText(0.04)).toBeNull();
+    expect(relativeText(null)).toBeNull();
+  });
+  it('never prints 0% next to non-zero points', () => {
+    expect(changeView(0.1, 0.04)).toEqual({ direction: 'up', points: '0.1', relative: null });
+    expect(changeView(0.1, 0.6)).toEqual({ direction: 'up', points: '0.1', relative: '0.6' });
+  });
+});
+
+describe('unmarked appointments', () => {
+  it('counts started appointments with no outcome, never below 0', () => {
+    expect(buildPilotView(report({ appointments: 80 })).unmarked).toBe(0); // 69 + 7 + 4
+    expect(buildPilotView(report({ appointments: 83 })).unmarked).toBe(3);
+    expect(buildPilotView(report({ appointments: 10 })).unmarked).toBe(0);
+  });
+});
+
+describe('weekly chart range and gaps', () => {
+  it('runs from the first week to the end of the last week (weekStart + 6 days)', () => {
+    const c = buildWeeklyChart(report({}, [week('2026-10-12', 5), week('2026-10-19', 5), week('2026-10-26', 5)]));
+    expect(c.range).toEqual({ from: '2026-10-12', to: '2026-11-01' });
+    expect(addDays('2026-10-26', 6)).toBe('2026-11-01');
+    expect(addDays('2026-12-28', 6)).toBe('2027-01-03');
+    expect(buildWeeklyChart(report({}, [])).range).toBeNull();
+  });
+  it('marks null weeks as no data (not 0%) at every length, and flags gaps for the legend', () => {
+    for (const n of [4, 8, 12]) {
+      const weekly = Array.from({ length: n }, (_, i) => week(`2026-0${(i % 9) + 1}-01`, i === 2 ? null : 5));
+      const c = buildWeeklyChart(report({}, weekly));
+      expect(c.weeks.filter((w) => w.noData)).toHaveLength(1);
+      expect(c.weeks[2]).toMatchObject({ noData: true, rate: null, heightPct: 0, label: '—' });
+      expect(c.weeks[0]!.noData).toBe(false);
+      expect(c.hasGaps).toBe(true);
+    }
+    expect(buildWeeklyChart(report({}, [week('2026-10-12', 0, 5, 0)])).weeks[0]).toMatchObject({ noData: false, rate: 0, label: '0%' });
+    expect(buildWeeklyChart(report({}, [week('2026-10-12', 5)])).hasGaps).toBe(false);
   });
 });
 

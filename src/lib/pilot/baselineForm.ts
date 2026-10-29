@@ -130,7 +130,7 @@ export function serverFieldErrors(fields: Record<string, string>): BaselineError
           ? 'future'
           : 'dateInvalid';
   }
-  if (fields.appointments) out.appointments = has('appointments', /at most 10000|10,?000/i) ? 'tooMany' : 'numberInvalid';
+  if (fields.appointments) out.appointments = has('appointments', /at most/i) ? 'tooMany' : 'numberInvalid';
   if (fields.noShows) out.noShows = has('noShows', /exceed|more than/i) ? 'noShowsAbove' : 'numberInvalid';
   if (fields.lateCancels) out.lateCancels = 'numberInvalid';
   return out;

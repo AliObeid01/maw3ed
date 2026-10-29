@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { csvPath, fetchCsv, filenameFrom } from '@/lib/pilot/csv';
+import { clampExportRange, csvPath, fetchCsv, filenameFrom } from '@/lib/pilot/csv';
 
 describe('filenameFrom', () => {
   it('reads a quoted or bare name', () => {
@@ -9,6 +9,16 @@ describe('filenameFrom', () => {
   it('falls back for a missing header or an unsafe name', () => {
     expect(filenameFrom(null, 'x.csv')).toBe('x.csv');
     expect(filenameFrom('attachment; filename="../../etc/passwd"', 'x.csv')).toBe('x.csv');
+  });
+});
+
+describe('clampExportRange', () => {
+  it('keeps a range of up to 366 days and clamps a longer one to to - 365 days', () => {
+    expect(clampExportRange('2025-10-29', '2026-10-29')).toEqual({ from: '2025-10-29', to: '2026-10-29', clamped: false });
+    // 366 days inclusive: 2025-10-29 .. 2026-10-29 is 366 days, one day earlier is 367.
+    expect(clampExportRange('2025-10-28', '2026-10-29')).toEqual({ from: '2025-10-29', to: '2026-10-29', clamped: true });
+    expect(clampExportRange('2020-01-01', '2026-10-29').from).toBe('2025-10-29');
+    expect(clampExportRange('2026-10-01', '2026-10-29').clamped).toBe(false);
   });
 });
 
