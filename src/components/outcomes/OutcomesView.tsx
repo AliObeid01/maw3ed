@@ -69,7 +69,11 @@ function QueueCard({
   const t = useTranslations('app.outcomes');
   const failure = useFailureText();
   return (
-    <Card as="li" className="flex flex-col gap-4 p-5 md:p-5">
+    <Card
+      as="li"
+      aria-busy={entry?.phase === 'saving' || undefined}
+      className="flex flex-col gap-4 p-5 md:p-5"
+    >
       <div className="flex flex-col gap-1">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-semibold">
           <Link
@@ -85,7 +89,11 @@ function QueueCard({
           <When item={item} timezone={timezone} />
         </span>
       </div>
-      <OutcomeButtons name={item.client.name} onPick={(o) => onPick(item, o)} />
+      <OutcomeButtons
+        name={item.client.name}
+        pending={entry?.phase === 'saving' ? entry.outcome : null}
+        onPick={(o) => onPick(item, o)}
+      />
       {entry?.error ? (
         <p role="alert" className="m-0 text-sm font-medium text-danger">
           {failure(entry.error)}

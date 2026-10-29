@@ -40,11 +40,24 @@ describe('mark state machine', () => {
   const a = item('a');
   const b = item('b');
 
-  it('a tap shows the card in "just marked" at once (optimistic) and hides it from the queue', () => {
-    const s = run([{ type: 'tap', item: a, outcome: 'NO_SHOW' }]);
-    expect(s.entries.a).toMatchObject({ phase: 'saving', outcome: 'NO_SHOW', confirmed: null });
-    expect(pendingItems([a, b], s).map((i) => i.id)).toEqual(['b']);
-    expect(justMarked(s).map((e) => e.item.id)).toEqual(['a']);
+  it('a first mark in flight stays in the queue (nothing slides under a double tap) and moves once confirmed', () => {
+    const saving = run([{ type: 'tap', item: a, outcome: 'NO_SHOW' }]);
+    expect(saving.entries.a).toMatchObject({ phase: 'saving', outcome: 'NO_SHOW', confirmed: null });
+    expect(pendingItems([a, b], saving).map((i) => i.id)).toEqual(['a', 'b']);
+    expect(justMarked(saving)).toEqual([]);
+    const done = markReducer(saving, { type: 'ok', id: 'a', outcome: 'NO_SHOW' });
+    expect(pendingItems([a, b], done).map((i) => i.id)).toEqual(['b']);
+    expect(justMarked(done).map((e) => e.item.id)).toEqual(['a']);
+  });
+
+  it('a correction in flight stays in "just marked" with the new outcome', () => {
+    const s = run([
+      { type: 'tap', item: a, outcome: 'NO_SHOW' },
+      { type: 'ok', id: 'a', outcome: 'NO_SHOW' },
+      { type: 'tap', item: a, outcome: 'ATTENDED' },
+    ]);
+    expect(pendingItems([a], s)).toEqual([]);
+    expect(justMarked(s).map((e) => [e.item.id, e.outcome])).toEqual([['a', 'ATTENDED']]);
   });
 
   it('ignores a second tap while saving (no double submit)', () => {

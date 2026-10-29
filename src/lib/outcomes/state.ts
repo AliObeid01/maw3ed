@@ -108,19 +108,24 @@ export function markReducer(state: MarkState, event: MarkEvent): MarkState {
   }
 }
 
-/** Cards still waiting for an outcome: server items with no local entry, plus first marks that failed. */
+/**
+ * Cards in the queue: server items with no local entry, first marks that failed, and first marks still in flight.
+ * A card whose first mark is saving STAYS where it is (buttons disabled, spinner on the one tapped) and only moves
+ * to "Just marked" once the server confirmed it. Removing it at once would slide the next card under the finger,
+ * and a double tap would mark the wrong client.
+ */
 export function pendingItems(items: QueueItem[], state: MarkState): QueueItem[] {
   return items.filter((item) => {
     const e = state.entries[item.id];
-    return !e || e.phase === 'failed';
+    return !e || e.phase === 'failed' || (e.phase === 'saving' && e.confirmed === null);
   });
 }
 
-/** The "Just marked" list, newest first. */
+/** The "Just marked" list, newest first: confirmed marks, and corrections being saved. */
 export function justMarked(state: MarkState): Entry[] {
   return state.order
     .map((id) => state.entries[id]!)
-    .filter((e) => e.phase === 'saving' || e.phase === 'done');
+    .filter((e) => e.phase === 'done' || (e.phase === 'saving' && e.confirmed !== null));
 }
 
 /**

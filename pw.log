@@ -1,0 +1,17 @@
+
+Running 12 tests using 2 workers
+
+  ✓   1 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:42:1 › lists the ended appointments newest first with the repeat no-show badge and 44 px buttons (8.4s)
+  ✓   2 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:64:1 › marking No-show saves, moves the card to Just marked, confirms with a toast and refreshes the badge (8.5s)
+  ✓   4 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:107:1 › Change corrects a mark: the counters move on the server and the chip updates (3.4s)
+  ✓   3 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:84:1 › all three outcomes hit the API with the right body; the last mark shows the calm empty state (3.6s)
+  ✓   5 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:128:1 › 409 NOT_ENDED keeps the card in the queue and explains why (5.7s)
+  ✓   6 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:143:1 › 409 CONFLICT (cancelled meanwhile) and 404 (removed) drop the card with a clear message (5.7s)
+  ✓   7 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:163:1 › a server error returns the card to the queue and the retry succeeds (4.6s)
+  ✓   8 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:175:1 › a double tap sends one request (5.5s)
+  ✓   9 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:183:1 › shows the empty state when nothing is waiting (1.7s)
+  ✓  10 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:192:1 › shows an error with retry when the queue cannot load (2.5s)
+  ✓  11 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:203:1 › a receptionist can mark outcomes (2.3s)
+  ✓  12 [dashboard-mobile] › tests\e2e\dashboard\outcomes.spec.ts:212:1 › RTL: Arabic outcomes screen, no horizontal scroll, times stay left-to-right (2.9s)
+
+  12 passed (1.4m)
