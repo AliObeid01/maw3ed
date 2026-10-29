@@ -3,6 +3,7 @@ name: Job triggers (backup)
 on:
   schedule:
     - cron: '*/5 * * * *'
+    - cron: '0 3 * * *' # daily hygiene: /api/jobs/cleanup only
   workflow_dispatch:
 
 permissions: {}
@@ -11,7 +12,7 @@ jobs:
   trigger:
     runs-on: ubuntu-latest
     timeout-minutes: 2
-    if: ${{ vars.APP_URL != '' }}
+    if: ${{ vars.APP_URL != '' && github.event.schedule != '0 3 * * *' }}
     env:
       APP_URL: ${{ vars.APP_URL }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -19,3 +20,14 @@ jobs:
       - run: |
           curl -fsS --max-time 30 -X POST "$APP_URL/api/jobs/reminders" -H "x-cron-secret: $CRON_SECRET"
           curl -fsS --max-time 30 -X POST "$APP_URL/api/jobs/waitlist-expiry" -H "x-cron-secret: $CRON_SECRET"
+
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    if: ${{ vars.APP_URL != '' && (github.event.schedule == '0 3 * * *' || github.event_name == 'workflow_dispatch') }}
+    env:
+      APP_URL: ${{ vars.APP_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - run: |
+          curl -fsS --max-time 60 -X POST "$APP_URL/api/jobs/cleanup" -H "x-cron-secret: $CRON_SECRET"

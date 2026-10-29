@@ -14,6 +14,18 @@ export interface AcceptInput {
 export class InviteGoneError extends Error {}
 
 export const inviteRepo = {
+  /** Maintenance (all tenants, cron only): delete up to `limit` invites accepted or expired before `cutoff`. */
+  async deleteStale(cutoff: Date, limit: number): Promise<number> {
+    const rows = await db.invite.findMany({
+      where: { OR: [{ acceptedAt: { lt: cutoff } }, { expiresAt: { lt: cutoff } }] },
+      select: { id: true },
+      take: limit,
+    });
+    if (!rows.length) return 0;
+    const { count } = await db.invite.deleteMany({ where: { id: { in: rows.map((r) => r.id) } } });
+    return count;
+  },
+
   /** Re-inviting an email replaces its previous open invite(s), atomically. */
   replaceOpen: (
     businessId: string,

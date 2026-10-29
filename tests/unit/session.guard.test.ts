@@ -10,13 +10,19 @@ const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
 function storeWith(
-  row: { expiresAt: Date; lastSeenAt: Date } | null,
+  row: { expiresAt: Date; lastSeenAt: Date; createdAt?: Date } | null,
   role: 'OWNER' | 'STAFF' | null = 'OWNER',
 ) {
   const touch = vi.fn(async () => {});
   const findByTokenHash = vi.fn(async (hash: string) =>
     row && hash === sha256Hex('good-token')
-      ? { id: 's1', userId: 'u1', businessId: 'b1', ...row }
+      ? {
+          id: 's1',
+          userId: 'u1',
+          businessId: 'b1',
+          createdAt: new Date(NOW.getTime() - DAY),
+          ...row,
+        }
       : null,
   );
   const store: SessionStore = {
@@ -78,6 +84,35 @@ describe('sessionService.resolve', () => {
     const b = await sessionService.resolve('good-token', NOW, stale.store);
     expect(b?.refreshed?.expiresAt).toEqual(new Date(NOW.getTime() + 30 * DAY));
     expect(stale.touch).toHaveBeenCalledWith('b1', 's1', NOW, new Date(NOW.getTime() + 30 * DAY));
+  });
+});
+
+describe('absolute session lifetime (90 days)', () => {
+  const ABS = 90 * DAY;
+  it('rejects a session older than 90 days even when its sliding expiry is still in the future', async () => {
+    const row = {
+      createdAt: new Date(NOW.getTime() - ABS),
+      expiresAt: new Date(NOW.getTime() + 20 * DAY),
+      lastSeenAt: NOW,
+    };
+    expect(await sessionService.resolve('good-token', NOW, storeWith(row).store)).toBeUndefined();
+    const justInside = { ...row, createdAt: new Date(NOW.getTime() - ABS + 1) };
+    expect(
+      await sessionService.resolve('good-token', NOW, storeWith(justInside).store),
+    ).toMatchObject({ sessionId: 's1' });
+  });
+
+  it('never slides the expiry past createdAt + 90 days', async () => {
+    const createdAt = new Date(NOW.getTime() - 80 * DAY);
+    const s = storeWith({
+      createdAt,
+      expiresAt: new Date(NOW.getTime() + 5 * DAY),
+      lastSeenAt: new Date(NOW.getTime() - 2 * HOUR),
+    });
+    const r = await sessionService.resolve('good-token', NOW, s.store);
+    const end = new Date(createdAt.getTime() + ABS);
+    expect(r?.refreshed?.expiresAt).toEqual(end);
+    expect(s.touch).toHaveBeenCalledWith('b1', 's1', NOW, end);
   });
 });
 

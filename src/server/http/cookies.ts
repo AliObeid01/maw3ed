@@ -6,6 +6,8 @@ const isProd = () => process.env.NODE_ENV === 'production';
  */
 export const sessionCookieName = () => (isProd() ? '__Host-maw3ed_session' : 'maw3ed_session');
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** Hard cap on a session's life from creation, however often it slides. */
+export const SESSION_ABSOLUTE_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 /** Sliding expiry is extended at most this often. */
 export const SESSION_REFRESH_AFTER_MS = 60 * 60 * 1000;
 

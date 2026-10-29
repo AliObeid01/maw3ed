@@ -11,4 +11,18 @@ export const sessionRepo = {
   async deleteById(businessId: string, id: string) {
     await db.session.deleteMany({ where: { id, businessId } });
   },
+  /**
+   * Maintenance (all tenants, cron only): delete up to `limit` sessions that are past their sliding expiry
+   * or older than the absolute lifetime. Returns how many were deleted.
+   */
+  async deleteDead(now: Date, absoluteCutoff: Date, limit: number): Promise<number> {
+    const rows = await db.session.findMany({
+      where: { OR: [{ expiresAt: { lte: now } }, { createdAt: { lte: absoluteCutoff } }] },
+      select: { id: true },
+      take: limit,
+    });
+    if (!rows.length) return 0;
+    const { count } = await db.session.deleteMany({ where: { id: { in: rows.map((r) => r.id) } } });
+    return count;
+  },
 };
