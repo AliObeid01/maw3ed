@@ -3,6 +3,7 @@ import { localToUtcMs } from './slots';
 
 export const MAX_SLOT_RANGE_DAYS = 31;
 export const MAX_APPOINTMENT_RANGE_DAYS = 62;
+export const MAX_EXPORT_RANGE_DAYS = 366;
 
 export type RangeFields = Record<string, string>;
 
