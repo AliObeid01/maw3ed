@@ -6,7 +6,12 @@ import { joinWaitlist } from '@/server/services/waitlist';
 export const dynamic = 'force-dynamic';
 
 export const POST = withRoute(
-  { auth: 'public', params: SlugParams, body: JoinWaitlistBody },
+  {
+    auth: 'public',
+    rateLimit: { policy: 'waitlistJoin' },
+    params: SlugParams,
+    body: JoinWaitlistBody,
+  },
   async ({ ctx, params, body }) => {
     const { existing, entry } = await joinWaitlist(ctx, params.slug, body);
     return existing ? ok({ entry }) : created({ entry });

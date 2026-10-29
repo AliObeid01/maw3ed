@@ -5,7 +5,13 @@ import { publicBookingService } from '@/server/services/publicBooking';
 export const dynamic = 'force-dynamic';
 
 export const POST = withRoute(
-  { auth: 'public', params: SlugParams, headers: RequiredIdempotencyHeaders, body: BookingBody },
+  {
+    auth: 'public',
+    rateLimit: { policy: 'bookingCreate' },
+    params: SlugParams,
+    headers: RequiredIdempotencyHeaders,
+    body: BookingBody,
+  },
   async ({ ctx, params, headers, body }) => {
     const { replay, ...result } = await publicBookingService.book(
       ctx,

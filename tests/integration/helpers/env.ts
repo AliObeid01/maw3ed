@@ -16,3 +16,8 @@ process.env.EMAIL_PROVIDER = 'fake';
 process.env.APP_URL = 'http://localhost:3000';
 if ((process.env.LINK_SECRET ?? '').length < 32)
   process.env.LINK_SECRET = 'integration-test-link-secret-0123456789abcdef';
+// Route-level per-IP limits are off by default (many tests fire hundreds of requests from one fake
+// address). tests/integration/rateLimit.routes.test.ts switches them on. The login guard is always on.
+process.env.RATE_LIMIT_DISABLED = '1';
+// The remote test database is slow under concurrent bursts; production uses 300 ms.
+process.env.RATE_LIMIT_TIMEOUT_MS = '15000';

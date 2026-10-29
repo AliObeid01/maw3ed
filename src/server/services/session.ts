@@ -1,4 +1,8 @@
-import { SESSION_REFRESH_AFTER_MS, SESSION_TTL_MS } from '@/server/http/cookies';
+import {
+  SESSION_ABSOLUTE_TTL_MS,
+  SESSION_REFRESH_AFTER_MS,
+  SESSION_TTL_MS,
+} from '@/server/http/cookies';
 import type { RoleName } from '@/server/http/auth';
 import { membershipRepo } from '@/server/repositories/membership.repo';
 import { sessionRepo } from '@/server/repositories/session.repo';
@@ -20,6 +24,7 @@ export interface SessionStore {
     businessId: string;
     expiresAt: Date;
     lastSeenAt: Date;
+    createdAt: Date;
   } | null>;
   touch(businessId: string, id: string, lastSeenAt: Date, expiresAt: Date): Promise<void>;
   findRole(businessId: string, userId: string): Promise<{ role: RoleName } | null>;
@@ -62,6 +67,9 @@ export const sessionService = {
   ): Promise<ResolvedSession | undefined> {
     const session = await store.findByTokenHash(sha256Hex(token));
     if (!session || session.expiresAt.getTime() <= now.getTime()) return undefined;
+    // Absolute lifetime: a session that has existed for 90 days ends, however recently it was used.
+    const hardEnd = session.createdAt.getTime() + SESSION_ABSOLUTE_TTL_MS;
+    if (now.getTime() >= hardEnd) return undefined;
     const membership = await store.findRole(session.businessId, session.userId);
     if (!membership) return undefined;
 
@@ -72,7 +80,8 @@ export const sessionService = {
       role: membership.role,
     };
     if (now.getTime() - session.lastSeenAt.getTime() >= SESSION_REFRESH_AFTER_MS) {
-      const expiresAt = newSessionExpiry(now);
+      // Sliding expiry never moves past the absolute end.
+      const expiresAt = new Date(Math.min(newSessionExpiry(now).getTime(), hardEnd));
       await store.touch(session.businessId, session.id, now, expiresAt);
       resolved.refreshed = { expiresAt };
     }

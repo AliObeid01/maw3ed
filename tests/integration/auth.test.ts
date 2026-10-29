@@ -6,7 +6,6 @@ import { GET as slugCheck } from '@/app/api/auth/slug-check/route';
 import { POST as signupRoute } from '@/app/api/auth/signup/route';
 import { GET as me } from '@/app/api/me/route';
 import { sha256Hex } from '@/server/services/crypto';
-import { loginThrottle } from '@/server/services/loginThrottle';
 import { sessionService } from '@/server/services/session';
 import { call, PASSWORD, signup, signupBody } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
@@ -23,7 +22,6 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncateAll(pg);
-  loginThrottle.reset();
 });
 
 const count = async (table: string) =>

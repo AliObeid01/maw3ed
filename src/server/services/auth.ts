@@ -1,12 +1,13 @@
 import { slugProblem } from '@/server/contracts/slug';
 import type { RoleName } from '@/server/http/auth';
+import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { AppError, fromDbError } from '@/server/http/errors';
 import type { RouteContext, SessionContext } from '@/server/http/withRoute';
 import { accountRepo } from '@/server/repositories/account.repo';
 import { businessRepo } from '@/server/repositories/business.repo';
 import { membershipRepo } from '@/server/repositories/membership.repo';
 import { userRepo } from '@/server/repositories/user.repo';
-import { loginThrottle, type Throttle } from './loginThrottle';
+import { loginGuard, type LoginGuard } from './loginGuard';
 import { hashPassword, verifyPassword } from './password';
 import { sessionService } from './session';
 
@@ -40,9 +41,9 @@ export const toSessionInfo = (
 
 export interface AuthDeps {
   now: () => Date;
-  throttle: Throttle;
+  guard: LoginGuard;
 }
-const defaultDeps: AuthDeps = { now: () => new Date(), throttle: loginThrottle };
+const defaultDeps: AuthDeps = { now: () => new Date(), guard: loginGuard };
 
 export interface SignupInput {
   businessName: string;
@@ -131,18 +132,17 @@ export const authService = {
     deps: AuthDeps = defaultDeps,
   ): Promise<SignedIn> {
     const now = deps.now();
-    const wait = deps.throttle.retryAfterSec(input.email, now);
-    if (wait > 0) throw AppError.tooManyAttempts(wait);
+    const ip = ctx.ip ?? UNKNOWN_IP;
+    const ticket = await deps.guard.attempt(input.email, ip);
 
     const user = await userRepo.findByEmail(input.email);
     const valid = await verifyPassword(input.password, user?.passwordHash);
     const membership = valid && user ? await membershipRepo.findLatestForUser(user.id) : null;
     if (!user || !valid || !membership) {
-      deps.throttle.recordFailure(input.email, now);
       ctx.logger.warn('login failed');
       throw AppError.invalidCredentials();
     }
-    deps.throttle.clear(input.email);
+    await deps.guard.succeeded(input.email, ip, ticket);
     const session = await sessionService.create(membership.businessId, user.id, now);
     ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
     return {

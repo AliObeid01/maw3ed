@@ -13,6 +13,8 @@ export type ErrorCode =
   | 'NOT_IMPLEMENTED'
   | 'INVALID_CREDENTIALS'
   | 'TOO_MANY_ATTEMPTS'
+  | 'RATE_LIMITED'
+  | 'SERVICE_BUSY'
   | 'INTERNAL'
   | (string & {});
 
@@ -82,6 +84,16 @@ export class AppError extends Error {
       { retryAfterSec },
     );
   }
+  /** Per-IP route limits (platform rate limiting). Same envelope as everything else. */
+  static rateLimited(retryAfterSec: number) {
+    return new AppError(
+      429,
+      'RATE_LIMITED',
+      'Too many requests. Try again later.',
+      {},
+      { retryAfterSec },
+    );
+  }
   static gone(code: ErrorCode = 'LINK_EXPIRED', message = 'This link has expired.') {
     return new AppError(410, code, message);
   }
@@ -90,6 +102,16 @@ export class AppError extends Error {
   }
   static unavailable(message = 'Service temporarily unavailable.') {
     return new AppError(503, 'SERVICE_UNAVAILABLE', message);
+  }
+  /** Too many password hashes in flight on this instance. */
+  static busy(retryAfterSec = 2) {
+    return new AppError(
+      503,
+      'SERVICE_BUSY',
+      'The server is busy. Try again in a moment.',
+      {},
+      { retryAfterSec },
+    );
   }
   static notImplemented(message = 'Not implemented yet.') {
     return new AppError(501, 'NOT_IMPLEMENTED', message);
@@ -186,11 +208,23 @@ export interface MappedError {
   body: ErrorBody;
   /** True when the error was not an expected AppError (log it, report it). */
   unexpected: boolean;
+  /** Extra response headers (Retry-After on 429). */
+  headers?: Record<string, string>;
 }
 
 export function mapError(error: unknown): MappedError {
   const known = toAppError(error);
-  if (known) return { status: known.status, body: errorBody(known), unexpected: false };
+  if (known) {
+    const retry = (known.data as { retryAfterSec?: unknown } | undefined)?.retryAfterSec;
+    return {
+      status: known.status,
+      body: errorBody(known),
+      unexpected: false,
+      ...((known.status === 429 || known.status === 503) && typeof retry === 'number'
+        ? { headers: { 'Retry-After': String(retry) } }
+        : {}),
+    };
+  }
   return {
     status: 500,
     body: errorBody(new AppError(500, 'INTERNAL', 'Something went wrong.')),

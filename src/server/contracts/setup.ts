@@ -45,6 +45,10 @@ export const UpdateBusinessBody = registry.register(
       cancelCutoffMin: z.number().int().min(0).max(10080),
       category: nullableText(40),
       address: nullableText(120),
+      listed: z.boolean().openapi({
+        description:
+          'Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY).',
+      }),
     })
     .partial()
     .strict(),
@@ -64,6 +68,8 @@ export const BusinessDto = registry.register(
     cancelCutoffMin: z.number().int(),
     category: z.string().nullable(),
     address: z.string().nullable(),
+    listed: z.boolean(),
+    readiness: z.object({ services: z.boolean(), staff: z.boolean(), hours: z.boolean() }),
     setup: z.object({
       hasServices: z.boolean(),
       hasBookableStaff: z.boolean(),
@@ -221,6 +227,9 @@ registry.registerPath({
     400: e[400],
     401: e[401],
     403: e[403],
+    409: err(
+      'NOT_READY with `error.data.missing` (services, staff, hours) when `listed: true` is requested too early',
+    ),
   },
 });
 

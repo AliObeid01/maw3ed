@@ -8,6 +8,9 @@ import {
   type TokenIdentity,
 } from './auth';
 import type { TokenAction } from '@/server/domain/tokens';
+import { clientIp, UNKNOWN_IP } from './clientIp';
+import { rateLimiter, routeRateLimitDisabled } from '@/server/services/rateLimit';
+import type { RatePolicyName } from '@/server/services/rateLimitPolicies';
 import { sessionCookie } from './cookies';
 import { AppError, mapError, safeError, zodFields } from './errors';
 import { childLogger, type Logger } from './logger';
@@ -19,6 +22,8 @@ export interface RouteContext {
   logger: Logger;
   /** From the session (or the signed token). Never from the body or query. */
   businessId?: string;
+  /** Client address (see clientIp()); rate-limit key and login throttle input. */
+  ip?: string;
   userId?: string;
   role?: RoleName;
   sessionId?: string;
@@ -44,6 +49,8 @@ export interface RouteConfig {
   /** Parsed from lower-cased request headers. Not `.strict()`: requests carry many unrelated headers. */
   headers?: z.ZodType;
   body?: z.ZodType;
+  /** Per-IP limit from the policy table, applied before auth, parsing and the handler. Fails open. */
+  rateLimit?: { policy: RatePolicyName };
 }
 
 type Out<S> = S extends z.ZodType ? z.output<S> : undefined;
@@ -199,7 +206,7 @@ export function withRoute<C extends RouteConfig>(
     const incoming = req.headers.get('x-request-id');
     const requestId = incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
     const url = new URL(req.url);
-    const ctx: RouteContext = { requestId, logger: childLogger({ requestId }) };
+    const ctx: RouteContext = { requestId, ip: clientIp(req), logger: childLogger({ requestId }) };
     const rawParams: Record<string, string | string[]> = routeArgs?.params
       ? await Promise.resolve(routeArgs.params).catch(() => ({}))
       : {};
@@ -224,6 +231,11 @@ export function withRoute<C extends RouteConfig>(
     };
 
     try {
+      // Unknown address: per-IP budgets are skipped (one shared bucket would lock everyone out).
+      if (config.rateLimit && ctx.ip !== UNKNOWN_IP && !routeRateLimitDisabled()) {
+        const decision = await rateLimiter.consume(config.rateLimit.policy, ctx.ip!);
+        if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+      }
       if (config.auth === 'cron') {
         assertCronSecret(req);
       } else if (config.auth === 'session') {
@@ -266,7 +278,10 @@ export function withRoute<C extends RouteConfig>(
       return finish(res);
     } catch (error) {
       const mapped = mapError(error);
-      return finish(json(mapped.body, mapped.status), mapped.unexpected ? error : undefined);
+      return finish(
+        json(mapped.body, mapped.status, mapped.headers),
+        mapped.unexpected ? error : undefined,
+      );
     }
   };
 }

@@ -13,6 +13,8 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'signup',
   'invite',
   'invites',
+  'directory',
+  'explore',
   'admin',
   'www',
   'static',

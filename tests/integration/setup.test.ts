@@ -14,7 +14,6 @@ import { GET as listTimeOff, POST as postTimeOff } from '@/app/api/staff/[id]/ti
 import { DELETE as deleteTimeOff } from '@/app/api/staff/[id]/time-off/[timeOffId]/route';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { workingHoursRepo } from '@/server/repositories/workingHours.repo';
-import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 
@@ -34,7 +33,6 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncateAll(pg);
-  loginThrottle.reset();
   fakeEmailProvider.reset();
   a = await signup({ businessName: 'Business A', slug: 'business-a' });
   b = await signup({ businessName: 'Business B', slug: 'business-b' });

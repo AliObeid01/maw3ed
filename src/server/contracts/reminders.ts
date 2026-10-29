@@ -27,6 +27,15 @@ export const ExpirySummaryDto = registry.register(
   'WaitlistExpirySummary',
   z.object({ expired: z.number().int(), offered: z.number().int() }),
 );
+export const CleanupSummaryDto = registry.register(
+  'CleanupSummary',
+  z.object({
+    sessions: z.number().int(),
+    invites: z.number().int(),
+    rateLimitBuckets: z.number().int(),
+    truncated: z.boolean(),
+  }),
+);
 
 const LinkView = z.object({
   act: z.enum(['view', 'confirm', 'cancel']),
@@ -127,6 +136,18 @@ registry.registerPath({
   security: cron,
   responses: {
     200: { description: 'Expiry summary', content: json(ExpirySummaryDto) },
+    400: errorResponses[400],
+    401: errorResponses[401],
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/api/jobs/cleanup',
+  summary: 'Purge expired sessions, stale invites and old rate-limit buckets (cron, daily)',
+  tags: ['jobs'],
+  security: cron,
+  responses: {
+    200: { description: 'Rows deleted', content: json(CleanupSummaryDto) },
     400: errorResponses[400],
     401: errorResponses[401],
   },

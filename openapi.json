@@ -391,6 +391,10 @@
               "null"
             ],
             "maxLength": 120
+          },
+          "listed": {
+            "type": "boolean",
+            "description": "Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY)."
           }
         },
         "additionalProperties": false
@@ -437,6 +441,28 @@
               "null"
             ]
           },
+          "listed": {
+            "type": "boolean"
+          },
+          "readiness": {
+            "type": "object",
+            "properties": {
+              "services": {
+                "type": "boolean"
+              },
+              "staff": {
+                "type": "boolean"
+              },
+              "hours": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "services",
+              "staff",
+              "hours"
+            ]
+          },
           "setup": {
             "type": "object",
             "properties": {
@@ -469,6 +495,8 @@
           "cancelCutoffMin",
           "category",
           "address",
+          "listed",
+          "readiness",
           "setup"
         ]
       },
@@ -1559,6 +1587,29 @@
         "required": [
           "expired",
           "offered"
+        ]
+      },
+      "CleanupSummary": {
+        "type": "object",
+        "properties": {
+          "sessions": {
+            "type": "integer"
+          },
+          "invites": {
+            "type": "integer"
+          },
+          "rateLimitBuckets": {
+            "type": "integer"
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "sessions",
+          "invites",
+          "rateLimitBuckets",
+          "truncated"
         ]
       },
       "LinkView": {
@@ -3290,6 +3341,66 @@
         "required": [
           "items"
         ]
+      },
+      "Directory": {
+        "type": "object",
+        "properties": {
+          "businesses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "address": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "serviceCount": {
+                  "type": "integer"
+                },
+                "fromPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Cheapest active service price."
+                }
+              },
+              "required": [
+                "slug",
+                "name",
+                "category",
+                "address",
+                "serviceCount",
+                "fromPrice"
+              ]
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Opaque. Pass back as `cursor`."
+          }
+        },
+        "required": [
+          "businesses",
+          "nextCursor"
+        ]
       }
     },
     "parameters": {}
@@ -3418,7 +3529,7 @@
     "/api/auth/login": {
       "post": {
         "summary": "Sign in with email and password",
-        "description": "A user with several memberships is signed into the most recently created one. 5 failures per email in 15 minutes -> 429 TOO_MANY_ATTEMPTS.",
+        "description": "A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.",
         "tags": [
           "auth"
         ],
@@ -3464,6 +3575,16 @@
           },
           "429": {
             "description": "TOO_MANY_ATTEMPTS",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_BUSY (Retry-After: 2)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3876,6 +3997,16 @@
           },
           "403": {
             "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "NOT_READY with `error.data.missing` (services, staff, hours) when `listed: true` is requested too early",
             "content": {
               "application/json": {
                 "schema": {
@@ -5437,6 +5568,51 @@
         }
       }
     },
+    "/api/jobs/cleanup": {
+      "post": {
+        "summary": "Purge expired sessions, stale invites and old rate-limit buckets (cron, daily)",
+        "tags": [
+          "jobs"
+        ],
+        "security": [
+          {
+            "cronSecret": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Rows deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CleanupSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/links/{token}": {
       "get": {
         "summary": "Read an appointment through a signed link (no side effects)",
@@ -6920,6 +7096,80 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/public/directory": {
+      "get": {
+        "summary": "Public directory of opted-in businesses that are ready to take bookings",
+        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s.",
+        "tags": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "required": false,
+            "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 24
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of businesses",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Directory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (Retry-After header)"
           }
         }
       }

@@ -7,7 +7,6 @@ import { GET as previewInvite } from '@/app/api/invites/[token]/route';
 import { GET as me } from '@/app/api/me/route';
 import { fakeEmailProvider, setEmailProviderOverride } from '@/server/providers/email';
 import { sha256Hex } from '@/server/services/crypto';
-import { loginThrottle } from '@/server/services/loginThrottle';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 
@@ -23,7 +22,6 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   await truncateAll(pg);
-  loginThrottle.reset();
   fakeEmailProvider.reset();
 });
 
@@ -354,7 +352,7 @@ describe('existing-user accept: concurrency and throttle', () => {
     });
     expect(locked.status).toBe(429);
 
-    loginThrottle.reset();
+    await pg.query('TRUNCATE "RateLimitBucket"');
     for (let i = 0; i < 5; i++)
       await call(login, '/api/auth/login', {
         body: { email: other.body.email, password: 'wrong-password-1' },

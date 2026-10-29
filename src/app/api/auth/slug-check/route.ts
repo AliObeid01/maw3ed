@@ -4,6 +4,8 @@ import { authService } from '@/server/services/auth';
 
 export const dynamic = 'force-dynamic';
 
-export const GET = withRoute({ auth: 'public', query: SlugCheckQuery }, async ({ query }) =>
-  json(await authService.slugCheck(query.slug), 200, { 'Cache-Control': 'no-store' }),
+export const GET = withRoute(
+  { auth: 'public', rateLimit: { policy: 'slugCheck' }, query: SlugCheckQuery },
+  async ({ query }) =>
+    json(await authService.slugCheck(query.slug), 200, { 'Cache-Control': 'no-store' }),
 );

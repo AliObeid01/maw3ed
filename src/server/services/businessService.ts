@@ -22,6 +22,12 @@ async function load(ctx: SessionContext): Promise<BusinessDtoT> {
     cancelCutoffMin: b.cancelCutoffMin,
     category: b.category,
     address: b.address,
+    listed: b.listed,
+    readiness: {
+      services: setup.hasServices,
+      staff: setup.hasBookableStaff,
+      hours: setup.hasHours,
+    },
     setup,
   };
 }
@@ -43,8 +49,24 @@ export const businessService = {
       'cancelCutoffMin',
       'category',
       'address',
+      'listed',
     ] as const) {
       if (patch[key] !== undefined) Object.assign(data, { [key]: patch[key] });
+    }
+    // Going public needs a bookable business. Checked before anything is written; turning off is always allowed.
+    if (data.listed === true) {
+      const setup = await businessRepo.setupFlags(ctx.businessId);
+      const missing = [
+        ...(setup.hasServices ? [] : ['services']),
+        ...(setup.hasBookableStaff ? [] : ['staff']),
+        ...(setup.hasHours ? [] : ['hours']),
+      ];
+      if (missing.length > 0)
+        throw AppError.conflict(
+          'NOT_READY',
+          { missing },
+          'Add a service, a bookable team member and working hours before listing.',
+        );
     }
     if (Object.keys(data).length > 0 && !(await businessRepo.update(ctx.businessId, data)))
       throw AppError.notFound();
