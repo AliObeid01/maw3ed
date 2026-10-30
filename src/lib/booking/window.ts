@@ -24,7 +24,8 @@ export async function loadSlotWindow(
   maxDays: number = DAY_WINDOW,
 ): Promise<SlotWindow> {
   const days = dayWindow(now, timezone, DAY_WINDOW);
-  const lengths = [DAY_WINDOW, 7, 3, 1].filter((n) => n <= Math.max(1, maxDays));
+  // The business's real booking window is known (GET /api/public/{slug}): ask for exactly that, no probing.
+  const lengths = maxDays < DAY_WINDOW ? [Math.max(1, maxDays)] : [DAY_WINDOW, 7, 3, 1];
   for (const length of lengths) {
     const covered = days.slice(0, length);
     try {

@@ -23,6 +23,10 @@ export const PublicBusinessDto = registry.register(
       slug: z.string(),
       timezone: z.string(),
       locale: z.string(),
+      /** How many days ahead clients may book (the slots endpoint rejects `to` beyond it). */
+      bookingWindowDays: z.number().int(),
+      /** Clients can cancel for free until this many minutes before the start. */
+      cancelCutoffMin: z.number().int(),
       category: z.string().optional(),
       address: z.string().optional(),
     }),

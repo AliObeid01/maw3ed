@@ -156,10 +156,18 @@ export const waitlistRepo = {
   cancelEntry: (
     businessId: string,
     id: string,
-  ): Promise<'cancelled' | 'already' | 'fulfilled' | 'missing'> =>
+    lease: { now: Date; leaseMs: number },
+  ): Promise<'cancelled' | 'already' | 'fulfilled' | 'busy' | 'missing'> =>
     db.$transaction(async (tx) => {
+      const staleBefore = new Date(lease.now.getTime() - lease.leaseMs);
+      // An entry whose offer is being booked right now (fresh reservation) is not cancelled under it.
       const res = await tx.waitlistEntry.updateMany({
-        where: { id, businessId, status: 'OPEN' },
+        where: {
+          id,
+          businessId,
+          status: 'OPEN',
+          OR: [{ claimingOfferId: null }, { claimingAt: { lt: staleBefore } }],
+        },
         data: { status: 'CANCELLED' },
       });
       if (res.count === 1) {
@@ -171,9 +179,10 @@ export const waitlistRepo = {
       }
       const current = await tx.waitlistEntry.findFirst({
         where: { id, businessId },
-        select: { status: true },
+        select: { status: true, claimingOfferId: true, claimingAt: true },
       });
       if (!current) return 'missing';
+      if (current.status === 'OPEN') return 'busy';
       return current.status === 'FULFILLED' ? 'fulfilled' : 'already';
     }),
 
@@ -407,7 +416,7 @@ export const waitlistRepo = {
       });
       await tx.waitlistEntry.updateMany({
         where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
-        data: { status: 'FULFILLED' },
+        data: { status: 'FULFILLED', claimingOfferId: null, claimingAt: null },
       });
       await tx.waitlistOffer.updateMany({
         where: {
@@ -419,6 +428,42 @@ export const waitlistRepo = {
         data: { status: 'SUPERSEDED' },
       });
     }),
+
+  /**
+   * Atomically reserve an OPEN entry for one offer (one conditional UPDATE). Another offer of the same
+   * entry cannot book while the reservation is fresh; the same offer may re-reserve (retry); a stale
+   * reservation (older than `leaseMs`, e.g. a crashed request) is taken over.
+   */
+  async reserveEntry(
+    businessId: string,
+    entryId: string,
+    offerId: string,
+    now: Date,
+    leaseMs: number,
+  ): Promise<boolean> {
+    const res = await db.waitlistEntry.updateMany({
+      where: {
+        id: entryId,
+        businessId,
+        status: 'OPEN',
+        OR: [
+          { claimingOfferId: null },
+          { claimingOfferId: offerId },
+          { claimingAt: { lt: new Date(now.getTime() - leaseMs) } },
+        ],
+      },
+      data: { claimingOfferId: offerId, claimingAt: now },
+    });
+    return res.count === 1;
+  },
+
+  /** Drop this offer's reservation (the booking failed). No-op when someone else holds it. */
+  async releaseEntry(businessId: string, entryId: string, offerId: string) {
+    await db.waitlistEntry.updateMany({
+      where: { id: entryId, businessId, claimingOfferId: offerId },
+      data: { claimingOfferId: null, claimingAt: null },
+    });
+  },
 
   /** OPEN -> SUPERSEDED for an offer whose slot someone else took (shown to the client as TAKEN). */
   async supersede(businessId: string, offerId: string) {

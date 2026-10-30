@@ -19,6 +19,8 @@ export interface OfferEmailContext {
   /** The offer's own expiry (never "now"): the same offer always renders the same bytes. */
   expiresAt: Date;
   claimUrl: string;
+  /** Signed one-click "remove me from the waitlist" page. */
+  leaveUrl: string;
 }
 
 /** Waitlist offer: subject, plain text and simple HTML. Pure and deterministic per offer. */
@@ -59,6 +61,7 @@ export function renderOfferEmail(c: OfferEmailContext): RenderedEmail {
     `${copy.claim}: ${c.claimUrl}`,
     '',
     copy.linkNote,
+    `${copy.leave}: ${c.leaveUrl}`,
     '',
     interpolate(m.footer, v),
     '',
@@ -82,6 +85,7 @@ export function renderOfferEmail(c: OfferEmailContext): RenderedEmail {
     `<p style="margin:0 0 16px">${interpolateHtml(copy.expires, v, rtl)}</p>`,
     `<p style="margin:0 0 16px"><a href="${e(c.claimUrl)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#0E7C66;color:#ffffff;text-decoration:none;font-weight:600">${e(copy.claim)}</a></p>`,
     `<p style="margin:0 0 8px;color:#5a5a5a;font-size:13px">${e(copy.linkNote)}</p>`,
+    `<p style="margin:0 0 8px;font-size:13px"><a href="${e(c.leaveUrl)}" style="color:#5a5a5a">${e(copy.leave)}</a></p>`,
     `<p style="margin:16px 0 0;color:#8a8a8a;font-size:12px">${interpolateHtml(m.footer, v, rtl)}</p>`,
     '</div>',
     '</body>',

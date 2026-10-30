@@ -15,9 +15,13 @@ export const LOCALE_COOKIE = 'locale';
 /** Session cookie (path-scoped to the one business page it was learned on) carrying the business's default language for visitors who never chose one. */
 export const LOCALE_HINT_COOKIE = 'locale_hint';
 
-/** Resolution order: the visitor's own choice, then the business default (public pages), then English. */
-export function pickLocale(stored: string | undefined, hint?: string): Locale {
+/** Resolution order: the visitor's own choice, then the client hint, then the business default resolved on the server (public pages), then English. */
+export function pickLocale(stored: string | undefined, hint?: string, business?: string): Locale {
   if (isLocale(stored)) return stored;
   if (isLocale(hint)) return hint;
+  if (isLocale(business)) return business;
   return defaultLocale;
 }
+
+/** Request header the proxy sets to the page path, so the server can resolve the business language (F14). */
+export const PATH_HEADER = 'x-maw3ed-path';

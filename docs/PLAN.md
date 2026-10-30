@@ -107,11 +107,11 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.
 
 ## Follow-ups from Phase 2 reviews and the real-API journey (non-blocking)
-- [ ] **F13 BE** Expose `bookingWindowDays` and `cancelCutoffMin` in `GET /api/public/{slug}` so the booking page stops probing 14 -> 7 -> 3 -> 1 days and can say 'free cancellation until ...'.
-- [ ] **F14 FE** First visit to a business whose language differs from the visitor's renders once in the default language, then refreshes (client `locale_hint`). Resolve the business locale server-side for `/b/[slug]` and `/l/[token]`.
+- [x] **F13 BE** Expose `bookingWindowDays` and `cancelCutoffMin` in `GET /api/public/{slug}` so the booking page stops probing 14 -> 7 -> 3 -> 1 days and can say 'free cancellation until ...'.
+- [x] **F14 FE** First visit to a business whose language differs from the visitor's renders once in the default language, then refreshes (client `locale_hint`). Resolve the business locale server-side for `/b/[slug]` and `/l/[token]`.
 - [ ] **F15 FE** Email templates: brand colours (teal button for confirm, canvas background) instead of neutral greys; keep web-safe `Arial` stack (email clients cannot load Outfit). Decide whether to ignore the design hook's overused-font finding for emails.
 - [ ] **F16 BE** Verified or per-appointment contact email (today one mutable email per client; public bookings can only fill an EMPTY email on an existing client).
-- [ ] **F17 FE** The booked screen does not survive a refresh (manage link is in the confirmation email afterwards); consider persisting the manage link for the session.
+- [x] **F17 FE** The booked screen does not survive a refresh (manage link is in the confirmation email afterwards); consider persisting the manage link for the session.
 - [ ] **F18 QA** Real-API journey (signup -> setup -> client booking -> reminder runner -> confirm/cancel links) is currently a throwaway script; keep a cleaned-up version as a CI-able smoke test against the CI Postgres.
 - [ ] **F19 BE** `DST fall-back`: `time=HH:mm` in the booking URL is ambiguous for the one repeated hour per year in Beirut (24 Oct 23:xx); serialise with offset if it ever matters.
 - [ ] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
@@ -122,9 +122,11 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - Out of scope: ratings, maps, filters beyond name/category, SEO pages.
 
 ## Notes from the launch-gates and waitlist work (open follow-ups)
-- [ ] **F21 BE** Waitlist: the same entry claiming two DIFFERENT slots at the very same instant could book both (sequential case is blocked and tested); needs an atomic reservation on the entry.
+- [x] **F21 BE** Waitlist: the same entry claiming two DIFFERENT slots at the very same instant could book both (sequential case is blocked and tested); needs an atomic reservation on the entry.
 - [ ] **F22 QA** Flaky: `waitlist.test.ts > the limit holds under concurrent joins` (8 concurrent joins) failed in some full runs against the remote Neon dev database and passed alone and in CI; investigate whether it is a slow-DB timeout or a real race in the advisory-lock path.
-- [ ] **F23 BE** Add a one-click 'remove me from the waitlist' link to the offer email (today the only way off the list is contacting the business, a staff delete, or the end of the date range).
+- [x] **F23 BE** Add a one-click 'remove me from the waitlist' link to the offer email (today the only way off the list is contacting the business, a staff delete, or the end of the date range).
 - [ ] **F24 BE/FE** D2: public `/directory` page and the owner's 'list my business' toggle with the readiness checklist (the backend D1 uses `Business.listed`, opt-in, default false; unlisted businesses stay reachable by direct link: the plan text above says `published`, the implementation is `listed`).
 - [ ] **F25 BE** Argon2 concurrency cap is per instance on serverless; rate limits in Postgres are what bound the fleet. Revisit if the signup/login flood risk matters.
 - [ ] **F26 QA** Before launch run the reserved-slug check from docs/HUMAN_TASKS.md and the real-stack waitlist journey (cancel -> offer email -> claim in a browser): not yet run end to end against a real database.
+- [ ] **F27 BE** `src/i18n/request.ts` imports repositories directly (layering): move the business-locale lookup behind a service and wrap it in React `cache` so one request does one lookup.
+- [ ] **F28 FE** `loadSlotWindow` (`src/lib/booking/window.ts`) has no fallback when a known `bookingWindowDays` is still rejected with 400 on `to` (for example the owner shortened the window meanwhile).

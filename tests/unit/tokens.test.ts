@@ -138,7 +138,22 @@ describe('tokens hardening', () => {
     });
   });
 
-  it('ties the subject to the action: only claim uses an offer id', () => {
+  it('leave tokens name an offer and are not interchangeable with claim tokens', () => {
+    const leave = signToken({ o: 'offer_1', act: 'leave', exp }, SECRET);
+    expect(verifyToken(leave, SECRET, before, 'leave').ok).toBe(true);
+    expect(verifyToken(leave, SECRET, before, 'claim')).toEqual({
+      ok: false,
+      reason: 'wrong_action',
+    });
+    const claim = signToken({ o: 'offer_1', act: 'claim', exp }, SECRET);
+    expect(verifyToken(claim, SECRET, before, 'leave')).toEqual({
+      ok: false,
+      reason: 'wrong_action',
+    });
+    expect(() => signToken({ a: 'appt_1', act: 'leave', exp }, SECRET)).toThrow();
+  });
+
+  it('ties the subject to the action: only claim and leave use an offer id', () => {
     expect(() => signToken({ o: 'offer_1', act: 'cancel', exp }, SECRET)).toThrow();
     expect(() => signToken({ a: 'appt_1', act: 'claim', exp }, SECRET)).toThrow();
     // A correctly signed token with a mismatched shape is rejected on verify as well.

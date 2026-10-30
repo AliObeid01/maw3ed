@@ -178,6 +178,27 @@ registry.registerPath({
   },
 });
 
+export const LeaveResultDto = registry.register(
+  'WaitlistLeft',
+  z.object({ removed: z.boolean() }),
+);
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/offers/{token}/leave',
+  summary: 'Remove the entry behind an offer from the waitlist (signed `leave` link in the offer email)',
+  description:
+    'Idempotent. Needs the dedicated leave token: a claim token or a token of another purpose answers 404. `removed: false` when the entry was already fulfilled by a booking. Returns no personal data.',
+  tags: ['waitlist'],
+  request: { params: OfferParams, body: { content: json(ClaimBody) } },
+  responses: {
+    200: { description: 'Removed (or already removed)', content: json(LeaveResultDto) },
+    400: errorResponses[400],
+    404: errorResponses[404],
+    410: err('LINK_EXPIRED'),
+  },
+});
+
 const session = [{ session: [] }];
 
 registry.registerPath({
