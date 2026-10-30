@@ -37,6 +37,67 @@ async function mockDirectory(page: Page, opts: { fail?: boolean; all?: unknown[]
   return searches;
 }
 
+const third = { ...studio, slug: 'third', name: 'Third Place' };
+
+test.describe('public directory: show more', () => {
+  test('appends the next page when Show more is pressed', async ({ page }) => {
+    await page.route('**/api/public/directory**', (route) => {
+      const url = new URL(route.request().url());
+      const more = url.searchParams.get('cursor') === 'c1';
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          businesses: more ? [third] : [studio],
+          nextCursor: more ? null : 'c1',
+        }),
+      });
+    });
+    await page.goto('/directory');
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    await page.getByRole('button', { name: 'Show more' }).click();
+    await expect(page.getByRole('heading', { name: 'Third Place' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Show more' })).toHaveCount(0);
+  });
+
+  test('a slow Show more never lands in the results of a newer search', async ({ page }) => {
+    let releaseMore: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      releaseMore = resolve;
+    });
+    await page.route('**/api/public/directory**', async (route) => {
+      const url = new URL(route.request().url());
+      if (url.searchParams.get('cursor') === 'c1') {
+        await gate;
+        return route
+          .fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ businesses: [third], nextCursor: null }),
+          })
+          .catch(() => undefined);
+      }
+      const search = url.searchParams.get('search') ?? '';
+      const businesses = search ? [clinic] : [studio];
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ businesses, nextCursor: search ? null : 'c1' }),
+      });
+    });
+    await page.goto('/directory');
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    await page.getByRole('button', { name: 'Show more' }).click();
+    await page.getByLabel('Search by name').fill('amal');
+    await expect(page.getByRole('heading', { name: 'Amal Physio' })).toBeVisible();
+    releaseMore();
+    await page.waitForTimeout(500);
+    await expect(page.getByRole('heading', { name: 'Third Place' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toHaveCount(0);
+  });
+});
+
 test.describe('public directory', () => {
   test('lists cards with a Book link, filters by name and shows the empty search state', async ({
     page,

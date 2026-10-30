@@ -51,18 +51,12 @@ const readShareSeen = (slug: string) => {
   }
 };
 
-/** Copy of the "Publish" step; it lives in the `directory` namespace. */
-function PublishText({ k }: { k: 'title' | 'hint' | 'doneHint' }) {
-  const t = useTranslations('directory.owner.step');
-  return t(k);
-}
-
 function ChecklistSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-5">
       <Skeleton className="h-[168px] rounded-[28px] md:h-[144px]" />
       <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, i) => (
+        {Array.from({ length: 7 }, (_, i) => (
           <Skeleton key={i} className="h-[92px] rounded-card-sm" />
         ))}
       </div>
@@ -85,7 +79,7 @@ function Checklist({
     () => readShareSeen(business.slug),
     () => false,
   );
-  const { steps, doneCount, percent } = deriveSetupSteps({
+  const { steps, doneCount, total, percent } = deriveSetupSteps({
     flags: business.setup,
     shareSeen,
     hasReceptionist: extras.hasReceptionist,
@@ -107,9 +101,9 @@ function Checklist({
             role="progressbar"
             aria-label={t('progressLabel')}
             aria-valuemin={0}
-            aria-valuemax={steps.length}
+            aria-valuemax={total}
             aria-valuenow={doneCount}
-            aria-valuetext={t('progress', { done: doneCount, total: steps.length })}
+            aria-valuetext={t('progress', { done: doneCount, total })}
             className="h-2.5 flex-1 overflow-hidden rounded-pill bg-white/15"
           >
             <div
@@ -118,7 +112,7 @@ function Checklist({
             />
           </div>
           <span className="text-base font-semibold whitespace-nowrap">
-            {t('progress', { done: doneCount, total: steps.length })}
+            {t('progress', { done: doneCount, total })}
           </span>
         </div>
       </section>
@@ -126,14 +120,10 @@ function Checklist({
       <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-3.5 p-0">
         {steps.map((step, index) => {
           const hint = step.done
-            ? step.id === 'publish'
-              ? <PublishText k="doneHint" />
-              : t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
+            ? t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
             : step.current
               ? t('nextHint', { minutes: MINUTES[step.id] })
-              : step.id === 'publish'
-                ? <PublishText k="hint" />
-                : t(`steps.${step.id}.hint`);
+              : t(`steps.${step.id}.hint`);
           return (
             <li key={step.id}>
               <Link
@@ -164,7 +154,7 @@ function Checklist({
                       step.done && 'text-muted line-through',
                     )}
                   >
-                    {step.id === 'publish' ? <PublishText k="title" /> : t(`steps.${step.id}.title`)}
+                    {t(`steps.${step.id}.title`)}
                     {step.done ? <span className="sr-only"> {t('done')}</span> : null}
                   </span>
                   <span className="text-sm text-muted">{hint}</span>

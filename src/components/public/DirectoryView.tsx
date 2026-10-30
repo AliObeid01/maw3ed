@@ -1,13 +1,14 @@
 'use client';
 
 import { CloudOff, Search, SearchX } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Field';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getDirectory, type DirectoryBusiness } from '@/lib/api/directory';
+import { useAppFormat } from '@/lib/useAppFormat';
 import { monogram } from './monogram';
 import { PageState } from './PageState';
 
@@ -26,15 +27,8 @@ const initial: State = { key: '', items: [], cursor: null, status: 'loading', mo
 
 function BusinessCard({ business }: { business: DirectoryBusiness }) {
   const t = useTranslations('directory');
-  const format = useFormatter();
-  const price =
-    business.fromPrice === null
-      ? null
-      : format.number(business.fromPrice, {
-          style: 'currency',
-          currency: 'USD',
-          maximumFractionDigits: business.fromPrice % 1 === 0 ? 0 : 2,
-        });
+  const { money } = useAppFormat();
+  const price = business.fromPrice === null ? null : money(business.fromPrice);
   return (
     <Card as="li" size="sm" padding="compact" className="flex flex-col gap-4 list-none">
       <div className="flex items-center gap-3.5">
@@ -99,6 +93,7 @@ export function DirectoryView() {
   // The result is tagged with the query that produced it; a different current key means "loading".
   const key = `${attempt}:${search}`;
   const state: State = fetched.key === key ? fetched : { ...initial, key };
+  const moreAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     getDirectory({ search, limit: PAGE_SIZE }, controller.signal)
@@ -116,26 +111,38 @@ export function DirectoryView() {
           return;
         setState({ ...initial, key, status: 'error' });
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      moreAbort.current?.abort(); // a "Show more" of the old query must never land in the new one
+    };
   }, [key, search]);
 
   const loadMore = useCallback(async () => {
     if (!state.cursor) return;
     const cursor = state.cursor;
-    setState((s) => ({ ...s, more: 'loading' }));
+    const requestKey = key;
+    const controller = new AbortController();
+    moreAbort.current = controller;
+    setState((s) => (s.key === requestKey ? { ...s, more: 'loading' } : s));
     try {
-      const page = await getDirectory({ search, cursor, limit: PAGE_SIZE });
-      setState((s) => ({
-        key: s.key,
-        items: [...s.items, ...page.businesses],
-        cursor: page.nextCursor,
-        status: 'ready',
-        more: 'idle',
-      }));
+      const page = await getDirectory({ search, cursor, limit: PAGE_SIZE }, controller.signal);
+      if (controller.signal.aborted) return;
+      setState((s) =>
+        s.key !== requestKey
+          ? s
+          : {
+              key: s.key,
+              items: [...s.items, ...page.businesses],
+              cursor: page.nextCursor,
+              status: 'ready',
+              more: 'idle',
+            },
+      );
     } catch {
-      setState((s) => ({ ...s, more: 'error' }));
+      if (controller.signal.aborted) return;
+      setState((s) => (s.key === requestKey ? { ...s, more: 'error' } : s));
     }
-  }, [state.cursor, search]);
+  }, [state.cursor, search, key]);
 
   if (state.status === 'error')
     return (
@@ -177,7 +184,10 @@ export function DirectoryView() {
         />
       </div>
 
-      <div aria-live="polite" aria-busy={state.status === 'loading'} className="flex flex-col gap-5">
+      <p role="status" className="sr-only">
+        {state.status === 'ready' ? t('resultsCount', { count: state.items.length }) : ''}
+      </p>
+      <div aria-busy={state.status === 'loading'} className="flex flex-col gap-5">
         {state.status === 'loading' ? (
           <>
             <span className="sr-only">{t('loading')}</span>

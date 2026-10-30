@@ -30,7 +30,7 @@ describe('deriveSetupSteps', () => {
       'invite',
     ]);
     expect(doneCount).toBe(1);
-    expect(percent).toBe(14);
+    expect(percent).toBe(17);
     expect(steps.find((s) => s.current)?.id).toBe('services');
   });
 
@@ -58,9 +58,11 @@ describe('deriveSetupSteps', () => {
       flags: { hasServices: true, hasBookableStaff: true, hasHours: true },
       shareSeen: true,
       hasReceptionist: true,
-      listed: true,
     });
-    expect(all.doneCount).toBe(7);
+    expect(all.doneCount).toBe(6);
+    expect(all.total).toBe(6);
+    // The optional publish step is shown, still open, and never blocks 100%.
+    expect(all.steps.find((s) => s.id === 'publish')).toMatchObject({ done: false, optional: true });
     expect(all.percent).toBe(100);
     expect(all.steps.some((s) => s.current)).toBe(false);
   });

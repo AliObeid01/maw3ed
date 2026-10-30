@@ -11,7 +11,10 @@ export const SETUP_STEP_IDS = [
 ] as const;
 export type SetupStepId = (typeof SETUP_STEP_IDS)[number];
 
-export type SetupStep = { id: SetupStepId; done: boolean; current: boolean };
+export type SetupStep = { id: SetupStepId; done: boolean; current: boolean; optional: boolean };
+
+/** Optional steps are shown but never block 100% and never count in the totals. */
+const OPTIONAL: readonly SetupStepId[] = ['publish'];
 
 export type SetupSignals = {
   flags: SetupFlags;
@@ -24,12 +27,14 @@ export type SetupSignals = {
 };
 
 /**
- * The seven owner steps in board order. "Business details" is always done (signup collects name, link and
+ * The seven owner steps (publish is optional) in board order. "Business details" is always done (signup collects name, link and
  * timezone). The first unfinished step is the current one (highlighted with a "next step" hint).
  */
 export function deriveSetupSteps({ flags, shareSeen, hasReceptionist, listed = false }: SetupSignals): {
   steps: SetupStep[];
   doneCount: number;
+  /** Required steps only. */
+  total: number;
   percent: number;
 } {
   const done: Record<SetupStepId, boolean> = {
@@ -41,10 +46,21 @@ export function deriveSetupSteps({ flags, shareSeen, hasReceptionist, listed = f
     share: shareSeen,
     invite: hasReceptionist,
   };
-  const firstOpen = SETUP_STEP_IDS.find((id) => !done[id]);
-  const steps = SETUP_STEP_IDS.map((id) => ({ id, done: done[id], current: id === firstOpen }));
-  const doneCount = steps.filter((s) => s.done).length;
-  return { steps, doneCount, percent: Math.round((doneCount / steps.length) * 100) };
+  const firstOpen = SETUP_STEP_IDS.find((id) => !done[id] && !OPTIONAL.includes(id));
+  const steps = SETUP_STEP_IDS.map((id) => ({
+    id,
+    done: done[id],
+    current: id === firstOpen,
+    optional: OPTIONAL.includes(id),
+  }));
+  const required = steps.filter((s) => !s.optional);
+  const doneCount = required.filter((s) => s.done).length;
+  return {
+    steps,
+    doneCount,
+    total: required.length,
+    percent: Math.round((doneCount / required.length) * 100),
+  };
 }
 
 export const stepHrefs: Record<SetupStepId, string> = {
