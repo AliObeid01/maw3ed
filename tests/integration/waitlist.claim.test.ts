@@ -8,7 +8,7 @@ import { expiryFor, signToken } from '@/server/domain/tokens';
 import { rootLogger } from '@/server/http/logger';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { waitlistRepo } from '@/server/repositories/waitlist.repo';
-import { defaultWaitlistDeps, deliverOffers } from '@/server/services/waitlist';
+import { defaultWaitlistDeps, deliverOffers, offersService } from '@/server/services/waitlist';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
 import {
@@ -661,5 +661,93 @@ describe('activity feed', () => {
     await runExpiry();
     res = await feed(a.cookie);
     expect(res.body!.items.map((i: any) => i.type).sort()).toEqual(['CLAIMED', 'EXPIRED']);
+  });
+});
+
+describe('one entry, two different slots claimed at the same instant (F21)', () => {
+  it('books exactly one of them', async () => {
+    const [w] = await entries(1);
+    const first = await bookedSlot('07:00', 0);
+    const second = await bookedSlot('07:00', 1);
+    expect((await staffCancel(a.cookie, first.id)).status).toBe(200);
+    expect((await staffCancel(a.cookie, second.id)).status).toBe(200);
+    const rows = (
+      await pg.query('SELECT id FROM "WaitlistOffer" WHERE "entryId"=$1 ORDER BY id', [w!.entryId])
+    ).rows as Array<{ id: string }>;
+    expect(rows).toHaveLength(2);
+
+    // Both claims pass every pre-check before either inserts (bounded wait: the fix rejects one early).
+    let arrived = 0;
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const timer = setTimeout(() => release(), 400);
+    const deps = {
+      ...defaultWaitlistDeps,
+      afterAvailability: async () => {
+        if (++arrived === 2) release();
+        await gate;
+      },
+    };
+    const ctx = { businessId: a.businessId, requestId: 'r', logger: rootLogger };
+    const results = await Promise.allSettled(rows.map((r) => offersService.claim(ctx, r.id, deps)));
+    clearTimeout(timer);
+
+    expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
+    const booked = await pg.query(
+      `SELECT count(*)::int AS n FROM "Appointment" WHERE "clientId"=$1 AND source='WAITLIST' AND status IN ('BOOKED','CONFIRMED')`,
+      [w!.clientId],
+    );
+    expect(booked.rows[0].n).toBe(1);
+    expect(await entryStatus(w!.entryId)).toBe('FULFILLED');
+  });
+});
+
+describe('reservation lifecycle (F21 follow-up)', () => {
+  const ctx = () => ({ businessId: a.businessId, requestId: 'r', logger: rootLogger });
+  async function oneOffer() {
+    const [w] = await entries(1);
+    const appt = await bookedSlot('07:00', 0);
+    expect((await staffCancel(a.cookie, appt.id)).status).toBe(200);
+    const offerId = await offerIdOf(w!.entryId);
+    return { entryId: w!.entryId, offerId };
+  }
+  const claimingOf = async (entryId: string) =>
+    (await pg.query('SELECT "claimingOfferId" AS c FROM "WaitlistEntry" WHERE id=$1', [entryId]))
+      .rows[0].c as string | null;
+
+  it('releases the reservation when bookkeeping throws after a successful book', async () => {
+    const { entryId, offerId } = await oneOffer();
+    vi.spyOn(waitlistRepo, 'markClaimed').mockRejectedValueOnce(new Error('db hiccup'));
+    await expect(offersService.claim(ctx(), offerId, defaultWaitlistDeps)).rejects.toThrow();
+    expect(await claimingOf(entryId)).toBeNull();
+  });
+
+  it('takes over a stale reservation (older than the 60 s lease) but not a fresh one', async () => {
+    const { entryId, offerId } = await oneOffer();
+    await pg.query(
+      `UPDATE "WaitlistEntry" SET "claimingOfferId"='someone-else', "claimingAt"=$2 WHERE id=$1`,
+      [entryId, new Date(NOW.getTime() - 5_000)],
+    );
+    await expect(offersService.claim(ctx(), offerId, defaultWaitlistDeps)).rejects.toMatchObject({
+      status: 409,
+    });
+    await pg.query(`UPDATE "WaitlistEntry" SET "claimingAt"=$2 WHERE id=$1`, [
+      entryId,
+      new Date(NOW.getTime() - 120_000),
+    ]);
+    const res = await offersService.claim(ctx(), offerId, defaultWaitlistDeps);
+    expect(res.appointment.id).toBeTruthy();
+    expect(await entryStatus(entryId)).toBe('FULFILLED');
+  });
+
+  it('leave does not remove an entry that is being booked right now', async () => {
+    const { entryId, offerId } = await oneOffer();
+    await pg.query(
+      `UPDATE "WaitlistEntry" SET "claimingOfferId"='x', "claimingAt"=$2 WHERE id=$1`,
+      [entryId, NOW],
+    );
+    const out = await offersService.leave(ctx(), offerId);
+    expect(out).toEqual({ removed: false });
+    expect(await entryStatus(entryId)).toBe('OPEN');
   });
 });

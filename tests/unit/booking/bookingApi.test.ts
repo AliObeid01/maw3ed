@@ -216,6 +216,14 @@ describe('loadSlotWindow', () => {
     expect(fetchSlots.mock.calls[0]![1]).toMatchObject({ from: '2026-11-01', to: '2026-11-03' });
   });
 
+  it('asks for exactly the published booking window (F13): one request, no probe', async () => {
+    const fetchSlots = vi.fn<(slug: string, q: { from: string; to: string }) => Promise<typeof slots>>(async () => slots);
+    const w = await loadSlotWindow('s', { serviceId: 's1' }, 'Asia/Beirut', now, undefined, fetchSlots as never, 10);
+    expect(fetchSlots).toHaveBeenCalledTimes(1);
+    expect(fetchSlots.mock.calls[0]![1]).toMatchObject({ from: '2026-11-01', to: '2026-11-10' });
+    expect(w.coveredDays).toHaveLength(10);
+  });
+
   it('remembers a short window per business and ignores a full one', () => {
     const store = new Map<string, string>();
     const storage = {

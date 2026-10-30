@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Compass, Info, WifiOff } from 'lucide-react';
+import { Bell, Compass, Info, ShieldCheck, WifiOff } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -18,7 +18,6 @@ import {
   createBooking,
   getPublicBusiness,
   type BookingBody,
-  type BookingResult,
   type Slot,
 } from '@/lib/api/booking';
 import { useResource } from '@/lib/api/useResource';
@@ -46,7 +45,8 @@ import {
   serialiseBookingParams,
   type BookingParams,
 } from '@/lib/booking/urlState';
-import { loadSlotWindow, readWindowLength, rememberWindowLength } from '@/lib/booking/window';
+import { clearBooked, loadBooked, saveBooked, type BookedState } from '@/lib/booking/bookedStore';
+import { loadSlotWindow } from '@/lib/booking/window';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { BookedView } from './BookedView';
 import { DetailsStep, type DetailsValues } from './DetailsStep';
@@ -61,7 +61,7 @@ const FRESH_MS = 60_000;
 const mainClass =
   'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-28 md:px-8 md:pt-7 lg:pb-10';
 
-type BookedState = { result: BookingResult; name: string; hasEmail: boolean };
+// BookedState lives in @/lib/booking/bookedStore
 type FreshDays = { key: string; days: Record<string, Slot[]> };
 const NO_FRESH: FreshDays = { key: '', days: {} };
 
@@ -106,9 +106,8 @@ export function BookingFlow({ slug }: { slug: string }) {
       now,
       signal,
       undefined,
-      readWindowLength(slug),
+      data!.business.bookingWindowDays,
     );
-    rememberWindowLength(slug, window.coveredDays.length);
     return window;
   }, slotKey);
   const reloadSlots = windowRes.reload;
@@ -160,6 +159,17 @@ export function BookingFlow({ slug }: { slug: string }) {
   const [taken, setTaken] = useState<TakenInfo>();
   const [takenSeq, setTakenSeq] = useState(0);
   const [booked, setBooked] = useState<BookedState>();
+  // F17: a refresh on the confirmation screen restores it (per tab, see bookedStore). Read after mount so
+  // the server and first client render agree.
+  useEffect(() => {
+    let live = true;
+    void Promise.resolve(loadBooked(slug, new Date())).then((saved) => {
+      if (live && saved) setBooked((current) => current ?? saved);
+    });
+    return () => {
+      live = false;
+    };
+  }, [slug]);
   const guard = useRef(createSubmitGuard());
   const attempts = useRef(createAttemptKeys());
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -258,6 +268,10 @@ export function BookingFlow({ slug }: { slug: string }) {
   const service = data.services.find((s) => s.id === resolved.serviceId);
   const person = data.staff.find((p) => p.id === resolved.staffId);
   const staffLabel = resolved.staffId === 'anyone' ? t('anyone') : person?.displayName;
+  const freeCancelUntil = (startAt: string, cutoffMin: number) => {
+    const cutoff = new Date(Date.parse(startAt) - cutoffMin * 60_000).toISOString();
+    return `${f.day(cutoff)}, ${f.time(cutoff)}`;
+  };
   const whenLabel = selectedSlot
     ? tSum('whenValue', { date: f.day(selectedSlot.startAt), time: f.time(selectedSlot.startAt) })
     : undefined;
@@ -373,7 +387,9 @@ export function BookingFlow({ slug }: { slug: string }) {
       const result = await createBooking(slug, body, key);
       attempts.current.reset();
       setTaken(undefined);
-      setBooked({ result, name: body.client.name, hasEmail: !!email });
+      const next: BookedState = { result, name: body.client.name, hasEmail: !!email };
+      saveBooked(slug, next);
+      setBooked(next);
       router.replace(pathname, { scroll: false });
       window.scrollTo({ top: 0 });
     } catch (error) {
@@ -428,6 +444,7 @@ export function BookingFlow({ slug }: { slug: string }) {
   const another = () => {
     guard.current = createSubmitGuard();
     attempts.current.reset();
+    clearBooked(slug);
     setBooked(undefined);
     clearMessages();
     go({});
@@ -587,6 +604,13 @@ export function BookingFlow({ slug }: { slug: string }) {
             </Button>
           ) : null}
           <Callout icon={<Bell />}>{taken ? t('taken.saved') : t('side.noAccount')}</Callout>
+          {selectedSlot && data ? (
+            <Callout icon={<ShieldCheck />}>
+              {t('side.freeCancelUntil', {
+                when: freeCancelUntil(selectedSlot.startAt, data.business.cancelCutoffMin),
+              })}
+            </Callout>
+          ) : null}
         </aside>
       </main>
       {cta ? (

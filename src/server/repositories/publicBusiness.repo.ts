@@ -12,6 +12,7 @@ export const businessConfigSelect = {
   slotStepMin: true,
   bookingWindowDays: true,
   minNoticeMin: true,
+  cancelCutoffMin: true,
 } as const;
 
 export const publicBusinessRepo = {

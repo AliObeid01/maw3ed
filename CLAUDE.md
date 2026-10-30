@@ -66,6 +66,11 @@ pnpm design:extract    # unpack design boards to design/screens
 
 ## Workflow
 - Branch per task (`feat/<area>-<thing>`), PR to `main`, CI must be green, run the `code-reviewer` agent before merge.
+- **Three levels of checks (saves time and tokens; CI is the full verdict):**
+  1. While coding: `pnpm typecheck` plus only the test file or Playwright spec you touched (`--workers=2`). Integration files run against local Docker Postgres (`docker compose up -d db`, `DATABASE_URL_TEST=postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test`), about 8 s each.
+  2. Once before the PR: lint, typecheck, unit, the integration files for the touched area, i18n keys, `openapi:check` if the API changed, build.
+  3. After the PR opens: CI runs everything. Never run the full integration or e2e suite locally (about 4 min); never re-verify after green; pipe output through `| tail -30`.
+- Keep tasks small and clear: one screen or one endpoint group per agent, an explicit scope, and a stop rule. Related tasks may share one PR.
 - TDD for `src/server/domain` and services (`superpowers:test-driven-development`).
 - Before claiming done: run the `ship-check` skill (or at least lint + typecheck + affected tests).
 - Per-task definition of done: lint, typecheck, tests green; screen checked at 360 px; strings in both locales; `docs/PLAN.md` ticked.

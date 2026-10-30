@@ -1,8 +1,8 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
-export type TokenAction = 'view' | 'confirm' | 'cancel' | 'claim' | 'pay';
+export type TokenAction = 'view' | 'confirm' | 'cancel' | 'claim' | 'pay' | 'leave';
 
-const ACTIONS: readonly string[] = ['view', 'confirm', 'cancel', 'claim', 'pay'];
+const ACTIONS: readonly string[] = ['view', 'confirm', 'cancel', 'claim', 'pay', 'leave'];
 
 /** Exactly one of `a` (appointment id) or `o` (waitlist offer id) is set. `exp` is epoch seconds. */
 export type TokenPayload =
@@ -27,9 +27,9 @@ function assertSecret(secret: string): void {
     throw new Error('Link token secret must be at least 32 characters');
 }
 
-/** Offers are claimed with an offer id; every other action refers to an appointment. */
+/** Offers are claimed or left with an offer id; every other action refers to an appointment. */
 function subjectMatchesAction(payload: { a?: string; o?: string }, act: TokenAction): boolean {
-  return act === 'claim' ? payload.o !== undefined : payload.a !== undefined;
+  return act === 'claim' || act === 'leave' ? payload.o !== undefined : payload.a !== undefined;
 }
 
 export function signToken(payload: TokenPayload, secret: string): string {
@@ -102,4 +102,9 @@ export function expiryFor(startAt: Date): number {
 /** Waitlist offer links expire at the offer's `expiresAt` (epoch seconds). */
 export function offerExpiryFor(expiresAt: Date): number {
   return Math.floor(expiresAt.getTime() / 1000);
+}
+
+/** "Remove me from the waitlist" links outlive the offer itself: valid for 30 days after the offer expiry. */
+export function leaveExpiryFor(offerExpiresAt: Date): number {
+  return offerExpiryFor(offerExpiresAt) + 30 * 24 * 3600;
 }

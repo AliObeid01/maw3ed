@@ -69,6 +69,7 @@ describe('renderOfferEmail', () => {
     startAt: new Date('2026-11-04T07:00:00Z'),
     expiresAt: new Date('2026-11-02T08:30:00Z'),
     claimUrl: 'https://app.test/o/abc.def',
+    leaveUrl: 'https://app.test/o/xyz.sig/leave',
   };
 
   it('is deterministic and shows local time, expiry and the claim link', () => {
@@ -77,6 +78,8 @@ describe('renderOfferEmail', () => {
     expect(one.text).toContain('09:00');
     expect(one.text).toContain('10:30');
     expect(one.text).toContain('https://app.test/o/abc.def');
+    expect(one.text).toContain('https://app.test/o/xyz.sig/leave');
+    expect(one.html).toContain('https://app.test/o/xyz.sig/leave');
     expect(one.subject).toBe('A spot opened up: Cut on Wednesday 4 November 2026 at 09:00');
   });
 

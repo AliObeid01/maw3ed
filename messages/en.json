@@ -898,7 +898,8 @@
       "intro": "You are on the waitlist at {business} and a time you wanted is free.",
       "claim": "Take this spot",
       "expires": "This offer is held for you until {until}. The first person to confirm gets it.",
-      "linkNote": "If you no longer want it, ignore this email."
+      "linkNote": "If you no longer want it, ignore this email.",
+      "leave": "Remove me from the waitlist"
     },
     "whatsapp": {
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
@@ -1052,7 +1053,8 @@
     },
     "side": {
       "noAccount": "No account needed. Confirm or cancel from the reminder in one tap.",
-      "freeCancel": "Free cancellation up to the cutoff in your reminder"
+      "freeCancel": "Free cancellation up to the cutoff in your reminder",
+      "freeCancelUntil": "Free cancellation until {when}."
     },
     "footer": {
       "brand": "Bookings by Maw3ed · Fewer no-shows. More time.",
@@ -1336,6 +1338,18 @@
     "invalid": {
       "title": "This link doesn't work",
       "body": "Check the link in your email, or ask the business to send it again.",
+      "action": "Go to Maw3ed"
+    },
+    "leave": {
+      "pageTitle": "Leave the waitlist",
+      "title": "Stop waiting for a spot?",
+      "body": "We will remove you from the waitlist and stop sending you offers.",
+      "confirm": "Remove me from the waitlist",
+      "working": "Removing you",
+      "doneTitle": "You're off the waitlist",
+      "doneBody": "You won't get any more offers for this request.",
+      "keptTitle": "You already have a booking",
+      "keptBody": "This request was already fulfilled, so there is nothing to remove.",
       "action": "Go to Maw3ed"
     },
     "errors": {

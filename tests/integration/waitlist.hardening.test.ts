@@ -215,7 +215,7 @@ describe('claim bookkeeping', () => {
     expect((await offers()).filter((o) => o.status === 'OPEN')).toHaveLength(0);
   });
 
-  it('a claim that races the entry being deleted still ends CLAIMED and FULFILLED', async () => {
+  it('a claim that races the entry being cancelled is not cancelled under it and ends CLAIMED and FULFILLED', async () => {
     const appt = await bookedSlot();
     const [e] = await entries(2);
     await staffCancel(a.cookie, appt);
@@ -223,7 +223,13 @@ describe('claim bookkeeping', () => {
     const result = await offersService.claim(claimCtx(), id, {
       ...defaultWaitlistDeps,
       afterAvailability: async () => {
-        expect(await waitlistRepo.cancelEntry(a.businessId, e!.entryId)).toBe('cancelled');
+        // A fresh reservation protects the claim: the staff cancel is refused while it books.
+        expect(
+          await waitlistRepo.cancelEntry(a.businessId, e!.entryId, {
+            now: new Date(),
+            leaseMs: 60_000,
+          }),
+        ).toBe('busy');
       },
     });
     const row = (await offers()).find((o) => o.id === id);
@@ -246,7 +252,9 @@ describe('claim bookkeeping', () => {
     await staffCancel(a.cookie, second);
     const offer2 = (await offers()).find((o) => o.freedFromAppointmentId === second);
     expect(offer2).toBeDefined();
-    const t2 = tokenFromEmail(fakeEmailProvider.calls.filter((c) => c.to === e!.email).at(-1)!.text);
+    const t2 = tokenFromEmail(
+      fakeEmailProvider.calls.filter((c) => c.to === e!.email).at(-1)!.text,
+    );
     expect(t2).not.toBe(token);
     await prisma.waitlistEntry.update({ where: { id: e!.entryId }, data: { status: 'FULFILLED' } });
     const before = (await pg.query('SELECT count(*)::int AS n FROM "Appointment"')).rows[0].n;

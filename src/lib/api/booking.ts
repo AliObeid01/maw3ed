@@ -22,6 +22,9 @@ export const publicBusinessSchema = z.object({
     slug: z.string(),
     timezone: z.string(),
     locale: z.string(),
+    // Defaults keep an older server response working: 14 days is the old probe's first guess.
+    bookingWindowDays: z.number().int().min(1).default(14),
+    cancelCutoffMin: z.number().int().min(0).default(0),
     category: z.string().nullish(),
     address: z.string().nullish(),
   }),
