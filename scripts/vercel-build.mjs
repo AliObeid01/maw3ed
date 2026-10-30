@@ -23,4 +23,6 @@ if (shouldMigrate(process.env)) {
 } else {
   console.log(`VERCEL_ENV=${process.env.VERCEL_ENV ?? '(not set)'}: skipping migrations.`);
 }
+// Build caches can skip the install postinstall hook, and src/generated is gitignored, so generate explicitly.
+run(['exec', 'prisma', 'generate']);
 run(['exec', 'next', 'build']);
