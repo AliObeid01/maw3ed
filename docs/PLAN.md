@@ -61,11 +61,11 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P3.7 FE** Arabic: full `ar.json`, RTL pass on every screen, Arabic email + WhatsApp templates, language toggle on public pages. (FR-28)
 - [x] **P3.8 BE/FE** `PaymentProvider` + `FakePaymentProvider`; `/pricing` (5.1) Free vs Pro; test checkout sets `Business.plan`; Free limits to one bookable staff. (FR-27)
 - [ ] **P3.9 BE/FE** Deposit: settings (threshold, amount); new migration adds `PENDING_PAYMENT` to the constraint; hold 15 min; `/pay/[token]` (5.2); server-side verify; expiry job → cancel + waitlist; `WhishTestProvider` only if credentials arrive. (FR-26)
-- [ ] **P3.10 QA** Tests for outcomes/counters, pilot report maths, CSV, payments (fake), deposit hold/expiry; E2E `outcome.spec.ts`; RTL E2E.
+- [ ] **P3.10 QA** Tests for outcomes/counters, pilot report maths, CSV, payments (fake), deposit hold/expiry; E2E `outcome.spec.ts`; RTL E2E. (30 Oct audit: everything except deposit hold/expiry is proven, see `docs/REQUIREMENTS.md`; waits on P3.9.)
 
 ## Phase 4 — Polish, docs, demo (6–8 Nov)
 - [ ] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
-- [ ] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
+- [x] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [ ] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
 - [x] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
@@ -112,7 +112,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F15 FE** Email templates: brand colours (teal button for confirm, canvas background) instead of neutral greys; keep web-safe `Arial` stack (email clients cannot load Outfit). Decide whether to ignore the design hook's overused-font finding for emails.
 - [ ] **F16 BE** Verified or per-appointment contact email (today one mutable email per client; public bookings can only fill an EMPTY email on an existing client).
 - [x] **F17 FE** The booked screen does not survive a refresh (manage link is in the confirmation email afterwards); consider persisting the manage link for the session.
-- [ ] **F18 QA** Real-API journey (signup -> setup -> client booking -> reminder runner -> confirm/cancel links) is currently a throwaway script; keep a cleaned-up version as a CI-able smoke test against the CI Postgres.
+- [x] **F18 QA** Real-API journey (signup -> setup -> client booking -> reminder runner -> confirm/cancel links) is currently a throwaway script; keep a cleaned-up version as a CI-able smoke test against the CI Postgres.
 - [ ] **F19 BE** `DST fall-back`: `time=HH:mm` in the booking URL is ambiguous for the one repeated hour per year in Beirut (24 Oct 23:xx); serialise with offset if it ever matters.
 - [ ] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
 

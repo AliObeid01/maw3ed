@@ -1,0 +1,56 @@
+# NFR-09 seeded load test (14-day slots, 10 staff, p95 < 300 ms). Non-blocking: never runs on pull requests,
+# and a failure here does not fail anything else (continue-on-error). Uses a throwaway Postgres service only.
+name: Load (slots, non-blocking)
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '30 2 * * *' # nightly
+
+permissions:
+  contents: read
+
+jobs:
+  slots-load:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: maw3ed
+          POSTGRES_PASSWORD: maw3ed
+          POSTGRES_DB: maw3ed_load
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U maw3ed" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Throwaway values for CI only. Never put real secrets here.
+      DATABASE_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_load
+      DIRECT_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_load
+      APP_URL: http://localhost:3000
+      SESSION_SECRET: ci-only-session-secret-0000000000000000
+      LINK_SECRET: ci-only-link-secret-000000000000000000
+      CRON_SECRET: ci-only-cron-secret-0000000000000000
+      EMAIL_PROVIDER: fake
+      PAYMENT_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma migrate deploy
+      - run: pnpm build
+      - name: Start the production server
+        run: |
+          nohup pnpm start > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS http://localhost:3000/api/health && exit 0; sleep 2; done
+          cat server.log; exit 1
+      - name: Seed and measure
+        run: node scripts/load/slots-load.mjs
+      - name: Server log on failure
+        if: failure()
+        run: tail -50 server.log
