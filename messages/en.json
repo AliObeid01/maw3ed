@@ -1374,6 +1374,66 @@
       "expired": "This offer has ended."
     }
   },
+  "pricing": {
+    "pageTitle": "Pricing",
+    "title": "Simple plans for every chair",
+    "subtitle": "Start free with one bookable staff member. Upgrade when your team grows.",
+    "testBadge": "TEST MODE",
+    "testNote": "Test mode: checkout is simulated and no card is charged.",
+    "perMonth": "/ month",
+    "free": {
+      "name": "Free",
+      "tagline": "For a one-chair business",
+      "price": "$0",
+      "cta": "Start free",
+      "features": {
+        "staff": "{count} bookable staff member",
+        "page": "Your own booking page",
+        "email": "Email reminders 24 h and 2 h before",
+        "whatsapp": "One-tap WhatsApp reminders",
+        "waitlist": "Waitlist and no-show history"
+      }
+    },
+    "pro": {
+      "name": "Pro",
+      "tagline": "For teams and clinics",
+      "price": "${amount}",
+      "cta": "Upgrade to Pro",
+      "features": {
+        "everything": "Everything in Free",
+        "staff": "More than one bookable staff member"
+      }
+    }
+  },
+  "billing": {
+    "label": "Your plan",
+    "free": "Free",
+    "pro": "Pro",
+    "testBadge": "TEST MODE",
+    "usage": "Bookable staff: {current} of {limit}",
+    "usageUnlimited": "Bookable staff: {current} (no limit)",
+    "price": "${amount} / month",
+    "upgradeCta": "Upgrade (test checkout)",
+    "comparePlans": "Compare plans",
+    "downgradeLink": "Switch back to Free",
+    "downgradeBlocked": "Free allows {limit} bookable staff member but {current} are active. Turn some off first, then switch back.",
+    "downgraded": "You are on the Free plan.",
+    "upgraded": "You are on Pro.",
+    "successBody": "You are now on Pro. You can add more bookable staff.",
+    "confirmTitle": "Upgrade to Pro",
+    "confirmBody": "Pro is {price}. This is a test checkout.",
+    "testModeNote": "TEST MODE. Nothing is charged and no card details are needed.",
+    "confirmCta": "Confirm test upgrade",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Try again",
+    "loadFailed": "We could not load your plan.",
+    "staffLimit": "Your Free plan includes one bookable staff member. Upgrade to Pro to add or turn on more.",
+    "upgradeLink": "See plans",
+    "downgradeConfirmTitle": "Switch back to Free?",
+    "downgradeConfirmBody": "Free includes one bookable staff member. Nobody is removed, but you cannot add more bookable staff.",
+    "downgradeConfirmCta": "Switch to Free"
+  },
   "directory": {
     "pageTitle": "Find a business",
     "title": "Find a business",

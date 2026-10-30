@@ -1,5 +1,6 @@
 import type { Prisma } from '@/generated/prisma/client';
 import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
+import { assertRoomForBookable } from './billing.repo';
 import { db } from './db';
 
 export interface StaffRow {
@@ -83,6 +84,7 @@ export const staffRepo = {
   ) =>
     db.$transaction(async (tx) => {
       await assertServicesOwned(tx, businessId, data.serviceIds);
+      if (data.bookable) await assertRoomForBookable(tx, businessId);
       const staff = await tx.staffMember.create({
         data: { businessId, displayName: data.displayName, bookable: data.bookable },
       });
@@ -107,11 +109,19 @@ export const staffRepo = {
   ) =>
     db.$transaction(async (tx) => {
       await lockStaff(tx, businessId, id);
+      const current = await tx.staffMember.findFirst({
+        where: { id, businessId },
+        select: { active: true, bookable: true },
+      });
+      // Becoming an active bookable member (new flag or reactivation) must fit the plan.
+      if (
+        current &&
+        (patch.active ?? current.active) &&
+        (patch.bookable ?? current.bookable) &&
+        !(current.active && current.bookable)
+      )
+        await assertRoomForBookable(tx, businessId, id);
       if (patch.active === false) {
-        const current = await tx.staffMember.findFirst({
-          where: { id, businessId },
-          select: { active: true },
-        });
         if (current?.active) {
           const blocking = await tx.appointment.count({
             where: {

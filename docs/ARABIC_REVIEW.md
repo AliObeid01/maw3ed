@@ -41,8 +41,12 @@ review the strings below. Keys and meanings were not changed.
 | `app.clientHistory.deleteBody` | anonymises the client | سيُجهَّل هذا العميل | "يُجهَّل" is unusual; legal wording needs a native/legal check. |
 | terminology: phone | mobile number | الجوال (and one dev string) | Lebanese users usually say "موبايل" or "رقم الهاتف"; decide الجوال vs الموبايل across booking, waitlist and dashboard. |
 | `app.frontDesk.client.returningSummary`, `app.pilot.hero.lower/higher` | plural on count | full Arabic plural forms | Added in review; check the dual and few/many forms read naturally. |
+| `pricing.*`, `billing.*` (plan names) | Free / Pro | مجاني / Pro | "Pro" kept in Latin; confirm owners prefer it over "احترافي". Free is the masculine adjective "مجاني" as a plan name, but "الخطة المجانية" in sentences. |
+| `pricing.testNote`, `billing.testModeNote`, `*.testBadge` | TEST MODE / checkout is simulated | وضع تجريبي / عملية الدفع محاكاة | Test-mode wording: "تجريبي" vs "اختباري"; "محاكاة" may be too technical for owners. |
+| `pricing.free.features.staff`, `billing.staffLimit`, `billing.downgradeBlocked` | one bookable staff member | موظف واحد قابل للحجز | Plural added on count (dual and few/many forms); confirm phrasing matches the Staff screen. |
+| `pricing.title` | Simple plans for every chair | خطط بسيطة لكل كرسي | "كرسي" for a chair/seat is a literal image; check it suits clinics too. |
+| `billing.price`, `pricing.pro.price` | $9 / month | $9 / شهريًا | Price is isolated left-to-right so the currency sign stays before the number; check the sign placement preference for Arabic. |
 
 ## Not covered
 
-- `pricing.*` and `billing.*` namespaces (added by another change) were not reviewed here.
 - `/directory` and the marketing home page do not exist as routes yet; they have no Arabic copy to review.

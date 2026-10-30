@@ -3420,6 +3420,98 @@
           "businesses",
           "nextCursor"
         ]
+      },
+      "CheckoutBody": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "PRO"
+            ]
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "additionalProperties": false
+      },
+      "DowngradeBody": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "FREE"
+            ]
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "additionalProperties": false
+      },
+      "Billing": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "FREE",
+              "PRO"
+            ]
+          },
+          "limits": {
+            "type": "object",
+            "properties": {
+              "bookableStaff": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "bookableStaff"
+            ]
+          },
+          "usage": {
+            "type": "object",
+            "properties": {
+              "bookableStaff": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "bookableStaff"
+            ]
+          },
+          "price": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "amount",
+              "currency"
+            ]
+          },
+          "testMode": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "plan",
+          "limits",
+          "usage",
+          "price",
+          "testMode"
+        ]
       }
     },
     "parameters": {}
@@ -4280,7 +4372,7 @@
         }
       },
       "post": {
-        "summary": "Create a staff member without a login (owner)",
+        "summary": "Create a staff member without a login (owner). 409 PLAN_LIMIT { limit, current } when Free already has its one active bookable member",
         "tags": [
           "setup"
         ],
@@ -4338,13 +4430,23 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "PLAN_LIMIT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
     },
     "/api/staff/{id}": {
       "patch": {
-        "summary": "Update a staff member (owner). Deactivating with future bookings is a 409 HAS_FUTURE_APPOINTMENTS",
+        "summary": "Update a staff member (owner). 409 HAS_FUTURE_APPOINTMENTS when deactivating with future bookings; 409 PLAN_LIMIT when enabling bookable or reactivating beyond the plan",
         "tags": [
           "setup"
         ],
@@ -4425,7 +4527,7 @@
             }
           },
           "409": {
-            "description": "HAS_FUTURE_APPOINTMENTS",
+            "description": "Two possible codes. HAS_FUTURE_APPOINTMENTS: deactivating with upcoming bookings. PLAN_LIMIT: enabling bookable or reactivating beyond the plan, with data { limit, current }",
             "content": {
               "application/json": {
                 "schema": {
@@ -7261,6 +7363,222 @@
           },
           "429": {
             "description": "RATE_LIMITED (Retry-After header)"
+          }
+        }
+      }
+    },
+    "/api/billing": {
+      "get": {
+        "summary": "Current plan, limits and usage of bookable staff (owner)",
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Billing summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/checkout": {
+      "post": {
+        "summary": "Test checkout for Pro (owner). Records one Payment and sets the plan in one transaction; repeating it is a no-op. TEST MODE: no card is ever taken",
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 8,
+              "maxLength": 100,
+              "pattern": "^[A-Za-z0-9_.:-]+$"
+            },
+            "required": false,
+            "name": "idempotency-key",
+            "in": "header"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckoutBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Now on Pro (or already was)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/downgrade": {
+      "post": {
+        "summary": "Back to Free (owner). 409 PLAN_LIMIT with { limit, current } when more bookable staff are active than Free allows",
+        "tags": [
+          "billing"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DowngradeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Now on Free (or already was)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Billing"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PLAN_LIMIT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }

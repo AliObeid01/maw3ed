@@ -186,7 +186,8 @@ describe('GET/PATCH /api/business', () => {
     const row = (
       await pg.query('SELECT slug, plan FROM "Business" WHERE id = $1', [a.info.business.id])
     ).rows[0];
-    expect(row).toEqual({ slug: 'business-a', plan: 'FREE' });
+    // The shared signup helper starts every test business on PRO; PATCH must not change it.
+    expect(row).toEqual({ slug: 'business-a', plan: 'PRO' });
   });
 
   it('STAFF can read but not write; unauthenticated is 401', async () => {

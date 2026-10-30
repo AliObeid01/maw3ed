@@ -1,12 +1,11 @@
 'use client';
 
 import { CircleAlert } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
+import { PlanCard } from '@/components/billing/PlanCard';
 import { Button } from '@/components/ui/Button';
-import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { Input, Select } from '@/components/ui/Field';
@@ -355,23 +354,7 @@ function SettingsForm({
           />
         </Card>
 
-        <Card
-          padding="none"
-          as="section"
-          aria-labelledby={`${uid}-plan`}
-          className="flex flex-wrap items-center gap-4 p-[22px]"
-        >
-          <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-[3px]">
-            <span className="text-[13px] text-muted">{t('plan.label')}</span>
-            <span id={`${uid}-plan`} className="text-xl font-semibold">
-              {t('plan.name')}
-            </span>
-            <span className="text-sm text-muted">{t('plan.detail')}</span>
-          </div>
-          <Link href="/pricing" className={buttonClasses({ variant: 'accent', size: 'row' })}>
-            {t('plan.cta')}
-          </Link>
-        </Card>
+        <PlanCard />
       </form>
       {dirty ? <StickySaveBar>{saveButton({ block: true })}</StickySaveBar> : null}
     </>
