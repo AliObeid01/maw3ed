@@ -7,5 +7,6 @@ import './reminders';
 import './outcomes';
 import './waitlist';
 import './directory';
+import './billing';
 
 export { buildOpenApiDocument, registry } from './registry';

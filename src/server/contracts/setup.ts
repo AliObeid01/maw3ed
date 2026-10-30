@@ -287,7 +287,8 @@ registry.registerPath({
 registry.registerPath({
   method: 'post',
   path: '/api/staff',
-  summary: 'Create a staff member without a login (owner)',
+  summary:
+    'Create a staff member without a login (owner). 409 PLAN_LIMIT { limit, current } when Free already has its one active bookable member',
   tags: ['setup'],
   security,
   request: { body: { content: json(CreateStaffBody) } },
@@ -296,13 +297,14 @@ registry.registerPath({
     400: e[400],
     401: e[401],
     403: e[403],
+    409: err('PLAN_LIMIT'),
   },
 });
 registry.registerPath({
   method: 'patch',
   path: '/api/staff/{id}',
   summary:
-    'Update a staff member (owner). Deactivating with future bookings is a 409 HAS_FUTURE_APPOINTMENTS',
+    'Update a staff member (owner). 409 HAS_FUTURE_APPOINTMENTS when deactivating with future bookings; 409 PLAN_LIMIT when enabling bookable or reactivating beyond the plan',
   tags: ['setup'],
   security,
   request: { params: IdParams, body: { content: json(UpdateStaffBody) } },
@@ -312,7 +314,7 @@ registry.registerPath({
     401: e[401],
     403: e[403],
     404: e[404],
-    409: err('HAS_FUTURE_APPOINTMENTS'),
+    409: err('HAS_FUTURE_APPOINTMENTS or PLAN_LIMIT'),
   },
 });
 registry.registerPath({

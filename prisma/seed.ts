@@ -54,6 +54,7 @@ type SeedBusiness = {
   name: string;
   category: string;
   address: string;
+  plan: 'FREE' | 'PRO';
   users: SeedUser[];
   services: SeedService[];
   staff: SeedStaff[];
@@ -66,6 +67,7 @@ const studioNour: SeedBusiness = {
   name: 'Studio Nour',
   category: 'salon',
   address: 'Hamra Street, Beirut',
+  plan: 'PRO',
   users: [
     { email: 'lina@studionour.test', name: 'Lina', role: 'OWNER' },
     { email: 'karim@studionour.test', name: 'Karim', role: 'STAFF' },
@@ -125,6 +127,7 @@ const clinicRida: SeedBusiness = {
   name: 'Clinic Rida',
   category: 'clinic',
   address: 'Verdun, Beirut',
+  plan: 'FREE',
   users: [{ email: 'rida@clinicrida.test', name: 'Dr. Rida', role: 'OWNER' }],
   services: [
     { name: 'Consultation', durationMin: 30, bufferMin: 10, price: '30.00' },
@@ -153,6 +156,7 @@ async function seedBusiness(
       name: spec.name,
       category: spec.category,
       address: spec.address,
+      plan: spec.plan,
       timezone: 'Asia/Beirut',
     },
     create: {
@@ -160,6 +164,7 @@ async function seedBusiness(
       name: spec.name,
       category: spec.category,
       address: spec.address,
+      plan: spec.plan,
       timezone: 'Asia/Beirut',
     },
   });

@@ -15,6 +15,7 @@ import {
   type Service,
   type StaffMember,
 } from '@/lib/api/setup';
+import { ApiError } from '@/lib/api/auth';
 import { cn } from '@/lib/cn';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
@@ -49,6 +50,15 @@ export function StaffForm({
   const [serviceIds, setServiceIds] = useState<string[]>(member?.serviceIds ?? []);
   const [nameError, setNameError] = useState<string>();
   const [banner, setBanner] = useState<string>();
+  const [upgrade, setUpgrade] = useState(false);
+  const tb = useTranslations('billing');
+  const upgradeLabel = tb('upgradeLink');
+  /** Show a failed save; a plan limit gets the friendly message and an upgrade link. */
+  const fail = (error: unknown, fallback?: string) => {
+    const limit = error instanceof ApiError && error.code === 'PLAN_LIMIT';
+    setUpgrade(limit);
+    setBanner(limit ? tb('staffLimit') : (fallback ?? errorText(error)));
+  };
   const [pending, setPending] = useState<'save' | 'toggleActive' | null>(null);
 
   const label = member?.displayName ?? t('thisPerson');
@@ -71,6 +81,7 @@ export function StaffForm({
     if (pending) return;
     const name = displayName.trim();
     setBanner(undefined);
+    setUpgrade(false);
     if (!name) {
       setNameError(t('errors.nameRequired'));
       focusFirstInvalid();
@@ -102,7 +113,7 @@ export function StaffForm({
     } catch (error) {
       if (partial) onPartialSave(partial);
       if (invalidFields(error).includes('displayName')) setNameError(t('errors.fieldInvalid'));
-      setBanner(errorText(error));
+      fail(error);
       focusFirstInvalid();
     } finally {
       setPending(null);
@@ -113,14 +124,16 @@ export function StaffForm({
     if (!member || pending) return;
     setPending('toggleActive');
     setBanner(undefined);
+    setUpgrade(false);
     try {
       const saved = await updateStaff(member.id, { active });
       onSaved({ ...saved, serviceIds: member.serviceIds }, false);
     } catch (error) {
-      setBanner(
+      fail(
+        error,
         errorKey(error) === 'hasFutureAppointments'
           ? t('errors.hasFutureAppointments', { name: label })
-          : errorText(error),
+          : undefined,
       );
       focusFirstInvalid();
     } finally {
@@ -139,6 +152,14 @@ export function StaffForm({
         >
           <Callout tone="danger" icon={<CircleAlert />}>
             {banner}
+            {upgrade ? (
+              <>
+                {' '}
+                <Link href="/pricing" className="font-semibold underline">
+                  {upgradeLabel}
+                </Link>
+              </>
+            ) : null}
           </Callout>
         </div>
       ) : null}

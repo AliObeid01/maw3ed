@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- test helper: response bodies are untyped JSON */
 type Json = Record<string, any>;
 import { POST as signupPost } from '@/app/api/auth/signup/route';
+import { newClient } from './db';
 
 type Handler = (
   req: Request,
@@ -68,11 +69,25 @@ export function signupBody(over: Record<string, unknown> = {}) {
   };
 }
 
-/** Sign up a fresh business through the real route. */
+/**
+ * Sign up a fresh business through the real route. New businesses are FREE (one bookable staff member), so
+ * the helper upgrades them to PRO unless `plan: 'FREE'` is passed; tests that create several bookable staff
+ * then exercise their own logic, and plan-limit tests ask for FREE explicitly.
+ */
 export async function signup(over: Record<string, unknown> = {}) {
-  const body = signupBody(over);
+  const { plan = 'PRO', ...rest } = over;
+  const body = signupBody(rest);
   const res = await call(signupPost, '/api/auth/signup', { body });
   if (res.status !== 201)
     throw new Error(`signup failed: ${res.status} ${JSON.stringify(res.body)}`);
+  if (plan === 'PRO') {
+    const pg = newClient();
+    await pg.connect();
+    try {
+      await pg.query(`UPDATE "Business" SET plan = 'PRO' WHERE slug = $1`, [body.slug]);
+    } finally {
+      await pg.end();
+    }
+  }
   return { body, res, cookie: res.cookie as string, info: res.body as Json };
 }
