@@ -128,3 +128,5 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F24 BE/FE** D2: public `/directory` page and the owner's 'list my business' toggle with the readiness checklist (the backend D1 uses `Business.listed`, opt-in, default false; unlisted businesses stay reachable by direct link: the plan text above says `published`, the implementation is `listed`).
 - [ ] **F25 BE** Argon2 concurrency cap is per instance on serverless; rate limits in Postgres are what bound the fleet. Revisit if the signup/login flood risk matters.
 - [ ] **F26 QA** Before launch run the reserved-slug check from docs/HUMAN_TASKS.md and the real-stack waitlist journey (cancel -> offer email -> claim in a browser): not yet run end to end against a real database.
+- [ ] **F27 BE** `src/i18n/request.ts` imports repositories directly (layering): move the business-locale lookup behind a service and wrap it in React `cache` so one request does one lookup.
+- [ ] **F28 FE** `loadSlotWindow` (`src/lib/booking/window.ts`) has no fallback when a known `bookingWindowDays` is still rejected with 400 on `to` (for example the owner shortened the window meanwhile).

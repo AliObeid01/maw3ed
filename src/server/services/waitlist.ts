@@ -2,7 +2,11 @@ import { DateTime } from 'luxon';
 import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { MAX_SLOT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
-import { leaveExpiryFor, offerExpiryFor as tokenExpiryFor, signToken } from '@/server/domain/tokens';
+import {
+  leaveExpiryFor,
+  offerExpiryFor as tokenExpiryFor,
+  signToken,
+} from '@/server/domain/tokens';
 import { summarizeActivity } from '@/server/domain/waitlistActivity';
 import { matchEntries, offerExpiryFor, OFFER_BATCH_SIZE } from '@/server/domain/waitlistMatch';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
@@ -360,13 +364,17 @@ export const offersService = {
    */
   async leave(ctx: { businessId: string; logger: Logger }, offerId: string) {
     const o = await loadOffer(ctx.businessId, offerId);
-    const res = await waitlistRepo.cancelEntry(ctx.businessId, o.entryId);
+    const res = await waitlistRepo.cancelEntry(ctx.businessId, o.entryId, {
+      now: new Date(),
+      leaseMs: CLAIM_LEASE_MS,
+    });
     if (res === 'missing') throw AppError.notFound();
     ctx.logger.info(
       { businessId: ctx.businessId, entryId: o.entryId, offerId, result: res },
       'waitlist entry left via offer link',
     );
-    return { removed: res !== 'fulfilled' };
+    // 'fulfilled' and 'busy' (a claim is booking right now) both keep the entry: never claim a removal.
+    return { removed: res !== 'fulfilled' && res !== 'busy' };
   },
 
   /** Claim = a normal booking through the one insert path; the database referee picks the winner. */
@@ -404,47 +412,63 @@ export const offersService = {
         );
     }
 
-    let result: BookingResult;
+    // Everything after the reservation: any non-success exit releases it (finally below).
+    let succeeded = false;
     try {
-      result = await book(
-        { businessId, requestId: ctx.requestId, logger: ctx.logger },
-        {
-          serviceId: o.entry.serviceId,
-          staffId: o.staffId,
-          startAt: o.startAt,
-          client: {
-            name: o.entry.client.name,
-            phone: o.entry.client.phone,
-            email: o.entry.client.email ?? undefined,
+      let result: BookingResult;
+      try {
+        result = await book(
+          { businessId, requestId: ctx.requestId, logger: ctx.logger },
+          {
+            serviceId: o.entry.serviceId,
+            staffId: o.staffId,
+            startAt: o.startAt,
+            client: {
+              name: o.entry.client.name,
+              phone: o.entry.client.phone,
+              email: o.entry.client.email ?? undefined,
+            },
+            source: 'WAITLIST',
+            idempotencyKey: offerBookingKey(o.id),
           },
-          source: 'WAITLIST',
-          idempotencyKey: offerBookingKey(o.id),
-        },
-        bookDepsOf(deps),
-      );
-    } catch (error) {
-      if (reserved) await waitlistRepo.releaseEntry(businessId, o.entryId, o.id);
-      if (error instanceof AppError && error.code === 'SLOT_TAKEN') {
-        await waitlistRepo.supersede(businessId, o.id);
-        ctx.logger.info({ businessId, offerId: o.id }, 'waitlist offer lost the slot (TAKEN)');
+          bookDepsOf(deps),
+        );
+      } catch (error) {
+        if (error instanceof AppError && error.code === 'SLOT_TAKEN') {
+          await waitlistRepo.supersede(businessId, o.id);
+          ctx.logger.info({ businessId, offerId: o.id }, 'waitlist offer lost the slot (TAKEN)');
+        }
+        throw error;
       }
-      throw error;
+      // A repeat claim must not hand back a booking that has since been cancelled.
+      if (result.replay && !IS_ACTIVE(result.appointment.status))
+        throw AppError.conflict('CONFLICT', undefined, 'That booking was cancelled.');
+      // Idempotent bookkeeping: also repairs a claim that booked but crashed before recording.
+      await waitlistRepo.markClaimed(businessId, {
+        offerId: o.id,
+        entryId: o.entryId,
+        freedFromAppointmentId: o.freedFromAppointmentId,
+        appointmentId: result.appointment.id,
+      });
+      ctx.logger.info(
+        { businessId, offerId: o.id, appointmentId: result.appointment.id, replay: result.replay },
+        'waitlist offer claimed',
+      );
+      succeeded = true;
+      return result;
+    } finally {
+      if (reserved && !succeeded) {
+        try {
+          await waitlistRepo.releaseEntry(businessId, o.entryId, o.id);
+        } catch (error) {
+          // The lease expires on its own; never mask the original outcome.
+          ctx.logger.error(
+            { businessId, offerId: o.id, err: safeError(error) },
+            'waitlist reservation not released',
+          );
+        }
+      }
     }
-    // A repeat claim must not hand back a booking that has since been cancelled.
-    if (result.replay && !IS_ACTIVE(result.appointment.status))
-      throw AppError.conflict('CONFLICT', undefined, 'That booking was cancelled.');
-    // Idempotent bookkeeping: also repairs a claim that booked but crashed before recording.
-    await waitlistRepo.markClaimed(businessId, {
-      offerId: o.id,
-      entryId: o.entryId,
-      freedFromAppointmentId: o.freedFromAppointmentId,
-      appointmentId: result.appointment.id,
-    });
-    ctx.logger.info(
-      { businessId, offerId: o.id, appointmentId: result.appointment.id, replay: result.replay },
-      'waitlist offer claimed',
-    );
-    return result;
   },
 };
 
@@ -569,8 +593,17 @@ export const waitlistStaffService = {
   },
 
   async cancel(ctx: SessionContext, id: string) {
-    const res = await waitlistRepo.cancelEntry(ctx.businessId, id);
+    const res = await waitlistRepo.cancelEntry(ctx.businessId, id, {
+      now: new Date(),
+      leaseMs: CLAIM_LEASE_MS,
+    });
     if (res === 'missing') throw AppError.notFound();
+    if (res === 'busy')
+      throw AppError.conflict(
+        'CONFLICT',
+        undefined,
+        'This client is booking a waitlist spot right now. Try again in a moment.',
+      );
     if (res === 'fulfilled')
       throw AppError.conflict('CONFLICT', undefined, 'This waitlist entry was already fulfilled.');
     ctx.logger.info({ businessId: ctx.businessId, entryId: id }, 'waitlist entry cancelled');

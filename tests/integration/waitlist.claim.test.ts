@@ -701,3 +701,53 @@ describe('one entry, two different slots claimed at the same instant (F21)', () 
     expect(await entryStatus(w!.entryId)).toBe('FULFILLED');
   });
 });
+
+describe('reservation lifecycle (F21 follow-up)', () => {
+  const ctx = () => ({ businessId: a.businessId, requestId: 'r', logger: rootLogger });
+  async function oneOffer() {
+    const [w] = await entries(1);
+    const appt = await bookedSlot('07:00', 0);
+    expect((await staffCancel(a.cookie, appt.id)).status).toBe(200);
+    const offerId = await offerIdOf(w!.entryId);
+    return { entryId: w!.entryId, offerId };
+  }
+  const claimingOf = async (entryId: string) =>
+    (await pg.query('SELECT "claimingOfferId" AS c FROM "WaitlistEntry" WHERE id=$1', [entryId]))
+      .rows[0].c as string | null;
+
+  it('releases the reservation when bookkeeping throws after a successful book', async () => {
+    const { entryId, offerId } = await oneOffer();
+    vi.spyOn(waitlistRepo, 'markClaimed').mockRejectedValueOnce(new Error('db hiccup'));
+    await expect(offersService.claim(ctx(), offerId, defaultWaitlistDeps)).rejects.toThrow();
+    expect(await claimingOf(entryId)).toBeNull();
+  });
+
+  it('takes over a stale reservation (older than the 60 s lease) but not a fresh one', async () => {
+    const { entryId, offerId } = await oneOffer();
+    await pg.query(
+      `UPDATE "WaitlistEntry" SET "claimingOfferId"='someone-else', "claimingAt"=$2 WHERE id=$1`,
+      [entryId, new Date(NOW.getTime() - 5_000)],
+    );
+    await expect(offersService.claim(ctx(), offerId, defaultWaitlistDeps)).rejects.toMatchObject({
+      status: 409,
+    });
+    await pg.query(`UPDATE "WaitlistEntry" SET "claimingAt"=$2 WHERE id=$1`, [
+      entryId,
+      new Date(NOW.getTime() - 120_000),
+    ]);
+    const res = await offersService.claim(ctx(), offerId, defaultWaitlistDeps);
+    expect(res.appointment.id).toBeTruthy();
+    expect(await entryStatus(entryId)).toBe('FULFILLED');
+  });
+
+  it('leave does not remove an entry that is being booked right now', async () => {
+    const { entryId, offerId } = await oneOffer();
+    await pg.query(
+      `UPDATE "WaitlistEntry" SET "claimingOfferId"='x', "claimingAt"=$2 WHERE id=$1`,
+      [entryId, NOW],
+    );
+    const out = await offersService.leave(ctx(), offerId);
+    expect(out).toEqual({ removed: false });
+    expect(await entryStatus(entryId)).toBe('OPEN');
+  });
+});

@@ -156,10 +156,18 @@ export const waitlistRepo = {
   cancelEntry: (
     businessId: string,
     id: string,
-  ): Promise<'cancelled' | 'already' | 'fulfilled' | 'missing'> =>
+    lease: { now: Date; leaseMs: number },
+  ): Promise<'cancelled' | 'already' | 'fulfilled' | 'busy' | 'missing'> =>
     db.$transaction(async (tx) => {
+      const staleBefore = new Date(lease.now.getTime() - lease.leaseMs);
+      // An entry whose offer is being booked right now (fresh reservation) is not cancelled under it.
       const res = await tx.waitlistEntry.updateMany({
-        where: { id, businessId, status: 'OPEN' },
+        where: {
+          id,
+          businessId,
+          status: 'OPEN',
+          OR: [{ claimingOfferId: null }, { claimingAt: { lt: staleBefore } }],
+        },
         data: { status: 'CANCELLED' },
       });
       if (res.count === 1) {
@@ -171,9 +179,10 @@ export const waitlistRepo = {
       }
       const current = await tx.waitlistEntry.findFirst({
         where: { id, businessId },
-        select: { status: true },
+        select: { status: true, claimingOfferId: true, claimingAt: true },
       });
       if (!current) return 'missing';
+      if (current.status === 'OPEN') return 'busy';
       return current.status === 'FULFILLED' ? 'fulfilled' : 'already';
     }),
 
