@@ -34,6 +34,7 @@ const MINUTES: Record<SetupStepId, number> = {
   services: 3,
   staff: 2,
   hours: 2,
+  publish: 1,
   share: 1,
   invite: 1,
 };
@@ -73,6 +74,7 @@ function Checklist({
   userName: string;
 }) {
   const t = useTranslations('app.setup');
+  const publish = useTranslations('directory.owner.step');
   const shareSeen = useSyncExternalStore(
     subscribeStorage,
     () => readShareSeen(business.slug),
@@ -82,6 +84,7 @@ function Checklist({
     flags: business.setup,
     shareSeen,
     hasReceptionist: extras.hasReceptionist,
+    listed: business.listed,
   });
 
   return (
@@ -118,10 +121,14 @@ function Checklist({
       <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-3.5 p-0">
         {steps.map((step, index) => {
           const hint = step.done
-            ? t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
+            ? step.id === 'publish'
+              ? publish('doneHint')
+              : t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
             : step.current
               ? t('nextHint', { minutes: MINUTES[step.id] })
-              : t(`steps.${step.id}.hint`);
+              : step.id === 'publish'
+                ? publish('hint')
+                : t(`steps.${step.id}.hint`);
           return (
             <li key={step.id}>
               <Link
@@ -152,7 +159,7 @@ function Checklist({
                       step.done && 'text-muted line-through',
                     )}
                   >
-                    {t(`steps.${step.id}.title`)}
+                    {step.id === 'publish' ? publish('title') : t(`steps.${step.id}.title`)}
                     {step.done ? <span className="sr-only"> {t('done')}</span> : null}
                   </span>
                   <span className="text-sm text-muted">{hint}</span>

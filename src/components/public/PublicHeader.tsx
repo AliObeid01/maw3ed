@@ -34,8 +34,10 @@ export function PublicHeader({
 }: PublicHeaderProps) {
   const t = useTranslations('public.header');
   const appName = useTranslations('common')('appName');
+  const findLabel = useTranslations('directory')('nav');
   const [open, setOpen] = useState(false);
   const links = [
+    { href: '/directory', label: findLabel },
     { href: forBusinessesHref, label: t('forBusinesses') },
     { href: pricingHref, label: t('pricing') },
     { href: helpHref, label: t('help') },

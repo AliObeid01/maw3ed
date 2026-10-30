@@ -5,6 +5,7 @@ export const SETUP_STEP_IDS = [
   'services',
   'staff',
   'hours',
+  'publish',
   'share',
   'invite',
 ] as const;
@@ -18,13 +19,15 @@ export type SetupSignals = {
   shareSeen: boolean;
   /** At least one receptionist has joined or has a pending invite. */
   hasReceptionist: boolean;
+  /** The business opted in to the public directory. */
+  listed?: boolean;
 };
 
 /**
- * The six owner steps in board order. "Business details" is always done (signup collects name, link and
+ * The seven owner steps in board order. "Business details" is always done (signup collects name, link and
  * timezone). The first unfinished step is the current one (highlighted with a "next step" hint).
  */
-export function deriveSetupSteps({ flags, shareSeen, hasReceptionist }: SetupSignals): {
+export function deriveSetupSteps({ flags, shareSeen, hasReceptionist, listed = false }: SetupSignals): {
   steps: SetupStep[];
   doneCount: number;
   percent: number;
@@ -34,6 +37,7 @@ export function deriveSetupSteps({ flags, shareSeen, hasReceptionist }: SetupSig
     services: flags.hasServices,
     staff: flags.hasBookableStaff,
     hours: flags.hasHours,
+    publish: listed,
     share: shareSeen,
     invite: hasReceptionist,
   };
@@ -48,6 +52,7 @@ export const stepHrefs: Record<SetupStepId, string> = {
   services: '/app/services',
   staff: '/app/staff',
   hours: '/app/hours',
+  publish: '/app/share#directory',
   share: '/app/share',
   invite: '/app/staff',
 };

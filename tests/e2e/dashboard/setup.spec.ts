@@ -29,7 +29,7 @@ test.describe('3.4 setup checklist', () => {
       'aria-valuenow',
       '2',
     );
-    await expect(page.getByText('2 of 6 done')).toBeVisible();
+    await expect(page.getByText('2 of 7 done')).toBeVisible();
     await expect(page.getByText('5 services added')).toBeVisible();
 
     const current = page.getByRole('link', { name: /Staff and who does what/ });
@@ -48,8 +48,8 @@ test.describe('3.4 setup checklist', () => {
       state: freshState({ hasBookableStaff: true, hasHours: true }),
     });
     await page.goto('/app/setup');
-    await expect(page.getByText('4 of 6 done')).toBeVisible();
-    await expect(page.getByRole('link', { name: /Share your booking link/ })).toHaveAttribute(
+    await expect(page.getByText('4 of 7 done')).toBeVisible();
+    await expect(page.getByRole('link', { name: /List in the directory/ })).toHaveAttribute(
       'aria-current',
       'step',
     );
@@ -82,7 +82,7 @@ test.describe('3.4 setup checklist', () => {
     ).toBeVisible();
     failing = false;
     await page.getByRole('button', { name: 'Try again' }).click();
-    await expect(page.getByText('2 of 6 done')).toBeVisible();
+    await expect(page.getByText('2 of 7 done')).toBeVisible();
   });
 });
 

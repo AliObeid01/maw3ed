@@ -25,11 +25,12 @@ describe('deriveSetupSteps', () => {
       'services',
       'staff',
       'hours',
+      'publish',
       'share',
       'invite',
     ]);
     expect(doneCount).toBe(1);
-    expect(percent).toBe(17);
+    expect(percent).toBe(14);
     expect(steps.find((s) => s.current)?.id).toBe('services');
   });
 
@@ -44,6 +45,7 @@ describe('deriveSetupSteps', () => {
       services: true,
       staff: false,
       hours: true,
+      publish: false,
       share: false,
       invite: false,
     });
@@ -56,8 +58,9 @@ describe('deriveSetupSteps', () => {
       flags: { hasServices: true, hasBookableStaff: true, hasHours: true },
       shareSeen: true,
       hasReceptionist: true,
+      listed: true,
     });
-    expect(all.doneCount).toBe(6);
+    expect(all.doneCount).toBe(7);
     expect(all.percent).toBe(100);
     expect(all.steps.some((s) => s.current)).toBe(false);
   });

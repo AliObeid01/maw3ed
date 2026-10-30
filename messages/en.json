@@ -1347,5 +1347,81 @@
       "m1": "About 1 minute left to claim this offer.",
       "expired": "This offer has ended."
     }
+  },
+  "directory": {
+    "pageTitle": "Find a business",
+    "title": "Find a business",
+    "subtitle": "Browse businesses that take bookings online and book in a few taps.",
+    "nav": "Find a business",
+    "searchLabel": "Search by name",
+    "searchPlaceholder": "Business name",
+    "from": "From {price}",
+    "servicesCount": "{count, plural, one {# service} other {# services}}",
+    "book": "Book",
+    "bookAria": "Book at {name}",
+    "loading": "Loading businesses",
+    "loadMore": "Show more",
+    "moreError": "Could not load more. Try again.",
+    "empty": {
+      "title": "No businesses listed yet",
+      "body": "Businesses appear here when they choose to be listed. Check back soon.",
+      "searchTitle": "No matches",
+      "searchBody": "No business matches \"{search}\". Try a different name.",
+      "clear": "Clear search"
+    },
+    "error": {
+      "title": "Could not load the directory",
+      "body": "Check your connection and try again.",
+      "retry": "Try again"
+    },
+    "owner": {
+      "title": "List my business",
+      "body": "Show your business in the public directory so new clients can find you. Your booking link works either way.",
+      "switch": "List my business in the directory",
+      "statusOn": "Listed in the directory",
+      "statusOff": "Not listed. Only people with your link can book.",
+      "checklistTitle": "Before you can list",
+      "checklist": {
+        "services": "Add an active service",
+        "staff": "Add a bookable team member",
+        "hours": "Set working hours"
+      },
+      "done": "(done)",
+      "todo": "(to do)",
+      "fix": "Fix",
+      "listedToast": "Your business is now listed",
+      "unlistedToast": "Your business is no longer listed",
+      "notReady": "Not ready to list yet. Still needed: {items}.",
+      "step": {
+        "title": "List in the directory",
+        "hint": "Optional: let new clients find you",
+        "doneHint": "Listed in the directory"
+      }
+    }
+  },
+  "home": {
+    "pageTitle": "Fewer no-shows, more time",
+    "title": "Fewer no-shows. More time.",
+    "subtitle": "Online booking for salons, barbers and clinics, with automatic reminders that bring clients back or free the slot.",
+    "findBusiness": "Find a business",
+    "setUp": "Set up your business",
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "how": {
+      "title": "How it works",
+      "step": "Step {number}",
+      "book": {
+        "title": "Clients book online",
+        "body": "They pick a service and a time on your booking page. No app, no account."
+      },
+      "remind": {
+        "title": "Reminders go out",
+        "body": "An email 24 hours and 2 hours before, with a one-tap confirm or cancel link."
+      },
+      "drop": {
+        "title": "No-shows drop",
+        "body": "Cancelled slots go to your waitlist, and you see who tends to miss visits."
+      }
+    }
   }
 }
