@@ -30,7 +30,7 @@ test('shows the details: time, service, staff, source, status, client with call 
   await page.goto('/app/appointments/apone');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Appointment');
   const details = page.getByRole('region', { name: 'Appointment details' });
-  await expect(details).toContainText('Haircut · with Karim · booked online');
+  await expect(details).toContainText(/Haircut.* · with .*Karim.* · booked online/);
   await expect(details).toContainText('Confirmed by client');
   await expect(details.locator('bdi')).toContainText(/^\d{1,2}:\d{2} – \d{1,2}:\d{2}$/);
   const who = page.getByRole('region', { name: 'Client' });

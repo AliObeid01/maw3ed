@@ -12,6 +12,7 @@ import { useSummary } from '@/components/app/SummaryContext';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { OutcomeButtons } from '@/components/outcomes/OutcomeButtons';
 import { useFailureText } from '@/components/outcomes/useFailureText';
+import { Bidi, MetaLine, TimeRange, isolate } from '@/components/ui/Bidi';
 import { Button, buttonClasses, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
@@ -292,14 +293,12 @@ export function AppointmentView({ id }: { id: string }) {
             {eyebrow}
           </span>
           <span className="text-[34px] leading-none font-semibold tabular-nums md:text-[44px]">
-            <bdi dir="ltr">
-              {f.time(appt.startAt)} – {f.time(appt.endAt)}
-            </bdi>
+            <TimeRange start={f.time(appt.startAt)} end={f.time(appt.endAt)} />
           </span>
           <span className="text-[17px] text-hero-muted">
             {t('summary', {
-              service: appt.service.name,
-              staff: appt.staff.displayName,
+              service: isolate(appt.service.name),
+              staff: isolate(appt.staff.displayName),
               source: t(`source.${sourceKey}`),
             })}
           </span>
@@ -347,8 +346,9 @@ export function AppointmentView({ id }: { id: string }) {
               {appt.client.repeatNoShow && !deleted ? <NoShowBadge count={appt.client.noShows} /> : null}
             </span>
             <span className="text-sm text-muted">
-              <bdi dir="ltr">{formatPhone(appt.client.phone)}</bdi>
-              {deleted ? null : <> · {counts}</>}
+              <MetaLine
+                items={[<Bidi key="p" dir="ltr">{formatPhone(appt.client.phone)}</Bidi>, deleted ? null : counts]}
+              />
             </span>
           </ClientHead>
           <div className="flex w-full gap-2 sm:w-auto">

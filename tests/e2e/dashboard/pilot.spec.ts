@@ -68,7 +68,7 @@ test('supporting signals show the numbers; missing data shows a dash, never 0 or
   await expect(signals).toContainText('from the waitlist · 71.4%');
 });
 
-test('with no outcomes, no baseline and no signals every number is a dash and the form comes first on phones', async ({
+test('with no outcomes, no baseline and no signals every number is a dash and the metric band comes before the form on phones', async ({
   page,
 }) => {
   await mockOutcomesApi(page, {
@@ -93,7 +93,7 @@ test('with no outcomes, no baseline and no signals every number is a dash and th
   if (page.viewportSize()!.width < 1024) {
     const f = (await form(page).boundingBox())!;
     const hb = (await h.boundingBox())!;
-    expect(f.y).toBeLessThan(hb.y);
+    expect(f.y).toBeGreaterThan(hb.y); // the metric band leads, the baseline form follows
   }
 });
 

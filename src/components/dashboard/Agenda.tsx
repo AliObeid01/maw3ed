@@ -5,6 +5,7 @@ import { useId } from 'react';
 import { useTranslations } from 'next-intl';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
+import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Chip } from '@/components/ui/Chip';
 import type { TodayAppointment } from '@/lib/api/dashboard';
 import { apptTone, groupAgenda } from '@/lib/dashboard/agenda';
@@ -115,7 +116,12 @@ export function Agenda({
                           ) : null}
                         </span>
                         <span className="truncate text-sm text-muted">
-                          {appt.service.name} · {appt.staff.displayName}
+                          <MetaLine
+                            items={[
+                              <Bidi key="s">{appt.service.name}</Bidi>,
+                              <Bidi key="p">{appt.staff.displayName}</Bidi>,
+                            ]}
+                          />
                         </span>
                       </span>
                       <span className="flex shrink-0 flex-col items-end gap-1.5">

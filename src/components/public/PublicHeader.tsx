@@ -15,7 +15,6 @@ export type PublicHeaderProps = {
   homeHref?: string;
   forBusinessesHref?: string;
   pricingHref?: string;
-  helpHref?: string;
   signInHref?: string;
   className?: string;
 };
@@ -28,7 +27,6 @@ export function PublicHeader({
   homeHref = '/',
   forBusinessesHref = '/signup',
   pricingHref = '/pricing',
-  helpHref = '/help',
   signInHref = '/login',
   className,
 }: PublicHeaderProps) {
@@ -40,7 +38,6 @@ export function PublicHeader({
     { href: '/directory', label: findLabel },
     { href: forBusinessesHref, label: t('forBusinesses') },
     { href: pricingHref, label: t('pricing') },
-    { href: helpHref, label: t('help') },
   ];
 
   return (

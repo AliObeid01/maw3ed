@@ -80,7 +80,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F5 (viewport done in #7; timeZone remaining) FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
 - [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists. Unit-test `isLocale`/`dirFor` (P1.9).
 - [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
-- [ ] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
+- [x] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
 - [ ] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
 - [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.

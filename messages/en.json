@@ -28,7 +28,6 @@
       "navLabel": "Site",
       "forBusinesses": "For businesses",
       "pricing": "Pricing",
-      "help": "Help",
       "signIn": "Business sign in",
       "menu": "Open menu",
       "close": "Close"
@@ -46,6 +45,17 @@
       "empty": "—",
       "open": "View summary",
       "close": "Close"
+    },
+    "category": {
+      "salon": "Salon",
+      "barber": "Barber",
+      "barbershop": "Barbershop",
+      "clinic": "Clinic",
+      "physio": "Physiotherapy",
+      "physiotherapy": "Physiotherapy",
+      "spa": "Spa",
+      "dentist": "Dentist",
+      "dental": "Dental clinic"
     }
   },
   "app": {
@@ -578,7 +588,7 @@
         "slotGone": "Pick a time first.",
         "noWalkIn": "No free time left to book right now."
       },
-      "summary": "{name} · {service} · {day} {start} – {end} · with {staff}",
+      "summary": "{name} · {service} · {day} {range} · with {staff}",
       "summaryNoName": "New client",
       "summaryEmpty": "Pick a service and a time to see the summary.",
       "book": "Book appointment",
@@ -1148,7 +1158,7 @@
     },
     "confirmOnlyHint": "Can't make it? Use the cancel link in your reminder message.",
     "details": "{service} with {staff} · {price}",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "monthDay": "{month} {day}",
     "status": {
       "waiting": "Waiting for your reply",
@@ -1324,7 +1334,7 @@
     "loading": "Loading your offer",
     "eyebrow": "From your waitlist",
     "title": "A spot just opened up",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "detail": "{service} with {staff} · {price}",
     "expiresAt": "Offer expires at {time}",
     "minutesLeft": "{minutes, plural, one {# minute left} other {# minutes left}}",
@@ -1528,7 +1538,7 @@
     "loading": "Loading your booking",
     "eyebrow": "Deposit needed",
     "intro": "A small deposit confirms this booking. Your time is held for you until the countdown ends.",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "detail": "{service} with {staff}",
     "amount": "Deposit",
     "countdownLabel": "Time left to pay",
@@ -1564,5 +1574,10 @@
       "body": "It was cancelled, so there is nothing to pay. You can pick a free time again.",
       "action": "See free times"
     }
+  },
+  "notFound": {
+    "title": "We can't find that page",
+    "body": "The link may be old or mistyped. Head back to the start and try again.",
+    "action": "Go to Maw3ed"
   }
 }

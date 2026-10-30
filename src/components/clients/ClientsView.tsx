@@ -88,7 +88,12 @@ function ClientItem({ client, timezone }: { client: ClientRow; timezone: string 
             noShows: client.noShows,
             lateCancels: client.lateCancels,
           })}
-          {last ? ` · ${t('last', { day: last })}` : ''}
+          {last ? (
+            <>
+              {' · '}
+              <span className="whitespace-nowrap">{t('last', { day: last })}</span>
+            </>
+          ) : null}
         </span>
         <span className="hidden tabular-nums md:block">{client.attended}</span>
         <span className="hidden tabular-nums md:block">

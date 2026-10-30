@@ -308,8 +308,6 @@ function PilotContent() {
         <Skeletons />
       ) : (
         <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-5">
-          {/* Without a baseline there is nothing to compare: the form comes first on phones. */}
-          {!report.baseline ? <div className="lg:order-2">{baselineCard}</div> : null}
           <div className="flex min-w-0 flex-col gap-4 lg:order-1">
             <Hero view={view} report={report} timezone={timezone} />
             <Signals view={view} />
@@ -356,7 +354,8 @@ function PilotContent() {
               </p>
             ) : null}
           </div>
-          {report.baseline ? <div className="lg:order-2">{baselineCard}</div> : null}
+          {/* The metric band leads on phones too; the baseline form follows it. */}
+          <div className="lg:order-2">{baselineCard}</div>
         </div>
       )}
     </>

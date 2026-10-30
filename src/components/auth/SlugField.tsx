@@ -138,7 +138,7 @@ export function SlugField({
           : null}
       </p>
       {/* Only the status text is announced (polite), and "checking" only if it is slow. */}
-      <div id={statusId} aria-live="polite" className="min-h-[19px] text-[13px]">
+      <div id={statusId} aria-live="polite" className={cn('text-[13px]', status !== 'idle' && 'min-h-[19px]')}>
         {text && !error ? (
           <span
             className={cn(

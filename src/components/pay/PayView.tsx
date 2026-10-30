@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { PageState } from '@/components/public/PageState';
+import { isolate } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -177,8 +178,8 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
 
   const shown = outcome.kind === 'paid' ? outcome.view : view;
   const { appointment: a, deposit } = shown;
-  const when = t('when', { date: f.day(a.startAt), start: f.time(a.startAt), end: f.time(a.endAt) });
-  const detail = t('detail', { service: a.service.name, staff: a.staff.displayName });
+  const when = t('when', { date: f.day(a.startAt), range: f.range(a.startAt, a.endAt) });
+  const detail = t('detail', { service: isolate(a.service.name), staff: isolate(a.staff.displayName) });
 
   if (outcome.kind === 'paid') {
     return (

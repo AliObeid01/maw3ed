@@ -7,6 +7,7 @@ import { useRef, useState, type ReactNode } from 'react';
 import { PageState } from '@/components/public/PageState';
 import { BusinessHero } from '@/components/public/BusinessHero';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
+import { isolate, ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -111,13 +112,12 @@ function LinkBody({
 
   const when = t('when', {
     date: f.day(appointment.startAt),
-    start: f.time(appointment.startAt),
-    end: f.time(appointment.endAt),
+    range: f.range(appointment.startAt, appointment.endAt),
   });
   const detail = t('details', {
-    service: appointment.service.name,
-    staff: appointment.staff.displayName,
-    price: f.money(appointment.service.price),
+    service: isolate(appointment.service.name),
+    staff: isolate(appointment.staff.displayName),
+    price: ltr(f.money(appointment.service.price)),
   });
   const cutoff = f.dayAndTime(link.cancelCutoffAt);
   const late = cancelNoteKind(link) === 'late';

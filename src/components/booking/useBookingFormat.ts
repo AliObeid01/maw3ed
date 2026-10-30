@@ -2,6 +2,7 @@
 
 import { DateTime } from 'luxon';
 import { useFormatter } from 'next-intl';
+import { timeRangeText } from '@/components/ui/Bidi';
 import { useAppFormat } from '@/lib/useAppFormat';
 
 const LATIN = { numberingSystem: 'latn' } as const;
@@ -23,6 +24,8 @@ export function useBookingFormat(timezone: string) {
   return {
     money,
     duration,
+    /** "9:00 – 9:30" as one left-to-right unit for ICU arguments. */
+    range: (startIso: string, endIso: string) => timeRangeText(time(startIso), time(endIso)),
     /** "9:00" / "10:30": 24-hour, Latin digits in both languages (Luxon, so it never depends on the ICU locale). */
     time,
     /** "Thu 29 Oct" */

@@ -12,6 +12,7 @@ import { DayStrip } from '@/components/booking/DayStrip';
 import { PhoneField } from '@/components/booking/PhoneField';
 import { SlotGrid } from '@/components/booking/SlotGrid';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
+import { isolate } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input, Select } from '@/components/ui/Field';
@@ -313,10 +314,9 @@ export function FrontDeskForm() {
   const summary = slot && service
     ? t('summary', {
         name: values.name.trim() || t('summaryNoName'),
-        service: service.name,
+        service: isolate(service.name),
         day: f.day(slot.startAt),
-        start: f.time(slot.startAt),
-        end: f.time(slot.endAt),
+        range: f.range(slot.startAt, slot.endAt),
         staff:
           effectiveStaff === 'anyone'
             ? t('anyone')
