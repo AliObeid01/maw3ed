@@ -129,4 +129,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F25 BE** Argon2 concurrency cap is per instance on serverless; rate limits in Postgres are what bound the fleet. Revisit if the signup/login flood risk matters.
 - [ ] **F26 QA** Before launch run the reserved-slug check from docs/HUMAN_TASKS.md and the real-stack waitlist journey (cancel -> offer email -> claim in a browser): not yet run end to end against a real database.
 - [ ] **F27 BE** `src/i18n/request.ts` imports repositories directly (layering): move the business-locale lookup behind a service and wrap it in React `cache` so one request does one lookup.
+- [ ] **F29 BE** Deposit privacy: a `PENDING_PAYMENT` answer reveals that a phone has no-show history. Per-phone rate limit is the pilot mitigation; add email or OTP proof of phone control before revealing a hold (see ARCHITECTURE key decisions).
+- [ ] **F30 BE** Refund or credit rule for paid deposits on cancel or no-show, to settle before real payments (today test mode: nothing is refunded or credited).
+- [ ] **F31 BE/FE** Email the pay link when a hold is created, so a closed tab does not lose the hold.
 - [ ] **F28 FE** `loadSlotWindow` (`src/lib/booking/window.ts`) has no fallback when a known `bookingWindowDays` is still rejected with 400 on `to` (for example the owner shortened the window meanwhile).

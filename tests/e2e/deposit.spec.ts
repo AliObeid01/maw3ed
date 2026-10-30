@@ -26,7 +26,7 @@ async function mockDeposit(page: Page) {
       id: 'ckappt000000000000000000',
       startAt,
       endAt,
-      status: state === 'PAID' ? 'CONFIRMED' : 'PENDING_PAYMENT',
+      status: state === 'PAID' ? 'BOOKED' : 'PENDING_PAYMENT',
       service: { id: service.id, name: service.name, durationMin: 30 },
       staff,
     },

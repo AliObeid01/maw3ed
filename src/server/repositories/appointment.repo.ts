@@ -1,8 +1,10 @@
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
+import { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
 import { clientRepo } from './client.repo';
 import { expirePendingDeposits } from './payment.repo';
 import { reminderJobRepo, type NewReminderJob } from './reminderJob.repo';
+import { markClaimedIn, OFFER_KEY_PREFIX } from './waitlist.repo';
 
 const detailSelect = {
   id: true,
@@ -36,7 +38,8 @@ export interface NewBooking {
 
 export interface NewDeposit {
   holdExpiresAt: Date;
-  payment: { provider: string; externalId: string; amount: number; currency: string };
+  /** The provider checkout id is attached after the insert (appointmentRepo.setCheckoutId). */
+  payment: { provider: string; amount: number; currency: string };
 }
 
 export interface ExpiredHold {
@@ -123,6 +126,7 @@ export const appointmentRepo = {
             purpose: 'DEPOSIT',
             appointmentId: appointment.id,
             status: 'PENDING',
+            externalId: `pending_${appointment.id}`,
             ...data.deposit.payment,
           },
         });
@@ -231,6 +235,7 @@ export const appointmentRepo = {
         endAt: true,
         status: true,
         holdExpiresAt: true,
+        cancelledVia: true,
         serviceId: true,
         staffId: true,
         service: { select: { id: true, name: true, durationMin: true } },
@@ -260,9 +265,11 @@ export const appointmentRepo = {
    */
   confirmPaid: (businessId: string, id: string, now: Date, jobs: NewReminderJob[]) =>
     db.$transaction(async (tx) => {
+      // BOOKED, no confirmedAt: the deposit is not the client's "I'll be there" (the PAID Payment row is the
+      // proof of deposit; the client can still confirm with the link, which counts in the confirm rate).
       const res = await tx.appointment.updateMany({
         where: { id, businessId, status: 'PENDING_PAYMENT', holdExpiresAt: { gt: now } },
-        data: { status: 'CONFIRMED', confirmedAt: now },
+        data: { status: 'BOOKED' },
       });
       if (res.count !== 1) return false;
       await tx.payment.updateMany({
@@ -270,6 +277,25 @@ export const appointmentRepo = {
         data: { status: 'PAID' },
       });
       await reminderJobRepo.createForAppointment(businessId, tx, id, jobs);
+      // A waitlist claim is only a claim once it is paid (until then the offer stays OPEN, the entry OPEN,
+      // and no refill is counted). The offer id is the booking's idempotency key suffix.
+      const appt = await tx.appointment.findFirst({
+        where: { id, businessId },
+        select: { source: true, idempotencyKey: true },
+      });
+      if (appt?.source === 'WAITLIST' && appt.idempotencyKey?.startsWith(OFFER_KEY_PREFIX)) {
+        const offer = await tx.waitlistOffer.findFirst({
+          where: { id: appt.idempotencyKey.slice(OFFER_KEY_PREFIX.length), businessId },
+          select: { id: true, entryId: true, freedFromAppointmentId: true },
+        });
+        if (offer)
+          await markClaimedIn(tx, businessId, {
+            offerId: offer.id,
+            entryId: offer.entryId,
+            freedFromAppointmentId: offer.freedFromAppointmentId,
+            appointmentId: id,
+          });
+      }
       return true;
     }),
 
@@ -278,23 +304,73 @@ export const appointmentRepo = {
    * EXPIRED, in one transaction. The inner SELECT ... FOR UPDATE SKIP LOCKED means two overlapping runs
    * never take the same row, and a pay that holds the row wins and is skipped. Returns the freed slots.
    */
-  expireHolds: (now: Date, limit: number) =>
+  expireHolds: (now: Date, limit: number) => expireLapsed(now, limit),
+
+  /**
+   * The same conditional expiry, scoped to ONE business and a time window (optionally one staff member).
+   * Called by the booking path so a lapsed hold the cron has not swept yet never blocks a slot. Only rows it
+   * actually expired are returned, so the caller fires the side effects for exactly those.
+   */
+  expireHoldsFor: (
+    businessId: string,
+    scope: { staffId?: string | undefined; from: Date; to: Date },
+    now: Date,
+    limit = 50,
+  ) => expireLapsed(now, limit, { businessId, ...scope }),
+
+  /** Attach the provider's checkout id to the deposit Payment created with the hold (set after the insert). */
+  async setCheckoutId(businessId: string, appointmentId: string, externalId: string) {
+    const res = await db.payment.updateMany({
+      where: { businessId, appointmentId, purpose: 'DEPOSIT', status: 'PENDING' },
+      data: { externalId },
+    });
+    return res.count === 1;
+  },
+
+  /** The provider could not open a checkout: release the just-created hold (SYSTEM) and close its payment. */
+  abandonHold: (businessId: string, id: string, now: Date) =>
     db.$transaction(async (tx) => {
-      const ts = now.toISOString();
-      const rows = await tx.$queryRaw<ExpiredHold[]>`
-        UPDATE "Appointment"
-        SET "status" = 'CANCELLED', "cancelledAt" = ${ts}::timestamptz, "cancelledVia" = 'SYSTEM',
-            "updatedAt" = ${ts}::timestamptz
-        WHERE "id" IN (
-          SELECT "id" FROM "Appointment"
-          WHERE "status" = 'PENDING_PAYMENT' AND "holdExpiresAt" <= ${ts}::timestamptz
-          ORDER BY "holdExpiresAt" ASC
-          LIMIT ${limit}
-          FOR UPDATE SKIP LOCKED)
-        RETURNING "id", "businessId", "serviceId", "staffId", "startAt", "endAt"`;
-      const byBusiness = new Map<string, string[]>();
-      for (const r of rows) byBusiness.set(r.businessId, [...(byBusiness.get(r.businessId) ?? []), r.id]);
-      for (const [businessId, ids] of byBusiness) await expirePendingDeposits(tx, businessId, ids);
-      return rows;
+      const res = await tx.appointment.updateMany({
+        where: { id, businessId, status: 'PENDING_PAYMENT' },
+        data: { status: 'CANCELLED', cancelledAt: now, cancelledVia: 'SYSTEM' },
+      });
+      await expirePendingDeposits(tx, businessId, [id]);
+      return res.count === 1;
     }),
 };
+
+interface Scope {
+  businessId: string;
+  staffId?: string | undefined;
+  from: Date;
+  to: Date;
+}
+
+/** Lapsed holds -> CANCELLED/SYSTEM + their PENDING payment EXPIRED, one transaction, rows claimed with SKIP LOCKED. */
+function expireLapsed(now: Date, limit: number, scope?: Scope) {
+  return db.$transaction(async (tx) => {
+    const ts = now.toISOString();
+    const where = scope
+      ? Prisma.sql`AND "businessId" = ${scope.businessId}
+          AND "startAt" < ${scope.to.toISOString()}::timestamptz
+          AND "blockedUntil" > ${scope.from.toISOString()}::timestamptz
+          ${scope.staffId ? Prisma.sql`AND "staffId" = ${scope.staffId}` : Prisma.empty}`
+      : Prisma.empty;
+    const rows = await tx.$queryRaw<ExpiredHold[]>`
+      UPDATE "Appointment"
+      SET "status" = 'CANCELLED', "cancelledAt" = ${ts}::timestamptz, "cancelledVia" = 'SYSTEM',
+          "updatedAt" = ${ts}::timestamptz
+      WHERE "id" IN (
+        SELECT "id" FROM "Appointment"
+        WHERE "status" = 'PENDING_PAYMENT' AND "holdExpiresAt" <= ${ts}::timestamptz ${where}
+        ORDER BY "holdExpiresAt" ASC
+        LIMIT ${limit}
+        FOR UPDATE SKIP LOCKED)
+      RETURNING "id", "businessId", "serviceId", "staffId", "startAt", "endAt"`;
+    const byBusiness = new Map<string, string[]>();
+    for (const r of rows)
+      byBusiness.set(r.businessId, [...(byBusiness.get(r.businessId) ?? []), r.id]);
+    for (const [businessId, ids] of byBusiness) await expirePendingDeposits(tx, businessId, ids);
+    return rows;
+  });
+}

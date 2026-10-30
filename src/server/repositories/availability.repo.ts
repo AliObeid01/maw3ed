@@ -12,6 +12,8 @@ export interface AvailabilityQuery {
   /** UTC half-open range [rangeStart, rangeEnd). */
   rangeStart: Date;
   rangeEnd: Date;
+  /** Instant used to ignore lapsed deposit holds (a PENDING_PAYMENT whose holdExpiresAt has passed). */
+  now?: Date;
 }
 
 export const availabilityRepo = {
@@ -49,7 +51,15 @@ export const availabilityRepo = {
         appointments: {
           where: {
             businessId,
-            status: { in: [...BLOCKING_STATUSES] },
+            // A lapsed deposit hold no longer blocks: the booking path sweeps it (expireHoldsFor) before
+            // inserting, so showing the slot free is safe. The constraint still referees any race.
+            OR: [
+              { status: { in: BLOCKING_STATUSES.filter((s) => s !== 'PENDING_PAYMENT') } },
+              {
+                status: 'PENDING_PAYMENT',
+                ...(q.now ? { holdExpiresAt: { gt: q.now } } : {}),
+              },
+            ],
             startAt: { lt: q.rangeEnd },
             blockedUntil: { gt: q.rangeStart },
           },

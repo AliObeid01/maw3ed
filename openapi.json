@@ -7836,7 +7836,7 @@
             }
           },
           "410": {
-            "description": "HOLD_EXPIRED with `error.data` { slug, serviceId, slots } (fresh slots for that day): the hold lapsed or was cancelled and the slot was released",
+            "description": "HOLD_EXPIRED (the hold lapsed unpaid) or BOOKING_CANCELLED (it was cancelled), both with `error.data` { slug, serviceId, slots } (fresh slots for that day); the slot was released",
             "content": {
               "application/json": {
                 "schema": {
@@ -7849,7 +7849,7 @@
       },
       "post": {
         "summary": "Pay the deposit (TEST MODE: completes through the fake payment provider)",
-        "description": "Only the provider result flips the appointment to CONFIRMED (Payment PAID, reminders created, once). Repeating it returns 200 and changes nothing. Never takes card data.",
+        "description": "Only the provider result flips the appointment from PENDING_PAYMENT to BOOKED, with no confirmedAt: the client can still confirm by link (Payment PAID, reminders created, once). Repeating it returns 200 and changes nothing. Never takes card data.",
         "tags": [
           "deposit"
         ],
@@ -7916,7 +7916,7 @@
             }
           },
           "410": {
-            "description": "HOLD_EXPIRED with `error.data` { slug, serviceId, slots } (fresh slots for that day): the hold lapsed or was cancelled and the slot was released",
+            "description": "HOLD_EXPIRED (the hold lapsed unpaid) or BOOKING_CANCELLED (it was cancelled), both with `error.data` { slug, serviceId, slots } (fresh slots for that day); the slot was released",
             "content": {
               "application/json": {
                 "schema": {

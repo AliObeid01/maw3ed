@@ -54,6 +54,7 @@ export async function computeAvailability(
     staffId: q.staffId,
     rangeStart: q.startUtc,
     rangeEnd: q.endUtc,
+    now,
   });
   if (!loaded) return null;
   const staff: StaffAvailability[] = loaded.staff.map((s) => ({

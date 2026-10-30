@@ -37,7 +37,7 @@ export const PayViewDto = registry.register(
 );
 
 const expired = err(
-  'HOLD_EXPIRED with `error.data` { slug, serviceId, slots } (fresh slots for that day): the hold lapsed or was cancelled and the slot was released',
+  'HOLD_EXPIRED (the hold lapsed unpaid) or BOOKING_CANCELLED (it was cancelled), both with `error.data` { slug, serviceId, slots } (fresh slots for that day); the slot was released',
 );
 
 registry.registerPath({
@@ -61,7 +61,7 @@ registry.registerPath({
   path: '/api/pay/{token}',
   summary: 'Pay the deposit (TEST MODE: completes through the fake payment provider)',
   description:
-    'Only the provider result flips the appointment to CONFIRMED (Payment PAID, reminders created, once). Repeating it returns 200 and changes nothing. Never takes card data.',
+    'Only the provider result flips the appointment from PENDING_PAYMENT to BOOKED, with no confirmedAt: the client can still confirm by link (Payment PAID, reminders created, once). Repeating it returns 200 and changes nothing. Never takes card data.',
   tags: ['deposit'],
   request: { params: PayParams, body: { content: json(PayBody) } },
   responses: {

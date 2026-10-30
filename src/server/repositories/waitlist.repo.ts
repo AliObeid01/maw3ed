@@ -9,6 +9,34 @@ export const toLocalDate = (stored: Date) => stored.toISOString().slice(0, 10);
 
 const HOLDING = [...SLOT_HOLDING_STATUSES];
 
+/** A waitlist claim books with the idempotency key `waitlist-offer-<offerId>`. */
+export const OFFER_KEY_PREFIX = 'waitlist-offer-';
+
+/** Claim bookkeeping on an existing transaction (see waitlistRepo.markClaimed). Idempotent. */
+export async function markClaimedIn(
+  tx: Prisma.TransactionClient,
+  businessId: string,
+  a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },
+) {
+  await tx.waitlistOffer.updateMany({
+    where: { id: a.offerId, businessId, status: { in: ['OPEN', 'EXPIRED', 'SUPERSEDED'] } },
+    data: { status: 'CLAIMED', claimedAppointmentId: a.appointmentId },
+  });
+  await tx.waitlistEntry.updateMany({
+    where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
+    data: { status: 'FULFILLED', claimingOfferId: null, claimingAt: null },
+  });
+  await tx.waitlistOffer.updateMany({
+    where: {
+      businessId,
+      id: { not: a.offerId },
+      status: 'OPEN',
+      OR: [{ freedFromAppointmentId: a.freedFromAppointmentId }, { entryId: a.entryId }],
+    },
+    data: { status: 'SUPERSEDED' },
+  });
+}
+
 const entrySelect = {
   id: true,
   status: true,
@@ -408,26 +436,7 @@ export const waitlistRepo = {
   markClaimed: (
     businessId: string,
     a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },
-  ) =>
-    db.$transaction(async (tx) => {
-      await tx.waitlistOffer.updateMany({
-        where: { id: a.offerId, businessId, status: { in: ['OPEN', 'EXPIRED', 'SUPERSEDED'] } },
-        data: { status: 'CLAIMED', claimedAppointmentId: a.appointmentId },
-      });
-      await tx.waitlistEntry.updateMany({
-        where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
-        data: { status: 'FULFILLED', claimingOfferId: null, claimingAt: null },
-      });
-      await tx.waitlistOffer.updateMany({
-        where: {
-          businessId,
-          id: { not: a.offerId },
-          status: 'OPEN',
-          OR: [{ freedFromAppointmentId: a.freedFromAppointmentId }, { entryId: a.entryId }],
-        },
-        data: { status: 'SUPERSEDED' },
-      });
-    }),
+  ) => db.$transaction((tx) => markClaimedIn(tx, businessId, a)),
 
   /**
    * Atomically reserve an OPEN entry for one offer (one conditional UPDATE). Another offer of the same

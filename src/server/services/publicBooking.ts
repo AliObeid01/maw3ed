@@ -1,7 +1,10 @@
+import { normalizePhone } from '@/server/domain/phone';
 import { AppError } from '@/server/http/errors';
 import type { RouteContext } from '@/server/http/withRoute';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { availabilityService } from './availability';
+import { sha256Hex } from './crypto';
+import { rateLimiter, routeRateLimitDisabled } from './rateLimit';
 import { book, type BookDeps, defaultBookDeps } from './booking';
 
 async function resolve(slug: string) {
@@ -62,6 +65,13 @@ export const publicBookingService = {
   ) {
     const business = await resolve(slug);
     const logger = ctx.logger.child({ businessId: business.id });
+    // Per-phone budget (any IP): a deposit hold in the answer reveals "this number has no-shows", so the
+    // number of probes per phone is bounded. Invalid numbers fall through to the booking's own 400.
+    const phone = normalizePhone(body.client.phone);
+    if (phone && !routeRateLimitDisabled()) {
+      const decision = await rateLimiter.consume('bookingPhone', sha256Hex(phone));
+      if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+    }
     return book(
       { businessId: business.id, requestId: ctx.requestId, logger },
       {

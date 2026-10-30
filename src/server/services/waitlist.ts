@@ -24,6 +24,7 @@ import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import {
   toLocalDate,
+  OFFER_KEY_PREFIX,
   waitlistRepo,
   type EntryRow,
   type OfferRow,
@@ -62,7 +63,7 @@ const bookDepsOf = (deps: WaitlistDeps): BookDeps => ({
 
 /** The provider idempotency key and the booking idempotency key are both derived from the offer id. */
 export const offerEmailKey = (offerId: string) => `waitlist-offer-${offerId}`;
-export const offerBookingKey = (offerId: string) => `waitlist-offer-${offerId}`;
+export const offerBookingKey = (offerId: string) => `${OFFER_KEY_PREFIX}${offerId}`;
 
 const IS_ACTIVE = (status: string) =>
   (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(status);
@@ -445,12 +446,15 @@ export const offersService = {
       if (result.replay && !IS_ACTIVE(result.appointment.status))
         throw AppError.conflict('CONFLICT', undefined, 'That booking was cancelled.');
       // Idempotent bookkeeping: also repairs a claim that booked but crashed before recording.
-      await waitlistRepo.markClaimed(businessId, {
-        offerId: o.id,
-        entryId: o.entryId,
-        freedFromAppointmentId: o.freedFromAppointmentId,
-        appointmentId: result.appointment.id,
-      });
+      // A deposit hold is not a claim yet: the offer, the entry and the refill metric are only touched
+      // when the deposit is paid (appointmentRepo.confirmPaid), so a lapsed unpaid hold leaves no trace.
+      if (result.appointment.status !== 'PENDING_PAYMENT')
+        await waitlistRepo.markClaimed(businessId, {
+          offerId: o.id,
+          entryId: o.entryId,
+          freedFromAppointmentId: o.freedFromAppointmentId,
+          appointmentId: result.appointment.id,
+        });
       ctx.logger.info(
         { businessId, offerId: o.id, appointmentId: result.appointment.id, replay: result.replay },
         'waitlist offer claimed',

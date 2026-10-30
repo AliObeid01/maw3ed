@@ -8,11 +8,16 @@ import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/en
 import { AppError, pgErrorCode } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
 import { getPaymentProvider, type PaymentProvider } from '@/server/providers/payment';
-import { appointmentRepo, type NewDeposit } from '@/server/repositories/appointment.repo';
+import {
+  appointmentRepo,
+  type ExpiredHold,
+  type NewDeposit,
+} from '@/server/repositories/appointment.repo';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { clientRepo } from '@/server/repositories/client.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
+import { onSlotFreed } from './slotFreed';
 
 export interface BookingCtx {
   businessId: string;
@@ -122,10 +127,16 @@ function result(a: Stored, replay: boolean, cfg: LinkConfig): BookingResult {
 const slotTaken = (slots: PublicSlot[]) =>
   AppError.conflict('SLOT_TAKEN', { slots }, 'That time is no longer available. Pick another.');
 
+interface DepositPlan {
+  deposit: NewDeposit;
+  provider: PaymentProvider;
+  amount: number;
+  currency: string;
+}
+
 /**
- * Does this booking need a deposit? If so, open the (fake, test-mode) checkout and return what the insert
- * stores. Front-desk bookings never reach the provider. The checkout key derives from the booking's
- * Idempotency-Key so a retried request opens the same checkout.
+ * Does this booking need a deposit? Decides only: nothing is opened at the provider yet (that happens AFTER
+ * the insert wins the slot, so a lost race leaves no orphan checkout). Front-desk bookings never need one.
  */
 async function depositFor(
   businessId: string,
@@ -133,7 +144,7 @@ async function depositFor(
   input: BookInput,
   now: Date,
   deps: BookDeps,
-): Promise<NewDeposit | undefined> {
+): Promise<DepositPlan | undefined> {
   if (input.source === 'FRONT_DESK') return undefined;
   const settings = await publicBusinessRepo.depositSettings(businessId);
   if (!settings?.enabled) return undefined;
@@ -148,33 +159,79 @@ async function depositFor(
   )
     return undefined;
   const provider = (deps.payments ?? getPaymentProvider)();
-  const session = await provider.createCheckout({
-    businessId,
-    purpose: 'DEPOSIT',
+  return {
+    provider,
     amount: settings.amount,
     currency: settings.currency,
-    idempotencyKey: input.idempotencyKey ? `deposit:${input.idempotencyKey}` : undefined,
-  });
-  return {
-    holdExpiresAt: holdExpiresAtFor(now),
-    payment: {
-      provider: provider.name,
-      externalId: session.externalId,
-      amount: settings.amount,
-      currency: settings.currency,
+    deposit: {
+      holdExpiresAt: holdExpiresAtFor(now),
+      payment: { provider: provider.name, amount: settings.amount, currency: settings.currency },
     },
   };
 }
 
+/** Open the checkout for a hold that now owns its slot. A provider failure releases the hold. */
+async function openCheckout(
+  ctx: BookingCtx,
+  plan: DepositPlan,
+  stored: Stored,
+  key: string | undefined,
+  now: Date,
+): Promise<void> {
+  try {
+    const session = await plan.provider.createCheckout({
+      businessId: ctx.businessId,
+      purpose: 'DEPOSIT',
+      amount: plan.amount,
+      currency: plan.currency,
+      appointmentId: stored.id,
+      idempotencyKey: key ? `deposit:${key}` : undefined,
+    });
+    await appointmentRepo.setCheckoutId(ctx.businessId, stored.id, session.externalId);
+  } catch {
+    ctx.logger.error(
+      { businessId: ctx.businessId, appointmentId: stored.id },
+      'deposit checkout failed; releasing the hold',
+    );
+    await appointmentRepo.abandonHold(ctx.businessId, stored.id, now);
+    throw AppError.unavailable('Payments are temporarily unavailable. Please try again.');
+  }
+}
+
 /**
- * THE booking path: public bookings, front-desk bookings and (later) waitlist claims and deposits all
- * insert through here. The friendly availability re-check is advisory; the appointment_no_overlap
- * constraint (23P01) is the only referee.
+ * THE booking path: public bookings, front-desk bookings, waitlist claims and deposit holds all insert
+ * through here. The friendly availability re-check is advisory; the appointment_no_overlap constraint
+ * (23P01) is the only referee. Lapsed deposit holds in the way are swept first (scoped to this business and
+ * day); the waitlist cascade for those freed slots runs afterwards, exactly like the cron's.
  */
 export async function book(
   ctx: BookingCtx,
   input: BookInput,
   deps: BookDeps = defaultBookDeps,
+): Promise<BookingResult> {
+  const swept: ExpiredHold[] = [];
+  try {
+    return await bookInner(ctx, input, deps, swept);
+  } finally {
+    for (const hold of swept)
+      await onSlotFreed(
+        { businessId: hold.businessId, logger: ctx.logger },
+        {
+          appointmentId: hold.id,
+          serviceId: hold.serviceId,
+          staffId: hold.staffId,
+          startAt: hold.startAt,
+          endAt: hold.endAt,
+        },
+      );
+  }
+}
+
+async function bookInner(
+  ctx: BookingCtx,
+  input: BookInput,
+  deps: BookDeps,
+  swept: ExpiredHold[],
 ): Promise<BookingResult> {
   const { businessId } = ctx;
   // Everything the response needs is resolved BEFORE any write: a misconfiguration must never surface
@@ -226,6 +283,18 @@ export async function book(
     endUtc: day.endUtc,
   };
 
+  // A deposit hold that lapsed but was not swept by the cron yet must not block this slot.
+  const sweep = async () => {
+    const rows = await appointmentRepo.expireHoldsFor(
+      businessId,
+      { staffId: specific, from: day.startUtc, to: day.endUtc },
+      deps.now(),
+    );
+    swept.push(...rows);
+    return rows.length;
+  };
+  await sweep();
+
   const avail = await computeAvailability(business, query, now);
   if (!avail) throw AppError.notFound('Service not found.');
   if (specific && avail.staff.length === 0) {
@@ -250,10 +319,12 @@ export async function book(
   const slot = avail.slots.find((s) => s.startAt.getTime() === startMs)!;
   // Deposit (FR-26): decided from the client's no-show counter. The booking still goes through the SAME
   // insert below; only its status (PENDING_PAYMENT), reminders (none yet) and a Payment row differ.
-  const deposit = await depositFor(businessId, phone, input, now, deps);
+  const plan = await depositFor(businessId, phone, input, now, deps);
+  const deposit = plan?.deposit;
   const reminders = deposit ? [] : plannedJobs(input.startAt, now);
   await deps.afterAvailability?.({ candidates: [...remaining] });
 
+  let sweptAgain = false;
   while (remaining.length > 0) {
     const pick = specific ?? pickStaff(remaining, counts)!;
     try {
@@ -281,8 +352,10 @@ export async function book(
         },
         deposit ? 'appointment held pending deposit' : 'appointment booked',
       );
+      if (plan) await openCheckout(ctx, plan, stored, key, deps.now());
       return result(stored, false, cfg);
     } catch (error) {
+      if (error instanceof AppError) throw error;
       const pg = pgErrorCode(error);
       const code = (error as { code?: unknown } | null)?.code;
       const unique = pg === '23505' || code === 'P2002';
@@ -295,6 +368,11 @@ export async function book(
       }
       if (unique) throw error;
       ctx.logger.info({ businessId, staffId: pick }, 'slot taken at insert (23P01)');
+      // The blocker may be a hold that lapsed since the sweep: sweep once more and retry the same pick once.
+      if (!sweptAgain) {
+        sweptAgain = true;
+        if ((await sweep()) > 0) continue;
+      }
       remaining = remaining.filter((id) => id !== pick);
     }
   }

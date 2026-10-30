@@ -48,12 +48,12 @@ const expiredDataSchema = z.object({
   slots: z.array(slotSchema).default([]),
 });
 
-export type PayFailure = 'invalid' | 'expired' | 'notPaid' | 'network' | 'busy' | 'generic';
+export type PayFailure = 'invalid' | 'expired' | 'cancelled' | 'notPaid' | 'network' | 'busy' | 'generic';
 
 export function classifyPayError(error: unknown): PayFailure {
   if (!(error instanceof ApiError)) return 'generic';
   if (error.status === 404 || error.status === 400) return 'invalid';
-  if (error.status === 410) return 'expired';
+  if (error.status === 410) return error.code === 'BOOKING_CANCELLED' ? 'cancelled' : 'expired';
   if (error.status === 409 && error.code === 'PAYMENT_NOT_COMPLETED') return 'notPaid';
   if (error.code === 'NETWORK') return 'network';
   if (error.status === 429 || error.status >= 500) return 'busy';

@@ -47,7 +47,8 @@ export function PayView({ token }: { token: string }) {
   if (resource.error) {
     const failure = classifyPayError(resource.error);
     if (failure === 'invalid') return <Invalid />;
-    if (failure === 'expired') return <Ended slug={expiredData(resource.error).slug} />;
+    if (failure === 'expired' || failure === 'cancelled')
+      return <Ended kind={failure} slug={expiredData(resource.error).slug} />;
     return (
       <PageState
         role="alert"
@@ -84,19 +85,25 @@ function Invalid() {
   );
 }
 
-function Ended({ slug }: { slug?: string | undefined }) {
+function Ended({
+  slug,
+  kind = 'expired',
+}: {
+  slug?: string | undefined;
+  kind?: 'expired' | 'cancelled';
+}) {
   const t = useTranslations('deposit');
   return (
     <PageState
       role="status"
       tone="warning"
       icon={<Clock size={26} />}
-      title={t('expired.title')}
-      body={t('expired.body')}
+      title={t(`${kind}.title`)}
+      body={t(`${kind}.body`)}
       action={
         slug ? (
           <ButtonLink href={`/b/${encodeURIComponent(slug)}`} size="lg" block>
-            {t('expired.action')}
+            {t(`${kind}.action`)}
           </ButtonLink>
         ) : undefined
       }
@@ -119,7 +126,7 @@ type Outcome =
   | { kind: 'idle' }
   | { kind: 'paying' }
   | { kind: 'paid'; view: Pay }
-  | { kind: 'ended'; slug?: string | undefined }
+  | { kind: 'ended'; slug?: string | undefined; as: 'expired' | 'cancelled' }
   | { kind: 'invalid' }
   | { kind: 'problem'; failure: PayFailure };
 
@@ -155,7 +162,8 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
       window.scrollTo({ top: 0 });
     } catch (error) {
       const failure = classifyPayError(error);
-      if (failure === 'expired') setOutcome({ kind: 'ended', slug: expiredData(error).slug });
+      if (failure === 'expired' || failure === 'cancelled')
+        setOutcome({ kind: 'ended', slug: expiredData(error).slug, as: failure });
       else if (failure === 'invalid') setOutcome({ kind: 'invalid' });
       else setOutcome({ kind: 'problem', failure });
     } finally {
@@ -164,7 +172,7 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
   }
 
   if (outcome.kind === 'invalid') return <Invalid />;
-  if (outcome.kind === 'ended') return <Ended slug={outcome.slug} />;
+  if (outcome.kind === 'ended') return <Ended kind={outcome.as} slug={outcome.slug} />;
   if (lapsed) return <Ended slug={view.business.slug} />;
 
   const shown = outcome.kind === 'paid' ? outcome.view : view;

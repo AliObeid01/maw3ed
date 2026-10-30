@@ -1551,6 +1551,11 @@
       "invalid": "This link no longer works.",
       "expired": "This hold has expired.",
       "retry": "Try again"
+    },
+    "cancelled": {
+      "title": "This booking was cancelled",
+      "body": "It was cancelled, so there is nothing to pay. You can pick a free time again.",
+      "action": "See free times"
     }
   }
 }

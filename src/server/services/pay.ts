@@ -34,7 +34,7 @@ export const defaultPayDeps: PayDeps = {
 type Row = NonNullable<Awaited<ReturnType<typeof appointmentRepo.findForPay>>>;
 
 /** Statuses that mean "the deposit was paid and the booking went on". */
-const PAID_ON = ['CONFIRMED', 'ATTENDED', 'NO_SHOW'];
+const PAID_ON = ['BOOKED', 'CONFIRMED', 'ATTENDED', 'NO_SHOW'];
 
 interface Resolved {
   businessId: string;
@@ -122,14 +122,31 @@ async function freshSlots(row: Row, businessId: string, now: Date): Promise<Publ
   }
 }
 
+/** 410 for a hold that can no longer be paid: HOLD_EXPIRED (it lapsed) or BOOKING_CANCELLED (someone cancelled it). */
 async function expired(row: Row, businessId: string, now: Date): Promise<AppError> {
-  return new AppError(
-    410,
-    'HOLD_EXPIRED',
-    'This booking was not paid in time and the slot was released.',
-    {},
-    { slug: row.business.slug, serviceId: row.serviceId, slots: await freshSlots(row, businessId, now) },
-  );
+  const lapsed =
+    row.status === 'PENDING_PAYMENT' ||
+    (row.status === 'CANCELLED' && row.cancelledVia === 'SYSTEM');
+  const data = {
+    slug: row.business.slug,
+    serviceId: row.serviceId,
+    slots: await freshSlots(row, businessId, now),
+  };
+  return lapsed
+    ? new AppError(
+        410,
+        'HOLD_EXPIRED',
+        'This booking was not paid in time and the slot was released.',
+        {},
+        data,
+      )
+    : new AppError(
+        410,
+        'BOOKING_CANCELLED',
+        'This booking was cancelled, so there is nothing to pay.',
+        {},
+        data,
+      );
 }
 
 export const payService = {
@@ -148,7 +165,7 @@ export const payService = {
 
   /**
    * Complete the deposit. The ONLY thing that flips the appointment is the provider's answer
-   * (getStatus === PAID); the request body carries nothing. Idempotent: a repeat finds CONFIRMED and
+   * (getStatus === PAID); the request body carries nothing. Idempotent: a repeat finds BOOKED (paid) and
    * changes nothing (no second set of reminder jobs).
    */
   async pay(ctx: PayCtx, token: string, deps: PayDeps = defaultPayDeps) {
