@@ -9,6 +9,34 @@ export const toLocalDate = (stored: Date) => stored.toISOString().slice(0, 10);
 
 const HOLDING = [...SLOT_HOLDING_STATUSES];
 
+/** A waitlist claim books with the idempotency key `waitlist-offer-<offerId>`. */
+export const OFFER_KEY_PREFIX = 'waitlist-offer-';
+
+/** Claim bookkeeping on an existing transaction (see waitlistRepo.markClaimed). Idempotent. */
+export async function markClaimedIn(
+  tx: Prisma.TransactionClient,
+  businessId: string,
+  a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },
+) {
+  await tx.waitlistOffer.updateMany({
+    where: { id: a.offerId, businessId, status: { in: ['OPEN', 'EXPIRED', 'SUPERSEDED'] } },
+    data: { status: 'CLAIMED', claimedAppointmentId: a.appointmentId },
+  });
+  await tx.waitlistEntry.updateMany({
+    where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
+    data: { status: 'FULFILLED', claimingOfferId: null, claimingAt: null },
+  });
+  await tx.waitlistOffer.updateMany({
+    where: {
+      businessId,
+      id: { not: a.offerId },
+      status: 'OPEN',
+      OR: [{ freedFromAppointmentId: a.freedFromAppointmentId }, { entryId: a.entryId }],
+    },
+    data: { status: 'SUPERSEDED' },
+  });
+}
+
 const entrySelect = {
   id: true,
   status: true,
@@ -405,29 +433,33 @@ export const waitlistRepo = {
    * the offer becomes CLAIMED (from OPEN, EXPIRED or SUPERSEDED), the entry FULFILLED (from OPEN or
    * CANCELLED), and every other OPEN offer for this freed slot or this entry SUPERSEDED.
    */
+  /**
+   * Does this entry already own a live deposit hold made through ANOTHER of its offers? Such a claim keeps the
+   * entry reserved for the hold's whole life (15 min), longer than the 60 s claim lease, until it is paid
+   * (markClaimedIn), swept or abandoned. Holds with no expiry count as live.
+   */
+  async hasLiveDepositHold(businessId: string, entryId: string, exceptOfferId: string, now: Date) {
+    const offers = await db.waitlistOffer.findMany({
+      where: { businessId, entryId, id: { not: exceptOfferId } },
+      select: { id: true },
+    });
+    if (offers.length === 0) return false;
+    const count = await db.appointment.count({
+      where: {
+        businessId,
+        status: 'PENDING_PAYMENT',
+        source: 'WAITLIST',
+        idempotencyKey: { in: offers.map((o) => `${OFFER_KEY_PREFIX}${o.id}`) },
+        OR: [{ holdExpiresAt: null }, { holdExpiresAt: { gt: now } }],
+      },
+    });
+    return count > 0;
+  },
+
   markClaimed: (
     businessId: string,
     a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },
-  ) =>
-    db.$transaction(async (tx) => {
-      await tx.waitlistOffer.updateMany({
-        where: { id: a.offerId, businessId, status: { in: ['OPEN', 'EXPIRED', 'SUPERSEDED'] } },
-        data: { status: 'CLAIMED', claimedAppointmentId: a.appointmentId },
-      });
-      await tx.waitlistEntry.updateMany({
-        where: { id: a.entryId, businessId, status: { in: ['OPEN', 'CANCELLED'] } },
-        data: { status: 'FULFILLED', claimingOfferId: null, claimingAt: null },
-      });
-      await tx.waitlistOffer.updateMany({
-        where: {
-          businessId,
-          id: { not: a.offerId },
-          status: 'OPEN',
-          OR: [{ freedFromAppointmentId: a.freedFromAppointmentId }, { entryId: a.entryId }],
-        },
-        data: { status: 'SUPERSEDED' },
-      });
-    }),
+  ) => db.$transaction((tx) => markClaimedIn(tx, businessId, a)),
 
   /**
    * Atomically reserve an OPEN entry for one offer (one conditional UPDATE). Another offer of the same

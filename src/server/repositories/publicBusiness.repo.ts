@@ -23,6 +23,27 @@ export const publicBusinessRepo = {
   findById: (businessId: string) =>
     db.business.findUnique({ where: { id: businessId }, select: businessConfigSelect }),
 
+  /** Deposit rules and currency of one business (FR-26). */
+  async depositSettings(businessId: string) {
+    const b = await db.business.findUnique({
+      where: { id: businessId },
+      select: {
+        depositEnabled: true,
+        depositThreshold: true,
+        depositAmount: true,
+        currency: true,
+      },
+    });
+    return b
+      ? {
+          enabled: b.depositEnabled,
+          threshold: b.depositThreshold,
+          amount: Number(b.depositAmount.toString()),
+          currency: b.currency,
+        }
+      : null;
+  },
+
   /** Active services, and bookable active staff with the active services they perform. Two queries. */
   async catalogue(businessId: string) {
     const [services, staff] = await Promise.all([

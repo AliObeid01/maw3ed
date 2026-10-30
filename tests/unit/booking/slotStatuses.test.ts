@@ -8,7 +8,7 @@ describe('slot-holding statuses', () => {
     const sql = readFileSync(
       path.resolve(
         import.meta.dirname,
-        '../../../prisma/migrations/20261028205918_appointment_no_overlap/migration.sql',
+        '../../../prisma/migrations/20261031090100_deposit_overlap_constraint/migration.sql',
       ),
       'utf8',
     );

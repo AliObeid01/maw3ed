@@ -20,9 +20,11 @@ import {
   IDEMPOTENT_MISMATCH,
   type EmailProvider,
 } from '@/server/providers/email';
+import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import {
   toLocalDate,
+  OFFER_KEY_PREFIX,
   waitlistRepo,
   type EntryRow,
   type OfferRow,
@@ -61,7 +63,7 @@ const bookDepsOf = (deps: WaitlistDeps): BookDeps => ({
 
 /** The provider idempotency key and the booking idempotency key are both derived from the offer id. */
 export const offerEmailKey = (offerId: string) => `waitlist-offer-${offerId}`;
-export const offerBookingKey = (offerId: string) => `waitlist-offer-${offerId}`;
+export const offerBookingKey = (offerId: string) => `${OFFER_KEY_PREFIX}${offerId}`;
 
 const IS_ACTIVE = (status: string) =>
   (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(status);
@@ -399,6 +401,18 @@ export const offersService = {
         'This waitlist entry is no longer active, so the offer cannot be claimed.',
       );
 
+    // F21 for deposits: a live deposit hold made through another offer of this entry keeps the entry
+    // reserved until that hold is paid, swept or abandoned (the 60 s lease alone would go stale).
+    if (
+      o.status !== 'CLAIMED' &&
+      (await waitlistRepo.hasLiveDepositHold(businessId, o.entryId, o.id, now))
+    )
+      throw AppError.conflict(
+        'CONFLICT',
+        undefined,
+        'This waitlist entry is already holding another spot, waiting for its deposit.',
+      );
+
     // F21: one conditional UPDATE reserves the entry for THIS offer, so two different offers of the same
     // entry cannot both book. A replay on an already fulfilled entry has nothing to reserve.
     let reserved = false;
@@ -444,12 +458,15 @@ export const offersService = {
       if (result.replay && !IS_ACTIVE(result.appointment.status))
         throw AppError.conflict('CONFLICT', undefined, 'That booking was cancelled.');
       // Idempotent bookkeeping: also repairs a claim that booked but crashed before recording.
-      await waitlistRepo.markClaimed(businessId, {
-        offerId: o.id,
-        entryId: o.entryId,
-        freedFromAppointmentId: o.freedFromAppointmentId,
-        appointmentId: result.appointment.id,
-      });
+      // A deposit hold is not a claim yet: the offer, the entry and the refill metric are only touched
+      // when the deposit is paid (appointmentRepo.confirmPaid), so a lapsed unpaid hold leaves no trace.
+      if (result.appointment.status !== 'PENDING_PAYMENT')
+        await waitlistRepo.markClaimed(businessId, {
+          offerId: o.id,
+          entryId: o.entryId,
+          freedFromAppointmentId: o.freedFromAppointmentId,
+          appointmentId: result.appointment.id,
+        });
       ctx.logger.info(
         { businessId, offerId: o.id, appointmentId: result.appointment.id, replay: result.replay },
         'waitlist offer claimed',
@@ -477,6 +494,30 @@ export const offersService = {
 export interface ExpiryResult {
   expired: number;
   offered: number;
+  /** Deposit holds (PENDING_PAYMENT) that lapsed and were cancelled in this run. */
+  holdsExpired: number;
+}
+
+/** Most lapsed holds one run takes; the rest are picked up by the next run (every 5 minutes). */
+export const HOLD_EXPIRY_BATCH = 200;
+
+/**
+ * Cancel deposit holds whose 15 minutes passed (cancelledVia SYSTEM, Payment -> EXPIRED), then trigger the
+ * waitlist cascade for each freed slot exactly like a cancellation. Idempotent and safe under overlapping
+ * runs (the repo claims rows with FOR UPDATE SKIP LOCKED). Also used by the pay page to free a slot at once.
+ */
+export async function expireLapsedHolds(
+  logger: Logger,
+  deps: WaitlistDeps = defaultWaitlistDeps,
+): Promise<number> {
+  const freed = await appointmentRepo.expireHolds(deps.now(), HOLD_EXPIRY_BATCH);
+  for (const hold of freed) {
+    const log = logger.child({ businessId: hold.businessId });
+    log.info({ businessId: hold.businessId, appointmentId: hold.id }, 'deposit hold expired');
+    // The expiry is committed: a failing refill must never undo or fail it.
+    await onSlotFreedOffer({ businessId: hold.businessId, logger: log }, hold.id, deps);
+  }
+  return freed.length;
 }
 
 /** The route's maxDuration is 60 s. */
@@ -522,6 +563,13 @@ export async function runWaitlistExpiry(
   const clock = deps.monotonic ?? (() => performance.now());
   const startedAt = clock();
   const budgetMs = deps.budgetMs ?? EXPIRY_RUN_BUDGET_MS;
+  // Lapsed deposit holds first: each one frees a slot and offers it straight away.
+  let holdsExpired = 0;
+  try {
+    holdsExpired = await expireLapsedHolds(logger, deps);
+  } catch (error) {
+    logger.error({ err: safeError(error) }, 'deposit hold expiry failed; offer expiry continues');
+  }
   const expired = await waitlistRepo.expireDue(now);
   await resendUnsent(now, deps, logger, clock, startedAt, budgetMs);
   const slots = await waitlistRepo.cascadeCandidates(now, 200);
@@ -545,8 +593,8 @@ export async function runWaitlistExpiry(
       );
     }
   }
-  logger.info({ expired: expired.length, offered }, 'waitlist expiry run finished');
-  return { expired: expired.length, offered };
+  logger.info({ expired: expired.length, offered, holdsExpired }, 'waitlist expiry run finished');
+  return { expired: expired.length, offered, holdsExpired };
 }
 
 // ---- staff side ----------------------------------------------------------------------------------

@@ -1,7 +1,11 @@
+import { normalizePhone } from '@/server/domain/phone';
 import { AppError } from '@/server/http/errors';
 import type { RouteContext } from '@/server/http/withRoute';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { availabilityService } from './availability';
+import { createHmac } from 'node:crypto';
+import { requireLinkSecret } from '@/server/env';
+import { rateLimiter, routeRateLimitDisabled } from './rateLimit';
 import { book, type BookDeps, defaultBookDeps } from './booking';
 
 async function resolve(slug: string) {
@@ -62,17 +66,39 @@ export const publicBookingService = {
   ) {
     const business = await resolve(slug);
     const logger = ctx.logger.child({ businessId: business.id });
-    return book(
-      { businessId: business.id, requestId: ctx.requestId, logger },
-      {
-        serviceId: body.serviceId,
-        staffId: body.staffId,
-        startAt: new Date(body.startAt),
-        client: body.client,
-        source: 'PUBLIC',
-        idempotencyKey,
-      },
-      deps,
-    );
+    // Per-phone budget (any IP): a deposit hold in the answer reveals "this number has no-shows", so the
+    // number of probes per phone is bounded. Invalid numbers fall through to the booking's own 400.
+    // The bucket key is an HMAC of the E.164 (server secret), never the bare number or an unsalted hash.
+    const phone = normalizePhone(body.client.phone);
+    let hit: { subject: string; windowStart?: Date | undefined } | undefined;
+    if (phone && !routeRateLimitDisabled()) {
+      const subject = createHmac('sha256', requireLinkSecret()).update(phone).digest('hex');
+      const decision = await rateLimiter.consume('bookingPhone', subject);
+      if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+      hit = { subject, windowStart: decision.windowStart };
+    }
+    // Idempotent replays and requests that fail validation (400) are given their hit back: only real
+    // attempts count towards the probe budget.
+    const refund = () =>
+      hit ? rateLimiter.refund('bookingPhone', hit.subject, hit.windowStart).catch(() => {}) : undefined;
+    try {
+      const result = await book(
+        { businessId: business.id, requestId: ctx.requestId, logger },
+        {
+          serviceId: body.serviceId,
+          staffId: body.staffId,
+          startAt: new Date(body.startAt),
+          client: body.client,
+          source: 'PUBLIC',
+          idempotencyKey,
+        },
+        deps,
+      );
+      if (result.replay) await refund();
+      return result;
+    } catch (error) {
+      if (error instanceof AppError && error.status === 400) await refund();
+      throw error;
+    }
   },
 };

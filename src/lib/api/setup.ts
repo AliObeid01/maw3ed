@@ -22,6 +22,15 @@ export const businessSchema = z.object({
   address: nullableText,
   /** Opted in to the public directory (default false). */
   listed: z.boolean().default(false),
+  /** Deposit rules (FR-26). Off by default. */
+  deposit: z
+    .object({
+      enabled: z.boolean(),
+      threshold: z.number(),
+      amount: z.number(),
+      currency: z.string(),
+    })
+    .default({ enabled: false, threshold: 1, amount: 5, currency: 'USD' }),
   setup: z.object({
     hasServices: z.boolean(),
     hasBookableStaff: z.boolean(),
@@ -41,6 +50,9 @@ export type BusinessPatch = Partial<{
   category: string | null;
   address: string | null;
   listed: boolean;
+  depositEnabled: boolean;
+  depositThreshold: number;
+  depositAmount: number;
 }>;
 
 export const serviceSchema = z.object({

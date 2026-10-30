@@ -3,6 +3,25 @@
 Claude can't create accounts or hold your credentials. Do these early (Phase 0), then put the values in Vercel env vars,
 GitHub Actions secrets and your local `.env`. Never commit secrets.
 
+## Status as of 30 Oct
+
+Done:
+- [x] Production deployed on https://maw3edlb.com (Vercel, Node 22, Neon `production` branch; every migration applied by the production build; `/api/health` green).
+- [x] Resend sending domain `mail.maw3edlb.com` verified; real emails arrive in the inbox.
+- [x] Three cron-job.org jobs live: `/api/jobs/reminders` and `/api/jobs/waitlist-expiry` every 5 minutes, `/api/jobs/cleanup` daily; failure notifications on.
+- [x] GitHub backup scheduler (`reminders-backup.yml`) running with the `APP_URL` variable and `CRON_SECRET` secret.
+- [x] Real phone test of booking, confirmation email, and the confirm and cancel links.
+- [x] Reserved-slug SQL check (section 9 below) and the pre-deploy migration checks (`EXPECTED_DB_HOST` guard, constraint check) are done.
+
+Open:
+- [ ] Recruit 3 to 5 pilot businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`).
+- [ ] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves.
+- [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails).
+- [ ] Neon usage check (storage and compute hours on the free plan).
+- [ ] Optional: DMARC TXT record (`_dmarc`) and a Sentry DSN.
+- [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
+- [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
+
 | # | Task | Produces | Needed by |
 |---|---|---|---|
 | 1 | **Neon**: create a project (region close to Beirut, e.g. `aws-eu-central-1`); create `main` (prod) and `dev` branches. `btree_gist` is enabled by the migration. | `DATABASE_URL` (pooled), `DIRECT_URL` | P1.1 (dev), P2.17 (prod) |
@@ -51,5 +70,6 @@ The `production` Neon branch exists (the `dev` branch was created from it) but i
 6. **cron-job.org** (after the first deploy; each job is a POST with header `x-cron-secret: <production CRON_SECRET>`): `/api/jobs/reminders` every 5 minutes, `/api/jobs/waitlist-expiry` every 5 minutes, `/api/jobs/cleanup` daily (once the launch-gates PR is merged). Turn on failure notifications.
 7. **GitHub**: Actions variable `APP_URL=https://maw3edlb.com` and secret `CRON_SECRET` (enables the backup scheduler workflow); protect `main` (require a pull request and the CI check).
 8. **Rollback and safety notes**: migrations run BEFORE the new code goes live, so keep them additive (expand/contract: add a column first, remove the old one in a later release). Prisma has no automatic rollback: if a migration fails halfway, later deploys refuse until it is resolved (`prisma migrate resolve --rolled-back <name>` against the production DIRECT string) or the Neon production branch is restored from a point in time. `vercel build --prod` run on a laptop with pulled production variables WOULD migrate production: do not run it locally. Build logs show the database host name (never the password) and are visible to the Vercel team.
+8b. **Before deploying the deposit migrations (P3.9)**: against the production DIRECT string run `psql "$DIRECT_URL" -f scripts/db/check-overlaps.sql` (must return zero rows) and `SELECT count(*) FROM "Appointment" WHERE status = 'PENDING_PAYMENT';` (expected 0: nothing creates that status before this release). The two migrations are additive; after deploy run `scripts/db/check-constraints.sql` (it asserts `appointment_no_overlap` now covers BOOKED, CONFIRMED and PENDING_PAYMENT). No new cron job is needed: holds expire inside the existing `/api/jobs/waitlist-expiry`.
 9. **Reserved slugs check** (one-off, before launch): `SELECT slug FROM "Business" WHERE slug IN ('directory','explore');` must return no rows. Reserved slugs are only enforced at signup, so existing rows are not re-validated.
 10. **Phone test**: open `https://maw3edlb.com/b/<slug>` on a real phone, book, check the confirmation email, open the confirm and cancel links.

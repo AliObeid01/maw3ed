@@ -25,7 +25,11 @@ export const RunSummaryDto = registry.register(
 );
 export const ExpirySummaryDto = registry.register(
   'WaitlistExpirySummary',
-  z.object({ expired: z.number().int(), offered: z.number().int() }),
+  z.object({
+    expired: z.number().int(),
+    offered: z.number().int(),
+    holdsExpired: z.number().int().openapi({ description: 'Lapsed deposit holds (PENDING_PAYMENT) cancelled and offered to the waitlist.' }),
+  }),
 );
 export const CleanupSummaryDto = registry.register(
   'CleanupSummary',
@@ -131,7 +135,7 @@ registry.registerPath({
 registry.registerPath({
   method: 'post',
   path: '/api/jobs/waitlist-expiry',
-  summary: 'Expire waitlist offers (cron)',
+  summary: 'Expire waitlist offers and lapsed deposit holds, then offer freed slots (cron every 5 min; idempotent)',
   tags: ['jobs'],
   security: cron,
   responses: {

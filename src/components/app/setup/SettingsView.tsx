@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { PlanCard } from '@/components/billing/PlanCard';
+import { DepositSettings } from './DepositSettings';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -354,6 +355,7 @@ function SettingsForm({
           />
         </Card>
 
+        <DepositSettings business={business} onSaved={onSaved} />
         <PlanCard />
       </form>
       {dirty ? <StickySaveBar>{saveButton({ block: true })}</StickySaveBar> : null}

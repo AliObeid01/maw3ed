@@ -5,6 +5,7 @@ import {
   tombstonePhone,
 } from '@/server/domain/clientFlags';
 import { db } from './db';
+import { expirePendingDeposits } from './payment.repo';
 import { reminderJobRepo } from './reminderJob.repo';
 
 export type ClientSort = 'name' | 'noShows' | 'recent';
@@ -33,6 +34,15 @@ const LAST_VISIT = Prisma.sql`(SELECT max(a."startAt") FROM "Appointment" a
   WHERE a."clientId" = c."id" AND a."businessId" = c."businessId" AND a."status" = 'ATTENDED')`;
 
 export const clientRepo = {
+  /** The no-show counter of the client with this E.164 phone in this business; 0 for a new client. */
+  async noShowsByPhone(businessId: string, phone: string): Promise<number> {
+    const row = await db.client.findUnique({
+      where: { businessId_phone: { businessId, phone } },
+      select: { noShows: true },
+    });
+    return row?.noShows ?? 0;
+  },
+
   /**
    * Client list for one business. Anonymised clients are hidden. `search` matches the name (case-insensitive
    * contains) and, when it looks like a phone number, the phone digits. Offset paging over a total order.
@@ -122,6 +132,7 @@ export const clientRepo = {
           });
           if (res.count !== 1) continue;
           await reminderJobRepo.skipPending(businessId, tx, a.id);
+          await expirePendingDeposits(tx, businessId, [a.id]);
           freed.push(a);
         }
       };
