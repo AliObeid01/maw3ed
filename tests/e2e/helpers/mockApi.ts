@@ -181,6 +181,7 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
   const state = options.state ?? defaultState();
   const calls: MockCalls = [];
   let counter = 100;
+  let plan: 'FREE' | 'PRO' = 'FREE';
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -203,6 +204,19 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
     if (options.override && (await options.override(route, method, path, body))) return;
 
     if (path === '/api/auth/logout') return route.fulfill({ status: 204 });
+
+    if (path.startsWith('/api/billing')) {
+      const bookable = state.staff.filter((s) => s.active && s.bookable).length;
+      if (path === '/api/billing/checkout' && method === 'POST') plan = 'PRO';
+      if (path === '/api/billing/downgrade' && method === 'POST') plan = 'FREE';
+      return json(route, 200, {
+        plan,
+        limits: { bookableStaff: plan === 'PRO' ? null : 1 },
+        usage: { bookableStaff: bookable },
+        price: { amount: 9, currency: 'USD' },
+        testMode: true,
+      });
+    }
 
     if (path === '/api/business') {
       if (method === 'PATCH') {
