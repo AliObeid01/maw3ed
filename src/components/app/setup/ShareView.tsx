@@ -20,6 +20,7 @@ import {
 } from '@/lib/setup/clipboard';
 import { shareSeenKey } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
+import { DirectoryCard } from './DirectoryCard';
 import { LoadError, OwnerOnly } from '../states';
 
 const noopSubscribe = () => () => undefined;
@@ -184,7 +185,15 @@ function ShareSkeleton() {
   );
 }
 
-function ShareBody({ ready, businessName }: { ready: boolean; businessName: string }) {
+function ShareBody({
+  ready,
+  businessName,
+  directory,
+}: {
+  ready: boolean;
+  businessName: string;
+  directory: ReactNode;
+}) {
   const t = useTranslations('app.share');
   const { slug } = useAppSession();
   const origin = useSyncExternalStore(
@@ -262,6 +271,8 @@ function ShareBody({ ready, businessName }: { ready: boolean; businessName: stri
           </a>
         </div>
       </section>
+
+      {directory}
 
       <h2 className="m-0 mt-1 text-[19px] font-semibold">{t('where')}</h2>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,260px),1fr))] gap-3.5">
@@ -354,8 +365,10 @@ function ShareInner() {
     return <LoadError error={business.error} onRetry={business.reload} />;
   if (!business.data) return <ShareSkeleton />;
   const { setup, name } = business.data;
+  const current = business.data;
   return (
     <ShareBody
+      directory={<DirectoryCard business={current} onChange={business.setData} />}
       ready={setup.hasServices && setup.hasBookableStaff && setup.hasHours}
       businessName={name}
     />

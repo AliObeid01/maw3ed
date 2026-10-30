@@ -20,6 +20,8 @@ export const businessSchema = z.object({
   cancelCutoffMin: z.number(),
   category: nullableText,
   address: nullableText,
+  /** Opted in to the public directory (default false). */
+  listed: z.boolean().default(false),
   setup: z.object({
     hasServices: z.boolean(),
     hasBookableStaff: z.boolean(),
@@ -38,6 +40,7 @@ export type BusinessPatch = Partial<{
   cancelCutoffMin: number;
   category: string | null;
   address: string | null;
+  listed: boolean;
 }>;
 
 export const serviceSchema = z.object({
