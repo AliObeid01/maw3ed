@@ -29,7 +29,33 @@ import { serverNow } from '@/lib/waitlist/clock';
 const mainClass =
   'mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-5 px-4 pt-5 pb-10 md:px-8 md:pt-8 lg:flex-row lg:items-start lg:gap-8 lg:pt-12';
 
-/** Business header of board 5.2: monogram tile and name. The name is an h2; the page h1 is the hero title. */
+/** Business header of board 5.2: monogram tile and name (a paragraph; the page h1 is the hero title). */
+/** mm:ss until the hold ends. Owns the one-second tick so the rest of the page does not re-render. */
+function Countdown({
+  holdEnd,
+  offsetMs,
+  onEnd,
+}: {
+  holdEnd: string | null;
+  offsetMs: number;
+  onEnd: () => void;
+}) {
+  const [nowMs, setNowMs] = useState(() => serverNow(offsetMs));
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(serverNow(offsetMs)), 1000);
+    return () => clearInterval(id);
+  }, [offsetMs]);
+  const left = holdEnd ? msLeft(holdEnd, nowMs) : 0;
+  useEffect(() => {
+    if (holdEnd !== null && left === 0) onEnd();
+  }, [holdEnd, left, onEnd]);
+  return (
+    <span dir="ltr" data-testid="countdown" className="font-semibold tabular-nums">
+      {clockText(left)}
+    </span>
+  );
+}
+
 function BusinessHeader({ name }: { name: string }) {
   return (
     <div className="border-b border-divider bg-surface">
@@ -40,9 +66,9 @@ function BusinessHeader({ name }: { name: string }) {
         >
           {monogram(name)}
         </span>
-        <h2 className="m-0 min-w-0 truncate text-[17px] font-semibold">
+        <p className="m-0 min-w-0 truncate text-[17px] font-semibold">
           <bdi>{name}</bdi>
-        </h2>
+        </p>
       </div>
     </div>
   );
@@ -170,7 +196,7 @@ type Outcome =
 function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs: number }) {
   const t = useTranslations('deposit');
   const f = useBookingFormat(view.business.timezone);
-  const [nowMs, setNowMs] = useState(() => serverNow(offsetMs));
+  const [timeUp, setTimeUp] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>(
     view.state === 'PAID' ? { kind: 'paid', view } : { kind: 'idle' },
   );
@@ -179,15 +205,11 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
   const holdEnd = view.holdExpiresAt;
 
   useEffect(() => {
-    const id = setInterval(() => setNowMs(serverNow(offsetMs)), 1000);
-    return () => clearInterval(id);
-  }, [offsetMs]);
-  useEffect(() => {
     if (outcome.kind === 'paid') headingRef.current?.focus();
   }, [outcome.kind]);
 
-  const left = holdEnd ? msLeft(holdEnd, nowMs) : 0;
-  const lapsed = outcome.kind !== 'paid' && holdEnd !== null && left === 0;
+  // While a payment is in flight the server decides; the page never swaps to "expired" under it.
+  const lapsed = timeUp && outcome.kind !== 'paid' && outcome.kind !== 'paying';
 
   async function pay() {
     if (busy.current) return;
@@ -277,9 +299,7 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
           <div className="flex items-center gap-2 self-start rounded-[16px] bg-white/10 px-3.5 py-3 text-[15px] font-medium">
             <Clock size={18} aria-hidden="true" />
             <span>{t('heldFor')}</span>
-            <span dir="ltr" data-testid="countdown" className="font-semibold tabular-nums">
-              {clockText(left)}
-            </span>
+            <Countdown holdEnd={holdEnd} offsetMs={offsetMs} onEnd={() => setTimeUp(true)} />
           </div>
         </aside>
 
