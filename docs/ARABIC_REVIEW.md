@@ -36,6 +36,11 @@ review the strings below. Keys and meanings were not changed.
 | `email.invite.*` | invite email (new in P3.7) | دعوة للانضمام إلى {business} على موعد | New strings, never reviewed by a native speaker. |
 | `email.whatsapp.h24/h2` | prefilled WhatsApp text | see file | Register is polite-neutral rather than Lebanese dialect; confirm it feels natural for a WhatsApp message from a salon. |
 | `common.tagline` | Fewer no-shows. More time. | غياب أقل. وقت أكثر. | Marketing copy; "غياب" vs "عدم حضور". |
+| `link.confirmedScreen.body` | {name} will see you on {when}. | شكرًا! سيراك {name} يوم {when}. | Calque of the English; a native phrasing is needed. |
+| `app.pilot.hero.counts` | ... held or missed | ... تم أو فات | "تم أو فات" is a calque of "held or missed". |
+| `app.clientHistory.deleteBody` | anonymises the client | سيُجهَّل هذا العميل | "يُجهَّل" is unusual; legal wording needs a native/legal check. |
+| terminology: phone | mobile number | الجوال (and one dev string) | Lebanese users usually say "موبايل" or "رقم الهاتف"; decide الجوال vs الموبايل across booking, waitlist and dashboard. |
+| `app.frontDesk.client.returningSummary`, `app.pilot.hero.lower/higher` | plural on count | full Arabic plural forms | Added in review; check the dual and few/many forms read naturally. |
 
 ## Not covered
 

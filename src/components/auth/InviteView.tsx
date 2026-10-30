@@ -233,6 +233,7 @@ function AcceptCard({
         <Input
           label={t('email')}
           type="email"
+          dir="ltr"
           name="email"
           value={invite.email}
           readOnly

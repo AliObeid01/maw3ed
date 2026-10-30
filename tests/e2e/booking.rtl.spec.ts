@@ -96,7 +96,7 @@ test('uses the Arabic font, not horizontal scroll at 360 px, and the toggle keep
   const family = await page.getByRole('heading', { name: 'اختر خدمة' }).evaluate(
     (el) => getComputedStyle(el).fontFamily,
   );
-  expect(family.toLowerCase()).toMatch(/plex|arabic/);
+  expect(family.toLowerCase()).toContain('ibm plex sans arabic');
 
   const toggle = page.getByRole('button', { name: 'English' });
   await expectTapTarget(toggle);

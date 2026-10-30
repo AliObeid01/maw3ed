@@ -542,7 +542,7 @@
         "newClient": "عميل جديد",
         "returning": "عميل عائد",
         "returningVisits": "{count, plural, one {عميل عائد · زيارة واحدة} two {عميل عائد · زيارتان} few {عميل عائد · # زيارات} many {عميل عائد · # زيارة} other {عميل عائد · # زيارة}}",
-        "returningSummary": "عميل عائد: {name}"
+        "returningSummary": "{count, plural, =0 {عميل عائد: {name}} one {عميل عائد: {name}، غياب واحد} two {عميل عائد: {name}، غيابان} few {عميل عائد: {name}، # غيابات} many {عميل عائد: {name}، # غيابًا} other {عميل عائد: {name}، # غياب}}"
       },
       "service": {
         "title": "الخدمة",
@@ -698,8 +698,8 @@
       "hero": {
         "eyebrow": "نسبة عدم الحضور · منذ {from}",
         "same": "بلا تغيير",
-        "lower": "<num>{points}</num> نقطة{hasRelative, select, yes { · أقل بنسبة <num>{relative}%</num>} other { أقل}}",
-        "higher": "<num>{points}</num> نقطة{hasRelative, select, yes { · أعلى بنسبة <num>{relative}%</num>} other { أعلى}}",
+        "lower": "<num>{points}</num> {count, plural, one {نقطة} two {نقطتين} few {نقاط} many {نقطة} other {نقطة}}{hasRelative, select, yes { · أقل بنسبة <num>{relative}%</num>} other { أقل}}",
+        "higher": "<num>{points}</num> {count, plural, one {نقطة} two {نقطتين} few {نقاط} many {نقطة} other {نقطة}}{hasRelative, select, yes { · أعلى بنسبة <num>{relative}%</num>} other { أعلى}}",
         "counts": "<num>{noShows}</num> {noShows, plural, one {غياب} two {غيابان} few {غيابات} many {غيابًا} other {غياب}} من <num>{of}</num> موعدًا تم أو فات",
         "noOutcomes": "لم تُسجَّل نتائج في هذه الفترة بعد. سجّل النتائج لترى نسبتك.",
         "withMaw3ed": "مع موعد",
@@ -1247,7 +1247,7 @@
       "fromPast": "لا يمكن أن يكون اليوم الأول في الماضي.",
       "toBeforeFrom": "يجب ألا يسبق اليوم الأخير اليوم الأول.",
       "tooLong": "اختر 31 يومًا كحد أقصى.",
-      "toOutOfWindow": "هذا اليوم أبعد من المدة التي يقبل فيها المنشأة الحجوزات.",
+      "toOutOfWindow": "هذا اليوم أبعد من المدة التي تقبل فيها المنشأة الحجوزات.",
       "nameRequired": "أدخل اسمك.",
       "nameTooLong": "استخدم 80 حرفًا أو أقل.",
       "phoneInvalid": "أدخل رقم جوال صحيحًا.",
@@ -1300,7 +1300,7 @@
       "body": "انضم إلى قائمة الانتظار وسنراسلك إذا توفر موعد.",
       "action": "الانضمام إلى قائمة الانتظار"
     },
-    "shortened": "قصّرنا النطاق ليناسب مدة الحجز لدى هذا المنشأة."
+    "shortened": "قصّرنا النطاق ليناسب مدة الحجز لدى هذه المنشأة."
   },
   "offer": {
     "pageTitle": "عرض من قائمة الانتظار",

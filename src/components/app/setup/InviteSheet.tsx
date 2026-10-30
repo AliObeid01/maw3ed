@@ -99,6 +99,7 @@ function InviteForm({ onDone, onCreated }: { onDone: () => void; onCreated: () =
         label={t('email')}
         name="email"
         type="email"
+        dir="ltr"
         autoComplete="off"
         inputMode="email"
         placeholder={t('emailPlaceholder')}

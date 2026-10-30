@@ -514,6 +514,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
                 id={FIELD_IDS.email}
                 name="email"
                 type="email"
+                dir="ltr"
                 label={t('contact.email')}
                 hint={t('contact.emailHint')}
                 autoComplete="email"

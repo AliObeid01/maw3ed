@@ -68,6 +68,7 @@ export function DetailsStep({
         <Input
           name="email"
           type="email"
+          dir="ltr"
           label={t('email')}
           placeholder={t('emailPlaceholder')}
           autoComplete="email"
