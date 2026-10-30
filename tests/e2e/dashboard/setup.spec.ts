@@ -358,3 +358,13 @@ test.describe('3.8 settings', () => {
     expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
   });
 });
+
+test('the service active switch is a 44 px tap target', async ({ page }) => {
+  await mockSetupApi(page, { state: freshState() });
+  await page.goto('/app/services');
+  const toggle = page.getByRole('switch').first();
+  await expect(toggle).toBeVisible();
+  const box = (await toggle.boundingBox())!;
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  expect(box.width).toBeGreaterThanOrEqual(44);
+});

@@ -14,7 +14,7 @@ const book = (page: Page) => page.getByRole('button', { name: 'Book this slot' }
 test('shows the slot in the business timezone with an expiry time; GET alone never mutates', async ({ page }) => {
   const { calls, start, expiresAt } = await open(page);
   await expect(page.getByRole('heading', { name: 'A spot just opened up' })).toBeVisible();
-  await expect(page.getByText('Haircut with Karim · $15')).toBeVisible();
+  await expect(page.getByText(/.?Haircut.? with .?Karim.? · .?\$15/)).toBeVisible(); // bidi isolates surround the name and price
   const startLocal = start.setZone(TZ).toFormat('H:mm');
   await expect(page.getByText(new RegExp(`${startLocal} – `))).toBeVisible();
   const expires = expiresAt.setZone(TZ).toFormat('H:mm');

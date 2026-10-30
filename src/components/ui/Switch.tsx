@@ -14,7 +14,7 @@ export type SwitchProps = Omit<
 };
 
 /**
- * 52 x 32 toggle (board 3.5). The visible track is 32 px; the invisible hit area reaches 44 px.
+ * 52 x 32 toggle (board 3.5). The visible track is 32 px; the button itself is 44 px tall.
  * The knob uses flex alignment, so it mirrors in RTL without extra classes.
  */
 export function Switch({
@@ -37,9 +37,8 @@ export function Switch({
       disabled={disabled}
       onClick={() => (pending ? undefined : onCheckedChange(!checked))}
       className={cn(
-        'relative flex h-8 w-[52px] shrink-0 items-center rounded-pill border-0 p-[3px] transition-colors duration-200 ease-out',
-        'before:absolute before:inset-x-0 before:-inset-y-1.5 before:content-[""]',
-        checked ? 'justify-end bg-accent' : 'justify-start bg-[#d2ccbe]',
+        // The button is the 44 px tap target; the visible 52 x 32 track is the inner span.
+        'flex h-11 w-[52px] shrink-0 items-center border-0 bg-transparent p-0',
         pending && 'opacity-70',
         disabled && 'cursor-not-allowed opacity-60',
         className,
@@ -47,8 +46,13 @@ export function Switch({
     >
       <span
         aria-hidden="true"
-        className="size-[26px] rounded-pill bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.2)]"
-      />
+        className={cn(
+          'flex h-8 w-full items-center rounded-pill p-[3px] transition-colors duration-200 ease-out',
+          checked ? 'justify-end bg-accent' : 'justify-start bg-[#d2ccbe]',
+        )}
+      >
+        <span className="size-[26px] rounded-pill bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.2)]" />
+      </span>
     </button>
   );
 }

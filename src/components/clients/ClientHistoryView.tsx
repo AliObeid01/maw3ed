@@ -10,6 +10,7 @@ import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError, useErrorMessage } from '@/components/app/states';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { chipTone, toneLabelKey } from '@/components/dashboard/apptStyles';
+import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Button, ButtonLink, buttonClasses } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -53,19 +54,24 @@ function HistoryRow({ item: h, timezone }: { item: HistoryItem; timezone: string
   const tone = apptTone({ status: h.status, source: '' });
   const statusKey = toneLabelKey[tone === 'waitlist' ? 'booked' : tone];
   return (
-    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-row px-5 py-3.5 last:border-b-0">
+    <li className="flex flex-wrap items-center gap-x-3 border-b border-row px-5 last:border-b-0">
       <Link
         href={`/app/appointments/${h.id}`}
         aria-label={t('openAppointmentAria', { day: f.day(h.startAt), time: f.time(h.startAt) })}
-        className="min-w-0 flex-[1_1_220px] text-[15px] text-ink no-underline hover:underline"
+        className="flex min-h-11 min-w-0 flex-[1_1_220px] items-center py-3 text-[15px] text-ink no-underline hover:underline"
       >
-        <span className="font-semibold">{f.day(h.startAt)}</span>
-        {' · '}
-        <bdi dir="ltr" className="font-semibold tabular-nums">
-          {f.time(h.startAt)}
-        </bdi>
-        {' · '}
-        {h.service.name} · {h.staff.displayName}
+        <MetaLine
+          items={[
+            <span key="d" className="font-semibold">
+              {f.day(h.startAt)}
+            </span>,
+            <Bidi key="t" dir="ltr" className="font-semibold">
+              {f.time(h.startAt)}
+            </Bidi>,
+            <Bidi key="s">{h.service.name}</Bidi>,
+            <Bidi key="p">{h.staff.displayName}</Bidi>,
+          ]}
+        />
       </Link>
       <Chip tone={chipTone[tone]}>{ts(statusKey)}</Chip>
     </li>

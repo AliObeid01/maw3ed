@@ -7,6 +7,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { FormBanner } from '@/components/auth/formKit';
 import { BookingSummary, type SummaryRow } from '@/components/public/BookingSummary';
 import { BusinessHero } from '@/components/public/BusinessHero';
+import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { PageState } from '@/components/public/PageState';
 import { StepRail, type Step } from '@/components/public/StepRail';
 import { StickySummaryBar } from '@/components/public/StickySummaryBar';
@@ -67,6 +68,7 @@ const NO_FRESH: FreshDays = { key: '', days: {} };
 
 /** The public booking flow (boards 1.1 to 1.6) at /b/[slug]. State lives in the URL so Back works and links are shareable. */
 export function BookingFlow({ slug }: { slug: string }) {
+  const categoryLabel = useCategoryLabel();
   const t = useTranslations('booking');
   const tSum = useTranslations('booking.summary');
   const tEmpty = useTranslations('public.summary')('empty');
@@ -460,7 +462,7 @@ export function BookingFlow({ slug }: { slug: string }) {
   const hero = (
     <BusinessHero
       name={data.business.name}
-      meta={[data.business.category, data.business.address].filter(Boolean).join(' · ')}
+      meta={[categoryLabel(data.business.category), data.business.address].filter(Boolean).join(' · ')}
       facts={[t('heroFactReminders')]}
     />
   );

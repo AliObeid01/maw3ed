@@ -48,7 +48,7 @@ function ServiceRow({
   const { money, duration } = useAppFormat();
   const muted = !service.active;
   return (
-    <li
+    <div
       role="row"
       className={cn(
         'grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 border-b border-row px-5 py-3 text-[15px] last:border-b-0 md:min-h-16 md:py-0',
@@ -90,7 +90,7 @@ function ServiceRow({
       <div role="cell" className="hidden tabular-nums md:col-start-4 md:row-start-1 md:block">
         {money(service.price)}
       </div>
-    </li>
+    </div>
   );
 }
 
@@ -203,7 +203,7 @@ function ServicesInner() {
                 <span role="columnheader">{t('col.price')}</span>
                 <span role="columnheader">{t('col.active')}</span>
               </div>
-              <ul role="rowgroup" className="m-0 list-none p-0">
+              <div role="rowgroup">
                 {list.map((service) => (
                   <ServiceRow
                     key={service.id}
@@ -213,7 +213,7 @@ function ServicesInner() {
                     onToggle={(active) => toggle(service, active)}
                   />
                 ))}
-              </ul>
+              </div>
             </div>
           </Card>
         )}

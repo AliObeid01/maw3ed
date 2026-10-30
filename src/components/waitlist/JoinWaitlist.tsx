@@ -8,6 +8,7 @@ import { FormBanner } from '@/components/auth/formKit';
 import { PhoneField } from '@/components/booking/PhoneField';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { BusinessHero } from '@/components/public/BusinessHero';
+import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { PageState } from '@/components/public/PageState';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
@@ -53,6 +54,7 @@ const FIELD_IDS: Record<JoinField, string> = {
 
 /** Board 1.7 at /b/[slug]/waitlist. `?service=&staff=` prefill the form (from the booking flow's empty or "just taken" views). */
 export function JoinWaitlist({ slug }: { slug: string }) {
+  const categoryLabel = useCategoryLabel();
   const t = useTranslations('waitlist');
   const tErr = useTranslations('waitlist.errors');
   const pathname = usePathname();
@@ -156,7 +158,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   const hero = (
     <BusinessHero
       name={data.business.name}
-      meta={[data.business.category, data.business.address].filter(Boolean).join(' · ')}
+      meta={[categoryLabel(data.business.category), data.business.address].filter(Boolean).join(' · ')}
       facts={[t('heroFact')]}
     />
   );

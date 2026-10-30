@@ -28,7 +28,6 @@
       "navLabel": "الموقع",
       "forBusinesses": "للأعمال",
       "pricing": "الأسعار",
-      "help": "المساعدة",
       "signIn": "دخول الأعمال",
       "menu": "فتح القائمة",
       "close": "إغلاق"
@@ -46,6 +45,17 @@
       "empty": "—",
       "open": "عرض الملخص",
       "close": "إغلاق"
+    },
+    "category": {
+      "salon": "صالون",
+      "barber": "حلاق",
+      "barbershop": "صالون حلاقة",
+      "clinic": "عيادة",
+      "physio": "علاج طبيعي",
+      "physiotherapy": "علاج طبيعي",
+      "spa": "سبا",
+      "dentist": "طبيب أسنان",
+      "dental": "عيادة أسنان"
     }
   },
   "app": {
@@ -578,7 +588,7 @@
         "slotGone": "اختر وقتًا أولًا.",
         "noWalkIn": "لا يوجد وقت فارغ للحجز الآن."
       },
-      "summary": "{name} · {service} · {day} {start} – {end} · مع {staff}",
+      "summary": "{name} · {service} · {day} {range} · مع {staff}",
       "summaryNoName": "عميل جديد",
       "summaryEmpty": "اختر خدمة ووقتًا لعرض الملخص.",
       "book": "احجز الموعد",
@@ -1148,7 +1158,7 @@
     },
     "confirmOnlyHint": "لا تستطيع الحضور؟ استخدم رابط الإلغاء في رسالة التذكير.",
     "details": "{service} مع {staff} · {price}",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "monthDay": "{month} {day}",
     "status": {
       "waiting": "بانتظار ردّك",
@@ -1324,7 +1334,7 @@
     "loading": "جارٍ تحميل عرضك",
     "eyebrow": "من قائمة الانتظار",
     "title": "توفر موعد للتو",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "detail": "{service} مع {staff} · {price}",
     "expiresAt": "ينتهي العرض عند {time}",
     "minutesLeft": "{minutes, plural, one {# دقيقة متبقية} two {# دقيقتان متبقيتان} few {# دقائق متبقية} other {# دقيقة متبقية}}",
@@ -1528,7 +1538,7 @@
     "loading": "جارٍ تحميل حجزك",
     "eyebrow": "مطلوب عربون",
     "intro": "عربون صغير يؤكد هذا الحجز. نحجز لك الموعد حتى ينتهي العدّاد.",
-    "when": "{date} · {start} – {end}",
+    "when": "{date} · {range}",
     "detail": "{service} مع {staff}",
     "amount": "العربون",
     "countdownLabel": "الوقت المتبقي للدفع",
@@ -1564,5 +1574,10 @@
       "body": "تم إلغاء الحجز، لذلك لا يوجد ما تدفعه. يمكنك اختيار وقت متاح من جديد.",
       "action": "عرض الأوقات المتاحة"
     }
+  },
+  "notFound": {
+    "title": "لا يمكننا العثور على هذه الصفحة",
+    "body": "قد يكون الرابط قديمًا أو مكتوبًا بشكل خاطئ. عد إلى الصفحة الرئيسية وحاول مرة أخرى.",
+    "action": "الانتقال إلى موعد"
   }
 }

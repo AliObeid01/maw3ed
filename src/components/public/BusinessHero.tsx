@@ -13,7 +13,8 @@ export type BusinessHeroProps = {
 /** Teal hero band with the gold monogram (board 02). */
 export function BusinessHero({ name, meta, facts = [], className }: BusinessHeroProps) {
   return (
-    <section className={cn('bg-hero text-white', className)}>
+    // Named, so it is a region landmark and its content is not orphaned outside <main>.
+    <section aria-label={name} className={cn('bg-hero text-white', className)}>
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-4 px-4 py-5 md:px-8 md:py-[26px]">
         <div
           aria-hidden="true"

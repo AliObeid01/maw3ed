@@ -249,3 +249,11 @@ test('RTL: Arabic outcomes screen, no horizontal scroll, times stay left-to-righ
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('the client-name link in the outcome queue is a 44 px tap target', async ({ page }) => {
+  await mockOutcomesApi(page, fixtures());
+  await page.goto('/app/outcomes');
+  const link = page.getByRole('link', { name: /Open the appointment of Maya Khoury/ }).first();
+  await expect(link).toBeVisible();
+  expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+});

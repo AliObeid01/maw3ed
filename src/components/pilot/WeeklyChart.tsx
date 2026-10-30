@@ -59,7 +59,7 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
         ) : null}
       </ul>
 
-      <figure role="img" aria-label={summary} aria-describedby={captionId} className="m-0 flex flex-col gap-1.5">
+      <div role="img" aria-label={summary} aria-describedby={captionId} className="m-0 flex flex-col gap-1.5">
         <div className="flex gap-2" dir="ltr">
           <div
             aria-hidden="true"
@@ -120,10 +120,10 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
             </div>
           </div>
         </div>
-        <figcaption id={captionId} className="sr-only">
+        <span id={captionId} className="sr-only">
           {t('caption')}
-        </figcaption>
-      </figure>
+        </span>
+      </div>
 
       <details className="group rounded-input border border-line bg-surface">
         <summary className="flex min-h-11 cursor-pointer items-center px-3.5 text-sm font-medium text-brand">

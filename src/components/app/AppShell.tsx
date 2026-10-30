@@ -65,9 +65,10 @@ export function AppShell({
         </header>
         <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-[18px] px-4 pt-4 pb-[calc(64px+env(safe-area-inset-bottom)+88px)] md:px-8 md:pt-6 lg:pb-8">
           {children}
+          {/* Fixed-position, but kept inside the main landmark so it is not orphaned content. */}
+          <NewBookingFab href={hrefs.book} active={activeId === 'book'} />
         </main>
       </div>
-      <NewBookingFab href={hrefs.book} active={activeId === 'book'} />
       <AppTabBar
         activeId={activeId}
         badges={badges}

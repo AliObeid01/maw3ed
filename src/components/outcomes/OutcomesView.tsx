@@ -11,6 +11,7 @@ import { EmptyState, LoadError } from '@/components/app/states';
 import { useSummary } from '@/components/app/SummaryContext';
 import { usePolling } from '@/components/app/usePolling';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
+import { Bidi, MetaLine, TimeRange } from '@/components/ui/Bidi';
 import { Button, Spinner } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -46,14 +47,14 @@ function When({ item, timezone }: { item: QueueItem; timezone: string }) {
   const relation = dayRelation(item.startAt, timezone);
   const day = relation === 'today' ? null : relation === 'tomorrow' ? t('tomorrow') : f.day(item.startAt);
   return (
-    <>
-      {day ? <>{day} · </> : null}
-      <bdi dir="ltr" className="tabular-nums">
-        {f.time(item.startAt)} – {f.time(item.endAt)}
-      </bdi>
-      {' · '}
-      {item.service.name} · {item.staff.displayName}
-    </>
+    <MetaLine
+      items={[
+        day,
+        <TimeRange key="r" start={f.time(item.startAt)} end={f.time(item.endAt)} />,
+        <Bidi key="s">{item.service.name}</Bidi>,
+        <Bidi key="p">{item.staff.displayName}</Bidi>,
+      ]}
+    />
   );
 }
 
@@ -82,7 +83,7 @@ function QueueCard({
           <Link
             href={`/app/appointments/${item.id}`}
             aria-label={t('openAria', { name: label(item.client) })}
-            className="text-ink no-underline hover:underline"
+            className="inline-flex min-h-11 items-center text-ink no-underline hover:underline"
           >
             {label(item.client)}
           </Link>
@@ -131,18 +132,20 @@ function MarkedRow({
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="min-w-0 flex-[1_1_200px] text-[15px]">
-          <Link
-            href={`/app/appointments/${item.id}`}
-            className="font-semibold text-ink no-underline hover:underline"
-          >
-            {label(item.client)}
-          </Link>
-          {' · '}
-          <bdi dir="ltr" className="tabular-nums">
-            {f.time(item.startAt)}
-          </bdi>
-          {' · '}
-          {item.service.name} · {item.staff.displayName}
+          <MetaLine
+            items={[
+              <Link
+                key="c"
+                href={`/app/appointments/${item.id}`}
+                className="-my-3 inline-block py-3 font-semibold text-ink no-underline hover:underline"
+              >
+                <Bidi>{label(item.client)}</Bidi>
+              </Link>,
+              <TimeRange key="t" start={f.time(item.startAt)} />,
+              <Bidi key="s">{item.service.name}</Bidi>,
+              <Bidi key="p">{item.staff.displayName}</Bidi>,
+            ]}
+          />
         </span>
         <Chip tone={chipTone[tone[outcome]]} className="gap-1.5">
           {saving ? <Spinner className="size-3" /> : null}

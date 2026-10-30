@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { BusinessHero } from '@/components/public/BusinessHero';
 import { PageState } from '@/components/public/PageState';
+import { isolate, ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -171,11 +172,11 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
   }
 
   const slot = booked?.appointment ?? offer;
-  const when = t('when', { date: f.day(slot.startAt), start: f.time(slot.startAt), end: f.time(slot.endAt) });
+  const when = t('when', { date: f.day(slot.startAt), range: f.range(slot.startAt, slot.endAt) });
   const detail = t('detail', {
-    service: slot.service.name,
-    staff: slot.staff.displayName,
-    price: f.money(slot.service.price),
+    service: isolate(slot.service.name),
+    staff: isolate(slot.staff.displayName),
+    price: ltr(f.money(slot.service.price)),
   });
   const tile = (
     <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-canvas p-[18px]">
@@ -202,7 +203,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
       ? t.rich('done.body', {
           service: slot.service.name,
           staff: slot.staff.displayName,
-          when: `${f.day(slot.startAt)} · ${f.time(slot.startAt)}`,
+          when: `${f.day(slot.startAt)} · ${ltr(f.time(slot.startAt))}`,
           b: (chunks) => <bdi>{chunks}</bdi>,
         })
       : null;

@@ -158,3 +158,13 @@ test('RTL: Arabic client history, back chevron mirrored, phone and email left-to
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('each history row link is a 44 px tap target', async ({ page }) => {
+  await mockOutcomesApi(page, setup());
+  await page.goto('/app/clients/clnadine');
+  const rows = page.getByRole('link', { name: /^Open the appointment/ });
+  await expect(rows.first()).toBeVisible();
+  for (const row of await rows.all()) {
+    expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  }
+});
