@@ -108,3 +108,8 @@ export function offerExpiryFor(expiresAt: Date): number {
 export function leaveExpiryFor(offerExpiresAt: Date): number {
   return offerExpiryFor(offerExpiresAt) + 30 * 24 * 3600;
 }
+
+/** Pay links (scope `pay`) expire when the deposit hold does (epoch seconds). */
+export function payExpiryFor(holdExpiresAt: Date): number {
+  return Math.floor(holdExpiresAt.getTime() / 1000);
+}

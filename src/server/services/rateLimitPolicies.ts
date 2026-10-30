@@ -11,6 +11,11 @@ const MIN = 60;
 export const RATE_POLICIES = {
   /** POST /api/public/{slug}/bookings */
   bookingCreate: { windowSec: 10 * MIN, limit: 30 },
+  /**
+   * POST /api/public/{slug}/bookings, per normalized phone number (any IP). Bounds how fast anyone can probe
+   * whether a number has a no-show history (the deposit hold is visible in the answer).
+   */
+  bookingPhone: { windowSec: 15 * MIN, limit: 6 },
   /** POST /api/public/{slug}/waitlist */
   waitlistJoin: { windowSec: 10 * MIN, limit: 10 },
   /** POST /api/auth/signup (each one costs an argon2 hash) */

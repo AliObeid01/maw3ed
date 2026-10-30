@@ -109,6 +109,7 @@ model Business {
   minNoticeMin      Int      @default(60)
   cancelCutoffMin   Int      @default(1440)
   plan              Plan     @default(FREE)
+  depositEnabled    Boolean  @default(false)
   depositThreshold  Int      @default(1)
   depositAmount     Decimal  @default(5.00) @db.Decimal(10, 2)
   listed            Boolean  @default(false)
@@ -310,6 +311,8 @@ model Appointment {
   source            AppointmentSource @default(PUBLIC)
   idempotencyKey    String?
   confirmedAt       DateTime?         @db.Timestamptz(3)
+  // PENDING_PAYMENT only: when the deposit hold lapses (15 min). The partial index lives in a migration.
+  holdExpiresAt     DateTime?         @db.Timestamptz(3)
   cancelledAt       DateTime?         @db.Timestamptz(3)
   cancelledVia      CancelledVia?
   outcomeMarkedById String?
@@ -363,22 +366,22 @@ model ReminderJob {
 }
 
 model WaitlistEntry {
-  id           String         @id @default(cuid(2))
-  businessId   String
-  clientId     String
-  serviceId    String
-  staffId      String?
-  fromDate     DateTime       @db.Timestamptz(3)
-  toDate       DateTime       @db.Timestamptz(3)
-  status       WaitlistStatus @default(OPEN)
+  id              String         @id @default(cuid(2))
+  businessId      String
+  clientId        String
+  serviceId       String
+  staffId         String?
+  fromDate        DateTime       @db.Timestamptz(3)
+  toDate          DateTime       @db.Timestamptz(3)
+  status          WaitlistStatus @default(OPEN)
   // Where offers go. Supplied at join and never copied onto the Client: an unauthenticated caller must
   // not be able to redirect an existing client's mail.
-  contactEmail String?
+  contactEmail    String?
   // Atomic reservation held while one offer of this entry is being booked (F21). Released on failure,
   // ignored once older than the claim lease.
   claimingOfferId String?
   claimingAt      DateTime?      @db.Timestamptz(3)
-  createdAt    DateTime       @default(now()) @db.Timestamptz(3)
+  createdAt       DateTime       @default(now()) @db.Timestamptz(3)
 
   business Business        @relation(fields: [businessId], references: [id])
   client   Client          @relation(fields: [clientId], references: [id])

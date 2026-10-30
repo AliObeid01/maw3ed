@@ -8,5 +8,6 @@ import './outcomes';
 import './waitlist';
 import './directory';
 import './billing';
+import './deposit';
 
 export { buildOpenApiDocument, registry } from './registry';

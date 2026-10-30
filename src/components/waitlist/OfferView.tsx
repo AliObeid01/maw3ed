@@ -1,7 +1,7 @@
 'use client';
 
 import { BellRing, Check, Clock, ExternalLink, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
@@ -118,6 +118,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
   const [outcome, setOutcome] = useState<Outcome>({ kind: 'idle' });
   const runner = useRef<ReturnType<typeof createClaimRunner<BookingResult>>>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const router = useRouter();
 
   // Refresh every 30 s, and once more exactly at expiry so the screen is never stale for up to 30 s.
   useEffect(() => {
@@ -142,6 +143,11 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
     setOutcome({ kind: 'claiming' });
     try {
       const result = await runner.current.run();
+      if (result.payToken) {
+        // This client needs a deposit first (FR-26): the slot is held, the pay page confirms it.
+        router.push(`/pay/${encodeURIComponent(result.payToken)}`);
+        return;
+      }
       setOutcome({ kind: 'booked', result });
       window.scrollTo({ top: 0 });
     } catch (error) {

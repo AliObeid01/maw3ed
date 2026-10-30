@@ -1,4 +1,4 @@
-import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
+import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
 import { buildIcs } from '@/server/domain/ics';
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { expiryFor, signToken } from '@/server/domain/tokens';
@@ -68,7 +68,7 @@ const startOfUtcDay = (d: Date) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 
 const isActive = (status: string) =>
-  (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(status);
+  (REMINDABLE_STATUSES as readonly string[]).includes(status);
 
 type Plan = { send: true } | { send: false; reason: string };
 
