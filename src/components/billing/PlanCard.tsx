@@ -53,7 +53,8 @@ export function PlanCard() {
   const data: Billing = billing.data;
   const pro = data.plan === 'PRO';
   const limit = data.limits.bookableStaff;
-  const price = t('price', { amount: data.price.amount });
+  // LRI..PDI isolates the price so the currency sign stays in front of the number in Arabic text.
+  const price = '⁦' + t('price', { amount: data.price.amount }) + '⁩';
 
   const upgrade = async () => {
     if (pending) return;

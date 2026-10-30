@@ -367,6 +367,7 @@ export function FrontDeskForm() {
           <Input
             name="email"
             type="email"
+            dir="ltr"
             label={t('client.email')}
             autoComplete="off"
             value={values.email}

@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon';
-import { getEmailMessages, isRtl } from './messages';
+import { emailFontStack, getEmailMessages, isRtl } from './messages';
 
 export type EmailKind = 'BOOKING' | 'H24' | 'H2';
 
@@ -137,7 +137,7 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
     '<!doctype html>',
     `<html lang="${lang}" dir="${dir}">`,
     '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
-    `<body dir="${dir}" style="margin:0;padding:16px;background:#f6f5f1;font-family:Arial,Helvetica,sans-serif;color:#1b1b1b">`,
+    `<body dir="${dir}" style="margin:0;padding:16px;background:#f6f5f1;font-family:${emailFontStack(c.locale)};color:#1b1b1b">`,
     `<div dir="${dir}" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;text-align:start">`,
     `<p style="margin:0 0 12px">${interpolateHtml(m.greeting, v, rtl)}</p>`,
     `<h1 style="margin:0 0 8px;font-size:20px">${e(copy.heading)}</h1>`,

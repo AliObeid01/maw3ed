@@ -5,6 +5,8 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // The e2e dev server (E2E_FAKE_SESSION) hides the dev badge: in RTL it covers the mirrored More tab.
+  ...(process.env.E2E_FAKE_SESSION ? { devIndicators: false as const } : {}),
   poweredByHeader: false,
   async headers() {
     return [

@@ -48,7 +48,7 @@ export function PricingView() {
             <span className="text-[15px] text-muted">{t('free.tagline')}</span>
           </div>
           <div className="flex items-baseline gap-1.5">
-            <span className="text-[44px] leading-none font-semibold">{t('free.price')}</span>
+            <span dir="ltr" className="text-[44px] leading-none font-semibold">{t('free.price')}</span>
             <span className="text-[15px] text-muted">{t('perMonth')}</span>
           </div>
           <ul className="m-0 flex list-none flex-col gap-2.5 p-0 text-[15px]">
@@ -80,7 +80,7 @@ export function PricingView() {
             <span className="text-[15px] text-muted">{t('pro.tagline')}</span>
           </div>
           <div className="flex flex-wrap items-baseline gap-1.5">
-            <span className="text-[44px] leading-none font-semibold">
+            <span dir="ltr" className="text-[44px] leading-none font-semibold">
               {t('pro.price', { amount: PLAN_PRICE.PRO.amount })}
             </span>
             <span className="text-[15px] text-muted">{t('perMonth')}</span>

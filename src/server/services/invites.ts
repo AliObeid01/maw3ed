@@ -47,6 +47,8 @@ export const invitesService = {
         businessName: business.name,
         acceptUrl,
         expiresAt: invite.expiresAt,
+        locale: business.locale,
+        timezone: business.timezone,
       });
       const sent = await provider.send({
         to: invite.email,

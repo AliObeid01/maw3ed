@@ -161,6 +161,7 @@ export function SignupForm() {
         label={t('email')}
         name="email"
         type="email"
+        dir="ltr"
         inputMode="email"
         value={email}
         onChange={(e) => {

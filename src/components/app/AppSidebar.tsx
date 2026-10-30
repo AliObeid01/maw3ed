@@ -5,6 +5,7 @@ import { useId } from 'react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
+import { LanguageToggle } from '@/components/public/LanguageToggle';
 import { monogram } from '@/components/public/monogram';
 import { ButtonLink } from '@/components/ui/Button';
 import { CountBadge } from '@/components/ui/CountBadge';
@@ -156,6 +157,8 @@ export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, cl
         <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
         {t('newBooking')}
       </ButtonLink>
+
+      <LanguageToggle className="mt-auto w-full" />
     </aside>
   );
 }
