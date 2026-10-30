@@ -70,7 +70,7 @@ The repository loads all inputs for the range in a fixed number of queries (no N
 
 ### 2. No double booking (Postgres exclusion constraint)
 The hand-written migration `appointment_no_overlap` (see the `db-migration` skill) excludes overlapping
-`tstzrange(startAt, blockedUntil, '[)')` per `staffId` while the status is `BOOKED` or `CONFIRMED` (later also `PENDING_PAYMENT`).
+`tstzrange(startAt, blockedUntil, '[)')` per `staffId` while the status is `BOOKED`, `CONFIRMED` or `PENDING_PAYMENT` (a 15 minute deposit hold).
 - The booking service re-checks availability first, to give a friendly answer, then inserts. Postgres `23P01` → 409 `SLOT_TAKEN` + fresh slots.
 - `Idempotency-Key` header: stored on `Appointment.idempotencyKey` with unique `(businessId, idempotencyKey)`; a repeat returns the first booking.
 - One insert path for public bookings, front-desk bookings, waitlist claims and deposits.

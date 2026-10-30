@@ -23,6 +23,12 @@ async function load(ctx: SessionContext): Promise<BusinessDtoT> {
     category: b.category,
     address: b.address,
     listed: b.listed,
+    deposit: {
+      enabled: b.depositEnabled,
+      threshold: b.depositThreshold,
+      amount: Number(b.depositAmount.toString()),
+      currency: b.currency,
+    },
     readiness: {
       services: setup.hasServices,
       staff: setup.hasBookableStaff,
@@ -50,6 +56,9 @@ export const businessService = {
       'category',
       'address',
       'listed',
+      'depositEnabled',
+      'depositThreshold',
+      'depositAmount',
     ] as const) {
       if (patch[key] !== undefined) Object.assign(data, { [key]: patch[key] });
     }

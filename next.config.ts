@@ -23,6 +23,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // The pay token is a bearer secret (it pays for a held slot) and the page is per-moment (countdown).
+        source: '/pay/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
         // The offer token is a bearer secret (it books a slot) and the page is per-moment (countdown).
         source: '/o/:path*',
         headers: [

@@ -387,6 +387,12 @@ export function BookingFlow({ slug }: { slug: string }) {
       const result = await createBooking(slug, body, key);
       attempts.current.reset();
       setTaken(undefined);
+      if (result.payToken) {
+        // Deposit needed (FR-26): the slot is held for 15 minutes. Nothing is "booked" yet, so no
+        // confirmation screen; the pay page confirms it. Stay in the pending state while navigating.
+        router.push(`/pay/${encodeURIComponent(result.payToken)}`);
+        return;
+      }
       const next: BookedState = { result, name: body.client.name, hasEmail: !!email };
       saveBooked(slug, next);
       setBooked(next);

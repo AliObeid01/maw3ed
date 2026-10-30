@@ -1,7 +1,7 @@
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { expiryFor, signToken } from '@/server/domain/tokens';
 import { whatsappUrl } from '@/server/domain/whatsapp';
-import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
+import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
@@ -29,7 +29,7 @@ function pendingIsDue(
   a: { status: string; startAt: Date },
   now: Date,
 ): boolean {
-  const active = (ACTIVE_APPOINTMENT_STATUSES as readonly string[]).includes(a.status);
+  const active = (REMINDABLE_STATUSES as readonly string[]).includes(a.status);
   return sendDecision(kind, a.startAt, now, active) !== 'SKIP';
 }
 

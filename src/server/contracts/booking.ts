@@ -114,6 +114,13 @@ export const BookingResultDto = registry.register(
     links: z.object({
       manage: z.string().openapi({ description: 'Signed link, expires at the appointment start.' }),
     }),
+    status: z.literal('PENDING_PAYMENT').optional().openapi({
+      description:
+        'Only when a deposit is needed first: the slot is held (appointment.status PENDING_PAYMENT) until holdExpiresAt. No reminders or confirmation email until it is paid.',
+    }),
+    payUrl: z.string().optional().openapi({ description: 'Pay page, with the `pay` token.' }),
+    payToken: z.string().optional(),
+    holdExpiresAt: z.string().datetime().optional(),
   }),
 );
 

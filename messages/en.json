@@ -467,6 +467,23 @@
         "range": "Enter a whole number from {min} to {max}.",
         "fieldInvalid": "Please check this value.",
         "checkFields": "Some details need another look. Check the highlighted fields."
+      },
+      "deposit": {
+        "title": "Deposits for repeat no-shows",
+        "enabled": "Ask for a deposit",
+        "enabledHint": "Clients who missed earlier appointments pay a deposit to confirm a public booking.",
+        "threshold": "Missed appointments before a deposit",
+        "thresholdHint": "A client with at least this many no-shows is asked. Front-desk bookings never are.",
+        "amount": "Deposit amount",
+        "amountHint": "Placeholder price in USD, shown as {value}. Nothing real is charged.",
+        "testMode": "TEST MODE: deposits use a simulated payment. No card is taken.",
+        "save": "Save deposit rules",
+        "saved": "Deposit rules saved",
+        "errors": {
+          "threshold": "Enter a whole number from {min} to {max}.",
+          "amount": "Enter an amount from {min} to {max} with at most two decimals.",
+          "check": "Some details need another look. Check the fields and try again."
+        }
       }
     },
     "share": {
@@ -1497,6 +1514,43 @@
         "title": "No-shows drop",
         "body": "Cancelled slots go to your waitlist, and you see who tends to miss visits."
       }
+    }
+  },
+  "deposit": {
+    "pageTitle": "Pay your deposit",
+    "loading": "Loading your booking",
+    "eyebrow": "Deposit needed",
+    "intro": "A small deposit confirms this booking. Your time is held for you until the countdown ends.",
+    "when": "{date} · {start} – {end}",
+    "detail": "{service} with {staff}",
+    "amount": "Deposit",
+    "countdownLabel": "Time left to pay",
+    "testMode": "TEST MODE. No real payment is taken and no card details are asked for.",
+    "pay": "Pay deposit (test)",
+    "paying": "Paying",
+    "done": {
+      "title": "You're booked and confirmed",
+      "next": "Your confirmation email and reminders are on the way.",
+      "action": "Back to the booking page"
+    },
+    "expired": {
+      "title": "This hold has expired",
+      "body": "The deposit was not paid in time, so the time was released. You can pick a free time again.",
+      "action": "See free times"
+    },
+    "invalid": {
+      "title": "This link doesn't work",
+      "body": "Check the link you were given, or book again.",
+      "action": "Go to Maw3ed"
+    },
+    "errors": {
+      "notPaid": "The test payment did not complete. Try again.",
+      "network": "No connection. Check your internet and try again.",
+      "busy": "We are busy right now. Please try again in a moment.",
+      "generic": "Something went wrong. Please try again.",
+      "invalid": "This link no longer works.",
+      "expired": "This hold has expired.",
+      "retry": "Try again"
     }
   }
 }

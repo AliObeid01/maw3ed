@@ -35,6 +35,9 @@ export function cancelOutcomeFor(
   if (status === 'CANCELLED' || status === 'LATE_CANCEL') return 'already_cancelled';
   if (status !== 'BOOKED' && status !== 'CONFIRMED' && status !== 'PENDING_PAYMENT')
     return 'conflict';
+  // Abandoning an unpaid deposit hold is never a late cancel: nothing was confirmed, so it cannot count
+  // against the client's record.
+  if (status === 'PENDING_PAYMENT') return 'cancel';
   return now.getTime() >= cancelCutoffAt(startAt, cancelCutoffMin).getTime()
     ? 'late_cancel'
     : 'cancel';

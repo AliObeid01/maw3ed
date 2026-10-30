@@ -23,6 +23,18 @@ BEGIN
     RAISE EXCEPTION 'MISSING: appointment_no_overlap exclusion constraint';
   END IF;
 
+  -- Deposit holds block slots: the active-status predicate must be exactly BOOKED, CONFIRMED, PENDING_PAYMENT.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'appointment_no_overlap' AND contype = 'x' AND connamespace = current_schema()::regnamespace
+      AND pg_get_constraintdef(oid) LIKE '%PENDING_PAYMENT%'
+      AND pg_get_constraintdef(oid) LIKE '%BOOKED%'
+      AND pg_get_constraintdef(oid) LIKE '%CONFIRMED%'
+      AND pg_get_constraintdef(oid) LIKE '%"staffId" WITH =%'
+  ) THEN
+    RAISE EXCEPTION 'WRONG: appointment_no_overlap must cover BOOKED, CONFIRMED and PENDING_PAYMENT per staffId';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_indexes
     WHERE schemaname = current_schema() AND indexname = 'ReminderJob_appointmentId_kind_channel_key'

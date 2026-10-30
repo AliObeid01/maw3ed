@@ -526,7 +526,7 @@ describe('expiry cascade (FR-20)', () => {
     vi.setSystemTime(later(31));
     const r1 = await runExpiry();
     expect(r1.status).toBe(200);
-    expect(r1.body).toEqual({ expired: 3, offered: 3 });
+    expect(r1.body).toEqual({ expired: 3, offered: 3, holdsExpired: 0 });
     let rows = await offers();
     expect(rows.filter((o) => o.batch === 2).map((o) => o.entryId)).toEqual(
       es.slice(3, 6).map((e) => e.entryId),
@@ -538,15 +538,15 @@ describe('expiry cascade (FR-20)', () => {
     expect(fakeEmailProvider.delivered.size).toBe(6);
 
     // nothing is due yet: a second run is a no-op
-    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0 });
+    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0, holdsExpired: 0 });
 
     vi.setSystemTime(later(62));
-    expect((await runExpiry()).body).toEqual({ expired: 3, offered: 1 });
+    expect((await runExpiry()).body).toEqual({ expired: 3, offered: 1, holdsExpired: 0 });
     rows = await offers();
     expect(rows.filter((o) => o.batch === 3).map((o) => o.entryId)).toEqual([es[6]!.entryId]);
     vi.setSystemTime(later(93));
-    expect((await runExpiry()).body).toEqual({ expired: 1, offered: 0 });
-    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0 });
+    expect((await runExpiry()).body).toEqual({ expired: 1, offered: 0, holdsExpired: 0 });
+    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0, holdsExpired: 0 });
     expect(await offers()).toHaveLength(7);
     expect(fakeEmailProvider.delivered.size).toBe(7);
   });
@@ -558,7 +558,7 @@ describe('expiry cascade (FR-20)', () => {
     expect(await offers()).toHaveLength(3);
     vi.setSystemTime(new Date('2026-11-04T06:15:00Z')); // 45 min before the slot, notice is 60
     const res = await runExpiry();
-    expect(res.body).toEqual({ expired: 3, offered: 0 });
+    expect(res.body).toEqual({ expired: 3, offered: 0, holdsExpired: 0 });
     expect(await offers()).toHaveLength(3);
     expect(fakeEmailProvider.calls).toHaveLength(3);
   });
@@ -573,7 +573,7 @@ describe('expiry cascade (FR-20)', () => {
       bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { email: 'x@example.test' }),
     );
     expect(taken.status).toBe(201);
-    expect((await runExpiry()).body).toEqual({ expired: 3, offered: 0 });
+    expect((await runExpiry()).body).toEqual({ expired: 3, offered: 0, holdsExpired: 0 });
     expect(await offers()).toHaveLength(3);
   });
 
@@ -583,7 +583,7 @@ describe('expiry cascade (FR-20)', () => {
     await staffCancel(a.cookie, appt.id);
     expect((await offerClaim(tokenFor(es[0]!.email))).status).toBe(201);
     vi.setSystemTime(later(120));
-    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0 });
+    expect((await runExpiry()).body).toEqual({ expired: 0, offered: 0, holdsExpired: 0 });
     expect(await offers()).toHaveLength(3);
   });
 

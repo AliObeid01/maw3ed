@@ -45,6 +45,18 @@ export const UpdateBusinessBody = registry.register(
       cancelCutoffMin: z.number().int().min(0).max(10080),
       category: nullableText(40),
       address: nullableText(120),
+      depositEnabled: z.boolean().openapi({
+        description: 'Ask clients with past no-shows for a deposit to confirm a public booking (owner).',
+      }),
+      depositThreshold: z.number().int().min(1).max(20).openapi({
+        description: 'Past no-shows a client needs before a deposit is asked.',
+      }),
+      depositAmount: z
+        .number()
+        .min(1)
+        .max(1000)
+        .refine(isCents, 'At most 2 decimals.')
+        .openapi({ description: 'Deposit in the business currency (USD placeholder).' }),
       listed: z.boolean().openapi({
         description:
           'Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY).',
@@ -69,6 +81,12 @@ export const BusinessDto = registry.register(
     category: z.string().nullable(),
     address: z.string().nullable(),
     listed: z.boolean(),
+    deposit: z.object({
+      enabled: z.boolean(),
+      threshold: z.number().int(),
+      amount: z.number(),
+      currency: z.string(),
+    }),
     readiness: z.object({ services: z.boolean(), staff: z.boolean(), hours: z.boolean() }),
     setup: z.object({
       hasServices: z.boolean(),

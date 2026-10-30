@@ -109,6 +109,7 @@ model Business {
   minNoticeMin      Int      @default(60)
   cancelCutoffMin   Int      @default(1440)
   plan              Plan     @default(FREE)
+  depositEnabled    Boolean  @default(false)
   depositThreshold  Int      @default(1)
   depositAmount     Decimal  @default(5.00) @db.Decimal(10, 2)
   listed            Boolean  @default(false)
@@ -310,7 +311,9 @@ model Appointment {
   source            AppointmentSource @default(PUBLIC)
   idempotencyKey    String?
   confirmedAt       DateTime?         @db.Timestamptz(3)
-  cancelledAt       DateTime?         @db.Timestamptz(3)
+  // PENDING_PAYMENT only: when the deposit hold lapses (15 min). The partial index lives in a migration.
+  holdExpiresAt     DateTime?         @db.Timestamptz(3)
+  cancelledAt      DateTime?         @db.Timestamptz(3)
   cancelledVia      CancelledVia?
   outcomeMarkedById String?
   outcomeMarkedAt   DateTime?         @db.Timestamptz(3)

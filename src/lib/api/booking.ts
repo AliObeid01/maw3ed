@@ -58,6 +58,11 @@ export const bookingResultSchema = z.object({
     staff: z.object({ id: z.string(), displayName: z.string() }),
   }),
   links: z.object({ manage: z.string() }),
+  /** Only when a deposit is needed first: the slot is held until `holdExpiresAt`; go to /pay/{payToken}. */
+  status: z.literal('PENDING_PAYMENT').optional(),
+  payToken: z.string().optional(),
+  payUrl: z.string().optional(),
+  holdExpiresAt: z.string().optional(),
 });
 export type BookingResult = z.infer<typeof bookingResultSchema>;
 

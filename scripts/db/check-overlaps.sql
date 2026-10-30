@@ -6,5 +6,5 @@ JOIN "Appointment" b
   ON a."staffId" = b."staffId"
  AND a.id < b.id
  AND tstzrange(a."startAt", a."blockedUntil", '[)') && tstzrange(b."startAt", b."blockedUntil", '[)')
-WHERE a.status IN ('BOOKED', 'CONFIRMED')
-  AND b.status IN ('BOOKED', 'CONFIRMED');
+WHERE a.status IN ('BOOKED', 'CONFIRMED', 'PENDING_PAYMENT')
+  AND b.status IN ('BOOKED', 'CONFIRMED', 'PENDING_PAYMENT');

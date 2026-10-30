@@ -2,12 +2,15 @@ import { plannedJobs, sameBookingRequest } from '@/server/domain/bookingPlan';
 import { localDayOf } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
 import { pickStaff } from '@/server/domain/slots';
-import { expiryFor, signToken } from '@/server/domain/tokens';
+import { depositRequired, holdExpiresAtFor } from '@/server/domain/deposit';
+import { expiryFor, payExpiryFor, signToken } from '@/server/domain/tokens';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
 import { AppError, pgErrorCode } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
-import { appointmentRepo } from '@/server/repositories/appointment.repo';
+import { getPaymentProvider, type PaymentProvider } from '@/server/providers/payment';
+import { appointmentRepo, type NewDeposit } from '@/server/repositories/appointment.repo';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
+import { clientRepo } from '@/server/repositories/client.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
 
@@ -36,6 +39,8 @@ export interface BookDeps {
   now: () => Date;
   linkSecret: () => string;
   appUrl: () => string;
+  /** The payment provider for deposit holds (default: the configured one, the fake in test mode). */
+  payments?: () => PaymentProvider;
   /** Test seam: runs after the availability read and before the insert (to provoke a lost race). */
   afterAvailability?: (info: { candidates: string[] }) => Promise<void>;
 }
@@ -60,6 +65,14 @@ export interface BookingResult {
     staff: { id: string; displayName: string };
   };
   links: { manage: string };
+  /**
+   * Present ONLY when the booking needs a deposit first: the appointment holds its slot as
+   * PENDING_PAYMENT until `holdExpiresAt`, with no reminders and no confirmation email until it is paid.
+   */
+  status?: 'PENDING_PAYMENT';
+  payUrl?: string;
+  payToken?: string;
+  holdExpiresAt?: Date;
 }
 
 const price = (v: { toString(): string }) => Number(v.toString());
@@ -91,11 +104,67 @@ function manageLink(a: Stored, cfg: LinkConfig): string {
 }
 
 function result(a: Stored, replay: boolean, cfg: LinkConfig): BookingResult {
-  return { replay, appointment: appointmentSummary(a), links: { manage: manageLink(a, cfg) } };
+  const base = { replay, appointment: appointmentSummary(a), links: { manage: manageLink(a, cfg) } };
+  if (a.status !== 'PENDING_PAYMENT' || !a.holdExpiresAt) return base;
+  const payToken = signToken(
+    { a: a.id, act: 'pay', exp: payExpiryFor(a.holdExpiresAt) },
+    cfg.secret,
+  );
+  return {
+    ...base,
+    status: 'PENDING_PAYMENT',
+    payToken,
+    payUrl: `${cfg.appUrl.replace(/\/+$/, '')}/pay/${payToken}`,
+    holdExpiresAt: a.holdExpiresAt,
+  };
 }
 
 const slotTaken = (slots: PublicSlot[]) =>
   AppError.conflict('SLOT_TAKEN', { slots }, 'That time is no longer available. Pick another.');
+
+/**
+ * Does this booking need a deposit? If so, open the (fake, test-mode) checkout and return what the insert
+ * stores. Front-desk bookings never reach the provider. The checkout key derives from the booking's
+ * Idempotency-Key so a retried request opens the same checkout.
+ */
+async function depositFor(
+  businessId: string,
+  phone: string,
+  input: BookInput,
+  now: Date,
+  deps: BookDeps,
+): Promise<NewDeposit | undefined> {
+  if (input.source === 'FRONT_DESK') return undefined;
+  const settings = await publicBusinessRepo.depositSettings(businessId);
+  if (!settings?.enabled) return undefined;
+  const noShows = await clientRepo.noShowsByPhone(businessId, phone);
+  if (
+    !depositRequired({
+      enabled: settings.enabled,
+      threshold: settings.threshold,
+      noShows,
+      source: input.source,
+    })
+  )
+    return undefined;
+  const provider = (deps.payments ?? getPaymentProvider)();
+  const session = await provider.createCheckout({
+    businessId,
+    purpose: 'DEPOSIT',
+    amount: settings.amount,
+    currency: settings.currency,
+    idempotencyKey: input.idempotencyKey ? `deposit:${input.idempotencyKey}` : undefined,
+  });
+  return {
+    holdExpiresAt: holdExpiresAtFor(now),
+    payment: {
+      provider: provider.name,
+      externalId: session.externalId,
+      amount: settings.amount,
+      currency: settings.currency,
+    },
+  };
+}
 
 /**
  * THE booking path: public bookings, front-desk bookings and (later) waitlist claims and deposits all
@@ -179,7 +248,10 @@ export async function book(
     ? {}
     : await appointmentRepo.countByStaff(businessId, remaining, day.startUtc, day.endUtc);
   const slot = avail.slots.find((s) => s.startAt.getTime() === startMs)!;
-  const reminders = plannedJobs(input.startAt, now);
+  // Deposit (FR-26): decided from the client's no-show counter. The booking still goes through the SAME
+  // insert below; only its status (PENDING_PAYMENT), reminders (none yet) and a Payment row differ.
+  const deposit = await depositFor(businessId, phone, input, now, deps);
+  const reminders = deposit ? [] : plannedJobs(input.startAt, now);
   await deps.afterAvailability?.({ candidates: [...remaining] });
 
   while (remaining.length > 0) {
@@ -197,10 +269,17 @@ export async function book(
         // Only an authenticated front-desk booking may change an existing client's contact details.
         overwriteContact: input.source === 'FRONT_DESK',
         reminders,
+        deposit,
       });
       ctx.logger.info(
-        { businessId, appointmentId: stored.id, staffId: pick, source: input.source },
-        'appointment booked',
+        {
+          businessId,
+          appointmentId: stored.id,
+          staffId: pick,
+          source: input.source,
+          depositHold: deposit !== undefined,
+        },
+        deposit ? 'appointment held pending deposit' : 'appointment booked',
       );
       return result(stored, false, cfg);
     } catch (error) {

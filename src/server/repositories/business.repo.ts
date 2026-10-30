@@ -10,6 +10,9 @@ export interface BusinessPatch {
   category?: string | null;
   address?: string | null;
   listed?: boolean;
+  depositEnabled?: boolean;
+  depositThreshold?: number;
+  depositAmount?: number;
 }
 
 export const businessRepo = {

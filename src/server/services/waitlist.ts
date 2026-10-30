@@ -20,6 +20,7 @@ import {
   IDEMPOTENT_MISMATCH,
   type EmailProvider,
 } from '@/server/providers/email';
+import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import {
   toLocalDate,
@@ -477,6 +478,30 @@ export const offersService = {
 export interface ExpiryResult {
   expired: number;
   offered: number;
+  /** Deposit holds (PENDING_PAYMENT) that lapsed and were cancelled in this run. */
+  holdsExpired: number;
+}
+
+/** Most lapsed holds one run takes; the rest are picked up by the next run (every 5 minutes). */
+export const HOLD_EXPIRY_BATCH = 200;
+
+/**
+ * Cancel deposit holds whose 15 minutes passed (cancelledVia SYSTEM, Payment -> EXPIRED), then trigger the
+ * waitlist cascade for each freed slot exactly like a cancellation. Idempotent and safe under overlapping
+ * runs (the repo claims rows with FOR UPDATE SKIP LOCKED). Also used by the pay page to free a slot at once.
+ */
+export async function expireLapsedHolds(
+  logger: Logger,
+  deps: WaitlistDeps = defaultWaitlistDeps,
+): Promise<number> {
+  const freed = await appointmentRepo.expireHolds(deps.now(), HOLD_EXPIRY_BATCH);
+  for (const hold of freed) {
+    const log = logger.child({ businessId: hold.businessId });
+    log.info({ businessId: hold.businessId, appointmentId: hold.id }, 'deposit hold expired');
+    // The expiry is committed: a failing refill must never undo or fail it.
+    await onSlotFreedOffer({ businessId: hold.businessId, logger: log }, hold.id, deps);
+  }
+  return freed.length;
 }
 
 /** The route's maxDuration is 60 s. */
@@ -522,6 +547,13 @@ export async function runWaitlistExpiry(
   const clock = deps.monotonic ?? (() => performance.now());
   const startedAt = clock();
   const budgetMs = deps.budgetMs ?? EXPIRY_RUN_BUDGET_MS;
+  // Lapsed deposit holds first: each one frees a slot and offers it straight away.
+  let holdsExpired = 0;
+  try {
+    holdsExpired = await expireLapsedHolds(logger, deps);
+  } catch (error) {
+    logger.error({ err: safeError(error) }, 'deposit hold expiry failed; offer expiry continues');
+  }
   const expired = await waitlistRepo.expireDue(now);
   await resendUnsent(now, deps, logger, clock, startedAt, budgetMs);
   const slots = await waitlistRepo.cascadeCandidates(now, 200);
@@ -545,8 +577,8 @@ export async function runWaitlistExpiry(
       );
     }
   }
-  logger.info({ expired: expired.length, offered }, 'waitlist expiry run finished');
-  return { expired: expired.length, offered };
+  logger.info({ expired: expired.length, offered, holdsExpired }, 'waitlist expiry run finished');
+  return { expired: expired.length, offered, holdsExpired };
 }
 
 // ---- staff side ----------------------------------------------------------------------------------

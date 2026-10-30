@@ -1,6 +1,7 @@
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { db } from './db';
 import { clientRepo } from './client.repo';
+import { expirePendingDeposits } from './payment.repo';
 import { reminderJobRepo, type NewReminderJob } from './reminderJob.repo';
 
 const detailSelect = {
@@ -10,6 +11,7 @@ const detailSelect = {
   status: true,
   source: true,
   idempotencyKey: true,
+  holdExpiresAt: true,
   client: { select: { id: true, name: true, phone: true, noShows: true, lateCancels: true } },
   service: { select: { id: true, name: true, durationMin: true, price: true } },
   staff: { select: { id: true, displayName: true } },
@@ -26,7 +28,24 @@ export interface NewBooking {
   client: { name: string; phone: string; email?: string | undefined };
   /** True only for a session-authenticated front-desk booking: see clientRepo.upsertByPhone. */
   overwriteContact: boolean;
+  /** Empty for a deposit hold: reminders (and the booking email) are created when the deposit is paid. */
   reminders: NewReminderJob[];
+  /** Set for a booking that needs a deposit: inserted as PENDING_PAYMENT with its Payment row. */
+  deposit?: NewDeposit | undefined;
+}
+
+export interface NewDeposit {
+  holdExpiresAt: Date;
+  payment: { provider: string; externalId: string; amount: number; currency: string };
+}
+
+export interface ExpiredHold {
+  id: string;
+  businessId: string;
+  serviceId: string;
+  staffId: string;
+  startAt: Date;
+  endAt: Date;
 }
 
 /** Statuses that count towards a staff member's day for the "anyone" fairness pick. */
@@ -90,12 +109,24 @@ export const appointmentRepo = {
           startAt: data.startAt,
           endAt: data.endAt,
           blockedUntil: data.blockedUntil,
-          status: 'BOOKED',
+          status: data.deposit ? 'PENDING_PAYMENT' : 'BOOKED',
+          holdExpiresAt: data.deposit?.holdExpiresAt ?? null,
           source: data.source,
           idempotencyKey: data.idempotencyKey ?? null,
         },
         select: { id: true },
       });
+      if (data.deposit) {
+        await tx.payment.create({
+          data: {
+            businessId,
+            purpose: 'DEPOSIT',
+            appointmentId: appointment.id,
+            status: 'PENDING',
+            ...data.deposit.payment,
+          },
+        });
+      }
       await reminderJobRepo.createForAppointment(businessId, tx, appointment.id, data.reminders);
       return tx.appointment.findFirstOrThrow({
         where: { id: appointment.id, businessId },
@@ -161,6 +192,7 @@ export const appointmentRepo = {
       });
       if (res.count !== 1) return false;
       await reminderJobRepo.skipPending(businessId, tx, id);
+      await expirePendingDeposits(tx, businessId, [id]);
       if (late) {
         await tx.client.updateMany({
           where: { id: current.clientId, businessId },
@@ -183,6 +215,86 @@ export const appointmentRepo = {
       });
       if (res.count !== 1) return false;
       await reminderJobRepo.skipPending(businessId, tx, id);
+      await expirePendingDeposits(tx, businessId, [id]);
       return true;
+    }),
+
+  // ---- deposit holds (FR-26) ----------------------------------------------------------------------
+
+  /** Everything the pay page needs: the hold, its service/staff/business and the deposit payment. */
+  findForPay: (businessId: string, id: string) =>
+    db.appointment.findFirst({
+      where: { id, businessId },
+      select: {
+        id: true,
+        startAt: true,
+        endAt: true,
+        status: true,
+        holdExpiresAt: true,
+        serviceId: true,
+        staffId: true,
+        service: { select: { id: true, name: true, durationMin: true } },
+        staff: { select: { id: true, displayName: true } },
+        business: { select: { name: true, slug: true, timezone: true, locale: true } },
+        payments: {
+          where: { businessId, purpose: 'DEPOSIT' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            id: true,
+            provider: true,
+            externalId: true,
+            amount: true,
+            currency: true,
+            status: true,
+          },
+        },
+      },
+    }),
+
+  /**
+   * The provider said PAID: PENDING_PAYMENT -> CONFIRMED, Payment -> PAID and the booking's reminder jobs, in
+   * ONE transaction. The conditional UPDATE is the only referee: of a double click, an expiry run and a staff
+   * cancel exactly one wins (the others find the status changed and count 0). Returns false when this call
+   * did not flip it. Reminder rows also carry the (appointmentId, kind, channel) unique key.
+   */
+  confirmPaid: (businessId: string, id: string, now: Date, jobs: NewReminderJob[]) =>
+    db.$transaction(async (tx) => {
+      const res = await tx.appointment.updateMany({
+        where: { id, businessId, status: 'PENDING_PAYMENT', holdExpiresAt: { gt: now } },
+        data: { status: 'CONFIRMED', confirmedAt: now },
+      });
+      if (res.count !== 1) return false;
+      await tx.payment.updateMany({
+        where: { businessId, appointmentId: id, purpose: 'DEPOSIT', status: 'PENDING' },
+        data: { status: 'PAID' },
+      });
+      await reminderJobRepo.createForAppointment(businessId, tx, id, jobs);
+      return true;
+    }),
+
+  /**
+   * Cron (all tenants): lapsed holds -> CANCELLED (cancelledVia SYSTEM), their PENDING deposit payment ->
+   * EXPIRED, in one transaction. The inner SELECT ... FOR UPDATE SKIP LOCKED means two overlapping runs
+   * never take the same row, and a pay that holds the row wins and is skipped. Returns the freed slots.
+   */
+  expireHolds: (now: Date, limit: number) =>
+    db.$transaction(async (tx) => {
+      const ts = now.toISOString();
+      const rows = await tx.$queryRaw<ExpiredHold[]>`
+        UPDATE "Appointment"
+        SET "status" = 'CANCELLED', "cancelledAt" = ${ts}::timestamptz, "cancelledVia" = 'SYSTEM',
+            "updatedAt" = ${ts}::timestamptz
+        WHERE "id" IN (
+          SELECT "id" FROM "Appointment"
+          WHERE "status" = 'PENDING_PAYMENT' AND "holdExpiresAt" <= ${ts}::timestamptz
+          ORDER BY "holdExpiresAt" ASC
+          LIMIT ${limit}
+          FOR UPDATE SKIP LOCKED)
+        RETURNING "id", "businessId", "serviceId", "staffId", "startAt", "endAt"`;
+      const byBusiness = new Map<string, string[]>();
+      for (const r of rows) byBusiness.set(r.businessId, [...(byBusiness.get(r.businessId) ?? []), r.id]);
+      for (const [businessId, ids] of byBusiness) await expirePendingDeposits(tx, businessId, ids);
+      return rows;
     }),
 };

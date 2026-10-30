@@ -392,6 +392,22 @@
             ],
             "maxLength": 120
           },
+          "depositEnabled": {
+            "type": "boolean",
+            "description": "Ask clients with past no-shows for a deposit to confirm a public booking (owner)."
+          },
+          "depositThreshold": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Past no-shows a client needs before a deposit is asked."
+          },
+          "depositAmount": {
+            "type": "number",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "Deposit in the business currency (USD placeholder)."
+          },
           "listed": {
             "type": "boolean",
             "description": "Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY)."
@@ -443,6 +459,29 @@
           },
           "listed": {
             "type": "boolean"
+          },
+          "deposit": {
+            "type": "object",
+            "properties": {
+              "enabled": {
+                "type": "boolean"
+              },
+              "threshold": {
+                "type": "integer"
+              },
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "enabled",
+              "threshold",
+              "amount",
+              "currency"
+            ]
           },
           "readiness": {
             "type": "object",
@@ -496,6 +535,7 @@
           "category",
           "address",
           "listed",
+          "deposit",
           "readiness",
           "setup"
         ]
@@ -1195,6 +1235,24 @@
             "required": [
               "manage"
             ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING_PAYMENT"
+            ],
+            "description": "Only when a deposit is needed first: the slot is held (appointment.status PENDING_PAYMENT) until holdExpiresAt. No reminders or confirmation email until it is paid."
+          },
+          "payUrl": {
+            "type": "string",
+            "description": "Pay page, with the `pay` token."
+          },
+          "payToken": {
+            "type": "string"
+          },
+          "holdExpiresAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "required": [
@@ -1590,11 +1648,16 @@
           },
           "offered": {
             "type": "integer"
+          },
+          "holdsExpired": {
+            "type": "integer",
+            "description": "Lapsed deposit holds (PENDING_PAYMENT) cancelled and offered to the waitlist."
           }
         },
         "required": [
           "expired",
-          "offered"
+          "offered",
+          "holdsExpired"
         ]
       },
       "CleanupSummary": {
@@ -3510,6 +3573,145 @@
           "limits",
           "usage",
           "price",
+          "testMode"
+        ]
+      },
+      "PayBody": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "PayView": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "PAID"
+            ]
+          },
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string"
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMin": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMin"
+                ]
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "startAt",
+              "endAt",
+              "status",
+              "service",
+              "staff"
+            ]
+          },
+          "business": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "slug": {
+                "type": "string"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "locale": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "slug",
+              "timezone",
+              "locale"
+            ]
+          },
+          "deposit": {
+            "type": "object",
+            "properties": {
+              "amount": {
+                "type": "number"
+              },
+              "currency": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "amount",
+              "currency"
+            ]
+          },
+          "holdExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "now": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "testMode": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "state",
+          "appointment",
+          "business",
+          "deposit",
+          "holdExpiresAt",
+          "now",
           "testMode"
         ]
       }
@@ -5646,7 +5848,7 @@
     },
     "/api/jobs/waitlist-expiry": {
       "post": {
-        "summary": "Expire waitlist offers (cron)",
+        "summary": "Expire waitlist offers and lapsed deposit holds, then offer freed slots (cron every 5 min; idempotent)",
         "tags": [
           "jobs"
         ],
@@ -7572,6 +7774,149 @@
           },
           "409": {
             "description": "PLAN_LIMIT",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pay/{token}": {
+      "get": {
+        "summary": "Deposit pay page data (signed `pay` token, no side effects)",
+        "description": "The token expires when the 15 minute hold does. Wrong signature, wrong scope (a confirm/cancel/claim token) or an unknown appointment is 404.",
+        "tags": [
+          "deposit"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pending deposit, or the paid booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "HOLD_EXPIRED with `error.data` { slug, serviceId, slots } (fresh slots for that day): the hold lapsed or was cancelled and the slot was released",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Pay the deposit (TEST MODE: completes through the fake payment provider)",
+        "description": "Only the provider result flips the appointment to CONFIRMED (Payment PAID, reminders created, once). Repeating it returns 200 and changes nothing. Never takes card data.",
+        "tags": [
+          "deposit"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PayBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paid and confirmed (or already was)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PayView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PAYMENT_NOT_COMPLETED: the provider did not report the payment as paid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "HOLD_EXPIRED with `error.data` { slug, serviceId, slots } (fresh slots for that day): the hold lapsed or was cancelled and the slot was released",
             "content": {
               "application/json": {
                 "schema": {
