@@ -10,7 +10,7 @@ repositories are the only code that touches Prisma. The two hard guarantees live
  ┌──────────── Next.js on Vercel ───────────────────────────────────────┐
  │ Route handlers   src/app/api/**     Zod, session/role/token/cron guard│
  │ Services         src/server/services  booking · reminders · waitlist │──► Resend (EmailProvider)
- │                                        outcomes · pilot · setup · auth│──► Whish test / Fake (PaymentProvider)
+ │                                        outcomes · pilot · setup · auth│──► Fake (PaymentProvider, test mode)
  │ Domain (pure)    src/server/domain    generateSlots · windows · tokens│
  │ Repositories     src/server/repositories  Prisma, businessId-first    │
  └──────────────────────────────┬───────────────────────────────────────┘
@@ -34,10 +34,10 @@ src/app/api/**/route.ts                       route handlers only
 src/server/http/        withRoute, AppError, errors, session, requestContext, logger
 src/server/contracts/   Zod schemas + OpenAPI registry
 src/server/domain/      slots.ts, reminderWindows.ts, tokens.ts, phone.ts, noShow.ts, waitlistMatch.ts, pilotMetrics.ts
-src/server/services/    auth, setup, booking, reminders, links, waitlist, outcomes, clients, pilot, billing
+src/server/services/    auth, setup, booking, reminders, links, waitlist, outcomes, clients, pilot, billing, pay, directory
 src/server/repositories/ *.repo.ts, db.ts (Prisma singleton)
-src/server/providers/   email/{EmailProvider,ResendEmailProvider,FakeEmailProvider}, payment/{PaymentProvider,WhishTestProvider,FakePaymentProvider}
-src/emails/             react-email templates
+src/server/providers/   email/{EmailProvider,ResendEmailProvider,FakeEmailProvider}, payment/{PaymentProvider,FakePaymentProvider} (a real provider is not built)
+src/server/i18n/        email rendering (emailRender.ts) and the server-side business locale lookup (en, ar)
 src/components/{ui,brand,public,app}
 messages/{en,ar}.json
 prisma/schema.prisma, migrations/, seed.ts
@@ -94,14 +94,16 @@ Cancel (link or staff) → `waitlist.onSlotFreed(appointment)` → match `Waitli
 staff null or equal, status OPEN) ordered by `createdAt` → create `WaitlistOffer`s for the first batch of 3 (unique per entry per freed slot),
 `expiresAt = min(now + 30 min, slotStart − minNotice)` → email with a signed claim token. Claim → booking service (same insert, so the
 first claim wins and others get 409) → the offer is CLAIMED, the entry FULFILLED. `POST /api/jobs/waitlist-expiry` expires offers and
-offers the next batch until the slot is inside the minimum notice.
+offers the next batch until the slot is inside the minimum notice, and first sweeps lapsed deposit holds (each frees a slot and offers it at once).
+A claim first takes an atomic reservation on the entry (`claimingOfferId` / `claimingAt`, 60 s lease) so one entry cannot book two slots at the same instant;
+a claim that needs a deposit leaves the entry reserved while its hold is live (see the key decisions).
 
 ### Signed links
 `token = base64url(payload) + "." + base64url(HMAC-SHA256(LINK_SECRET, payload))`, payload `{ a: appointmentId | o: offerId, act: 'view'|'confirm'|'cancel'|'claim'|'pay', exp }`.
 Verified with `timingSafeEqual`. Appointment links expire at `startAt`; offer links at `expiresAt`. The confirm and cancel pages load
 with GET (no side effect) and act with POST, so email link scanners can't cancel an appointment.
 
-## Key decisions (copy into the README)
+## Key decisions
 | Decision | Why |
 |---|---|
 | Exclusion constraint in a hand-written SQL migration | The database is the referee; no application race can create an overlap. Prisma can't express it. |
@@ -119,4 +121,13 @@ with GET (no side effect) and act with POST, so email link scanners can't cancel
 | Cacheable reads count in memory first | Slots, public page, directory and link/offer GETs write to Postgres only once an instance has seen 50% of the limit for that IP and window; once limited, the instance answers 429 from memory until the window ends. Mutating routes always write. |
 | Deposit hold reveals phone history (accepted pilot risk) | A public booking answers `PENDING_PAYMENT` instead of a booking when the phone has reached the no-show threshold, so someone who knows a number can learn it has missed appointments at that business. Mitigations: the answer names no reason or count, and bookings are limited per normalized phone (6 per 15 min, any IP, Postgres limiter). Residual: a slow, patient prober still learns it. Accepted for the pilot; follow-up F29 (email or OTP proof of phone control before a hold is shown). |
 | Deposit hold lifecycle | `PENDING_PAYMENT` holds the slot in `appointment_no_overlap` for 15 minutes. Paying sets `BOOKED` (no `confirmedAt`; the PAID Payment is the proof of deposit, the client can still confirm by link) and creates the reminders once. A lapsed hold is swept by the booking path (scoped, before availability and once more after a 23P01) and by the 5-minute `waitlist-expiry` cron, both `FOR UPDATE SKIP LOCKED`; availability already treats a lapsed hold as free. A waitlist claim that needs a deposit marks the offer CLAIMED / entry FULFILLED only when it is paid. |
+| One shared Postgres rate limiter | Every number lives in `services/rateLimitPolicies.ts` (fixed windows, so up to 2x the limit across a boundary is accepted). State is the `RateLimitBucket` table, written by one atomic upsert, so limits hold across serverless instances; `/api/jobs/cleanup` purges old buckets. Public booking has two budgets: per client address (30 / 10 min) and per phone (6 / 15 min, any address). The phone key is an HMAC of the E.164 number with `LINK_SECRET`, never the bare number. Idempotent replays and 400s get their hit refunded. Route limits fail open if the store errors (and log `rate_limit_fail_open`); `RATE_LIMIT_DISABLED=1` is for tests only. |
+| `PENDING_PAYMENT` in the constraint, in two migrations | A new enum value cannot be used in the transaction that adds it. `20261031090000_deposit_columns` adds the value (a no-op, the label existed since init), `Business.depositEnabled` (default false) and `Appointment.holdExpiresAt`. `20261031090100_deposit_overlap_constraint` then drops and re-creates `appointment_no_overlap` with the same definition plus `PENDING_PAYMENT`, in one implicit transaction so the table is never unprotected, and adds the partial index `Appointment_pending_hold_idx`. `ACTIVE_APPOINTMENT_STATUSES` in `domain/appointmentStatus.ts` must always match the constraint predicate. A hold has no reminders and no confirmation email until it is paid (`REMINDABLE_STATUSES`). |
+| Deposit rule and pay link | `depositRequired` (pure): deposits enabled, source is not `FRONT_DESK`, and the client's `noShows` (matched by E.164 phone within the business) is at least `max(1, depositThreshold)`. The hold is `now + 15 min`; the pay page uses a `pay`-scoped signed link and shows the server's clock for the countdown. Only the fake payment provider exists: nothing is refunded or credited (follow-up F30) and the pay link is not yet emailed (F31). |
+| Plan limit under a business row lock | Free allows one active bookable staff member. Every write that adds or re-enables a bookable staff member runs `assertRoomForBookable` inside its transaction, which takes `SELECT ... FOR UPDATE` on the `Business` row first; plan changes (test checkout, downgrade) take the same lock, so a concurrent upgrade and a staff add cannot interleave. Data already over the limit is grandfathered, never touched. |
+| Waitlist reservation and the deposit-claim rule | A claim first reserves the entry atomically (`claimingOfferId` / `claimingAt`, 60 s lease, released on failure) so one entry cannot book two different slots at the same instant (F21). When a claim ends in a deposit hold, the offer, the entry and the refill metric are touched only when the deposit is paid; until then a live hold keeps the entry reserved and a second offer of the same entry answers 409. A lapsed unpaid hold leaves no trace. |
+| Directory is opt-in | `Business.listed` defaults to false. Listing requires at least one active service and one bookable staff member with hours (else 409 `NOT_READY` with the missing items). Unlisted businesses keep working by direct link. The directory returns only public fields (slug, name, category, address, service count, from price). |
+| Business locale resolved on the server | `src/i18n/request.ts` picks the language in this order: `locale` cookie, client hint cookie, the business default for `/b/{slug}`, `/l/{token}` and `/o/{token}` (resolved by slug or from the signed token), then English. The first visit therefore renders once, in the right language. Known debt: that file calls repositories directly (follow-up F27). |
+| Build-time `prisma generate` and the Node 22 pin | The generated client lives in `src/generated` (gitignored). `vercel-build` runs `prisma generate` explicitly before `next build` because build caches can skip `postinstall`. Node is pinned to 22 in `.nvmrc` and `engines`, and in the Vercel project. |
+| Vercel production migration guard | Only `VERCEL_ENV=production` builds run `prisma migrate deploy`, after `checkProductionEnv` passes (required names, 32+ character distinct secrets, pooled vs direct strings, `EMAIL_PROVIDER=resend`, no seed or test flags). `EXPECTED_DB_HOST` makes the build refuse any other database host. Previews never migrate. Migrations run before the new code is live, so they must stay additive. |
 | E.164 phones | One client per `(businessId, phone)` regardless of how staff typed it. |

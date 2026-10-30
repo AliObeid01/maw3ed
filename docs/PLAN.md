@@ -66,7 +66,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 ## Phase 4 — Polish, docs, demo (6–8 Nov)
 - [ ] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
 - [ ] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
-- [ ] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
+- [x] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
 - [x] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
 

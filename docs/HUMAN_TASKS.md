@@ -3,6 +3,25 @@
 Claude can't create accounts or hold your credentials. Do these early (Phase 0), then put the values in Vercel env vars,
 GitHub Actions secrets and your local `.env`. Never commit secrets.
 
+## Status as of 30 Oct
+
+Done:
+- [x] Production deployed on https://maw3edlb.com (Vercel, Node 22, Neon `production` branch; every migration applied by the production build; `/api/health` green).
+- [x] Resend sending domain `mail.maw3edlb.com` verified; real emails arrive in the inbox.
+- [x] Three cron-job.org jobs live: `/api/jobs/reminders` and `/api/jobs/waitlist-expiry` every 5 minutes, `/api/jobs/cleanup` daily; failure notifications on.
+- [x] GitHub backup scheduler (`reminders-backup.yml`) running with the `APP_URL` variable and `CRON_SECRET` secret.
+- [x] Real phone test of booking, confirmation email, and the confirm and cancel links.
+- [x] Reserved-slug SQL check (section 9 below) and the pre-deploy migration checks (`EXPECTED_DB_HOST` guard, constraint check) are done.
+
+Open:
+- [ ] Recruit 3 to 5 pilot businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`).
+- [ ] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves.
+- [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails).
+- [ ] Neon usage check (storage and compute hours on the free plan).
+- [ ] Optional: DMARC TXT record (`_dmarc`) and a Sentry DSN.
+- [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
+- [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
+
 | # | Task | Produces | Needed by |
 |---|---|---|---|
 | 1 | **Neon**: create a project (region close to Beirut, e.g. `aws-eu-central-1`); create `main` (prod) and `dev` branches. `btree_gist` is enabled by the migration. | `DATABASE_URL` (pooled), `DIRECT_URL` | P1.1 (dev), P2.17 (prod) |
