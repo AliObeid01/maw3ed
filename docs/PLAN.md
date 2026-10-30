@@ -16,7 +16,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P0.6 FE** Tailwind v4 `@theme` tokens, `bg-hero`, Outfit + IBM Plex Sans Arabic via `next/font`, shadcn/ui init restyled to tokens, `Logo.tsx` from the sidebar board SVG.
 - [x] **P0.7 FE** next-intl (no URL prefix; locale resolver), `messages/en.json` + `ar.json`, `scripts/i18n/check-keys.mjs`, root layout sets `lang`/`dir`.
 - [x] **P0.8 FE** `pnpm design:extract` script alias; run `snapshot-boards.mjs` once Playwright is installed → `design/boards/*.png`.
-- [ ] **P0.9 H** Accounts and secrets from `docs/HUMAN_TASKS.md` §1–5; start recruiting pilots (§7).
+- [x] **P0.9 H** Accounts and secrets from `docs/HUMAN_TASKS.md` §1–5 (Neon prod, Vercel, Resend verified domain, cron-job.org done 30 Oct; Sentry is optional and not set up). Pilot recruiting is tracked in P2.17.
 
 ## Phase 1 — Engine proven (29–31 Oct) · gate: slots + no-overlap + isolation tests green
 - [x] **P1.1 BE** `prisma/schema.prisma`: all entities from `docs/DATA_MODEL.md`, businessId-first indexes, uniques, enums. (FR-01…24 data)
@@ -49,7 +49,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
 - [x] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
 - [x] **P2.16 QA** E2E `booking.spec.ts` (Pixel 5) green against preview.
-- [ ] **P2.17 H** cron-job.org jobs live; prod smoke on a real Android phone; **onboard pilots** (`docs/PILOT_PLAYBOOK.md`); enter baselines.
+- [ ] **P2.17 H** DONE 30 Oct: cron-job.org jobs live (3 jobs return 200), GitHub backup workflow green, production phone test (booking email arrived in the inbox, confirm and cancel links work). OPEN: 24 h reminder end-to-end check (email + WhatsApp item appear by themselves), **onboard pilots** (`docs/PILOT_PLAYBOOK.md`), enter baselines.
 
 ## Phase 3 — History, pilot report, extras (3–6 Nov)
 - [x] **P3.1 BE** `PATCH /api/appointments/{id}/outcome` (ATTENDED / NO_SHOW / LATE_CANCEL; only after start; counters in the same transaction; idempotent re-mark adjusts counters). (FR-21)
@@ -67,7 +67,8 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
 - [ ] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [ ] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
-- [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video; final DoD tick.
+- [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
+- [ ] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
 
 ---
 
@@ -84,6 +85,17 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
 - [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.
 - [ ] **F12 FE** Narrow `use client` boundaries: `AppShell` and `StepRail` are fully client components; split the interactive parts (More sheet trigger, back button) so the rest renders on the server.
+
+## Deployment and operations (done 30 Oct)
+- [x] **O1** Production on Vercel at `https://maw3edlb.com` (`www` redirects to the bare domain), Node 22, region Frankfurt, Neon production branch with all 7 migrations applied by the production build, health check green.
+- [x] **O2** Resend sending domain `mail.maw3edlb.com` verified; real emails arrive in the inbox.
+- [x] **O3** cron-job.org: reminders and waitlist-expiry every 5 min, cleanup daily; `CRON_SECRET` rotated after an accidental exposure; failure notifications on. GitHub Actions backup runs.
+- [x] **O4 H** Real phone test of the booking, confirmation email, confirm and cancel links.
+- [ ] **O5 H** Resend click tracking off; Neon usage check; optional DMARC record; optional Sentry DSN.
+- [ ] **O6 H** 24 h reminder end-to-end check (user will report).
+- [ ] **O7 H** Reserved-slug SQL check on the production database before the first public pilot (`docs/HUMAN_TASKS.md` §9).
+- [ ] **O8 FE/BE** Flow adjustments from the production phone test (user is compiling the list; add each as an F item).
+- Branch protection on `main` is NOT possible on the free private repo (rules are not enforced); process rule instead: every change goes through a PR with green CI.
 
 ## Launch gates (must be done before the pilot goes live)
 
@@ -106,7 +118,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 
 ## Added scope: public directory (team decision, 29 Oct)
 - [x] **D1 BE** `Business.published` flag (migration, default false for new businesses; the seeded demo businesses and existing rows published) + `published` and `publishedAt` in `GET/PATCH /api/business` (owner only; publishing requires at least one active service and one bookable staff member with hours, else 409 `NOT_READY` with the missing items); `GET /api/public/directory?query=&category=&cursor=&limit=` (public, no auth) returning only published businesses `{businesses:[{slug,name,category,address,serviceCount,fromPrice}], nextCursor}`; `GET /api/public/{slug}` and `/slots` and `POST .../bookings` return 404 for an UNPUBLISHED business (the owner previews via the dashboard); tests incl. tenant/unpublished isolation, no PII or owner data in the directory, pagination.
-- [ ] **D2 FE (see F24)** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
+- [ ] **D2 FE (see F24; BUILD approved by the user 30 Oct)** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
 - Out of scope: ratings, maps, filters beyond name/category, SEO pages.
 
 ## Notes from the launch-gates and waitlist work (open follow-ups)
