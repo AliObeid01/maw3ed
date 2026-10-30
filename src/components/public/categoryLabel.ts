@@ -1,17 +1,45 @@
 import { useTranslations } from 'next-intl';
 
-/** Normalises the free-text business category ("Hair Salon", "salon ") to a message key, or null. */
-export function categoryKey(category: string | null | undefined): string | null {
-  const key = (category ?? '').trim().toLowerCase().replace(/[^a-z]+/g, '');
-  return key || null;
+const letters = (text: string) => text.toLowerCase().replace(/[^a-z]+/g, '');
+
+/**
+ * Message-key candidates for a free-text business category, best first: the whole text without spaces, then each
+ * word ("Hair Salon" -> ["hairsalon", "hair", "salon"], "salon " -> ["salon"]). Empty or non-Latin text gives [].
+ */
+export function categoryKeys(category: string | null | undefined): string[] {
+  const text = (category ?? '').trim();
+  if (!text) return [];
+  const candidates = [letters(text), ...text.split(/\s+/).map(letters)].filter(Boolean);
+  return [...new Set(candidates)];
+}
+
+/** First candidate key that has a translation, or null. */
+export function categoryKey(
+  category: string | null | undefined,
+  has: (key: string) => boolean,
+): string | null {
+  return categoryKeys(category).find(has) ?? null;
+}
+
+/** The translated label, or the text exactly as the owner typed it when no key matches. */
+export function categoryText(
+  category: string | null | undefined,
+  has: (key: string) => boolean,
+  label: (key: string) => string,
+): string | null {
+  const text = (category ?? '').trim();
+  if (!text) return null;
+  const key = categoryKey(text, has);
+  return key ? label(key) : text;
 }
 
 /** Translated label for a business category; unknown categories are shown as the owner typed them. */
 export function useCategoryLabel() {
   const t = useTranslations('public.category');
-  return (category: string | null | undefined): string | null => {
-    const key = categoryKey(category);
-    if (!key) return null;
-    return t.has(key) ? t(key) : (category?.trim() ?? null);
-  };
+  return (category: string | null | undefined): string | null =>
+    categoryText(
+      category,
+      (key) => t.has(key),
+      (key) => t(key),
+    );
 }

@@ -1,5 +1,6 @@
 'use client';
 
+import { MetaLine } from '@/components/ui/Bidi';
 import { MailPlus, Plus, User } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -82,7 +83,7 @@ function StaffCard({
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
         <span className="truncate text-base font-semibold">{member.displayName}</span>
-        <span className="text-[13px] text-muted">{role ? `${role} · ${services}` : services}</span>
+        <span className="text-[13px] text-muted"><MetaLine items={[role, services]} /></span>
       </span>
       {!member.active ? (
         <Chip tone="neutral">{t('status.inactive')}</Chip>

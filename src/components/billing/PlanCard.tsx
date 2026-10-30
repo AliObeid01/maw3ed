@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { useErrorMessage } from '@/components/app/states';
+import { ltr } from '@/components/ui/Bidi';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -54,7 +55,7 @@ export function PlanCard() {
   const pro = data.plan === 'PRO';
   const limit = data.limits.bookableStaff;
   // LRI..PDI isolates the price so the currency sign stays in front of the number in Arabic text.
-  const price = '⁦' + t('price', { amount: data.price.amount }) + '⁩';
+  const price = ltr(t('price', { amount: data.price.amount }));
 
   const upgrade = async () => {
     if (pending) return;

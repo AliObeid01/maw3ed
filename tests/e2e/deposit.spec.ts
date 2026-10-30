@@ -79,7 +79,7 @@ test.describe('deposit journey', () => {
 
     // The booking is held, not confirmed: the journey goes to the pay page.
     await expect(page).toHaveURL(new RegExp(`/pay/${PAY_TOKEN}$`));
-    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    await expect(page.getByText('Studio Nour', { exact: true })).toBeVisible();
     await expect(page.getByText('TEST MODE', { exact: false })).toBeVisible();
     await expect(page.getByTestId('countdown')).toHaveText(/^1[45]:\d\d$|^[0-9]:\d\d$/);
     // Never a card form: no inputs at all, exactly one action.
@@ -115,5 +115,19 @@ test.describe('deposit journey', () => {
     await page.goto(`/pay/${PAY_TOKEN}`);
     await expect(page.getByRole('heading', { name: 'This hold has expired' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'See free times' })).toHaveAttribute('href', BOOK);
+  });
+
+  test('a cancelled booking shows the cancelled state with a way back and no form', async ({ page }) => {
+    await page.route('**/api/pay/**', (route) =>
+      route.fulfill(
+        json(410, {
+          error: { code: 'BOOKING_CANCELLED', message: 'cancelled', fields: {}, data: { slug: SLUG, slots: [] } },
+        }),
+      ),
+    );
+    await page.goto(`/pay/${PAY_TOKEN}`);
+    await expect(page.getByRole('heading', { name: 'This booking was cancelled' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'See free times' })).toHaveAttribute('href', BOOK);
+    await expect(page.locator('input')).toHaveCount(0);
   });
 });

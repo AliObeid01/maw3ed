@@ -201,8 +201,8 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
   if (booked || screen === 'claimed') {
     const doneBody = booked
       ? t.rich('done.body', {
-          service: slot.service.name,
-          staff: slot.staff.displayName,
+          service: isolate(slot.service.name),
+          staff: isolate(slot.staff.displayName),
           when: `${f.day(slot.startAt)} · ${ltr(f.time(slot.startAt))}`,
           b: (chunks) => <bdi>{chunks}</bdi>,
         })

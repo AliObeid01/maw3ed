@@ -136,6 +136,31 @@ test.describe('staff: invites and partial saves', () => {
     );
   });
 
+  test('a PLAN_LIMIT on a new bookable member shows a friendly upgrade card, not a red error', async ({
+    page,
+  }) => {
+    await mockSetupApi(page, {
+      override: async (route, method, path) => {
+        if (method !== 'POST' || path !== '/api/staff') return false;
+        await route.fulfill({
+          status: 403,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: { code: 'PLAN_LIMIT', message: 'limit', fields: {} } }),
+        });
+        return true;
+      },
+    });
+    await page.goto('/app/staff');
+    await page.getByRole('button', { name: 'Add staff member' }).first().click();
+    await page.getByLabel('Display name').fill('Dana');
+    await page.getByRole('button', { name: 'Add staff member' }).last().click();
+    const card = page.getByRole('alert').filter({ hasText: 'Your Free plan is full' });
+    await expect(card).toBeVisible();
+    const link = card.getByRole('link', { name: 'See plans' });
+    await expect(link).toHaveAttribute('href', '/pricing');
+    expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  });
+
   test('a failed services step after a saved name still refreshes the list and shows the error', async ({
     page,
   }) => {

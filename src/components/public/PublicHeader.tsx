@@ -43,8 +43,8 @@ export function PublicHeader({
   return (
     <header className={cn('w-full border-b border-divider bg-surface', className)}>
       <div className="mx-auto flex max-w-[1240px] items-center gap-3 px-4 py-2 md:gap-7 md:px-8 md:py-3">
-        <Link href={homeHref} aria-label={t('home')} className="flex min-h-11 items-center">
-          <Logo width={132} className="max-md:w-[112px]" />
+        <Link href={homeHref} className="flex min-h-11 items-center">
+          <Logo label={t('home')} width={132} className="max-md:w-[112px]" />
         </Link>
 
         <nav aria-label={t('navLabel')} className="hidden flex-1 gap-1 md:flex">

@@ -1,10 +1,10 @@
 'use client';
 
-import { Check, CircleAlert } from 'lucide-react';
+import { Check, CircleAlert, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Input } from '@/components/ui/Field';
 import { Switch } from '@/components/ui/Switch';
@@ -53,6 +53,7 @@ export function StaffForm({
   const [upgrade, setUpgrade] = useState(false);
   const tb = useTranslations('billing');
   const upgradeLabel = tb('upgradeLink');
+  const limitTitle = tb('staffLimitTitle');
   /** Show a failed save; a plan limit gets the friendly message and an upgrade link. */
   const fail = (error: unknown, fallback?: string) => {
     const limit = error instanceof ApiError && error.code === 'PLAN_LIMIT';
@@ -150,17 +151,23 @@ export function StaffForm({
           data-form-banner
           className="rounded-[20px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
         >
-          <Callout tone="danger" icon={<CircleAlert />}>
-            {banner}
-            {upgrade ? (
-              <>
-                {' '}
-                <Link href="/pricing" className="font-semibold underline">
+          {upgrade ? (
+            <Callout tone="warning" icon={<Sparkles />}>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1">
+                  <strong className="text-[15px] font-semibold">{limitTitle}</strong>
+                  <span>{banner}</span>
+                </div>
+                <ButtonLink href="/pricing" variant="accent" className="self-start">
                   {upgradeLabel}
-                </Link>
-              </>
-            ) : null}
-          </Callout>
+                </ButtonLink>
+              </div>
+            </Callout>
+          ) : (
+            <Callout tone="danger" icon={<CircleAlert />}>
+              {banner}
+            </Callout>
+          )}
         </div>
       ) : null}
 

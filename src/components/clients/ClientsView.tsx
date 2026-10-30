@@ -1,5 +1,6 @@
 'use client';
 
+import { MetaLine } from '@/components/ui/Bidi';
 import { ChevronRight, Search, SearchX, UserRound, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useReducer, useRef, useState } from 'react';
@@ -83,17 +84,16 @@ function ClientItem({ client, timezone }: { client: ClientRow; timezone: string 
         </span>
         {/* Phones: one summary line. md+: one column per number. */}
         <span className="text-[13px] text-muted md:hidden">
-          {t('summary', {
-            visits: client.attended,
-            noShows: client.noShows,
-            lateCancels: client.lateCancels,
-          })}
-          {last ? (
-            <>
-              {' · '}
-              <span className="whitespace-nowrap">{t('last', { day: last })}</span>
-            </>
-          ) : null}
+          <MetaLine
+            items={[
+              t('summary', {
+                visits: client.attended,
+                noShows: client.noShows,
+                lateCancels: client.lateCancels,
+              }),
+              last ? <span className="whitespace-nowrap">{t('last', { day: last })}</span> : null,
+            ]}
+          />
         </span>
         <span className="hidden tabular-nums md:block">{client.attended}</span>
         <span className="hidden tabular-nums md:block">

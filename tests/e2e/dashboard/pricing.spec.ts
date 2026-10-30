@@ -16,6 +16,7 @@ test.describe('5.1 pricing', () => {
     await expect(page.getByRole('heading', { name: 'Free', level: 2 })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pro', level: 2 })).toBeVisible();
     await expect(page.getByText('TEST MODE').first()).toBeVisible();
+    await expect(page.getByText('Recommended')).toBeVisible();
     await expect(page.getByText('1 bookable staff member')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Start free' })).toHaveAttribute('href', '/signup');
     await expect(page.getByRole('link', { name: 'Upgrade to Pro' })).toHaveAttribute(

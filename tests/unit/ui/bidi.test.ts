@@ -31,7 +31,10 @@ describe('bidi helpers', () => {
       }),
     );
     expect(out.match(/·/g)).toHaveLength(1);
-    expect(out).toMatch(/<bdi[^>]*>Haircut<\/bdi><span[^>]*> · <\/span><bdi[^>]*>Lina<\/bdi>/);
+    // Visible dot is hidden from screen readers, which hear a comma instead.
+    expect(out).toMatch(
+      /<bdi[^>]*>Haircut<\/bdi><span aria-hidden="true"[^>]*> · <\/span><span class="sr-only">, <\/span><bdi[^>]*>Lina<\/bdi>/,
+    );
   });
 
   it('draws no separator for a single item', () => {

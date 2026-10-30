@@ -137,7 +137,7 @@ function MarkedRow({
               <Link
                 key="c"
                 href={`/app/appointments/${item.id}`}
-                className="-my-3 inline-block py-3 font-semibold text-ink no-underline hover:underline"
+                className="inline-flex min-h-11 items-center font-semibold text-ink no-underline hover:underline"
               >
                 <Bidi>{label(item.client)}</Bidi>
               </Link>,
