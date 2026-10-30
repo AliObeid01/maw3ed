@@ -11,3 +11,10 @@ export function getEmailMessages(locale: string): EmailMessages {
 }
 
 export const isRtl = (locale: string) => locale === 'ar';
+
+/** Web-safe stacks: mail clients cannot load web fonts. Arabic prefers faces that ship with the OS. */
+export function emailFontStack(locale: string): string {
+  return isRtl(locale)
+    ? "Tahoma,'Segoe UI','Geeza Pro','Noto Naskh Arabic',Arial,sans-serif"
+    : 'Arial,Helvetica,sans-serif';
+}

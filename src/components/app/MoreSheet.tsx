@@ -2,6 +2,7 @@
 
 import { LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { LanguageToggle } from '@/components/public/LanguageToggle';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { BusinessSection, NavLink } from './AppSidebar';
@@ -47,6 +48,7 @@ export function MoreSheet({
           <BusinessSection activeId={activeId} hrefs={hrefs} onNavigate={close} />
         )}
       </nav>
+      <LanguageToggle className="mt-5 w-full" />
       {onSignOut ? (
         <Button
           variant="secondary"

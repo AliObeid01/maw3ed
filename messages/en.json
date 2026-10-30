@@ -899,6 +899,13 @@
     "whatsapp": {
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
       "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
+    },
+    "invite": {
+      "subject": "You are invited to join {business} on Maw3ed",
+      "heading": "You are invited",
+      "intro": "You have been invited to join {business} on Maw3ed.",
+      "accept": "Accept the invitation",
+      "expires": "This link works once and expires on {expires}."
     }
   },
   "dev": {
