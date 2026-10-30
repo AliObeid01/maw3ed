@@ -193,7 +193,25 @@ async function openCheckout(
       { businessId: ctx.businessId, appointmentId: stored.id },
       'deposit checkout failed; releasing the hold',
     );
-    await appointmentRepo.abandonHold(ctx.businessId, stored.id, now);
+    try {
+      if (await appointmentRepo.abandonHold(ctx.businessId, stored.id, now))
+        await onSlotFreed(
+          { businessId: ctx.businessId, logger: ctx.logger },
+          {
+            appointmentId: stored.id,
+            serviceId: stored.service.id,
+            staffId: stored.staff.id,
+            startAt: stored.startAt,
+            endAt: stored.endAt,
+          },
+        );
+    } catch {
+      // The caller still gets the 503; the cron sweeps the hold when it lapses.
+      ctx.logger.error(
+        { businessId: ctx.businessId, appointmentId: stored.id },
+        'releasing the hold after a failed checkout also failed',
+      );
+    }
     throw AppError.unavailable('Payments are temporarily unavailable. Please try again.');
   }
 }

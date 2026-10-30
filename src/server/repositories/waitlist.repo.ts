@@ -433,6 +433,29 @@ export const waitlistRepo = {
    * the offer becomes CLAIMED (from OPEN, EXPIRED or SUPERSEDED), the entry FULFILLED (from OPEN or
    * CANCELLED), and every other OPEN offer for this freed slot or this entry SUPERSEDED.
    */
+  /**
+   * Does this entry already own a live deposit hold made through ANOTHER of its offers? Such a claim keeps the
+   * entry reserved for the hold's whole life (15 min), longer than the 60 s claim lease, until it is paid
+   * (markClaimedIn), swept or abandoned. Holds with no expiry count as live.
+   */
+  async hasLiveDepositHold(businessId: string, entryId: string, exceptOfferId: string, now: Date) {
+    const offers = await db.waitlistOffer.findMany({
+      where: { businessId, entryId, id: { not: exceptOfferId } },
+      select: { id: true },
+    });
+    if (offers.length === 0) return false;
+    const count = await db.appointment.count({
+      where: {
+        businessId,
+        status: 'PENDING_PAYMENT',
+        source: 'WAITLIST',
+        idempotencyKey: { in: offers.map((o) => `${OFFER_KEY_PREFIX}${o.id}`) },
+        OR: [{ holdExpiresAt: null }, { holdExpiresAt: { gt: now } }],
+      },
+    });
+    return count > 0;
+  },
+
   markClaimed: (
     businessId: string,
     a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },

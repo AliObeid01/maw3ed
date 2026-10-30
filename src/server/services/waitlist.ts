@@ -401,6 +401,18 @@ export const offersService = {
         'This waitlist entry is no longer active, so the offer cannot be claimed.',
       );
 
+    // F21 for deposits: a live deposit hold made through another offer of this entry keeps the entry
+    // reserved until that hold is paid, swept or abandoned (the 60 s lease alone would go stale).
+    if (
+      o.status !== 'CLAIMED' &&
+      (await waitlistRepo.hasLiveDepositHold(businessId, o.entryId, o.id, now))
+    )
+      throw AppError.conflict(
+        'CONFLICT',
+        undefined,
+        'This waitlist entry is already holding another spot, waiting for its deposit.',
+      );
+
     // F21: one conditional UPDATE reserves the entry for THIS offer, so two different offers of the same
     // entry cannot both book. A replay on an already fulfilled entry has nothing to reserve.
     let reserved = false;

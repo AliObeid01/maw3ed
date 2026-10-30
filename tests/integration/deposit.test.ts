@@ -642,6 +642,161 @@ describe('waitlist claim that needs a deposit (B2)', () => {
   });
 });
 
+describe('per-phone budget', () => {
+  it('idempotent replays do not consume it, and the bucket key is not a bare hash of the phone', async () => {
+    const saved = process.env.RATE_LIMIT_DISABLED;
+    delete process.env.RATE_LIMIT_DISABLED;
+    try {
+      await pg.query('DELETE FROM "RateLimitBucket"');
+      const phone = newPhone();
+      const body = bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { phone });
+      const key = newKey();
+      const statuses: number[] = [];
+      for (let i = 0; i < 10; i++) statuses.push((await bookPublicly(a.slug, body, key)).status);
+      expect(statuses[0]).toBe(201);
+      expect(statuses.slice(1).every((s) => s === 200)).toBe(true);
+      const { createHash } = await import('node:crypto');
+      const bare = createHash('sha256').update(normalizePhone(phone)!).digest('hex');
+      const keys = (await pg.query('SELECT key FROM "RateLimitBucket"')).rows.map((r) => r.key);
+      expect(keys.some((k: string) => k.includes(bare))).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.RATE_LIMIT_DISABLED;
+      else process.env.RATE_LIMIT_DISABLED = saved;
+      await pg.query('DELETE FROM "RateLimitBucket"');
+    }
+  });
+});
+
+describe('one entry, two offers, deposit holds (F21 stays closed)', () => {
+  async function twoOffers() {
+    const phone = await noShowClient();
+    const clientId = (
+      await pg.query('SELECT id FROM "Client" WHERE phone=$1', [normalizePhone(phone)!])
+    ).rows[0].id;
+    const entry = await seedEntry(prisma, a.businessId, scn.serviceId, {
+      clientId,
+      email: 'nadia@example.test',
+      createdAt: new Date(NOW.getTime() - 1000),
+    });
+    for (const start of [SLOT, SLOT2]) {
+      const b1 = await bookAtFrontDesk(
+        a.cookie,
+        bookingBody(scn.serviceId, scn.staffIds[0]!, start, { phone: newPhone() }),
+      );
+      await staffCancel(a.cookie, b1.body!.appointment.id);
+    }
+    const mails = fakeEmailProvider.calls.filter((c) => c.to === 'nadia@example.test');
+    expect(mails).toHaveLength(2);
+    const tokens = mails.map((m) => tokenFromEmail(m.text));
+    const paidFor = async () =>
+      (
+        await pg.query(
+          `SELECT count(*)::int n FROM "Appointment" a JOIN "Payment" p ON p."appointmentId"=a.id
+           WHERE a."clientId"=$1 AND p.status='PAID'`,
+          [clientId],
+        )
+      ).rows[0].n as number;
+    return { tokens, entryId: entry.entryId, paidFor };
+  }
+
+  it('a second claim is refused while the first deposit hold is live, even after the 60 s lease', async () => {
+    const { tokens } = await twoOffers();
+    const first = await offerClaim(tokens[0]!);
+    expect(first.status).toBe(201);
+    expect(first.body!.status).toBe('PENDING_PAYMENT');
+    vi.setSystemTime(new Date(NOW.getTime() + 2 * MIN));
+    const second = await offerClaim(tokens[1]!);
+    expect(second.status).toBe(409);
+    const live = await pg.query(
+      `SELECT count(*)::int n FROM "Appointment" WHERE status='PENDING_PAYMENT' AND source='WAITLIST'`,
+    );
+    expect(live.rows[0].n).toBe(1);
+  });
+
+  it('after the first hold lapses and is swept, the other offer can be claimed and paid', async () => {
+    const { tokens, paidFor } = await twoOffers();
+    await offerClaim(tokens[0]!);
+    vi.setSystemTime(new Date(NOW.getTime() + 16 * MIN));
+    await runExpiry();
+    const second = await offerClaim(tokens[1]!);
+    expect(second.status).toBe(201);
+    expect(second.body!.status).toBe('PENDING_PAYMENT');
+    expect((await payPost(tokenOf(second))).status).toBe(200);
+    expect(await paidFor()).toBe(1);
+  });
+
+  it('after paying the first, the other offer is refused and exactly one paid booking exists', async () => {
+    const { tokens, paidFor } = await twoOffers();
+    const first = await offerClaim(tokens[0]!);
+    expect((await payPost(tokenOf(first))).status).toBe(200);
+    vi.setSystemTime(new Date(NOW.getTime() + 2 * MIN));
+    const second = await offerClaim(tokens[1]!);
+    expect(second.status).toBe(409);
+    expect(await paidFor()).toBe(1);
+  });
+});
+
+describe('a failed checkout releases the hold and re-offers the slot', () => {
+  it('answers 503, cancels the hold and offers the slot to the waitlist', async () => {
+    const waiter = await seedEntry(prisma, a.businessId, scn.serviceId, {
+      email: 'wendy@example.test',
+      createdAt: new Date(NOW.getTime() - 1000),
+    });
+    fakePaymentProvider.failNext = new Error('provider down');
+    const phone = await noShowClient();
+    const res = await bookPublicly(
+      a.slug,
+      bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { phone }),
+    );
+    expect(res.status).toBe(503);
+    const held = await pg.query(`SELECT status FROM "Appointment" WHERE "startAt"=$1`, [SLOT]);
+    expect(held.rows.map((r) => r.status)).toEqual(['CANCELLED']);
+    const offers = await pg.query('SELECT 1 FROM "WaitlistOffer" WHERE "entryId"=$1', [waiter.entryId]);
+    expect(offers.rowCount).toBe(1);
+    expect(fakeEmailProvider.calls.some((c) => c.to === 'wendy@example.test')).toBe(true);
+  });
+
+  it('still answers 503 when releasing the hold itself fails (the cron sweeps it)', async () => {
+    const spy = vi.spyOn(appointmentRepo, 'abandonHold').mockRejectedValueOnce(new Error('db down'));
+    fakePaymentProvider.failNext = new Error('provider down');
+    const res = await bookPublicly(
+      a.slug,
+      bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { phone: await noShowClient() }),
+    );
+    expect(res.status).toBe(503);
+    spy.mockRestore();
+    vi.setSystemTime(new Date(NOW.getTime() + 16 * MIN));
+    expect((await runExpiry()).body).toMatchObject({ holdsExpired: 1 });
+  });
+});
+
+describe('a hold with no expiry still blocks (availability)', () => {
+  it('treats PENDING_PAYMENT with holdExpiresAt NULL as blocking', async () => {
+    const client = await seedClient(prisma, a.businessId);
+    const start = new Date(SLOT);
+    await prisma.appointment.create({
+      data: {
+        businessId: a.businessId,
+        clientId: client.id,
+        staffId: scn.staffIds[0]!,
+        serviceId: scn.serviceId,
+        startAt: start,
+        endAt: new Date(start.getTime() + 30 * MIN),
+        blockedUntil: new Date(start.getTime() + 30 * MIN),
+        status: 'PENDING_PAYMENT',
+        holdExpiresAt: null,
+      },
+    });
+    const slots = await getSlots(a.slug, {
+      serviceId: scn.serviceId,
+      staffId: scn.staffIds[0]!,
+      from: '2026-11-04',
+      to: '2026-11-04',
+    });
+    expect(startsOf(slots.body!.slots)).not.toContain(SLOT);
+  });
+});
+
 describe('a paid deposit is not a confirmation (B3)', () => {
   it('stays BOOKED with no confirmedAt: not in the confirm rate, not in the dashboard confirmed', async () => {
     const hold = await holdSlot();

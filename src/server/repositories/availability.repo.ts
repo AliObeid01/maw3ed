@@ -57,7 +57,8 @@ export const availabilityRepo = {
               { status: { in: BLOCKING_STATUSES.filter((s) => s !== 'PENDING_PAYMENT') } },
               {
                 status: 'PENDING_PAYMENT',
-                ...(q.now ? { holdExpiresAt: { gt: q.now } } : {}),
+                // A hold with no expiry (should not exist) keeps blocking: never show a slot free by accident.
+                ...(q.now ? { OR: [{ holdExpiresAt: null }, { holdExpiresAt: { gt: q.now } }] } : {}),
               },
             ],
             startAt: { lt: q.rangeEnd },

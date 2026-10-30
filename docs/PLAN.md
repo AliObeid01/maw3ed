@@ -132,4 +132,5 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F29 BE** Deposit privacy: a `PENDING_PAYMENT` answer reveals that a phone has no-show history. Per-phone rate limit is the pilot mitigation; add email or OTP proof of phone control before revealing a hold (see ARCHITECTURE key decisions).
 - [ ] **F30 BE** Refund or credit rule for paid deposits on cancel or no-show, to settle before real payments (today test mode: nothing is refunded or credited).
 - [ ] **F31 BE/FE** Email the pay link when a hold is created, so a closed tab does not lose the hold.
+- [ ] **F32 BE** (low) Booking-path and cron hold sweeps take at most 50 / 200 lapsed holds per call; a business with a larger backlog is cleared over several runs.
 - [ ] **F28 FE** `loadSlotWindow` (`src/lib/booking/window.ts`) has no fallback when a known `bookingWindowDays` is still rejected with 400 on `to` (for example the owner shortened the window meanwhile).
