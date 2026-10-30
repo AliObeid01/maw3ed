@@ -49,7 +49,7 @@ export default async function Home() {
             {t('haveAccount')}{' '}
             <Link
               href="/login"
-              className="inline-flex min-h-11 items-center font-semibold text-white underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center font-semibold text-white underline"
             >
               {t('signIn')}
             </Link>

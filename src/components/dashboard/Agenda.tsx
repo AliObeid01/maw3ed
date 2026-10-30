@@ -40,7 +40,7 @@ export function StaffFilter({
       <div
         role="group"
         aria-labelledby={labelId}
-        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 md:mx-0 md:flex-wrap md:px-0"
+        className="-mx-4 flex gap-2 overflow-x-auto ps-4 pe-20 pb-1 md:mx-0 md:flex-wrap md:px-0"
       >
         <button type="button" aria-pressed={value === undefined} className={chip(value === undefined)} onClick={() => onChange(undefined)}>
           {t('all')}

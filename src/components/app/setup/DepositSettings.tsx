@@ -3,6 +3,7 @@
 import { CircleAlert } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
+import { ltr } from '@/components/ui/Bidi';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -124,7 +125,7 @@ export function DepositSettings({
       />
       <Input
         label={t('amount')}
-        hint={t('amountHint', { value: money(parseAmount(amount) ?? saved.amount) })}
+        hint={t('amountHint', { value: ltr(money(parseAmount(amount) ?? saved.amount)) })}
         name="depositAmount"
         inputMode="decimal"
         autoComplete="off"

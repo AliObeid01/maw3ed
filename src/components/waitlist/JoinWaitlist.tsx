@@ -1,5 +1,6 @@
 'use client';
 
+import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { BellRing, Compass, Check, WifiOff, ChevronLeft, Info } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -158,7 +159,14 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   const hero = (
     <BusinessHero
       name={data.business.name}
-      meta={[categoryLabel(data.business.category), data.business.address].filter(Boolean).join(' · ')}
+      meta={
+        <MetaLine
+          items={[
+            categoryLabel(data.business.category),
+            data.business.address ? <Bidi>{data.business.address}</Bidi> : null,
+          ]}
+        />
+      }
       facts={[t('heroFact')]}
     />
   );

@@ -3,6 +3,7 @@
 import { CloudOff, Search, SearchX } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Field';
@@ -28,7 +29,7 @@ const initial: State = { key: '', items: [], cursor: null, status: 'loading', mo
 function BusinessCard({ business }: { business: DirectoryBusiness }) {
   const t = useTranslations('directory');
   const { money } = useAppFormat();
-  const price = business.fromPrice === null ? null : money(business.fromPrice);
+  const price = business.fromPrice === null ? null : ltr(money(business.fromPrice));
   return (
     <Card as="li" size="sm" padding="compact" className="flex flex-col gap-4 list-none">
       <div className="flex items-center gap-3.5">

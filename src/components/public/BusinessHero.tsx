@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react';
 import { monogram } from './monogram';
 import { cn } from '@/lib/cn';
 
 export type BusinessHeroProps = {
   name: string;
   /** e.g. "Hair salon · Hamra, Beirut · Open today 9:00 – 19:00" (already formatted in the business timezone). */
-  meta: string;
+  meta: ReactNode;
   /** Pill facts, e.g. "Reminders 24 h and 2 h before". */
   facts?: string[];
   className?: string;
@@ -24,7 +25,7 @@ export function BusinessHero({ name, meta, facts = [], className }: BusinessHero
         </div>
         <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-1">
           <h1 className="text-[22px] leading-tight font-semibold md:text-[26px]">{name}</h1>
-          <span className="text-[15px] text-hero-muted">{meta}</span>
+          <div className="text-[15px] text-hero-muted">{meta}</div>
         </div>
         {facts.length > 0 ? (
           <ul className="flex flex-wrap gap-2">

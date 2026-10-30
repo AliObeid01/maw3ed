@@ -116,4 +116,18 @@ test.describe('deposit journey', () => {
     await expect(page.getByRole('heading', { name: 'This hold has expired' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'See free times' })).toHaveAttribute('href', BOOK);
   });
+
+  test('a cancelled booking shows the cancelled state with a way back and no form', async ({ page }) => {
+    await page.route('**/api/pay/**', (route) =>
+      route.fulfill(
+        json(410, {
+          error: { code: 'BOOKING_CANCELLED', message: 'cancelled', fields: {}, data: { slug: SLUG, slots: [] } },
+        }),
+      ),
+    );
+    await page.goto(`/pay/${PAY_TOKEN}`);
+    await expect(page.getByRole('heading', { name: 'This booking was cancelled' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'See free times' })).toHaveAttribute('href', BOOK);
+    await expect(page.locator('input')).toHaveCount(0);
+  });
 });

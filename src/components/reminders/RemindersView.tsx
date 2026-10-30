@@ -1,5 +1,6 @@
 'use client';
 
+import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Check, CircleAlert, MessageCircle, PhoneOff } from 'lucide-react';
 import { useReducer, useRef, type MouseEvent } from 'react';
 import { useTranslations } from 'next-intl';
@@ -62,7 +63,14 @@ function useRowText(item: ReminderItem, timezone: string) {
         {day} <bdi dir="ltr">{f.time(item.appointment.startAt)}</bdi>
       </>
     ),
-    what: `${item.appointment.service.name} · ${item.appointment.staff.displayName}`,
+    what: (
+      <MetaLine
+        items={[
+          <Bidi key="s">{item.appointment.service.name}</Bidi>,
+          <Bidi key="p">{item.appointment.staff.displayName}</Bidi>,
+        ]}
+      />
+    ),
     time: f.time,
   };
 }

@@ -65,9 +65,13 @@ export function MetaLine({
       {shown.map((item, i) => (
         <Fragment key={i}>
           {i > 0 ? (
-            <span aria-hidden="true" className="select-none">
-              {` ${separator} `}
-            </span>
+            <>
+              {/* Sighted users see the dot; screen readers hear a pause so items do not run together. */}
+              <span aria-hidden="true" className="select-none">
+                {` ${separator} `}
+              </span>
+              <span className="sr-only">, </span>
+            </>
           ) : null}
           {item}
         </Fragment>

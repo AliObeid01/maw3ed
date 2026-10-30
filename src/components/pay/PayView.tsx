@@ -6,10 +6,12 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { PageState } from '@/components/public/PageState';
-import { isolate } from '@/components/ui/Bidi';
+import { monogram } from '@/components/public/monogram';
+import { Bidi, isolate, MetaLine, TimeRange } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
+import { cn } from '@/lib/cn';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useResource } from '@/lib/api/useResource';
 import {
@@ -25,7 +27,29 @@ import { msLeft } from '@/lib/waitlist/offer';
 import { serverNow } from '@/lib/waitlist/clock';
 
 const mainClass =
-  'mx-auto flex w-full max-w-[640px] flex-1 flex-col gap-5 px-4 pt-5 pb-10 md:px-8 md:pt-7';
+  'mx-auto flex w-full max-w-[1120px] flex-1 flex-col gap-5 px-4 pt-5 pb-10 md:px-8 md:pt-8 lg:flex-row lg:items-start lg:gap-8 lg:pt-12';
+
+/** Business header of board 5.2: monogram tile and name. The name is an h2; the page h1 is the hero title. */
+function BusinessHeader({ name }: { name: string }) {
+  return (
+    <div className="border-b border-divider bg-surface">
+      <div className="mx-auto flex max-w-[1120px] items-center gap-3 px-4 py-3 md:px-8">
+        <span
+          aria-hidden="true"
+          className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-accent text-base font-bold text-ink"
+        >
+          {monogram(name)}
+        </span>
+        <h2 className="m-0 min-w-0 truncate text-[17px] font-semibold">
+          <bdi>{name}</bdi>
+        </h2>
+      </div>
+    </div>
+  );
+}
+
+const heroClass =
+  'bg-hero flex flex-col gap-4 rounded-[28px] p-6 text-white md:p-7 lg:max-w-[400px] lg:flex-[1_1_300px]';
 
 /** mm:ss with Latin digits in both languages. */
 export function clockText(ms: number): string {
@@ -95,20 +119,31 @@ function Ended({
 }) {
   const t = useTranslations('deposit');
   return (
-    <PageState
-      role="status"
-      tone="warning"
-      icon={<Clock size={26} />}
-      title={t(`${kind}.title`)}
-      body={t(`${kind}.body`)}
-      action={
-        slug ? (
-          <ButtonLink href={`/b/${encodeURIComponent(slug)}`} size="lg" block>
+    <main className={cn(mainClass, 'lg:justify-center')}>
+      <section role="status" className={cn(heroClass, 'lg:max-w-[480px]')}>
+        <span
+          aria-hidden="true"
+          className="flex size-12 items-center justify-center rounded-[16px] bg-white/10"
+        >
+          <Clock size={24} />
+        </span>
+        <h1 className="m-0 text-[26px] leading-tight font-semibold md:text-[30px]">
+          {t(`${kind}.title`)}
+        </h1>
+        <p className="m-0 text-base leading-normal text-hero-muted">{t(`${kind}.body`)}</p>
+        {slug ? (
+          <ButtonLink
+            href={`/b/${encodeURIComponent(slug)}`}
+            size="lg"
+            block
+            variant="accent"
+            className="mt-2"
+          >
             {t(`${kind}.action`)}
           </ButtonLink>
-        ) : undefined
-      }
-    />
+        ) : null}
+      </section>
+    </main>
   );
 }
 
@@ -118,7 +153,8 @@ function PaySkeleton({ label }: { label: string }) {
       <span className="sr-only" role="status">
         {label}
       </span>
-      <Skeleton className="h-[320px] rounded-card" />
+      <Skeleton className="h-[220px] rounded-[28px] lg:max-w-[400px] lg:flex-1" />
+      <Skeleton className="h-[320px] rounded-card lg:flex-[2]" />
     </main>
   );
 }
@@ -178,92 +214,121 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
 
   const shown = outcome.kind === 'paid' ? outcome.view : view;
   const { appointment: a, deposit } = shown;
-  const when = t('when', { date: f.day(a.startAt), range: f.range(a.startAt, a.endAt) });
-  const detail = t('detail', { service: isolate(a.service.name), staff: isolate(a.staff.displayName) });
+  const when = (
+    <MetaLine
+      items={[
+        f.day(a.startAt),
+        <TimeRange key="r" start={f.time(a.startAt)} end={f.time(a.endAt)} />,
+        t('withStaff', { staff: isolate(a.staff.displayName) }),
+      ]}
+    />
+  );
+  const service = (
+    <MetaLine items={[<Bidi key="s">{a.service.name}</Bidi>, f.duration(a.service.durationMin)]} />
+  );
 
   if (outcome.kind === 'paid') {
     return (
-      <main className={mainClass}>
-        <Card className="flex flex-col gap-4">
-          <span
-            aria-hidden="true"
-            className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand"
-          >
-            <Check size={26} />
-          </span>
-          <h1
-            ref={headingRef}
-            tabIndex={-1}
-            className="m-0 text-[22px] font-semibold outline-none md:text-[26px]"
-          >
-            {t('done.title')}
-          </h1>
-          <p className="m-0 text-[17px] font-semibold">
-            <bdi>{when}</bdi>
-          </p>
-          <p className="m-0 text-[15px] text-muted">
-            <bdi>{detail}</bdi>
-          </p>
-          <p className="m-0 text-[15px]">{t('done.next')}</p>
-          <ButtonLink href={`/b/${encodeURIComponent(shown.business.slug)}`} size="lg" block variant="secondary">
-            {t('done.action')}
-          </ButtonLink>
-        </Card>
-      </main>
+      <>
+        <BusinessHeader name={shown.business.name} />
+        <main className={cn(mainClass, 'lg:justify-center')}>
+          <Card className="flex w-full flex-col gap-4 lg:max-w-[560px]">
+            <span
+              aria-hidden="true"
+              className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand"
+            >
+              <Check size={26} />
+            </span>
+            <h1
+              ref={headingRef}
+              tabIndex={-1}
+              className="m-0 text-[22px] font-semibold outline-none md:text-[26px]"
+            >
+              {t('done.title')}
+            </h1>
+            <p className="m-0 text-[17px] font-semibold">{when}</p>
+            <p className="m-0 text-[15px] text-muted">{service}</p>
+            <p className="m-0 text-[15px]">{t('done.next')}</p>
+            <ButtonLink
+              href={`/b/${encodeURIComponent(shown.business.slug)}`}
+              size="lg"
+              block
+              variant="secondary"
+            >
+              {t('done.action')}
+            </ButtonLink>
+          </Card>
+        </main>
+      </>
     );
   }
 
   const paying = outcome.kind === 'paying';
   return (
-    <main className={mainClass}>
-      <Card className="flex flex-col gap-4">
-        <span className="text-xs font-semibold text-brand uppercase">{t('eyebrow')}</span>
-        <h1 className="m-0 text-[22px] font-semibold md:text-[26px]">
-          <bdi>{view.business.name}</bdi>
-        </h1>
-        <p className="m-0 text-[17px] font-semibold">
-          <bdi>{when}</bdi>
-        </p>
-        <p className="m-0 text-[15px] text-muted">
-          <bdi>{detail}</bdi>
-        </p>
-        <p className="m-0 text-[15px]">{t('intro')}</p>
-
-        <dl className="m-0 grid grid-cols-2 gap-3 rounded-[20px] bg-canvas p-[18px]">
-          <div className="flex flex-col gap-1">
-            <dt className="text-[13px] text-muted">{t('amount')}</dt>
-            <dd className="m-0 text-xl font-semibold tabular-nums" dir="ltr">
-              {f.money(deposit.amount)}
-            </dd>
-          </div>
-          <div className="flex flex-col gap-1">
-            <dt className="text-[13px] text-muted">{t('countdownLabel')}</dt>
-            <dd
-              className="m-0 text-xl font-semibold tabular-nums"
-              dir="ltr"
-              data-testid="countdown"
-            >
+    <>
+      <BusinessHeader name={view.business.name} />
+      <main className={mainClass}>
+        <aside className={heroClass}>
+          <h1 className="m-0 text-[26px] leading-tight font-semibold tracking-[-0.01em] md:text-[30px]">
+            {t('heroTitle')}
+          </h1>
+          <p className="m-0 text-base leading-normal text-hero-muted">{t('intro')}</p>
+          {/* Visual countdown only: it ticks every second, so it stays out of any live region. */}
+          <div className="flex items-center gap-2 self-start rounded-[16px] bg-white/10 px-3.5 py-3 text-[15px] font-medium">
+            <Clock size={18} aria-hidden="true" />
+            <span>{t('heldFor')}</span>
+            <span dir="ltr" data-testid="countdown" className="font-semibold tabular-nums">
               {clockText(left)}
-            </dd>
+            </span>
           </div>
-        </dl>
+        </aside>
 
-        <Callout tone="warning" icon={<FlaskConical />}>
-          {t('testMode')}
-        </Callout>
+        <section
+          aria-label={t('summaryLabel')}
+          className="flex min-w-0 flex-col gap-4 lg:flex-[999_1_460px]"
+        >
+          <Card className="flex flex-col gap-4">
+            <dl className="m-0 grid grid-cols-[auto_1fr] gap-x-[18px] gap-y-3 text-base">
+              <dt className="text-muted">{t('service')}</dt>
+              <dd className="m-0 min-w-0 font-medium">{service}</dd>
+              <dt className="text-muted">{t('whenLabel')}</dt>
+              <dd className="m-0 min-w-0 font-medium">{when}</dd>
+            </dl>
+            <div className="h-px bg-divider" aria-hidden="true" />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-lg font-semibold">{t('amount')}</span>
+              <span dir="ltr" className="text-[30px] leading-none font-semibold tabular-nums">
+                {f.money(deposit.amount)}
+              </span>
+            </div>
+          </Card>
 
-        {outcome.kind === 'problem' ? (
-          <div role="alert">
-            <Callout tone="danger" icon={<TriangleAlert />}>
-              {t(`errors.${outcome.failure}`)}
-            </Callout>
-          </div>
-        ) : null}
+          <Callout tone="warning" icon={<FlaskConical />}>
+            {t('testMode')}
+          </Callout>
 
-        <Button size="lg" block onClick={pay} loading={paying} disabled={paying}>
-          {paying ? t('paying') : t('pay')}
-        </Button>
-      </Card>
-    </main>
+          {outcome.kind === 'problem' ? (
+            <div role="alert">
+              <Callout tone="danger" icon={<TriangleAlert />}>
+                {t(`errors.${outcome.failure}`)}
+              </Callout>
+            </div>
+          ) : null}
+
+          <p className="m-0 text-sm leading-[1.45] text-muted">{t('releaseNote')}</p>
+          <Button
+            size="lg"
+            block
+            variant="accent"
+            onClick={pay}
+            loading={paying}
+            disabled={paying}
+            className="md:h-[58px] md:text-lg"
+          >
+            {paying ? t('paying') : t('pay')}
+          </Button>
+        </section>
+      </main>
+    </>
   );
 }

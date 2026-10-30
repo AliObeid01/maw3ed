@@ -14,8 +14,8 @@ export default async function AuthLayout({ children }: { children: React.ReactNo
         <LanguageToggle />
       </div>
       <main className="flex w-full flex-col items-center gap-6 md:gap-7">
-        <Link href="/" aria-label={t('home')} className="flex min-h-11 items-center rounded-pill">
-          <Logo width={160} />
+        <Link href="/" className="flex min-h-11 items-center rounded-pill">
+          <Logo label={t('home')} width={160} />
         </Link>
         {children}
       </main>

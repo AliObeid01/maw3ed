@@ -49,7 +49,7 @@ test('lists the ended appointments newest first with the repeat no-show badge an
   await expect(cards.nth(0)).toContainText('Maya Khoury');
   await expect(cards.nth(1)).toContainText('Nadine Aoun');
   await expect(cards.nth(1)).toContainText('2 no-shows');
-  await expect(cards.nth(1)).toContainText('Hair colour · Lina');
+  await expect(cards.nth(1)).toContainText(/Hair colour[ ·,]+Lina/);
   await expect(cards.nth(0)).not.toContainText('no-show');
   // The upcoming appointment is not in the queue.
   await expect(page.getByText('Omar Daher')).toHaveCount(0);

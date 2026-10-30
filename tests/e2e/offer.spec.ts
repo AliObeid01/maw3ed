@@ -194,7 +194,7 @@ test('Arabic: RTL, translated expiry text, times and money isolated as LTR', asy
   await expect(page.getByRole('heading', { name: 'توفر موعد للتو' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'احجز هذا الموعد' })).toBeVisible();
   await expect(page.getByTestId('expiry')).toContainText('ينتهي العرض عند');
-  await expect(page.locator('bdi').filter({ hasText: /[0-9]+:[0-9]{2}/ }).first()).toBeVisible();
+  await expect(page.locator('bdi').filter({ hasText: /⁦\d{1,2}:\d{2} – \d{1,2}:\d{2}⁩/ }).first()).toBeVisible();
   await page.getByRole('button', { name: 'احجز هذا الموعد' }).click();
   await expect(page.getByRole('heading', { name: 'تم حجزك' })).toBeVisible();
   await expect(page.locator('bdi', { hasText: 'Haircut' }).first()).toBeVisible();
