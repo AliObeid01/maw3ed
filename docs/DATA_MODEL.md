@@ -1,12 +1,12 @@
 # Maw3ed — data model
 
 Every tenant table carries `businessId`, and its indexes start with `businessId`. Times are `timestamptz` in UTC.
-No free-text notes columns anywhere (NFR-04). The ERD below is hand-maintained until `prisma-erd-generator` replaces it in P4.3.
+No free-text notes columns anywhere (NFR-04). The ERD below is written by hand from `prisma/schema.prisma` (no generator dependency); update it in the same PR as any schema change.
 
 ## Entities
 | Entity | Key fields | Belongs to | Constraints / notes |
 |---|---|---|---|
-| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositThreshold (1), depositAmount (5.00), category, address | — | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root |
+| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, address | — | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; deposits are off until `depositEnabled` |
 | User | email, passwordHash, name | — | email unique (lowercased); can belong to several businesses |
 | Session | tokenHash, userId, businessId, expiresAt, lastSeenAt | User, Business | tokenHash unique; 30-day sliding expiry |
 | Membership | role (OWNER, STAFF) | User, Business | unique (userId, businessId) |
@@ -17,12 +17,13 @@ No free-text notes columns anywhere (NFR-04). The ERD below is hand-maintained u
 | WorkingHours | weekday (0–6), startLocal, endLocal (`HH:mm`) | StaffMember | several rows per day; CHECK end > start |
 | TimeOff | startAt, endAt, reason enum (VACATION, SICK, OTHER) | StaffMember | UTC instants; enum, not free text |
 | Client | name, phone (E.164), email, attended, noShows, lateCancels | Business | unique (businessId, phone); counters updated in the outcome transaction |
-| Appointment | startAt, endAt, blockedUntil, status, source (PUBLIC, FRONT_DESK, WAITLIST), idempotencyKey, confirmedAt, cancelledAt, cancelledVia (LINK, STAFF, SYSTEM), holdExpiresAt (PENDING_PAYMENT only), outcomeMarkedById | Business, Client, StaffMember, Service | **exclusion constraint** on (staffId, [startAt, blockedUntil)) while BOOKED/CONFIRMED(/PENDING_PAYMENT); status also ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL; unique (businessId, idempotencyKey) |
+| Appointment | startAt, endAt, blockedUntil, status, source (PUBLIC, FRONT_DESK, WAITLIST), idempotencyKey, confirmedAt, cancelledAt, cancelledVia (LINK, STAFF, SYSTEM), holdExpiresAt (PENDING_PAYMENT only), outcomeMarkedById, outcomeMarkedAt | Business, Client, StaffMember, Service | **exclusion constraint** on (staffId, [startAt, blockedUntil)) while BOOKED, CONFIRMED or PENDING_PAYMENT; status also ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL; unique (businessId, idempotencyKey) |
 | ReminderJob | kind (BOOKING, H24, H2), channel (EMAIL, WHATSAPP), dueAt, status (PENDING, SENDING, SENT, SKIPPED, FAILED), attempts, nextAttemptAt, lockedAt, sentAt, sentById, providerMessageId, lastError | Appointment (+ businessId) | unique (appointmentId, kind, channel); partial index (status, dueAt) where PENDING |
-| WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED) | Business, Client | |
+| WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED), contactEmail, claimingOfferId, claimingAt | Business, Client, Service, optional StaffMember | `contactEmail` is where offers go and is never copied onto the Client; `claimingOfferId` / `claimingAt` are the atomic reservation held while one offer is being booked (a lease, released on failure) |
 | WaitlistOffer | entryId, staffId, startAt, endAt, expiresAt, status (OPEN, CLAIMED, EXPIRED, SUPERSEDED), claimedAppointmentId, freedFromAppointmentId, batch | Business | unique (entryId, freedFromAppointmentId): one open offer per entry per freed slot |
 | PilotBaseline | fromDate, toDate, appointments, noShows, lateCancels | Business | unique (businessId); entered by the owner from their own book |
-| Payment *(P3.8–3.9)* | purpose (DEPOSIT, PLAN), appointmentId?, provider, externalId, amount, currency, status (PENDING, PAID, FAILED, EXPIRED) | Business | unique (provider, externalId) |
+| Payment | purpose (DEPOSIT, PLAN), appointmentId?, provider, externalId, amount, currency, status (PENDING, PAID, FAILED, EXPIRED) | Business, optional Appointment | unique (provider, externalId); indexes (businessId, status), (businessId, appointmentId) |
+| RateLimitBucket | key, windowStart, count | — (no tenant) | PK (key, windowStart); index (windowStart); keys are hashed or HMAC-ed emails, IPs and phones, never raw, written by one atomic upsert, purged by `/api/jobs/cleanup` |
 
 Email sends for waitlist offers and invites are logged in `ReminderJob`-like fashion via a small `EmailLog` view, or by counting
 `WaitlistOffer`/`Invite` sends, so the daily budget (NFR-10) covers every email. Decide in P2.4; prefer the simplest query that counts all sends.
@@ -32,25 +33,232 @@ Email sends for waitlist offers and invites are logged in `ReminderJob`-like fas
 erDiagram
   Business ||--o{ Membership : has
   User ||--o{ Membership : has
+  Business ||--o{ Session : scopes
   User ||--o{ Session : has
   Business ||--o{ Invite : sends
   Business ||--o{ StaffMember : employs
-  User |o--o| StaffMember : "is (optional)"
+  User |o--o{ StaffMember : "is (optional)"
   Business ||--o{ Service : offers
+  Business ||--o{ StaffService : scopes
   StaffMember ||--o{ StaffService : performs
   Service ||--o{ StaffService : "performed by"
+  Business ||--o{ WorkingHours : scopes
   StaffMember ||--o{ WorkingHours : works
+  Business ||--o{ TimeOff : scopes
   StaffMember ||--o{ TimeOff : takes
   Business ||--o{ Client : knows
+  Business ||--o{ Appointment : holds
   Client ||--o{ Appointment : books
   StaffMember ||--o{ Appointment : serves
   Service ||--o{ Appointment : "is for"
+  User |o--o{ Appointment : "marked outcome"
+  Business ||--o{ ReminderJob : scopes
   Appointment ||--o{ ReminderJob : schedules
+  User |o--o{ ReminderJob : "sent by"
   Business ||--o{ WaitlistEntry : holds
   Client ||--o{ WaitlistEntry : joins
+  Service ||--o{ WaitlistEntry : "wanted for"
+  StaffMember |o--o{ WaitlistEntry : "preferred (optional)"
+  Business ||--o{ WaitlistOffer : scopes
   WaitlistEntry ||--o{ WaitlistOffer : receives
-  WaitlistOffer |o--o| Appointment : "claimed as"
+  StaffMember ||--o{ WaitlistOffer : "offered with"
+  Appointment ||--o{ WaitlistOffer : "freed slot of"
+  Appointment |o--o{ WaitlistOffer : "claimed as"
   Business ||--o| PilotBaseline : measures
   Business ||--o{ Payment : collects
   Appointment |o--o{ Payment : "deposit for"
+
+  Business {
+    string id PK
+    string slug UK
+    string timezone
+    string locale
+    enum plan "FREE or PRO"
+    boolean depositEnabled
+    int depositThreshold
+    decimal depositAmount
+    boolean listed
+    int slotStepMin
+    int bookingWindowDays
+    int minNoticeMin
+    int cancelCutoffMin
+    timestamptz createdAt
+  }
+  User {
+    string id PK
+    string email UK
+    string passwordHash
+    timestamptz createdAt
+  }
+  Session {
+    string id PK
+    string businessId FK
+    string userId FK
+    string tokenHash UK
+    timestamptz expiresAt
+  }
+  Membership {
+    string id PK
+    string businessId FK
+    string userId FK
+    enum role "OWNER or STAFF"
+  }
+  Invite {
+    string id PK
+    string businessId FK
+    string email
+    enum role
+    string tokenHash UK
+    timestamptz expiresAt
+    timestamptz acceptedAt
+  }
+  StaffMember {
+    string id PK
+    string businessId FK
+    string userId FK "optional"
+    boolean bookable
+    boolean active
+  }
+  Service {
+    string id PK
+    string businessId FK
+    int durationMin
+    int bufferMin
+    decimal price
+    boolean active
+  }
+  StaffService {
+    string staffId PK
+    string serviceId PK
+    string businessId FK
+  }
+  WorkingHours {
+    string id PK
+    string businessId FK
+    string staffId FK
+    int weekday
+    string startLocal
+    string endLocal
+  }
+  TimeOff {
+    string id PK
+    string businessId FK
+    string staffId FK
+    timestamptz startAt
+    timestamptz endAt
+    enum reason
+  }
+  Client {
+    string id PK
+    string businessId FK
+    string phone "E164, unique per business"
+    int attended
+    int noShows
+    int lateCancels
+  }
+  Appointment {
+    string id PK
+    string businessId FK
+    string clientId FK
+    string staffId FK
+    string serviceId FK
+    timestamptz startAt
+    timestamptz endAt
+    timestamptz blockedUntil
+    enum status
+    enum source
+    string idempotencyKey "unique per business"
+    timestamptz holdExpiresAt "PENDING_PAYMENT only"
+    timestamptz confirmedAt
+    timestamptz cancelledAt
+    string outcomeMarkedById FK "optional"
+    timestamptz outcomeMarkedAt
+    timestamptz createdAt
+  }
+  ReminderJob {
+    string id PK
+    string businessId FK
+    string appointmentId FK
+    enum kind
+    enum channel
+    enum status
+    timestamptz dueAt
+    int attempts
+    string providerMessageId
+    string sentById FK "optional"
+  }
+  WaitlistEntry {
+    string id PK
+    string businessId FK
+    string clientId FK
+    string serviceId FK
+    string staffId FK "optional"
+    enum status
+    string claimingOfferId "reservation"
+    timestamptz claimingAt "reservation lease"
+    timestamptz createdAt
+  }
+  WaitlistOffer {
+    string id PK
+    string businessId FK
+    string entryId FK
+    string staffId FK
+    string freedFromAppointmentId FK
+    string claimedAppointmentId FK "optional"
+    enum status
+    timestamptz expiresAt
+    int batch
+  }
+  PilotBaseline {
+    string id PK
+    string businessId FK "unique"
+    int appointments
+    int noShows
+    int lateCancels
+  }
+  Payment {
+    string id PK
+    string businessId FK
+    string appointmentId FK "optional"
+    enum purpose
+    enum status
+    string provider
+    string externalId "unique with provider"
+    decimal amount
+    timestamptz createdAt
+  }
+  RateLimitBucket {
+    string key PK
+    timestamptz windowStart PK
+    int count
+  }
 ```
+
+RateLimitBucket has no relations on purpose: its keys are hashed or HMAC-ed emails, IPs and phones, not tenants.
+
+## Enums
+| Enum | Values |
+|---|---|
+| Plan | FREE, PRO |
+| Role | OWNER, STAFF |
+| TimeOffReason | VACATION, SICK, OTHER |
+| AppointmentStatus | BOOKED, CONFIRMED, PENDING_PAYMENT, ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL |
+| AppointmentSource | PUBLIC, FRONT_DESK, WAITLIST |
+| CancelledVia | LINK, STAFF, SYSTEM |
+| ReminderKind | BOOKING, H24, H2 |
+| ReminderChannel | EMAIL, WHATSAPP |
+| ReminderStatus | PENDING, SENDING, SENT, SKIPPED, FAILED |
+| WaitlistStatus | OPEN, FULFILLED, CANCELLED |
+| OfferStatus | OPEN, CLAIMED, EXPIRED, SUPERSEDED |
+| PaymentPurpose | DEPOSIT, PLAN |
+| PaymentStatus | PENDING, PAID, FAILED, EXPIRED |
+
+## Hand-written constraints and indexes
+Prisma cannot express these, so they live in raw SQL migrations. Never remove, rename or narrow them. `pnpm db:check` (`scripts/db/check-constraints.sql`) fails loudly if one is missing.
+
+- **`appointment_no_overlap`**: `EXCLUDE USING gist ("staffId" WITH =, tstzrange("startAt", "blockedUntil", '[)') WITH &&) WHERE (status IN ('BOOKED', 'CONFIRMED', 'PENDING_PAYMENT'))`. Created in `20261028205918_appointment_no_overlap` for BOOKED and CONFIRMED (needs `btree_gist`), re-created in `20261031090100_deposit_overlap_constraint` with PENDING_PAYMENT added (drop and add run as one implicit transaction, so the table is never unprotected). Postgres `23P01` maps to 409 `SLOT_TAKEN`.
+- **`ReminderJob` unique `(appointmentId, kind, channel)`**: the "no duplicate reminder" key (`ReminderJob_appointmentId_kind_channel_key`, from the init migration).
+- **Partial index `ReminderJob_pending_due_idx`** on `(status, dueAt)` where `status = 'PENDING'`: serves the `FOR UPDATE SKIP LOCKED` claim.
+- **Partial index `Appointment_pending_hold_idx`** on `(holdExpiresAt)` where `status = 'PENDING_PAYMENT'`: serves the lapsed-hold sweep.
+- **CHECKs**: `appointment_end_after_start`, `appointment_blocked_after_end` (`blockedUntil >= endAt`), `workinghours_weekday_range` (0 to 6), `workinghours_end_after_start`, `timeoff_end_after_start`, `client_counters_non_negative`.
+- **Prisma-level uniques worth knowing**: `Client (businessId, phone)`, `Appointment (businessId, idempotencyKey)`, `WaitlistOffer (entryId, freedFromAppointmentId)`, `Payment (provider, externalId)`, `Membership (userId, businessId)`, `PilotBaseline (businessId)`.
