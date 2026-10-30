@@ -51,6 +51,12 @@ const readShareSeen = (slug: string) => {
   }
 };
 
+/** Copy of the "Publish" step; it lives in the `directory` namespace. */
+function PublishText({ k }: { k: 'title' | 'hint' | 'doneHint' }) {
+  const t = useTranslations('directory.owner.step');
+  return t(k);
+}
+
 function ChecklistSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-5">
@@ -74,7 +80,6 @@ function Checklist({
   userName: string;
 }) {
   const t = useTranslations('app.setup');
-  const publish = useTranslations('directory.owner.step');
   const shareSeen = useSyncExternalStore(
     subscribeStorage,
     () => readShareSeen(business.slug),
@@ -122,12 +127,12 @@ function Checklist({
         {steps.map((step, index) => {
           const hint = step.done
             ? step.id === 'publish'
-              ? publish('doneHint')
+              ? <PublishText k="doneHint" />
               : t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
             : step.current
               ? t('nextHint', { minutes: MINUTES[step.id] })
               : step.id === 'publish'
-                ? publish('hint')
+                ? <PublishText k="hint" />
                 : t(`steps.${step.id}.hint`);
           return (
             <li key={step.id}>
@@ -159,7 +164,7 @@ function Checklist({
                       step.done && 'text-muted line-through',
                     )}
                   >
-                    {step.id === 'publish' ? publish('title') : t(`steps.${step.id}.title`)}
+                    {step.id === 'publish' ? <PublishText k="title" /> : t(`steps.${step.id}.title`)}
                     {step.done ? <span className="sr-only"> {t('done')}</span> : null}
                   </span>
                   <span className="text-sm text-muted">{hint}</span>

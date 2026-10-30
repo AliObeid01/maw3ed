@@ -68,7 +68,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [ ] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
-- [ ] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
+- [x] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
 
 ---
 
@@ -118,13 +118,13 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 
 ## Added scope: public directory (team decision, 29 Oct)
 - [x] **D1 BE** `Business.published` flag (migration, default false for new businesses; the seeded demo businesses and existing rows published) + `published` and `publishedAt` in `GET/PATCH /api/business` (owner only; publishing requires at least one active service and one bookable staff member with hours, else 409 `NOT_READY` with the missing items); `GET /api/public/directory?query=&category=&cursor=&limit=` (public, no auth) returning only published businesses `{businesses:[{slug,name,category,address,serviceCount,fromPrice}], nextCursor}`; `GET /api/public/{slug}` and `/slots` and `POST .../bookings` return 404 for an UNPUBLISHED business (the owner previews via the dashboard); tests incl. tenant/unpublished isolation, no PII or owner data in the directory, pagination.
-- [ ] **D2 FE (see F24; BUILD approved by the user 30 Oct)** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
+- [x] **D2 FE (see F24; BUILD approved by the user 30 Oct)** Public `/directory` page (simple list of cards: monogram, name, category, address, 'from $X', 'Book' button to `/b/{slug}`; search box by name; empty state; phone-first; en/ar), a link from the public header, and the owner's publish toggle with the readiness checklist on the Share page and Setup checklist (step 'Publish').
 - Out of scope: ratings, maps, filters beyond name/category, SEO pages.
 
 ## Notes from the launch-gates and waitlist work (open follow-ups)
 - [ ] **F21 BE** Waitlist: the same entry claiming two DIFFERENT slots at the very same instant could book both (sequential case is blocked and tested); needs an atomic reservation on the entry.
 - [ ] **F22 QA** Flaky: `waitlist.test.ts > the limit holds under concurrent joins` (8 concurrent joins) failed in some full runs against the remote Neon dev database and passed alone and in CI; investigate whether it is a slow-DB timeout or a real race in the advisory-lock path.
 - [ ] **F23 BE** Add a one-click 'remove me from the waitlist' link to the offer email (today the only way off the list is contacting the business, a staff delete, or the end of the date range).
-- [ ] **F24 BE/FE** D2: public `/directory` page and the owner's 'list my business' toggle with the readiness checklist (the backend D1 uses `Business.listed`, opt-in, default false; unlisted businesses stay reachable by direct link: the plan text above says `published`, the implementation is `listed`).
+- [x] **F24 BE/FE** D2: public `/directory` page and the owner's 'list my business' toggle with the readiness checklist (the backend D1 uses `Business.listed`, opt-in, default false; unlisted businesses stay reachable by direct link: the plan text above says `published`, the implementation is `listed`).
 - [ ] **F25 BE** Argon2 concurrency cap is per instance on serverless; rate limits in Postgres are what bound the fleet. Revisit if the signup/login flood risk matters.
 - [ ] **F26 QA** Before launch run the reserved-slug check from docs/HUMAN_TASKS.md and the real-stack waitlist journey (cancel -> offer email -> claim in a browser): not yet run end to end against a real database.

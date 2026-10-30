@@ -79,7 +79,7 @@ test.describe('public directory', () => {
           }),
     );
     await page.goto('/directory');
-    await expect(page.getByRole('alert')).toContainText('Could not load the directory');
+    await expect(page.getByRole('alert').filter({ hasText: 'Could not load' })).toContainText('Could not load the directory');
     fail = false;
     await page.getByRole('button', { name: 'Try again' }).click();
     await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();

@@ -15,13 +15,14 @@ const PAGE_SIZE = 24;
 const DEBOUNCE_MS = 300;
 
 type State = {
+  key: string;
   items: DirectoryBusiness[];
   cursor: string | null;
   status: 'loading' | 'ready' | 'error';
   more: 'idle' | 'loading' | 'error';
 };
 
-const initial: State = { items: [], cursor: null, status: 'loading', more: 'idle' };
+const initial: State = { key: '', items: [], cursor: null, status: 'loading', more: 'idle' };
 
 function BusinessCard({ business }: { business: DirectoryBusiness }) {
   const t = useTranslations('directory');
@@ -87,7 +88,7 @@ export function DirectoryView() {
   const t = useTranslations('directory');
   const [text, setText] = useState('');
   const [search, setSearch] = useState('');
-  const [state, setState] = useState<State>(initial);
+  const [fetched, setState] = useState<State>(initial);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -95,20 +96,28 @@ export function DirectoryView() {
     return () => clearTimeout(id);
   }, [text]);
 
+  // The result is tagged with the query that produced it; a different current key means "loading".
+  const key = `${attempt}:${search}`;
+  const state: State = fetched.key === key ? fetched : { ...initial, key };
   useEffect(() => {
     const controller = new AbortController();
-    setState(initial);
     getDirectory({ search, limit: PAGE_SIZE }, controller.signal)
       .then((page) =>
-        setState({ items: page.businesses, cursor: page.nextCursor, status: 'ready', more: 'idle' }),
+        setState({
+          key,
+          items: page.businesses,
+          cursor: page.nextCursor,
+          status: 'ready',
+          more: 'idle',
+        }),
       )
       .catch((error: unknown) => {
         if (controller.signal.aborted || (error instanceof DOMException && error.name === 'AbortError'))
           return;
-        setState({ ...initial, status: 'error' });
+        setState({ ...initial, key, status: 'error' });
       });
     return () => controller.abort();
-  }, [search, attempt]);
+  }, [key, search]);
 
   const loadMore = useCallback(async () => {
     if (!state.cursor) return;
@@ -117,6 +126,7 @@ export function DirectoryView() {
     try {
       const page = await getDirectory({ search, cursor, limit: PAGE_SIZE });
       setState((s) => ({
+        key: s.key,
         items: [...s.items, ...page.businesses],
         cursor: page.nextCursor,
         status: 'ready',
