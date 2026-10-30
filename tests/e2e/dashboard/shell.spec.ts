@@ -126,7 +126,7 @@ test.describe('3.9 share link', () => {
     await page.goto('/app/share');
     await expect(page.getByText(`/b/studio-nour`).first()).toBeVisible();
     await page.getByRole('button', { name: 'Copy link' }).first().click();
-    await expect(page.getByRole('status')).toContainText('Booking link copied');
+    await expect(page.getByRole('status').filter({ hasText: 'Booking link copied' })).toBeVisible();
     const text = await page.evaluate(() => navigator.clipboard.readText());
     expect(text).toBe(`${DASHBOARD}/b/studio-nour`);
   });
@@ -147,7 +147,7 @@ test.describe('3.9 share link', () => {
     await mockSetupApi(page);
     await page.goto('/app/share');
     await page.getByRole('button', { name: 'Copy link' }).first().click();
-    await expect(page.getByRole('status')).toContainText('Booking link copied');
+    await expect(page.getByRole('status').filter({ hasText: 'Booking link copied' })).toBeVisible();
     const copied = await page.evaluate(
       () => (window as unknown as { __copied: string[] }).__copied,
     );
