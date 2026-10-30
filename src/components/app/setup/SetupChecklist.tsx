@@ -34,6 +34,7 @@ const MINUTES: Record<SetupStepId, number> = {
   services: 3,
   staff: 2,
   hours: 2,
+  publish: 1,
   share: 1,
   invite: 1,
 };
@@ -55,7 +56,7 @@ function ChecklistSkeleton() {
     <div aria-hidden="true" className="flex flex-col gap-5">
       <Skeleton className="h-[168px] rounded-[28px] md:h-[144px]" />
       <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 6 }, (_, i) => (
+        {Array.from({ length: 7 }, (_, i) => (
           <Skeleton key={i} className="h-[92px] rounded-card-sm" />
         ))}
       </div>
@@ -78,10 +79,11 @@ function Checklist({
     () => readShareSeen(business.slug),
     () => false,
   );
-  const { steps, doneCount, percent } = deriveSetupSteps({
+  const { steps, doneCount, total, percent } = deriveSetupSteps({
     flags: business.setup,
     shareSeen,
     hasReceptionist: extras.hasReceptionist,
+    listed: business.listed,
   });
 
   return (
@@ -99,9 +101,9 @@ function Checklist({
             role="progressbar"
             aria-label={t('progressLabel')}
             aria-valuemin={0}
-            aria-valuemax={steps.length}
+            aria-valuemax={total}
             aria-valuenow={doneCount}
-            aria-valuetext={t('progress', { done: doneCount, total: steps.length })}
+            aria-valuetext={t('progress', { done: doneCount, total })}
             className="h-2.5 flex-1 overflow-hidden rounded-pill bg-white/15"
           >
             <div
@@ -110,7 +112,7 @@ function Checklist({
             />
           </div>
           <span className="text-base font-semibold whitespace-nowrap">
-            {t('progress', { done: doneCount, total: steps.length })}
+            {t('progress', { done: doneCount, total })}
           </span>
         </div>
       </section>
