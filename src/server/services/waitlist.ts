@@ -2,7 +2,7 @@ import { DateTime } from 'luxon';
 import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { MAX_SLOT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
-import { offerExpiryFor as tokenExpiryFor, signToken } from '@/server/domain/tokens';
+import { leaveExpiryFor, offerExpiryFor as tokenExpiryFor, signToken } from '@/server/domain/tokens';
 import { summarizeActivity } from '@/server/domain/waitlistActivity';
 import { matchEntries, offerExpiryFor, OFFER_BATCH_SIZE } from '@/server/domain/waitlistMatch';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
@@ -26,6 +26,8 @@ import {
 import { book, type BookDeps, type BookingResult } from './booking';
 
 export const MAX_OPEN_ENTRIES_PER_CLIENT = 5;
+/** A claim reservation older than this is treated as abandoned (a crashed request). */
+export const CLAIM_LEASE_MS = 60_000;
 
 export interface WaitlistDeps {
   now: () => Date;
@@ -169,6 +171,10 @@ async function deliverOffer(
     { o: offer.id, act: 'claim', exp: tokenExpiryFor(offer.expiresAt) },
     cfg.secret,
   );
+  const leaveToken = signToken(
+    { o: offer.id, act: 'leave', exp: leaveExpiryFor(offer.expiresAt) },
+    cfg.secret,
+  );
   const rendered = renderOfferEmail({
     locale: offer.business.locale,
     timezone: offer.business.timezone,
@@ -179,6 +185,7 @@ async function deliverOffer(
     startAt: offer.startAt,
     expiresAt: offer.expiresAt,
     claimUrl: `${cfg.appUrl}/o/${token}`,
+    leaveUrl: `${cfg.appUrl}/o/${leaveToken}/leave`,
   });
   try {
     const sent = await cfg.provider.send({
@@ -347,6 +354,21 @@ export const offersService = {
     };
   },
 
+  /**
+   * One-click "remove me from the waitlist" (F23). Idempotent: a repeat answers the same. Reveals nothing
+   * about the client. An entry that was already fulfilled stays (the booking exists): `removed: false`.
+   */
+  async leave(ctx: { businessId: string; logger: Logger }, offerId: string) {
+    const o = await loadOffer(ctx.businessId, offerId);
+    const res = await waitlistRepo.cancelEntry(ctx.businessId, o.entryId);
+    if (res === 'missing') throw AppError.notFound();
+    ctx.logger.info(
+      { businessId: ctx.businessId, entryId: o.entryId, offerId, result: res },
+      'waitlist entry left via offer link',
+    );
+    return { removed: res !== 'fulfilled' };
+  },
+
   /** Claim = a normal booking through the one insert path; the database referee picks the winner. */
   async claim(
     ctx: { businessId: string; requestId: string; logger: Logger },
@@ -369,6 +391,19 @@ export const offersService = {
         'This waitlist entry is no longer active, so the offer cannot be claimed.',
       );
 
+    // F21: one conditional UPDATE reserves the entry for THIS offer, so two different offers of the same
+    // entry cannot both book. A replay on an already fulfilled entry has nothing to reserve.
+    let reserved = false;
+    if (o.entry.status === 'OPEN') {
+      reserved = await waitlistRepo.reserveEntry(businessId, o.entryId, o.id, now, CLAIM_LEASE_MS);
+      if (!reserved)
+        throw AppError.conflict(
+          'CONFLICT',
+          undefined,
+          'This waitlist entry is already being booked for another slot.',
+        );
+    }
+
     let result: BookingResult;
     try {
       result = await book(
@@ -388,6 +423,7 @@ export const offersService = {
         bookDepsOf(deps),
       );
     } catch (error) {
+      if (reserved) await waitlistRepo.releaseEntry(businessId, o.entryId, o.id);
       if (error instanceof AppError && error.code === 'SLOT_TAKEN') {
         await waitlistRepo.supersede(businessId, o.id);
         ctx.logger.info({ businessId, offerId: o.id }, 'waitlist offer lost the slot (TAKEN)');

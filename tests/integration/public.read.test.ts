@@ -68,6 +68,8 @@ describe('GET /api/public/{slug}', () => {
       slug: 'studio-read',
       timezone: 'Asia/Beirut',
       locale: 'en',
+      bookingWindowDays: 30,
+      cancelCutoffMin: 1440,
       category: 'Salon',
       address: 'Hamra, Beirut',
     });

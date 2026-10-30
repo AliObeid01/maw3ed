@@ -21,7 +21,7 @@ import { useResource } from '@/lib/api/useResource';
 import { joinWaitlist, type JoinWaitlistBody } from '@/lib/api/waitlist';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { assemblePhone, DEFAULT_DIAL } from '@/lib/booking/phone';
-import { readWindowLength, rememberWindowLength } from '@/lib/booking/window';
+import { rememberWindowLength } from '@/lib/booking/window';
 import {
   classifyJoinError,
   isOutOfWindow,
@@ -100,7 +100,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   }, [searchText, services, data]);
   const serviceId = pickedService ?? prefill.serviceId;
   const staffId = pickedStaff === undefined ? (pickedService ? undefined : prefill.staffId) : (pickedStaff ?? undefined);
-  const range = pickedRange ?? (data ? defaultRange(now, data.business.timezone, readWindowLength(slug)) : undefined);
+  const range = pickedRange ?? (data ? defaultRange(now, data.business.timezone, data.business.bookingWindowDays) : undefined);
   const setRange = (updater: (r: { from: string; to: string }) => { from: string; to: string }) =>
     setPickedRange(updater(range!));
 

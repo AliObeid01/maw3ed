@@ -75,6 +75,14 @@ test.describe('happy path', () => {
       '/l/mock-manage-token',
     );
 
+    // F17: the confirmation survives a refresh (no second booking is made).
+    await page.reload();
+    await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Confirm or cancel your booking/ })).toHaveAttribute(
+      'href',
+      '/l/mock-manage-token',
+    );
+
     expect(calls).toHaveLength(1);
     expect(calls[0]!.key).toMatch(/^[A-Za-z0-9_.:-]{8,100}$/);
     expect(calls[0]!.body).toMatchObject({

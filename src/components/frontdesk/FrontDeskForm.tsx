@@ -38,7 +38,7 @@ import {
   replaceDay,
 } from '@/lib/booking/slots';
 import { parseBookingParams } from '@/lib/booking/urlState';
-import { loadSlotWindow, readWindowLength, rememberWindowLength } from '@/lib/booking/window';
+import { loadSlotWindow } from '@/lib/booking/window';
 import { cn } from '@/lib/cn';
 import { createLookup, type LookupState } from '@/lib/frontdesk/lookup';
 import { earliestSlot } from '@/lib/frontdesk/walkin';
@@ -99,9 +99,8 @@ export function FrontDeskForm() {
       now,
       signal,
       undefined,
-      readWindowLength(slug),
+      data!.business.bookingWindowDays,
     );
-    rememberWindowLength(slug, win.coveredDays.length);
     return win;
   }, slotKey);
   const reloadSlots = windowRes.reload;

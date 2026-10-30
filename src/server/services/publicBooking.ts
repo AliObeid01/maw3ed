@@ -23,6 +23,8 @@ export const publicBookingService = {
         slug: business.slug,
         timezone: business.timezone,
         locale: business.locale,
+        bookingWindowDays: business.bookingWindowDays,
+        cancelCutoffMin: business.cancelCutoffMin,
         ...(business.category ? { category: business.category } : {}),
         ...(business.address ? { address: business.address } : {}),
       },

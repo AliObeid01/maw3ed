@@ -77,3 +77,9 @@ export async function getOffer(token: string, signal?: AbortSignal) {
 /** The body is an empty strict object. A repeat of a successful claim answers 200 with the first booking. */
 export const claimOffer = (token: string) =>
   request(`/api/offers/${seg(token)}/claim`, bookingResultSchema, { method: 'POST', body: {} });
+
+export const leaveResultSchema = z.object({ removed: z.boolean() });
+
+/** One-click removal from the waitlist (signed `leave` token). Idempotent. */
+export const leaveWaitlist = (token: string) =>
+  request(`/api/offers/${seg(token)}/leave`, leaveResultSchema, { method: 'POST', body: {} });

@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { isLocale, LOCALE_COOKIE } from '@/i18n/config';
+import { isLocale, LOCALE_COOKIE, PATH_HEADER } from '@/i18n/config';
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -9,7 +9,13 @@ const ONE_YEAR = 60 * 60 * 24 * 365;
  */
 export function proxy(request: NextRequest) {
   const lang = request.nextUrl.searchParams.get('lang') ?? undefined;
-  if (!isLocale(lang)) return NextResponse.next();
+  if (!isLocale(lang)) {
+    // Tell the server which page this is (never logged: it may carry a signed token) so the business's
+    // language can be resolved before the first render.
+    const forwarded = new Headers(request.headers);
+    forwarded.set(PATH_HEADER, request.nextUrl.pathname);
+    return NextResponse.next({ request: { headers: forwarded } });
+  }
 
   const url = request.nextUrl.clone();
   url.searchParams.delete('lang');

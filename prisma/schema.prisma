@@ -374,6 +374,10 @@ model WaitlistEntry {
   // Where offers go. Supplied at join and never copied onto the Client: an unauthenticated caller must
   // not be able to redirect an existing client's mail.
   contactEmail String?
+  // Atomic reservation held while one offer of this entry is being booked (F21). Released on failure,
+  // ignored once older than the claim lease.
+  claimingOfferId String?
+  claimingAt      DateTime?      @db.Timestamptz(3)
   createdAt    DateTime       @default(now()) @db.Timestamptz(3)
 
   business Business        @relation(fields: [businessId], references: [id])
