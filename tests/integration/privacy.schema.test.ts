@@ -65,6 +65,7 @@ describe('NFR-04 privacy: no free-text personal data', () => {
         'cancelledVia',
         'outcomeMarkedById',
         'outcomeMarkedAt',
+        'holdExpiresAt', // deposit hold deadline (timestamp)
         'createdAt',
         'updatedAt',
       ].sort(),
