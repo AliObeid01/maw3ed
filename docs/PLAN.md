@@ -61,7 +61,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P3.7 FE** Arabic: full `ar.json`, RTL pass on every screen, Arabic email + WhatsApp templates, language toggle on public pages. (FR-28)
 - [x] **P3.8 BE/FE** `PaymentProvider` + `FakePaymentProvider`; `/pricing` (5.1) Free vs Pro; test checkout sets `Business.plan`; Free limits to one bookable staff. (FR-27)
 - [x] **P3.9 BE/FE** Deposit: settings (threshold, amount); new migration adds `PENDING_PAYMENT` to the constraint; hold 15 min; `/pay/[token]` (5.2); server-side verify; expiry job → cancel + waitlist; `WhishTestProvider` only if credentials arrive. (FR-26)
-- [ ] **P3.10 QA** Tests for outcomes/counters, pilot report maths, CSV, payments (fake), deposit hold/expiry; E2E `outcome.spec.ts`; RTL E2E.
+- [x] **P3.10 QA** Tests for outcomes/counters, pilot report maths, CSV, payments (fake), deposit hold/expiry; E2E `outcome.spec.ts`; RTL E2E.
 
 ## Phase 4 — Polish, docs, demo (6–8 Nov)
 - [ ] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
