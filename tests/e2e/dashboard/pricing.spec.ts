@@ -52,6 +52,7 @@ test.describe('5.1 pricing', () => {
     expect(calls.filter((c) => c.path === '/api/billing/checkout')).toHaveLength(1);
 
     await page.getByRole('button', { name: 'Switch back to Free' }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Switch to Free' }).click();
     await expect(page.getByRole('button', { name: 'Upgrade (test checkout)' })).toBeVisible();
   });
 });

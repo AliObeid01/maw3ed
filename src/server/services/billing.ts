@@ -46,7 +46,10 @@ export const billingService = {
       purpose: 'PLAN',
       amount: PLAN_PRICE.PRO.amount,
       currency: PLAN_PRICE.PRO.currency,
-      idempotencyKey,
+      // Salted with the payments so far: while still FREE after a downgrade, a reused key is a new checkout.
+      idempotencyKey: idempotencyKey
+        ? `${idempotencyKey}:${await billingRepo.planPaymentCount(ctx.businessId)}`
+        : undefined,
     });
     const status = await provider.getStatus(session.externalId);
     if (status !== 'PAID')
@@ -61,6 +64,7 @@ export const billingService = {
       amount: PLAN_PRICE.PRO.amount,
       currency: PLAN_PRICE.PRO.currency,
     });
+    if (outcome === 'STALE') throw AppError.conflict('CONFLICT');
     ctx.logger.info(
       {
         businessId: ctx.businessId,

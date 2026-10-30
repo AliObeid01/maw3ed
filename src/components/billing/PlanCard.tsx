@@ -16,6 +16,13 @@ import { ApiError } from '@/lib/api/auth';
 import { checkoutPro, downgradeToFree, getBilling, type Billing } from '@/lib/api/billing';
 import { useResource } from '@/lib/api/useResource';
 
+/** Numbers from a PLAN_LIMIT error's `data`, or null when the payload is not as expected. */
+function planLimitData(data: unknown): { limit: number; current: number } | null {
+  if (typeof data !== 'object' || data === null) return null;
+  const { limit, current } = data as Record<string, unknown>;
+  return typeof limit === 'number' && typeof current === 'number' ? { limit, current } : null;
+}
+
 /** Settings plan card: current plan, bookable staff usage, test checkout behind a confirmation sheet. */
 export function PlanCard() {
   const t = useTranslations('billing');
@@ -23,6 +30,7 @@ export function PlanCard() {
   const errorText = useErrorMessage();
   const billing = useResource(getBilling, 'billing');
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [downOpen, setDownOpen] = useState(false);
   const [pending, setPending] = useState<'upgrade' | 'downgrade' | null>(null);
   const [error, setError] = useState<string>();
   const [justUpgraded, setJustUpgraded] = useState(false);
@@ -74,12 +82,11 @@ export function PlanCard() {
       setJustUpgraded(false);
       toast.show(t('downgraded'));
     } catch (e) {
-      setError(
-        e instanceof ApiError && e.code === 'PLAN_LIMIT'
-          ? t('downgradeBlocked', { limit: limit ?? 1, current: data.usage.bookableStaff })
-          : errorText(e),
-      );
+      const counts =
+        e instanceof ApiError && e.code === 'PLAN_LIMIT' ? planLimitData(e.data) : null;
+      setError(counts ? t('downgradeBlocked', counts) : errorText(e));
     } finally {
+      setDownOpen(false);
       setPending(null);
     }
   };
@@ -118,7 +125,7 @@ export function PlanCard() {
           <span role="status">{t('successBody')}</span>
         </Callout>
       ) : null}
-      {error ? (
+      {error && !confirmOpen ? (
         <div role="alert">
           <Callout tone="danger" icon={<CircleAlert />}>
             {error}
@@ -136,7 +143,7 @@ export function PlanCard() {
         {pro ? (
           <button
             type="button"
-            onClick={downgrade}
+            onClick={() => setDownOpen(true)}
             disabled={pending !== null}
             className="inline-flex min-h-11 items-center font-semibold text-muted underline disabled:opacity-60"
           >
@@ -156,7 +163,7 @@ export function PlanCard() {
           <Callout tone="warning" icon={<CircleAlert />}>
             {t('testModeNote')}
           </Callout>
-          {error ? (
+          {error && confirmOpen ? (
             <p role="alert" className="m-0 text-sm text-danger">
               {error}
             </p>
@@ -175,6 +182,34 @@ export function PlanCard() {
             block
             disabled={pending !== null}
             onClick={() => setConfirmOpen(false)}
+          >
+            {t('cancel')}
+          </Button>
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={downOpen}
+        onOpenChange={(open) => (pending ? undefined : setDownOpen(open))}
+        title={t('downgradeConfirmTitle')}
+        description={t('downgradeConfirmBody')}
+        closeLabel={t('close')}
+      >
+        <div className="flex flex-col gap-3">
+          <Button
+            variant="danger"
+            size="lg"
+            block
+            loading={pending === 'downgrade'}
+            onClick={downgrade}
+          >
+            {t('downgradeConfirmCta')}
+          </Button>
+          <Button
+            variant="secondary"
+            block
+            disabled={pending !== null}
+            onClick={() => setDownOpen(false)}
           >
             {t('cancel')}
           </Button>

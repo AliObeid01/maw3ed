@@ -314,7 +314,9 @@ registry.registerPath({
     401: e[401],
     403: e[403],
     404: e[404],
-    409: err('HAS_FUTURE_APPOINTMENTS or PLAN_LIMIT'),
+    409: err(
+      'Two possible codes. HAS_FUTURE_APPOINTMENTS: deactivating with upcoming bookings. PLAN_LIMIT: enabling bookable or reactivating beyond the plan, with data { limit, current }',
+    ),
   },
 });
 registry.registerPath({

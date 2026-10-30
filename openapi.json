@@ -4527,7 +4527,7 @@
             }
           },
           "409": {
-            "description": "HAS_FUTURE_APPOINTMENTS or PLAN_LIMIT",
+            "description": "Two possible codes. HAS_FUTURE_APPOINTMENTS: deactivating with upcoming bookings. PLAN_LIMIT: enabling bookable or reactivating beyond the plan, with data { limit, current }",
             "content": {
               "application/json": {
                 "schema": {
@@ -7488,6 +7488,16 @@
           },
           "403": {
             "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)",
             "content": {
               "application/json": {
                 "schema": {

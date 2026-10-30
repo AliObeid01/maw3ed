@@ -1417,6 +1417,9 @@
     "retry": "Try again",
     "loadFailed": "We could not load your plan.",
     "staffLimit": "Your Free plan includes one bookable staff member. Upgrade to Pro to add or turn on more.",
-    "upgradeLink": "See plans"
+    "upgradeLink": "See plans",
+    "downgradeConfirmTitle": "Switch back to Free?",
+    "downgradeConfirmBody": "Free includes one bookable staff member. Nobody is removed, but you cannot add more bookable staff.",
+    "downgradeConfirmCta": "Switch to Free"
   }
 }

@@ -55,9 +55,13 @@ export async function assertRoomForBookable(
   if (!check.ok) throw new PlanLimitError(check.limit, check.current);
 }
 
-export type UpgradeOutcome = 'UPGRADED' | 'ALREADY_PRO' | 'REPLAY';
+export type UpgradeOutcome = 'UPGRADED' | 'ALREADY_PRO' | 'REPLAY' | 'STALE';
 
 export const billingRepo = {
+  /** Plan payments recorded so far; salts the provider key so a key reused after a downgrade is a fresh checkout. */
+  planPaymentCount: (businessId: string) =>
+    db.payment.count({ where: { businessId, purpose: 'PLAN' } }),
+
   summary: async (businessId: string) => {
     const [business, bookable] = await Promise.all([
       db.business.findUnique({ where: { id: businessId }, select: { plan: true } }),
@@ -82,7 +86,8 @@ export const billingRepo = {
         },
         select: { businessId: true },
       });
-      if (existing) return 'REPLAY';
+      // A replayed session only counts while the plan it bought is still active.
+      if (existing) return plan === 'PRO' ? 'REPLAY' : 'STALE';
       if (plan === 'PRO') return 'ALREADY_PRO';
       await tx.payment.create({
         data: { businessId, purpose: 'PLAN', status: 'PAID', ...payment },

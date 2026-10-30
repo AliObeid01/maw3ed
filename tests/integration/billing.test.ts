@@ -119,13 +119,35 @@ describe('POST /api/billing/checkout', () => {
     expect(await planOf('free-biz')).toBe('PRO');
   });
 
-  it('a replayed key after a downgrade does not charge or upgrade again', async () => {
+  it('a replayed key while still Pro returns the original result without a new Payment', async () => {
+    await checkout(free.cookie, 'key-abcdefgh');
+    const replay = await checkout(free.cookie, 'key-abcdefgh');
+    expect(replay.body!.plan).toBe('PRO');
+    expect(await paymentCount('free-biz')).toBe(1);
+  });
+
+  it('a key reused after a downgrade is a fresh checkout (new Payment, back on Pro)', async () => {
     await checkout(free.cookie, 'key-abcdefgh');
     expect((await downgrade(free.cookie)).status).toBe(200);
-    const replay = await checkout(free.cookie, 'key-abcdefgh');
-    expect(replay.status).toBe(200);
-    expect(replay.body!.plan).toBe('FREE');
-    expect(await paymentCount('free-biz')).toBe(1);
+    const again = await checkout(free.cookie, 'key-abcdefgh');
+    expect(again.status).toBe(200);
+    expect(again.body!.plan).toBe('PRO');
+    expect(await paymentCount('free-biz')).toBe(2);
+    expect(await planOf('free-biz')).toBe('PRO');
+  });
+
+  it('checkout racing downgrade ends consistent with the Payments recorded', async () => {
+    await checkout(free.cookie, 'key-first-0001');
+    const [, down] = await Promise.all([
+      checkout(free.cookie, 'key-second-002'),
+      downgrade(free.cookie),
+    ]);
+    expect(down.status).toBe(200);
+    const plan = await planOf('free-biz');
+    const payments = await paymentCount('free-biz');
+    // Downgrade last: Pro bought once. Checkout last: Pro bought a second time. Never more.
+    if (plan === 'FREE') expect(payments).toBe(1);
+    else expect(payments).toBe(2);
   });
 
   it('does not touch another business (tenant scope)', async () => {
@@ -189,6 +211,19 @@ describe('Free plan limit on staff', () => {
     expect(res.status).toBe(409);
     expect(res.body!.error.code).toBe('PLAN_LIMIT');
     expect(res.body!.error.data).toEqual({ limit: 1, current: 1 });
+  });
+
+  it('two concurrent bookable creates on Free: exactly one 201 and one 409 PLAN_LIMIT', async () => {
+    const solo = await signup({ plan: 'FREE', slug: 'solo-biz' });
+    await pg.query(
+      `UPDATE "StaffMember" SET bookable = false WHERE "businessId" = (SELECT id FROM "Business" WHERE slug = 'solo-biz')`,
+    );
+    const results = await Promise.all([
+      staff(solo.cookie, { displayName: 'A' }),
+      staff(solo.cookie, { displayName: 'B' }),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(results.find((r) => r.status === 409)!.body!.error.code).toBe('PLAN_LIMIT');
   });
 
   it('still allows non-bookable staff on Free', async () => {

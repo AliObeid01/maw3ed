@@ -58,6 +58,11 @@ registry.registerPath({
     400: e[400],
     401: e[401],
     403: e[403],
+    409: {
+      description:
+        'PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)',
+      content: json(ErrorResponse),
+    },
   },
 });
 registry.registerPath({
