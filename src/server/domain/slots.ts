@@ -64,7 +64,18 @@ function compareIds(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;
 }
 
+const hmCache = new Map<string, { hour: number; minute: number }>();
+
 function parseHm(value: string): { hour: number; minute: number } {
+  const hit = hmCache.get(value);
+  if (hit) return hit;
+  const parsed = parseHmUncached(value);
+  if (hmCache.size > 2000) hmCache.clear();
+  hmCache.set(value, parsed);
+  return parsed;
+}
+
+function parseHmUncached(value: string): { hour: number; minute: number } {
   const m = /^(\d{1,2}):(\d{2})$/.exec(value);
   if (!m) throw new Error(`Invalid local time: ${value}`);
   const hour = Number(m[1]);
@@ -76,13 +87,43 @@ function parseHm(value: string): { hour: number; minute: number } {
 
 const zoneCache = new Map<string, IANAZone>();
 
-function offsetMs(zone: string, ms: number): number {
+const HOUR_MS = 3_600_000;
+/** zone -> (hour bucket -> offset in ms). Pure memo of an immutable tz database; bounded. */
+const offsetBuckets = new Map<string, Map<number, number>>();
+const MAX_BUCKETS_PER_ZONE = 60_000;
+
+function zoneFor(zone: string): IANAZone {
   let z = zoneCache.get(zone);
   if (!z) {
     z = IANAZone.create(zone);
     zoneCache.set(zone, z);
   }
-  return z.offset(ms) * MIN_MS;
+  return z;
+}
+
+/**
+ * Zone offset at an instant, in ms. IANAZone.offset formats through Intl on every call (tens of
+ * microseconds) and slot generation asks thousands of times per request. Offsets only change at a
+ * transition and no zone has two transitions inside one hour, so an hour bucket whose first and last
+ * millisecond agree has one constant offset and is memoised. A bucket that contains a transition is never
+ * cached: those answers come straight from Luxon, exactly as before.
+ */
+function offsetMs(zone: string, ms: number): number {
+  const z = zoneFor(zone);
+  const bucket = Math.floor(ms / HOUR_MS);
+  let buckets = offsetBuckets.get(zone);
+  if (!buckets) {
+    buckets = new Map();
+    offsetBuckets.set(zone, buckets);
+  }
+  const hit = buckets.get(bucket);
+  if (hit !== undefined) return hit;
+  const first = z.offset(bucket * HOUR_MS) * MIN_MS;
+  const last = z.offset((bucket + 1) * HOUR_MS - 1) * MIN_MS;
+  if (first !== last) return z.offset(ms) * MIN_MS;
+  if (buckets.size >= MAX_BUCKETS_PER_ZONE) buckets.clear();
+  buckets.set(bucket, first);
+  return first;
 }
 
 /**
@@ -119,6 +160,9 @@ export function localToUtcMs(
   }
   return best ?? luxonMs;
 }
+
+const localUtcCache = new Map<string, number>();
+const MAX_LOCAL_UTC_ENTRIES = 20_000;
 
 function subtract(free: Range[], cut: Range): Range[] {
   if (cut[1] <= cut[0]) return free; // empty or inverted ranges block nothing
@@ -159,30 +203,37 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
   const last = DateTime.fromISO(input.range.to, { zone: 'utc' });
   if (!first.isValid || !last.isValid) throw new Error('Invalid range dates');
 
-  // Staff share dates and hours, so local->UTC conversions are memoised for the duration of this call.
-  const localCache = new Map<string, number>();
+  // Staff share dates and hours, so local->UTC conversions are memoised (module level, bounded).
   const toUtc = (d: { year: number; month: number; day: number }, hour: number, minute: number) => {
-    const key = `${d.year}-${d.month}-${d.day}-${hour}-${minute}`;
-    let ms = localCache.get(key);
+    const key = `${timezone}|${d.year}-${d.month}-${d.day}-${hour}-${minute}`;
+    let ms = localUtcCache.get(key);
     if (ms === undefined) {
       ms = localToUtcMs(d, hour, minute, timezone);
-      localCache.set(key, ms);
+      if (localUtcCache.size >= MAX_LOCAL_UTC_ENTRIES) localUtcCache.clear();
+      localUtcCache.set(key, ms);
     }
     return ms;
   };
   const stepMs = slotStepMin * MIN_MS;
 
+  // Calendar dates are walked once for the whole call (UTC-as-calendar, so a skipped local midnight
+  // cannot shift or drop a day), not once per staff member.
+  const days: { weekday: Weekday; dateParts: { year: number; month: number; day: number } }[] = [];
+  for (let day = first; day <= last; day = day.plus({ days: 1 }))
+    days.push({
+      weekday: (day.weekday % 7) as Weekday,
+      dateParts: { year: day.year, month: day.month, day: day.day },
+    });
+
   const result: Slot[] = [];
   for (const member of input.staff) {
     const seen = new Set<number>();
+    // Sorted by start so each interval below scans only the cuts that can touch it.
     const unavailable: Range[] = [
       ...member.timeOff.map((t): Range => [t.startAt.getTime(), t.endAt.getTime()]),
       ...member.busy.map((b): Range => [b.startAt.getTime(), b.blockedUntil.getTime()]),
-    ];
-    // Walk calendar dates in UTC-as-calendar so a skipped local midnight cannot shift or drop a day.
-    for (let day = first; day <= last; day = day.plus({ days: 1 })) {
-      const weekday = (day.weekday % 7) as Weekday;
-      const dateParts = { year: day.year, month: day.month, day: day.day };
+    ].sort((a, b) => a[0] - b[0]);
+    for (const { weekday, dateParts } of days) {
       for (const wh of member.weeklyHours) {
         if (wh.weekday !== weekday) continue;
         const s = parseHm(wh.startLocal);
@@ -191,7 +242,11 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
         const endMs = toUtc(dateParts, e.hour, e.minute);
         if (endMs <= startMs) continue;
         let free: Range[] = [[startMs, endMs]];
-        for (const cut of unavailable) free = subtract(free, cut);
+        // A cut that does not overlap [startMs, endMs) changes nothing, and cutting is order-independent.
+        for (const cut of unavailable) {
+          if (cut[0] >= endMs) break;
+          if (cut[1] > startMs) free = subtract(free, cut);
+        }
         for (const [fs, fe] of free) {
           const emit = (t: number) => {
             if (t < windowEnd && !seen.has(t)) {
