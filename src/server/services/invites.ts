@@ -13,6 +13,7 @@ import { toSessionInfo, type AuthDeps, type SignedIn } from './auth';
 import { newOpaqueToken, sha256Hex } from './crypto';
 import { loginGuard } from './loginGuard';
 import { hashPassword, verifyPassword } from './password';
+import { emailVerificationService } from './emailVerification';
 import { sessionService } from './session';
 
 export const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
@@ -24,6 +25,8 @@ export const invitesService = {
   /** OWNER only. Replaces any open invite for the same email. Only the token hash is stored. */
   async create(ctx: SessionContext, input: { email: string; role: 'STAFF' }, deps = defaultDeps) {
     requireRole(ctx, 'OWNER');
+    // Soft verification: an owner who has not confirmed their address cannot bring in staff yet.
+    await emailVerificationService.assertVerified(ctx.userId);
     const now = deps.now();
     // Resolve the provider first: a misconfiguration (e.g. fake in production) fails before any row is written.
     const provider = getEmailProvider();

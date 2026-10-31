@@ -11,6 +11,7 @@ import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
 import { updateBusiness, type Business } from '@/lib/api/setup';
 import { directoryChecklist, missingFromError } from '@/lib/directory/readiness';
+import { useAppSession } from '../SessionContext';
 import { useErrorMessage } from '../states';
 
 /** "List my business" toggle with the readiness checklist (Share page, opt-in, off by default). */
@@ -26,6 +27,8 @@ export function DirectoryCard({
   const errorMessage = useErrorMessage();
   const [pending, setPending] = useState(false);
   const [missing, setMissing] = useState<string[]>([]);
+  const { emailVerified } = useAppSession();
+  const gateReason = useTranslations('verify')('gate.directory');
   const items = directoryChecklist(business.setup);
   const ready = items.every((i) => i.done);
 
@@ -63,7 +66,7 @@ export function DirectoryCard({
           label={t('switch')}
           checked={business.listed}
           pending={pending}
-          disabled={!ready && !business.listed}
+          disabled={(!ready || !emailVerified) && !business.listed}
           onCheckedChange={toggle}
         />
       </div>
@@ -71,6 +74,12 @@ export function DirectoryCard({
       <p role="status" className="m-0 text-sm font-semibold text-brand">
         {business.listed ? t('statusOn') : t('statusOff')}
       </p>
+
+      {emailVerified ? null : (
+        <Callout tone="warning">
+          <p className="m-0">{gateReason}</p>
+        </Callout>
+      )}
 
       {!ready ? (
         <div className="flex flex-col gap-1">

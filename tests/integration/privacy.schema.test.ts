@@ -72,6 +72,26 @@ describe('NFR-04 privacy: no free-text personal data', () => {
     );
   });
 
+  it('User holds only name, email, password hash, verification time and bookkeeping', async () => {
+    expect(await columns('User')).toEqual(
+      [
+        'id',
+        'email',
+        'passwordHash',
+        'name',
+        'emailVerifiedAt', // when the address was proven (timestamp only)
+        'createdAt',
+        'updatedAt',
+      ].sort(),
+    );
+  });
+
+  it('EmailToken holds only a token hash, its kind and timestamps', async () => {
+    expect(await columns('EmailToken')).toEqual(
+      ['id', 'userId', 'kind', 'tokenHash', 'expiresAt', 'usedAt', 'createdAt'].sort(),
+    );
+  });
+
   it('no table anywhere has a notes/comment/memo/remarks column', async () => {
     const { rows } = await pg.query(
       `SELECT table_name, column_name FROM information_schema.columns

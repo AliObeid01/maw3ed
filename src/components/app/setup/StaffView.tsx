@@ -135,6 +135,8 @@ export function StaffView() {
 
 function StaffInner() {
   const t = useTranslations('app.staff');
+  const gateReason = useTranslations('verify')('gate.invite');
+  const { emailVerified } = useAppSession();
   const toast = useToast();
   const desktop = useIsDesktop();
   const staff = useResource(listStaff, 'staff');
@@ -220,10 +222,22 @@ function StaffInner() {
                 </h2>
                 <p className="m-0 text-[13px] text-muted">{t('invites.body')}</p>
               </div>
-              <Button variant="secondary" onClick={() => setInviteOpen(true)}>
-                <MailPlus size={18} aria-hidden="true" />
-                {t('invites.cta')}
-              </Button>
+              <div className="flex flex-col items-start gap-1.5">
+                <Button
+                  variant="secondary"
+                  disabled={!emailVerified}
+                  aria-describedby={emailVerified ? undefined : 'invite-gate-reason'}
+                  onClick={() => setInviteOpen(true)}
+                >
+                  <MailPlus size={18} aria-hidden="true" />
+                  {t('invites.cta')}
+                </Button>
+                {emailVerified ? null : (
+                  <p id="invite-gate-reason" className="m-0 max-w-[220px] text-[13px] text-muted">
+                    {gateReason}
+                  </p>
+                )}
+              </div>
             </div>
             {invites.error ? (
               <p role="alert" className="m-0 mt-3 text-[13px] text-danger">

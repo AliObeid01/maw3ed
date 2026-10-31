@@ -36,6 +36,12 @@ export const RATE_POLICIES = {
   invitePreview: { windowSec: 10 * MIN, limit: 60 },
   /** POST /api/invites/{token}/accept (new users cost an argon2 hash) */
   inviteAccept: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/verify-email (a token guess costs one indexed lookup, but nothing needs more than a few) */
+  verifyEmail: { windowSec: 10 * MIN, limit: 30 },
+  /** POST /api/auth/resend-verification, per ip (each one sends an email) */
+  resendVerificationIp: { windowSec: 60 * MIN, limit: 10 },
+  /** POST /api/auth/resend-verification, per signed-in user (service-level) */
+  resendVerificationUser: { windowSec: 60 * MIN, limit: 3 },
   /** Login attempts per (sha256(email), ip). A success clears it. */
   loginEmailIp: { windowSec: 15 * MIN, limit: 5 },
   /** Failed logins per ip across all emails. A success refunds its hit. */

@@ -47,6 +47,7 @@ review the strings below. Keys and meanings were not changed.
 | `pricing.title` | Simple plans for every chair | خطط بسيطة لكل كرسي | "كرسي" for a chair/seat is a literal image; check it suits clinics too. |
 | `billing.price`, `pricing.pro.price` | $9 / month | $9 / شهريًا | Price is isolated left-to-right so the currency sign stays before the number; check the sign placement preference for Arabic. |
 | `offer.holdLapsed.title/body` | Your deposit time ran out / The slot was released for other people. You are still on the waitlist and we will email you if another time opens. | انتهت مهلة دفع العربون / تم إطلاق الموعد لغيرك. ما زلت في قائمة الانتظار وسنراسلك بالبريد إذا توفر وقت آخر. | Unreviewed (F26-3). "العربون" for deposit and "مهلة" for the time limit; check they match the deposit/pay page wording. |
+| `verify.*`, `email.verify.*`, `app.errors.emailNotVerified` | Confirm your email / Resend email / Confirm your email address to invite staff. | أكّد بريدك الإلكتروني / إعادة إرسال الرسالة / أكّد بريدك الإلكتروني لدعوة الموظفين. | Unreviewed (L4). "أكّد" vs "تأكيد" in headings, "الرسالة" for the email, and the guillemets around the button name inside a sentence. |
 
 ## Not covered
 

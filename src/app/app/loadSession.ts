@@ -22,6 +22,8 @@ export async function loadSession(): Promise<CurrentSession> {
       return {
         userId: 'e2e-user',
         userName: 'Lina',
+        // `e2e_unverified` cookie: show the unverified-email banner and disable inviting / listing.
+        emailVerified: (await cookies()).get('e2e_unverified')?.value !== '1',
         businessId: 'e2e-business',
         businessName: 'Studio Nour',
         businessSlug: 'studio-nour',

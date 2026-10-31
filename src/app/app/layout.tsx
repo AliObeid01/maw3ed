@@ -12,6 +12,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <AppFrame
       session={{
         userName: session.userName,
+        emailVerified: session.emailVerified,
         role: session.role,
         businessName: session.businessName,
         slug: session.businessSlug,

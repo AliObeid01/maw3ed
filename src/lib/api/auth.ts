@@ -5,7 +5,12 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
 
 // ---- Response schemas (tolerant: unknown extra keys are ignored on the way in) -------------
 
-const userSchema = z.object({ id: z.string(), name: z.string(), email: z.string() });
+const userSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string(),
+  emailVerified: z.boolean().optional(),
+});
 const businessSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -147,5 +152,18 @@ export const acceptInvite = (token: string, body: { name: string; password: stri
     method: 'POST',
     body,
   });
+
+export const verifyEmail = (token: string) =>
+  request('/api/auth/verify-email', z.object({ ok: z.literal(true) }), {
+    method: 'POST',
+    body: { token },
+  });
+
+export const resendVerification = () =>
+  request(
+    '/api/auth/resend-verification',
+    z.object({ ok: z.literal(true), alreadyVerified: z.boolean() }),
+    { method: 'POST' },
+  );
 
 export const logout = () => request('/api/auth/logout', z.unknown(), { method: 'POST' });

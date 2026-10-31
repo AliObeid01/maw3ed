@@ -8,6 +8,7 @@ export type SetupErrorKey =
   | 'validation'
   | 'hasFutureAppointments'
   | 'alreadyMember'
+  | 'emailNotVerified'
   | 'rateLimited'
   | 'server'
   | 'generic';
@@ -18,6 +19,7 @@ export function errorKey(error: unknown): SetupErrorKey {
   if (error.code === 'NETWORK') return 'network';
   if (error.code === 'HAS_FUTURE_APPOINTMENTS') return 'hasFutureAppointments';
   if (error.code === 'ALREADY_MEMBER') return 'alreadyMember';
+  if (error.code === 'EMAIL_NOT_VERIFIED') return 'emailNotVerified';
   if (error.status === 401) return 'unauthorized';
   if (error.status === 403) return 'forbidden';
   if (error.status === 404) return 'notFound';

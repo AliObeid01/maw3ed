@@ -140,7 +140,8 @@
       "ownerOnlyTitle": "Only the owner can change this",
       "ownerOnlyBody": "Ask the owner of your business to update these settings.",
       "loadTitle": "We could not load this",
-      "retry": "Try again"
+      "retry": "Try again",
+      "emailNotVerified": "Confirm your email address first. Use “Resend email” in the banner at the top if you need a new link."
     },
     "format": {
       "min": "{count} min",
@@ -938,6 +939,14 @@
       "intro": "You have been invited to join {business} on Maw3ed.",
       "accept": "Accept the invitation",
       "expires": "This link works once and expires on {expires}."
+    },
+    "verify": {
+      "subject": "Confirm your email address on Maw3ed",
+      "heading": "Confirm your email",
+      "intro": "Confirm your email address for {business} on Maw3ed. You need this to invite staff and to list your business in the directory.",
+      "action": "Confirm my email",
+      "expires": "This link works once and is valid for {hours} hours.",
+      "ignore": "If you did not create a Maw3ed account, you can ignore this email."
     }
   },
   "dev": {
@@ -1594,5 +1603,34 @@
     "title": "We can't find that page",
     "body": "The link may be old or mistyped. Head back to the start and try again.",
     "action": "Go to Maw3ed"
+  },
+  "verify": {
+    "page": {
+      "title": "Confirm your email",
+      "body": "Tap the button below to confirm your email address.",
+      "confirm": "Confirm my email",
+      "successTitle": "Email confirmed",
+      "successBody": "Thank you. You can now invite staff and list your business in the directory.",
+      "successAction": "Go to my dashboard",
+      "invalidTitle": "This link is not valid",
+      "invalidBody": "It may have expired or already been used. Sign in and choose “Resend email” in your dashboard to get a new link.",
+      "invalidAction": "Go to my dashboard",
+      "networkError": "We can't reach the server. Check your connection and try again.",
+      "genericError": "Something went wrong. Please try again.",
+      "rateLimited": "Too many attempts. Wait a few minutes and try again."
+    },
+    "banner": {
+      "label": "Email confirmation",
+      "text": "Confirm your email address to invite staff and list your business in the directory. Check your inbox for our message.",
+      "resend": "Resend email",
+      "sent": "Confirmation email sent.",
+      "alreadyVerified": "Your email is already confirmed.",
+      "rateLimited": "Too many requests. Try again in a while.",
+      "failed": "We could not send the email. Please try again."
+    },
+    "gate": {
+      "invite": "Confirm your email address to invite staff.",
+      "directory": "Confirm your email address to list your business in the directory."
+    }
   }
 }

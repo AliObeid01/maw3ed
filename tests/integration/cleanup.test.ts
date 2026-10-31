@@ -51,6 +51,18 @@ async function seed() {
   await invite('recent-accepted', '-3 days', '-1 day');
   await invite('pending', '2 days', null);
 
+  // Account email tokens: one live, one expired, one used (still within its lifetime), one expired AND used.
+  const token = (n: string, kind: string, expires: string, used: string | null) =>
+    pg.query(
+      `INSERT INTO "EmailToken" (id, "userId", kind, "tokenHash", "expiresAt", "usedAt")
+       VALUES ($1, $2, $3::"EmailTokenKind", $4, now() + $5::interval, ${used ? 'now() + $6::interval' : '$6::text::timestamptz'})`,
+      [`t-${n}`, userId, kind, `thash-${n}`, expires, used],
+    );
+  await token('live-reset', 'RESET', '30 minutes', null);
+  await token('expired', 'VERIFY', '-1 hour', null);
+  await token('used', 'RESET', '20 minutes', '-5 minutes');
+  await token('expired-used', 'VERIFY', '-2 days', '-3 days');
+
   await pg.query(
     `INSERT INTO "RateLimitBucket" (key, "windowStart", count) VALUES
      ('old', now() - interval '3 days', 4), ('fresh', now() - interval '1 hour', 2)`,
@@ -67,7 +79,13 @@ describe('cleanup job', () => {
     const keptSessions = await pg.query(`SELECT count(*)::int AS n FROM "Session"`);
     expect(keptSessions.rows[0].n).toBe(5); // signup session + 4 seeded
     const result = await runCleanup(rootLogger);
-    expect(result).toEqual({ sessions: 3, invites: 2, rateLimitBuckets: 1, truncated: false });
+    expect(result).toEqual({
+      sessions: 3,
+      invites: 2,
+      emailTokens: 3,
+      rateLimitBuckets: 1,
+      truncated: false,
+    });
     expect(await ids('Invite')).toEqual(['i-pending', 'i-recent-accepted', 'i-recent-expired']);
     const sessions = await ids('Session');
     expect(sessions).toContain('s-live');
@@ -76,10 +94,17 @@ describe('cleanup job', () => {
     const active = `SELECT count(*)::int AS n FROM "Session" WHERE "expiresAt" > now() AND "createdAt" > now() - interval '90 days'`;
     expect((await pg.query(active)).rows[0].n).toBe(2);
     expect((await pg.query(`SELECT key FROM "RateLimitBucket"`)).rows).toEqual([{ key: 'fresh' }]);
+    // Used and expired tokens are gone; the live ones (the unused reset and the signup verification) stay.
+    expect(await ids('EmailToken')).toHaveLength(2);
+    expect((await pg.query(`SELECT 1 FROM "EmailToken" WHERE id = 't-live-reset'`)).rowCount).toBe(1);
+    expect(
+      (await pg.query(`SELECT 1 FROM "EmailToken" WHERE "usedAt" IS NOT NULL OR "expiresAt" < now()`)).rowCount,
+    ).toBe(0);
     // Idempotent.
     expect(await runCleanup(rootLogger)).toEqual({
       sessions: 0,
       invites: 0,
+      emailTokens: 0,
       rateLimitBuckets: 0,
       truncated: false,
     });
@@ -147,6 +172,12 @@ describe('POST /api/jobs/cleanup', () => {
     await seed();
     const res = await run({ headers: { 'x-cron-secret': secret() } });
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ sessions: 3, invites: 2, rateLimitBuckets: 1, truncated: false });
+    expect(res.body).toEqual({
+      sessions: 3,
+      invites: 2,
+      emailTokens: 3,
+      rateLimitBuckets: 1,
+      truncated: false,
+    });
   });
 });

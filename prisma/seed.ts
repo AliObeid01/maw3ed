@@ -178,7 +178,8 @@ async function seedBusiness(
     const user = await prisma.user.upsert({
       where: { email },
       update: { name: u.name, passwordHash },
-      create: { email, name: u.name, passwordHash },
+      // Demo logins count as verified, so the dashboard banner and the verification gates stay out of the way.
+      create: { email, name: u.name, passwordHash, emailVerifiedAt: new Date() },
     });
     userIds.set(email, user.id);
     await prisma.membership.upsert({

@@ -1,5 +1,6 @@
 import { SESSION_ABSOLUTE_TTL_MS } from '@/server/http/cookies';
 import type { Logger } from '@/server/http/logger';
+import { emailTokenRepo } from '@/server/repositories/emailToken.repo';
 import { inviteRepo } from '@/server/repositories/invite.repo';
 import { rateLimitRepo } from '@/server/repositories/rateLimit.repo';
 import { sessionRepo } from '@/server/repositories/session.repo';
@@ -15,6 +16,8 @@ export const BUCKET_RETENTION_MS = 2 * DAY;
 export interface CleanupResult {
   sessions: number;
   invites: number;
+  /** Used or expired verify / reset tokens. */
+  emailTokens: number;
   rateLimitBuckets: number;
   /** True when the time budget ran out before every table was drained; the next run continues. */
   truncated: boolean;
@@ -39,7 +42,7 @@ const defaults = (): CleanupDeps => {
 };
 
 /**
- * Hygiene job (daily): purge dead sessions, stale invites and old rate-limit buckets in batches.
+ * Hygiene job (daily): purge dead sessions, stale invites, used or expired email tokens and old rate-limit buckets in batches.
  * WaitlistOffer rows are deliberately kept (pilot reporting). Idempotent and safe to run concurrently.
  */
 export async function runCleanup(
@@ -52,7 +55,13 @@ export async function runCleanup(
   const inviteCutoff = new Date(now.getTime() - INVITE_RETENTION_MS);
   const bucketCutoff = new Date(now.getTime() - BUCKET_RETENTION_MS);
 
-  const result: CleanupResult = { sessions: 0, invites: 0, rateLimitBuckets: 0, truncated: false };
+  const result: CleanupResult = {
+    sessions: 0,
+    invites: 0,
+    emailTokens: 0,
+    rateLimitBuckets: 0,
+    truncated: false,
+  };
   const steps: [
     keyof Omit<CleanupResult, 'truncated'>,
     (limit: number) => Promise<number>,
@@ -60,6 +69,7 @@ export async function runCleanup(
   ][] = [
     ['sessions', (n) => sessionRepo.deleteDead(now, absoluteCutoff, n), deps.batch],
     ['invites', (n) => inviteRepo.deleteStale(inviteCutoff, n), deps.batch],
+    ['emailTokens', (n) => emailTokenRepo.deleteStale(now, n), deps.batch],
     [
       'rateLimitBuckets',
       (n) => rateLimitRepo.deleteOlderThan(bucketCutoff, n),

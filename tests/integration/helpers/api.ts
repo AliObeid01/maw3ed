@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- test helper: response bodies are untyped JSON */
 type Json = Record<string, any>;
 import { POST as signupPost } from '@/app/api/auth/signup/route';
+import { fakeEmailProvider } from '@/server/providers/email';
 import { newClient } from './db';
 
 type Handler = (
@@ -70,24 +71,31 @@ export function signupBody(over: Record<string, unknown> = {}) {
 }
 
 /**
- * Sign up a fresh business through the real route. New businesses are FREE (one bookable staff member), so
+ * Sign up a fresh business through the real route (owner verified unless `verified: false`). New businesses are FREE (one bookable staff member), so
  * the helper upgrades them to PRO unless `plan: 'FREE'` is passed; tests that create several bookable staff
  * then exercise their own logic, and plan-limit tests ask for FREE explicitly.
  */
 export async function signup(over: Record<string, unknown> = {}) {
-  const { plan = 'PRO', ...rest } = over;
+  const { plan = 'PRO', verified = true, ...rest } = over;
   const body = signupBody(rest);
   const res = await call(signupPost, '/api/auth/signup', { body });
   if (res.status !== 201)
     throw new Error(`signup failed: ${res.status} ${JSON.stringify(res.body)}`);
-  if (plan === 'PRO') {
+  if (plan === 'PRO' || verified) {
     const pg = newClient();
     await pg.connect();
     try {
-      await pg.query(`UPDATE "Business" SET plan = 'PRO' WHERE slug = $1`, [body.slug]);
+      if (plan === 'PRO')
+        await pg.query(`UPDATE "Business" SET plan = 'PRO' WHERE slug = $1`, [body.slug]);
+      // Soft email verification gates inviting and listing; most tests are about something else.
+      if (verified)
+        await pg.query(`UPDATE "User" SET "emailVerifiedAt" = now() WHERE email = $1`, [body.email]);
     } finally {
       await pg.end();
     }
   }
+  // Tests that ask for a verified owner are about something else: don't leave the signup verification mail
+  // in the fake outbox where it would be counted as theirs.
+  if (verified) fakeEmailProvider.reset();
   return { body, res, cookie: res.cookie as string, info: res.body as Json };
 }

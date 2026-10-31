@@ -134,18 +134,42 @@ model Business {
 }
 
 model User {
-  id           String   @id @default(cuid(2))
-  email        String   @unique // stored lowercased
-  passwordHash String?
-  name         String
-  createdAt    DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  id              String    @id @default(cuid(2))
+  email           String    @unique // stored lowercased
+  passwordHash    String?
+  name            String
+  /// When the address was proven (verify link, password reset, or accepted staff invite). NULL = unverified.
+  emailVerifiedAt DateTime? @db.Timestamptz(3)
+  createdAt       DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime  @updatedAt @db.Timestamptz(3)
 
   memberships Membership[]
   sessions    Session[]
   staff       StaffMember[]
   outcomes    Appointment[] @relation("OutcomeMarkedBy")
   sentJobs    ReminderJob[] @relation("ReminderSentBy")
+  emailTokens EmailToken[]
+}
+
+enum EmailTokenKind {
+  VERIFY
+  RESET
+}
+
+/// Single-use e-mailed token (verify address / reset password). Only sha256(token) is stored.
+model EmailToken {
+  id        String         @id @default(cuid(2))
+  userId    String
+  kind      EmailTokenKind
+  tokenHash String         @unique
+  expiresAt DateTime       @db.Timestamptz(3)
+  usedAt    DateTime?      @db.Timestamptz(3)
+  createdAt DateTime       @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, kind])
+  @@index([expiresAt])
 }
 
 model Session {

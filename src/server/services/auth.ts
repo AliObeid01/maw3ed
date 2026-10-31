@@ -9,10 +9,11 @@ import { membershipRepo } from '@/server/repositories/membership.repo';
 import { userRepo } from '@/server/repositories/user.repo';
 import { loginGuard, type LoginGuard } from './loginGuard';
 import { hashPassword, verifyPassword } from './password';
+import { emailVerificationService } from './emailVerification';
 import { sessionService } from './session';
 
 export interface SessionInfo {
-  user: { id: string; name: string; email: string };
+  user: { id: string; name: string; email: string; emailVerified: boolean };
   business: { id: string; slug: string; name: string; timezone: string };
   role: RoleName;
 }
@@ -25,11 +26,16 @@ export interface SignedIn {
 }
 
 export const toSessionInfo = (
-  user: { id: string; name: string; email: string },
+  user: { id: string; name: string; email: string; emailVerifiedAt: Date | null },
   business: { id: string; slug: string; name: string; timezone: string },
   role: RoleName,
 ): SessionInfo => ({
-  user: { id: user.id, name: user.name, email: user.email },
+  user: {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    emailVerified: user.emailVerifiedAt !== null,
+  },
   business: {
     id: business.id,
     slug: business.slug,
@@ -97,6 +103,8 @@ export const authService = {
         sessionExpiresAt: session.expiresAt,
       });
       ctx.logger.info({ businessId: business.id, userId: user.id }, 'business signed up');
+      // Soft verification: the account works now; a failed send never fails the signup (Resend is in the banner).
+      await emailVerificationService.sendForNewAccount(ctx, user, business, deps.now());
       return {
         info: toSessionInfo(user, business, 'OWNER'),
         token: session.token,
@@ -169,6 +177,7 @@ export const authService = {
     return {
       userId: user.id,
       userName: user.name,
+      emailVerified: user.emailVerifiedAt !== null,
       businessId: business.id,
       businessName: business.name,
       businessSlug: business.slug,
