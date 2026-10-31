@@ -78,8 +78,13 @@ test.describe('unverified email banner', () => {
       },
     });
     await page.goto('/app');
-    await page.getByRole('button', { name: 'Resend email' }).click();
-    await expect(page.getByText('Too many requests. Try again in a while.')).toBeVisible();
+    // The button is server-rendered before React attaches its handler: retry the click until it takes effect.
+    await expect(async () => {
+      await page.getByRole('button', { name: 'Resend email' }).click();
+      await expect(page.getByText('Too many requests. Try again in a while.')).toBeVisible({
+        timeout: 2000,
+      });
+    }).toPass({ timeout: 20_000 });
   });
 
   test('a verified owner sees no banner and enabled controls', async ({ page }) => {
