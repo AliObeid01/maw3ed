@@ -1374,6 +1374,11 @@
       "body": "A spot from this waitlist request is already booked for you, so this one isn't needed. Check your email for the booking.",
       "action": "See free times"
     },
+    "holdLapsed": {
+      "title": "Your deposit time ran out",
+      "body": "The slot was released for other people. You are still on the waitlist and we will email you if another time opens.",
+      "action": "See free times"
+    },
     "invalid": {
       "title": "This link doesn't work",
       "body": "Check the link in your email, or ask the business to send it again.",

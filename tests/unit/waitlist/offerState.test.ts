@@ -19,4 +19,15 @@ describe('offerViewStatus: each state of an offer link tells its own truth', () 
     expect(offerViewStatus('SUPERSEDED', 'FULFILLED')).toBe('ALREADY_BOOKED');
     expect(offerViewStatus('OPEN', 'FULFILLED')).toBe('ALREADY_BOOKED');
   });
+  it('an open offer whose own deposit hold lapsed is HOLD_LAPSED (the entry is still waiting)', () => {
+    expect(offerViewStatus('OPEN', 'OPEN', true)).toBe('HOLD_LAPSED');
+    expect(offerViewStatus('OPEN', 'OPEN', false)).toBe('OPEN');
+  });
+  it('HOLD_LAPSED never hides a more final truth', () => {
+    expect(offerViewStatus('CLAIMED', 'FULFILLED', true)).toBe('CLAIMED');
+    expect(offerViewStatus('EXPIRED', 'OPEN', true)).toBe('EXPIRED');
+    expect(offerViewStatus('OPEN', 'CANCELLED', true)).toBe('UNAVAILABLE');
+    expect(offerViewStatus('OPEN', 'FULFILLED', true)).toBe('ALREADY_BOOKED');
+    expect(offerViewStatus('SUPERSEDED', 'OPEN', true)).toBe('TAKEN');
+  });
 });

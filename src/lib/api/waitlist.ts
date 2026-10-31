@@ -37,6 +37,7 @@ export const OFFER_STATUSES = [
   'TAKEN',
   'UNAVAILABLE',
   'ALREADY_BOOKED',
+  'HOLD_LAPSED',
 ] as const;
 
 export const offerViewSchema = z.object({

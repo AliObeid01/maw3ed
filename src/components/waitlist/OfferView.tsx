@@ -80,7 +80,13 @@ function Invalid() {
   );
 }
 
-function Ended({ kind, slug }: { kind: 'expired' | 'taken' | 'unavailable' | 'alreadyBooked'; slug?: string }) {
+function Ended({
+  kind,
+  slug,
+}: {
+  kind: 'expired' | 'taken' | 'unavailable' | 'alreadyBooked' | 'holdLapsed';
+  slug?: string;
+}) {
   const t = useTranslations('offer');
   return (
     <PageState
@@ -105,7 +111,7 @@ type Outcome =
   | { kind: 'idle' }
   | { kind: 'claiming' }
   | { kind: 'booked'; result: BookingResult }
-  | { kind: 'ended'; as: 'taken' | 'expired' | 'unavailable' | 'alreadyBooked' | 'invalid' }
+  | { kind: 'ended'; as: 'taken' | 'expired' | 'unavailable' | 'alreadyBooked' | 'holdLapsed' | 'invalid' }
   /** A failure that can be retried (network, 429, 5xx): the offer screen stays and Book is the retry. */
   | { kind: 'problem'; failure: OfferFailure };
 
@@ -158,6 +164,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
         failure === 'expired' ||
         failure === 'unavailable' ||
         failure === 'alreadyBooked' ||
+        failure === 'holdLapsed' ||
         failure === 'invalid'
       ) {
         setOutcome({ kind: 'ended', as: failure });
@@ -176,6 +183,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
     if (screen === 'expired') return <Ended kind="expired" slug={business.slug} />;
     if (screen === 'unavailable') return <Ended kind="unavailable" slug={business.slug} />;
     if (screen === 'alreadyBooked') return <Ended kind="alreadyBooked" slug={business.slug} />;
+    if (screen === 'holdLapsed') return <Ended kind="holdLapsed" slug={business.slug} />;
   }
 
   const slot = booked?.appointment ?? offer;

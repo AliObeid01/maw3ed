@@ -3121,9 +3121,10 @@
                   "EXPIRED",
                   "TAKEN",
                   "UNAVAILABLE",
-                  "ALREADY_BOOKED"
+                  "ALREADY_BOOKED",
+                  "HOLD_LAPSED"
                 ],
-                "description": "TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer."
+                "description": "TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer. HOLD_LAPSED: the client claimed this offer, did not pay the deposit in time and the hold was released; the slot is not offered to them again, they stay on the waitlist."
               },
               "startAt": {
                 "type": "string",
@@ -7206,7 +7207,7 @@
             }
           },
           "409": {
-            "description": "SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. CONFLICT: another claim of this request is in progress",
+            "description": "SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. HOLD_LAPSED: the deposit hold made through this offer ran out and was released. CONFLICT: another claim of this request is in progress",
             "content": {
               "application/json": {
                 "schema": {

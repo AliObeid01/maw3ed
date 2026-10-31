@@ -14,7 +14,9 @@ export type OfferScreen =
   /** The client left the waitlist (or staff removed the entry): the request is no longer active. */
   | 'unavailable'
   /** Another offer of this same waitlist request was claimed: the client already holds a booking. */
-  | 'alreadyBooked';
+  | 'alreadyBooked'
+  /** The client's own deposit time ran out; the slot was released, they are still on the waitlist. */
+  | 'holdLapsed';
 
 /** Milliseconds until the offer ends; 0 once `now` reaches `expiresAt` (exactly at expiry counts as over). */
 export function msLeft(expiresAt: string, nowMs: number): number {
@@ -50,6 +52,8 @@ export function offerScreen(view: Pick<OfferView, 'offer' | 'canClaim'>, serverN
       return 'unavailable';
     case 'ALREADY_BOOKED':
       return 'alreadyBooked';
+    case 'HOLD_LAPSED':
+      return 'holdLapsed';
     default:
       if (view.canClaim) return 'open';
       return isExpired(view.offer.expiresAt, serverNowMs) ? 'expired' : 'unavailable';
@@ -73,6 +77,7 @@ export type OfferFailure =
   | 'taken'
   | 'unavailable'
   | 'alreadyBooked'
+  | 'holdLapsed'
   | 'network'
   | 'tooMany'
   | 'generic';
@@ -80,7 +85,7 @@ export type OfferFailure =
 /**
  * Maps a failed offer request (read or claim) to what the screen shows:
  * 404 = malformed or forged link, 410 = expired, 409 SLOT_TAKEN = someone else got it,
- * 409 ALREADY_BOOKED = this request already holds a booking, any other 409 (WAITLIST_INACTIVE, CONFLICT) =
+ * 409 ALREADY_BOOKED = this request already holds a booking, 409 HOLD_LAPSED = the deposit time ran out, any other 409 (WAITLIST_INACTIVE, CONFLICT) =
  * the waitlist request is no longer active.
  */
 export function classifyOfferError(error: unknown): OfferFailure {
@@ -90,6 +95,7 @@ export function classifyOfferError(error: unknown): OfferFailure {
   if (error.status === 410) return 'expired';
   if (error.status === 409) {
     if (error.code === 'SLOT_TAKEN') return 'taken';
+    if (error.code === 'HOLD_LAPSED') return 'holdLapsed';
     return error.code === 'ALREADY_BOOKED' ? 'alreadyBooked' : 'unavailable';
   }
   if (error.status === 429) return 'tooMany';

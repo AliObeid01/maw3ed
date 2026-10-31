@@ -127,6 +127,33 @@ test('a SUPERSEDED offer (TAKEN on GET) is the taken screen with no Book button'
   await expect(page.getByText('until the last day you chose')).toBeVisible();
 });
 
+test('a lapsed deposit hold (HOLD_LAPSED on GET) says the time ran out and that they stay on the waitlist, no Book button', async ({ page }) => {
+  await open(page, { status: 'HOLD_LAPSED', canClaim: false });
+  await expect(page.getByRole('heading', { name: 'Your deposit time ran out' })).toBeVisible();
+  await expect(page.getByText('You are still on the waitlist')).toBeVisible();
+  await expect(book(page)).toHaveCount(0);
+  await expect(page.getByText('no longer active')).toHaveCount(0);
+  await expect(page.getByRole('link', { name: 'See free times' })).toBeVisible();
+});
+
+test('a claim answered 409 HOLD_LAPSED shows the lapsed state, not the unavailable one', async ({ page }) => {
+  const { calls } = await open(page, { claim: 'hold-lapsed' });
+  await book(page).click();
+  await expect(page.getByRole('heading', { name: 'Your deposit time ran out' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: "This offer can't be claimed" })).toHaveCount(0);
+  expect(calls.filter((c) => c.method === 'POST')).toHaveLength(1);
+});
+
+test('Arabic: a lapsed deposit hold is RTL with the translated copy', async ({ page, context }) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+  await open(page, { status: 'HOLD_LAPSED', canClaim: false });
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.getByRole('heading', { name: 'انتهت مهلة دفع العربون' })).toBeVisible();
+  await expect(page.getByText('ما زلت في قائمة الانتظار')).toBeVisible();
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
 test.describe('device clock skew', () => {
   test('a slow device clock (10 min behind) still shows the server countdown', async ({ page }) => {
     await freezeClock(page, -10 * 60_000);

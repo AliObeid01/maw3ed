@@ -456,6 +456,23 @@ export const waitlistRepo = {
     return count > 0;
   },
 
+  /**
+   * Did this offer's own claim create a deposit hold that was swept (cancelled by the system, unpaid)? The hold is
+   * found through the booking idempotency key; no column records it, an unpaid hold leaves no trace on the offer.
+   */
+  async hasLapsedHold(businessId: string, offerId: string) {
+    const count = await db.appointment.count({
+      where: {
+        businessId,
+        source: 'WAITLIST',
+        status: 'CANCELLED',
+        cancelledVia: 'SYSTEM',
+        idempotencyKey: `${OFFER_KEY_PREFIX}${offerId}`,
+      },
+    });
+    return count > 0;
+  },
+
   markClaimed: (
     businessId: string,
     a: { offerId: string; entryId: string; freedFromAppointmentId: string; appointmentId: string },
