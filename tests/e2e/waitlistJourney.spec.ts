@@ -450,7 +450,7 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
   const card = page.getByRole('button', { name: new RegExp(`${first(winner)}.*Waitlist`) });
   await expect(card).toHaveCount(1);
   // A, who cancelled, is not on the day.
-  await expect(page.getByText(first(A))).toHaveCount(0);
+  await expect(page.getByText(A.name)).toHaveCount(0);
 
   // The booking's own page says where it came from.
   await page.goto(`/app/appointments/${appt.id}`);
