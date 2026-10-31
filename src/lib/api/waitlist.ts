@@ -30,7 +30,14 @@ export const waitlistJoinedSchema = z.object({
 });
 export type WaitlistJoined = z.infer<typeof waitlistJoinedSchema>;
 
-export const OFFER_STATUSES = ['OPEN', 'CLAIMED', 'EXPIRED', 'TAKEN'] as const;
+export const OFFER_STATUSES = [
+  'OPEN',
+  'CLAIMED',
+  'EXPIRED',
+  'TAKEN',
+  'UNAVAILABLE',
+  'ALREADY_BOOKED',
+] as const;
 
 export const offerViewSchema = z.object({
   offer: z.object({

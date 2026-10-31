@@ -3119,8 +3119,11 @@
                   "OPEN",
                   "CLAIMED",
                   "EXPIRED",
-                  "TAKEN"
-                ]
+                  "TAKEN",
+                  "UNAVAILABLE",
+                  "ALREADY_BOOKED"
+                ],
+                "description": "TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer."
               },
               "startAt": {
                 "type": "string",
@@ -7203,7 +7206,7 @@
             }
           },
           "409": {
-            "description": "SLOT_TAKEN: someone else took this spot",
+            "description": "SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. CONFLICT: another claim of this request is in progress",
             "content": {
               "application/json": {
                 "schema": {

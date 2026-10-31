@@ -57,7 +57,11 @@ export const OfferViewDto = registry.register(
   z.object({
     offer: z.object({
       id: z.string(),
-      status: z.enum(['OPEN', 'CLAIMED', 'EXPIRED', 'TAKEN']),
+      status: z
+        .enum(['OPEN', 'CLAIMED', 'EXPIRED', 'TAKEN', 'UNAVAILABLE', 'ALREADY_BOOKED'])
+        .describe(
+          'TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer.',
+        ),
       startAt: iso,
       endAt: iso,
       expiresAt: iso,
@@ -173,7 +177,9 @@ registry.registerPath({
   responses: {
     200: { description: 'Already claimed: the first booking', content: json(BookingResultDto) },
     201: { description: 'Booked', content: json(BookingResultDto) },
-    409: err('SLOT_TAKEN: someone else took this spot'),
+    409: err(
+      'SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. CONFLICT: another claim of this request is in progress',
+    ),
     ...offerErrors,
   },
 });

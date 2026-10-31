@@ -602,7 +602,7 @@ test('6. the "remove me from the waitlist" link from an offer email: press once,
     { body: {} },
   );
   expect(again.status).toBeLessThan(300);
-  // Their claim link can no longer book anything (the copy it shows is finding F26-2, below).
+  // Their claim link can no longer book anything (the copy it shows is checked at the end, F26-2).
   await page.goto(linkFor(w7.mail, 'claim'));
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   await expect(claimButton(page)).toHaveCount(0);
@@ -717,17 +717,14 @@ test('pilot report counts the refill: waitlistRefills +1 and three freed slots o
 
 // ---- finding F26-2 -------------------------------------------------------------------------------------------------------
 
-// TODO(F26-2): when a client leaves the waitlist, every open offer of that entry is set to SUPERSEDED (cancelEntry), and the
-// offer API maps SUPERSEDED to 'TAKEN'. The client's old claim link therefore says "Someone else got this slot", which is
-// false (nobody took it; they left), and the dedicated "This offer can't be claimed" state (offer.unavailable, EN and AR) is
-// not reachable through any real flow. Expected: the 'unavailable' state. Remove the fixme when they are told apart.
-test.fixme('a link whose owner left the waitlist shows "This offer can\'t be claimed", in English and in Arabic (F26-2)', async ({
+test('a link whose owner left the waitlist shows "This offer can\'t be claimed", in English and in Arabic (F26-2)', async ({
   page,
   context,
 }) => {
   const claim = linkFor(secondOffers.find((o) => o.name === W7.name)!.mail, 'claim');
   await page.goto(claim);
   await expect(page.getByRole('heading', { name: "This offer can't be claimed" })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Someone else got this slot' })).toHaveCount(0);
   await context.addCookies([{ name: 'locale', value: 'ar', url: JOURNEY_URL }]);
   await page.goto(claim);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
