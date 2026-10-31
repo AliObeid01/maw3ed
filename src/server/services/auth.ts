@@ -165,6 +165,13 @@ export const authService = {
     ctx.logger.info('logout');
   },
 
+  /** Any role. Ends every other session of the caller (all businesses); this one stays. */
+  async signOutOthers(ctx: SessionContext): Promise<{ removed: number }> {
+    const removed = await accountRepo.deleteOtherSessions(ctx.userId, ctx.sessionId);
+    ctx.logger.info({ removed }, 'signed out other sessions');
+    return { removed };
+  },
+
   /** For server components: cookie token -> everything the dashboard shell needs, or null. */
   async current(token: string) {
     const resolved = await sessionService.resolve(token);

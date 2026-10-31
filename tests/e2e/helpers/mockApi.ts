@@ -14,6 +14,12 @@ export type MockState = {
   hours: Record<string, Array<{ weekday: number; startLocal: string; endLocal: string }>>;
   timeOff: Record<string, Array<Record<string, unknown>>>;
   invites: Array<Record<string, unknown>>;
+  /** People with a login (GET /api/team). The caller is the one with isYou. */
+  members: Array<Record<string, unknown>>;
+  /** How many other sessions POST /api/auth/sign-out-others reports as removed. */
+  otherSessions: number;
+  /** Upcoming appointments left on a removed member's calendar entry, by userId (DELETE /api/team/members). */
+  memberAppointments: Record<string, number>;
   /** Staff ids that still have future appointments: deactivating them answers 409 HAS_FUTURE_APPOINTMENTS. */
   staffWithFutureAppointments: string[];
   /** Emails that already belong to the business: inviting them answers 409 ALREADY_MEMBER. */
@@ -135,6 +141,34 @@ export function defaultState(): MockState {
       ],
     },
     invites: [],
+    members: [
+      {
+        userId: 'u1',
+        name: 'Lina',
+        email: 'lina@example.com',
+        role: 'OWNER',
+        emailVerified: true,
+        isYou: true,
+      },
+      {
+        userId: 'u2',
+        name: 'Rana',
+        email: 'rana@example.com',
+        role: 'STAFF',
+        emailVerified: true,
+        isYou: false,
+      },
+      {
+        userId: 'u3',
+        name: 'Samir',
+        email: 'samir@example.com',
+        role: 'STAFF',
+        emailVerified: false,
+        isYou: false,
+      },
+    ],
+    otherSessions: 2,
+    memberAppointments: {},
     staffWithFutureAppointments: [],
     memberEmails: ['lina@example.com'],
   };
@@ -324,6 +358,34 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
       Object.assign(found, v.data);
       return json(route, 200, found);
     }
+
+    if (path === '/api/team' && method === 'GET') {
+      // Newest invite first, like the server.
+      const invites = [...state.invites]
+        .reverse()
+        .map((i) => ({ createdAt: new Date(nowMs()).toISOString(), ...i }));
+      return json(route, 200, { members: state.members, invites });
+    }
+    const teamMember = /^\/api\/team\/members\/([^/]+)$/.exec(path);
+    if (teamMember && method === 'DELETE') {
+      const found = state.members.find((m) => m.userId === teamMember[1]);
+      if (!found) return error(route, 404, 'NOT_FOUND');
+      if (found.isYou) return error(route, 409, 'CANNOT_REMOVE_SELF');
+      state.members = state.members.filter((m) => m !== found);
+      return json(route, 200, {
+        ok: true,
+        futureAppointments: state.memberAppointments[found.userId as string] ?? 0,
+      });
+    }
+    const teamInvite = /^\/api\/team\/invites\/([^/]+)$/.exec(path);
+    if (teamInvite && method === 'DELETE') {
+      const found = state.invites.find((i) => i.id === teamInvite[1]);
+      if (!found) return error(route, 404, 'NOT_FOUND');
+      state.invites = state.invites.filter((i) => i !== found);
+      return json(route, 200, { ok: true });
+    }
+    if (path === '/api/auth/sign-out-others' && method === 'POST')
+      return json(route, 200, { removed: state.otherSessions });
 
     if (path === '/api/invites') {
       if (method === 'POST') {

@@ -2,20 +2,15 @@
 
 import { MetaLine } from '@/components/ui/Bidi';
 import { MailPlus, Plus, User } from 'lucide-react';
-import { useFormatter, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
-import {
-  listInvites,
-  listServices,
-  listStaff,
-  type PendingInvite,
-  type StaffMember,
-} from '@/lib/api/setup';
+import { listServices, listStaff, type StaffMember } from '@/lib/api/setup';
+import { listTeam } from '@/lib/api/team';
 import { useResource } from '@/lib/api/useResource';
 import { cn } from '@/lib/cn';
 import { useIsDesktop } from '@/lib/useMediaQuery';
@@ -25,6 +20,7 @@ import { EmptyState, LoadError, OwnerOnly } from '../states';
 import { EditorHost } from './EditorHost';
 import { InviteSheet } from './InviteSheet';
 import { StaffForm } from './StaffForm';
+import { TeamAccess } from './TeamAccess';
 
 /** Avatar tints from the board: teal, green, amber, neutral (inactive). */
 const AVATAR_TINTS = [
@@ -96,35 +92,6 @@ function StaffCard({
   );
 }
 
-function PendingInvites({ invites }: { invites: PendingInvite[] }) {
-  const t = useTranslations('app.staff.invites');
-  const format = useFormatter();
-  const { timezone } = useAppSession();
-  return (
-    <ul className="m-0 flex list-none flex-col p-0">
-      {invites.map((invite) => (
-        <li
-          key={invite.id}
-          className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-row py-3 first:border-t-0"
-        >
-          <span dir="ltr" className="min-w-0 flex-1 truncate text-start text-[15px] font-medium">
-            {invite.email}
-          </span>
-          <span className="text-[13px] text-muted">
-            {t('expires', {
-              date: format.dateTime(new Date(invite.expiresAt), {
-                day: 'numeric',
-                month: 'short',
-                timeZone: timezone,
-              }),
-            })}
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function StaffView() {
   return (
     <OwnerOnly>
@@ -141,7 +108,7 @@ function StaffInner() {
   const desktop = useIsDesktop();
   const staff = useResource(listStaff, 'staff');
   const services = useResource(listServices, 'services');
-  const invites = useResource(listInvites, 'invites');
+  const team = useResource(listTeam, 'team');
   const [selected, setSelected] = useState<string | 'new' | null>(null);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [resetCount, setResetCount] = useState(0);
@@ -173,8 +140,6 @@ function StaffInner() {
     setSelected(created ? saved.id : desktop ? saved.id : null);
     toast.show(t(created ? 'created' : 'saved', { name: saved.displayName }));
   };
-
-  const pendingInvites = invites.data ?? [];
 
   return (
     <>
@@ -239,22 +204,14 @@ function StaffInner() {
                 )}
               </div>
             </div>
-            {invites.error ? (
-              <p role="alert" className="m-0 mt-3 text-[13px] text-danger">
-                {t('invites.loadFailed')}{' '}
-                <button type="button" onClick={invites.reload} className="font-semibold underline">
-                  {t('invites.retry')}
-                </button>
-              </p>
-            ) : pendingInvites.length > 0 ? (
-              <div className="mt-3">
-                <span className="text-xs font-semibold tracking-[0.08em] text-muted uppercase">
-                  {t('invites.pending')}
-                </span>
-                <PendingInvites invites={pendingInvites} />
-              </div>
-            ) : null}
           </Card>
+
+          <TeamAccess
+            team={team}
+            desktop={desktop}
+            inviteDisabled={!emailVerified}
+            onInvite={() => setInviteOpen(true)}
+          />
         </div>
 
         <EditorHost
@@ -280,7 +237,7 @@ function StaffInner() {
         </EditorHost>
       </div>
 
-      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} onCreated={invites.reload} />
+      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} onCreated={team.reload} />
     </>
   );
 }

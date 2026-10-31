@@ -23,6 +23,14 @@ export const accountRepo = {
       });
     }),
 
+  /** Delete every session of the user (all businesses) except the current one. Returns how many. */
+  async deleteOtherSessions(userId: string, keepSessionId: string): Promise<number> {
+    const { count } = await db.session.deleteMany({
+      where: { userId, id: { not: keepSessionId } },
+    });
+    return count;
+  },
+
   /** Business, owner User, OWNER Membership, bookable owner StaffMember and Session in ONE transaction. */
   createBusinessWithOwner: (input: NewBusinessInput) =>
     db.$transaction(async (tx) => {

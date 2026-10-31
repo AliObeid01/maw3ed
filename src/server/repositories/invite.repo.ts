@@ -44,6 +44,20 @@ export const inviteRepo = {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     }),
 
+  /** Not accepted and not expired, newest first (the team screen). */
+  listPendingNewestFirst: (businessId: string, now: Date) =>
+    db.invite.findMany({
+      where: { businessId, acceptedAt: null, expiresAt: { gt: now } },
+      select: { id: true, email: true, role: true, expiresAt: true, createdAt: true },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    }),
+
+  /** Delete one unaccepted invite of this business so its link stops working. False = nothing to revoke. */
+  async revoke(businessId: string, id: string): Promise<boolean> {
+    const { count } = await db.invite.deleteMany({ where: { id, businessId, acceptedAt: null } });
+    return count === 1;
+  },
+
   /** Public lookup by token hash (the token itself is the credential); returns the business too. */
   findOpenByTokenHash: (tokenHash: string, now: Date) =>
     db.invite.findFirst({

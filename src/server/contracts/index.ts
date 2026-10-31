@@ -2,6 +2,7 @@
 import './health';
 import './auth';
 import './setup';
+import './team';
 import './booking';
 import './reminders';
 import './outcomes';

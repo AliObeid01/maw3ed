@@ -1068,6 +1068,144 @@
           "invites"
         ]
       },
+      "TeamMember": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "STAFF"
+            ]
+          },
+          "emailVerified": {
+            "type": "boolean"
+          },
+          "isYou": {
+            "type": "boolean",
+            "description": "True for the signed-in caller."
+          }
+        },
+        "required": [
+          "userId",
+          "name",
+          "email",
+          "role",
+          "emailVerified",
+          "isYou"
+        ]
+      },
+      "TeamInvite": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "OWNER",
+              "STAFF"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "role",
+          "expiresAt",
+          "createdAt"
+        ]
+      },
+      "Team": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamMember"
+            },
+            "description": "Oldest membership first."
+          },
+          "invites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TeamInvite"
+            },
+            "description": "Pending (not accepted, not expired) invites, newest first."
+          }
+        },
+        "required": [
+          "members",
+          "invites"
+        ]
+      },
+      "SignedOutOthers": {
+        "type": "object",
+        "properties": {
+          "removed": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "removed"
+        ]
+      },
+      "TeamMemberRemoved": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "futureAppointments": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Upcoming active appointments of this business that remain on their calendar entry."
+          }
+        },
+        "required": [
+          "ok",
+          "futureAppointments"
+        ]
+      },
+      "TeamOk": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
       "PublicBusiness": {
         "type": "object",
         "properties": {
@@ -5613,6 +5751,262 @@
           },
           "404": {
             "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/team": {
+      "get": {
+        "summary": "Team members and pending invites (owner)",
+        "description": "Never contains password hashes, invite tokens or session data. Members carry no free-text fields.",
+        "tags": [
+          "team"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Members and pending invites",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Team"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/team/members/{id}": {
+      "delete": {
+        "summary": "Remove a team member access (owner)",
+        "description": "Deletes the user Membership for THIS business and all of that user Sessions for THIS business in one transaction, and any pending invite for their email here. The calendar entry (StaffMember) is only unlinked and made non-bookable (hidden from the booking page; active, hours and appointments untouched). The User row, their other businesses and appointments are kept. `id` is the member userId. If the caller was removed while the request was in flight: 401. An owner cannot remove themselves (409 CANNOT_REMOVE_SELF) and the last owner can never be removed (409 LAST_OWNER). Another business, an unknown or an already removed member is 404.",
+        "tags": [
+          "team"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamMemberRemoved"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "CANNOT_REMOVE_SELF or LAST_OWNER",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/team/invites/{id}": {
+      "delete": {
+        "summary": "Revoke a pending invite (owner)",
+        "description": "Deletes the invite row, so its link stops working at once. Another business, an unknown or an already accepted invite is 404.",
+        "tags": [
+          "team"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Revoked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TeamOk"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/sign-out-others": {
+      "post": {
+        "summary": "Sign out every other session of the signed-in user",
+        "description": "Deletes all of the caller sessions in every business EXCEPT the current one and answers how many were removed. Any role. Limited to 20 per 10 minutes per IP (429 RATE_LIMITED).",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Other sessions removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedOutOthers"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
             "content": {
               "application/json": {
                 "schema": {
