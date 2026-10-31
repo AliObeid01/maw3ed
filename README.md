@@ -114,7 +114,7 @@ Three levels, so feedback is fast and CI is the full verdict:
 
 1. While coding: `pnpm typecheck` plus only the test file or Playwright spec you touched. Integration files run against the local Docker Postgres (about 8 seconds each) in an isolated `itest` schema.
 2. Once before a pull request: lint, typecheck, unit tests, the integration files for the touched area, i18n keys, `openapi:check` if the API changed, and a build.
-3. After the pull request opens: GitHub Actions (`.github/workflows/ci.yml`) runs everything against a throwaway Postgres 16: migrate, lint, typecheck, unit, integration, build, OpenAPI contract and i18n keys. The full integration and e2e suites are not run locally.
+3. After the pull request opens: GitHub Actions (`.github/workflows/ci.yml`) runs everything against a throwaway Postgres 16: migrate, lint, typecheck, unit, integration, build, OpenAPI contract and i18n keys, plus a parallel `e2e` job (Playwright, chromium only: public specs and dashboard specs on the mobile projects, `shell.spec.ts` at desktop width; the report is uploaded on failure). The full integration and e2e suites are not run locally: run only the spec you touched.
 
 ## Deploys and migrations
 

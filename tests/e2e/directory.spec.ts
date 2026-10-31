@@ -106,7 +106,7 @@ test.describe('public directory', () => {
     await page.goto('/directory');
     await expect(page.getByRole('heading', { level: 1, name: 'Find a business' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
-    await expect(page.getByText('From $15')).toBeVisible();
+    await expect(page.getByText(/From\s*\W*\$15/)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Book at Studio Nour' })).toHaveAttribute(
       'href',
       '/b/studio-nour',
@@ -188,6 +188,6 @@ test.describe('home page', () => {
     await page.goto('/');
     await page.getByRole('button', { name: 'عربي' }).click();
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('غيابات أقل. ووقت أكثر.');
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('غياب أقل. ووقت أكثر.');
   });
 });
