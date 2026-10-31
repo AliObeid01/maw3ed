@@ -58,9 +58,9 @@ export const OfferViewDto = registry.register(
     offer: z.object({
       id: z.string(),
       status: z
-        .enum(['OPEN', 'CLAIMED', 'EXPIRED', 'TAKEN', 'UNAVAILABLE', 'ALREADY_BOOKED'])
+        .enum(['OPEN', 'CLAIMED', 'EXPIRED', 'TAKEN', 'UNAVAILABLE', 'ALREADY_BOOKED', 'HOLD_LAPSED'])
         .describe(
-          'TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer.',
+          'TAKEN: the slot went to someone else. UNAVAILABLE: the client left the waitlist (or staff removed the entry). ALREADY_BOOKED: this waitlist request already holds a booking from another offer. HOLD_LAPSED: the client claimed this offer, did not pay the deposit in time and the hold was released; the slot is not offered to them again, they stay on the waitlist.',
         ),
       startAt: iso,
       endAt: iso,
@@ -178,7 +178,7 @@ registry.registerPath({
     200: { description: 'Already claimed: the first booking', content: json(BookingResultDto) },
     201: { description: 'Booked', content: json(BookingResultDto) },
     409: err(
-      'SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. CONFLICT: another claim of this request is in progress',
+      'SLOT_TAKEN: someone else took this spot. WAITLIST_INACTIVE: the client left the waitlist or staff removed the entry. ALREADY_BOOKED: this waitlist request already holds a booking. HOLD_LAPSED: the deposit hold made through this offer ran out and was released. CONFLICT: another claim of this request is in progress',
     ),
     ...offerErrors,
   },

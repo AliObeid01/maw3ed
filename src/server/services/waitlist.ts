@@ -324,7 +324,11 @@ export async function onSlotFreedOffer(
 
 // ---- offer page and claim ------------------------------------------------------------------------
 
-const viewStatus = (o: OfferRow) => offerViewStatus(o.status, o.entry.status);
+/** Only an OPEN offer of a waiting entry can have a lapsed hold worth looking for. */
+const holdLapsedOf = (businessId: string, o: OfferRow) =>
+  o.status === 'OPEN' && o.entry.status === 'OPEN'
+    ? waitlistRepo.hasLapsedHold(businessId, o.id)
+    : Promise.resolve(false);
 
 /** The 409 for an offer whose waitlist request cannot book any more (the client left, or already booked). */
 function entryInactive(entryStatus: OfferRow['entry']['status']): AppError {
@@ -353,12 +357,16 @@ export const offersService = {
   /** No side effects: email scanners open these URLs. */
   async get(ctx: { businessId: string }, offerId: string, now: () => Date = () => new Date()) {
     const o = await loadOffer(ctx.businessId, offerId);
+    const lapsed = await holdLapsedOf(ctx.businessId, o);
     const canClaim =
-      o.status === 'OPEN' && o.entry.status === 'OPEN' && now().getTime() < o.expiresAt.getTime();
+      o.status === 'OPEN' &&
+      o.entry.status === 'OPEN' &&
+      !lapsed &&
+      now().getTime() < o.expiresAt.getTime();
     return {
       offer: {
         id: o.id,
-        status: viewStatus(o),
+        status: offerViewStatus(o.status, o.entry.status, lapsed),
         startAt: o.startAt,
         endAt: o.endAt,
         expiresAt: o.expiresAt,
@@ -408,6 +416,14 @@ export const offersService = {
     // An entry that is already fulfilled (another slot claimed) or cancelled (the client left) must not
     // book anything new, and says why. A CLAIMED offer is the replay path and goes on to book() with the same key.
     if (o.status !== 'CLAIMED' && o.entry.status !== 'OPEN') throw entryInactive(o.entry.status);
+    // The client's own deposit hold for this offer ran out: they are not offered this slot again (it went back to
+    // the others) and are told so, instead of the replay finding a cancelled booking.
+    if (o.status === 'OPEN' && (await holdLapsedOf(businessId, o)))
+      throw AppError.conflict(
+        'HOLD_LAPSED',
+        undefined,
+        'Your deposit time ran out and the slot was released. You are still on the waitlist.',
+      );
     // Superseded while the entry is still waiting: the slot really went to someone else.
     if (o.status === 'SUPERSEDED')
       throw AppError.conflict('SLOT_TAKEN', { slots: [] }, 'Someone else took this spot.');

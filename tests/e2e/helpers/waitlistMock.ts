@@ -102,14 +102,14 @@ export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
 
 export type OfferMock = {
   /** Offer status in the GET. */
-  status?: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN';
+  status?: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN' | 'HOLD_LAPSED';
   canClaim?: boolean;
   /** Minutes until expiry (negative = already past). Default 28. */
   expiresInMin?: number;
   /** token -> 404 | 410 */
   gone?: Record<string, 404 | 410>;
   /** What the claim answers instead of booking. */
-  claim?: 'taken' | 'conflict' | 'expired' | '500' | 'drop-once';
+  claim?: 'taken' | 'conflict' | 'expired' | 'hold-lapsed' | '500' | 'drop-once';
   claimDelayMs?: number;
   /** Leave the `Date` response header out (the client then trusts the device clock). */
   noDateHeader?: boolean;
@@ -167,6 +167,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
     if (booked) return json(route, 200, booked);
     if (mock.claim === 'taken') return json(route, 409, { error: { code: 'SLOT_TAKEN', message: 'SLOT_TAKEN', fields: {}, data: { slots: [] } } });
     if (mock.claim === 'conflict') return apiError(route, 409, 'CONFLICT');
+    if (mock.claim === 'hold-lapsed') return apiError(route, 409, 'HOLD_LAPSED');
     if (mock.claim === 'expired') return apiError(route, 410, 'OFFER_EXPIRED');
     if (mock.claim === '500') return apiError(route, 500, 'INTERNAL');
     if (mock.claim === 'drop-once' && !dropped) {

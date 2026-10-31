@@ -92,7 +92,7 @@ describe('offer countdown and screen', () => {
   const expiresAt = '2026-10-29T12:30:00.000Z';
   const at = Date.parse(expiresAt);
   const view = (
-    status: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN' | 'UNAVAILABLE' | 'ALREADY_BOOKED',
+    status: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN' | 'UNAVAILABLE' | 'ALREADY_BOOKED' | 'HOLD_LAPSED',
     canClaim = true,
   ) => ({
     offer: { status, expiresAt } as never,
@@ -121,6 +121,7 @@ describe('offer countdown and screen', () => {
     expect(offerScreen(view('CLAIMED', false), at + 60_000)).toBe('claimed');
     expect(offerScreen(view('UNAVAILABLE', false), at - 60_000)).toBe('unavailable');
     expect(offerScreen(view('ALREADY_BOOKED', false), at - 60_000)).toBe('alreadyBooked');
+    expect(offerScreen(view('HOLD_LAPSED', false), at - 60_000)).toBe('holdLapsed');
   });
 
   it('maps claim failures', () => {
@@ -130,6 +131,7 @@ describe('offer countdown and screen', () => {
     expect(classifyOfferError(new ApiError(409, 'CONFLICT', ''))).toBe('unavailable');
     expect(classifyOfferError(new ApiError(409, 'WAITLIST_INACTIVE', ''))).toBe('unavailable');
     expect(classifyOfferError(new ApiError(409, 'ALREADY_BOOKED', ''))).toBe('alreadyBooked');
+    expect(classifyOfferError(new ApiError(409, 'HOLD_LAPSED', ''))).toBe('holdLapsed');
     expect(classifyOfferError(new ApiError(0, 'NETWORK', ''))).toBe('network');
     expect(classifyOfferError(new ApiError(429, 'X', ''))).toBe('tooMany');
   });

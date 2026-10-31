@@ -46,6 +46,7 @@ review the strings below. Keys and meanings were not changed.
 | `pricing.free.features.staff`, `billing.staffLimit`, `billing.downgradeBlocked` | one bookable staff member | موظف واحد قابل للحجز | Plural added on count (dual and few/many forms); confirm phrasing matches the Staff screen. |
 | `pricing.title` | Simple plans for every chair | خطط بسيطة لكل كرسي | "كرسي" for a chair/seat is a literal image; check it suits clinics too. |
 | `billing.price`, `pricing.pro.price` | $9 / month | $9 / شهريًا | Price is isolated left-to-right so the currency sign stays before the number; check the sign placement preference for Arabic. |
+| `offer.holdLapsed.title/body` | Your deposit time ran out / The slot was released for other people. You are still on the waitlist and we will email you if another time opens. | انتهت مهلة دفع العربون / تم إطلاق الموعد لغيرك. ما زلت في قائمة الانتظار وسنراسلك بالبريد إذا توفر وقت آخر. | Unreviewed (F26-3). "العربون" for deposit and "مهلة" for the time limit; check they match the deposit/pay page wording. |
 
 ## Not covered
 

@@ -19,7 +19,7 @@ import {
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 import { seedClient } from './helpers/outcomes';
-import { offerClaim, runExpiry, seedEntry, staffCancel, tokenFromEmail } from './helpers/waitlist';
+import { offerClaim, offerGet, runExpiry, seedEntry, staffCancel, tokenFromEmail } from './helpers/waitlist';
 
 /**
  * F26 step 8: the waitlist journey with deposits ON. A claimant with past no-shows is asked for a deposit through the
@@ -217,20 +217,53 @@ describe('waitlist claim with a deposit (F26 step 8)', () => {
     expect((await entryOf(w.xEntry)).status).toBe('FULFILLED');
   });
 
-  // TODO(F26-3): the claimant whose deposit hold lapsed cannot use their own offer link again. The offer is still OPEN
-  // (nothing was claimed: "a lapsed unpaid hold leaves no trace"), but a second claim replays the booking idempotency key,
-  // finds the CANCELLED hold and answers 409 CONFLICT "That booking was cancelled."; the offer page shows "Your waitlist
-  // request is no longer active", which is untrue, and the entry is not re-offered this slot because the cascade leaves out
-  // the client of the freed appointment (the lapsed hold's own client). Expected by the F26 scope: "if the hold lapses the
-  // entry is offered again". Remove the skip when a lapsed claimant can try again (or is told why they cannot).
-  it.skip('F26-3: after the hold lapses the same client can claim again while the offer is still live', async () => {
+  // F26-3 (owner decision): the claimant whose own deposit hold lapsed is NOT re-offered the slot and cannot claim it again
+  // from the same link (no ping-pong); the slot goes to the other waiters. They are only told the truth: their time ran out
+  // and they are still on the waitlist.
+  it('F26-3: a lapsed hold tells its owner HOLD_LAPSED (GET and claim), never "cancelled" or "no longer active"', async () => {
     const w = await freeSlotWithTwoWaiters();
     const claim = await offerClaim(w.nToken);
     expect(claim.body!.status).toBe('PENDING_PAYMENT');
+    const holdId = claim.body!.appointment.id as string;
+    const payToken = claim.body!.payToken as string;
+
+    // While the hold lives nothing changes: the link is still OPEN and a repeat claim replays the pending hold.
+    expect((await offerGet(w.nToken)).body!.offer.status).toBe('OPEN');
+    const replay = await offerClaim(w.nToken);
+    expect(replay.status).toBe(200);
+    expect(replay.body!.status).toBe('PENDING_PAYMENT');
+
     vi.setSystemTime(new Date(NOW.getTime() + 16 * MIN));
     expect((await runExpiry()).status).toBe(200);
+    expect(await apptOf(holdId)).toMatchObject({ status: 'CANCELLED', cancelledVia: 'SYSTEM' });
+
+    const view = await offerGet(w.nToken);
+    expect(view.status).toBe(200);
+    expect(view.body!.offer.status).toBe('HOLD_LAPSED');
+    expect(view.body!.canClaim).toBe(false);
+
     const retry = await offerClaim(w.nToken);
-    expect(retry.status).toBe(201);
-    expect(retry.body!.status).toBe('PENDING_PAYMENT');
+    expect(retry.status).toBe(409);
+    expect(retry.body!.error.code).toBe('HOLD_LAPSED');
+
+    // Nothing else changed: still on the list, not re-offered, the other waiter has a fresh offer, no new row for N.
+    expect((await entryOf(w.nEntry)).status).toBe('OPEN');
+    expect(await offerOf(w.nEntry, holdId)).toHaveLength(0);
+    expect(await offerOf(w.xEntry, holdId)).toHaveLength(1);
+    expect(await activeOnSlot()).toEqual([]);
+    expect((await offerOf(w.nEntry, w.freedId))[0]).toMatchObject({ status: 'OPEN', claimedAppointmentId: null });
+
+    // Paying the lapsed hold still answers the existing 410; a forged link is still 404.
+    const pay = await payPost(payToken);
+    expect(pay.status).toBe(410);
+    expect(pay.body!.error.code).toBe('HOLD_EXPIRED');
+    expect((await offerGet(`${w.nToken}x`)).status).toBe(404);
+
+    // The freed slot is bookable by someone else.
+    const free = await bookAtFrontDesk(
+      a.cookie,
+      bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { phone: newPhone() }),
+    );
+    expect(free.status).toBe(201);
   });
 });
