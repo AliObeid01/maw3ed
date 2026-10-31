@@ -1,4 +1,11 @@
 import { defineConfig, devices } from '@playwright/test';
+import {
+  JOURNEY_APP_URL,
+  JOURNEY_PORT,
+  JOURNEY_URL,
+  OUTBOX_FILE,
+  RESEND_STUB,
+} from './tests/e2e/helpers/journeyEnv';
 
 const port = Number(process.env.PORT ?? 3000);
 const dashboardPort = Number(process.env.DASHBOARD_PORT ?? 3100);
@@ -53,6 +60,28 @@ export default defineConfig({
                 url: baseURL,
                 reuseExistingServer: !process.env.CI,
                 timeout: 120_000,
+              },
+            ]
+          : []),
+        // Real-stack waitlist journey (F26): the same production build on its own port, talking to the real
+        // database, with the REAL Resend provider whose one HTTPS call is answered by a preloaded local stub
+        // that writes every email to a file. (EMAIL_PROVIDER=fake cannot run in a production build.)
+        ...(needs(PUBLIC_PROJECTS)
+          ? [
+              {
+                command: `pnpm exec next start -p ${JOURNEY_PORT}`,
+                url: `${JOURNEY_URL}/api/health`,
+                reuseExistingServer: !process.env.CI,
+                timeout: 120_000,
+                env: {
+                  EMAIL_PROVIDER: 'resend',
+                  RESEND_API_KEY: 'e2e-stub-key',
+                  EMAIL_FROM: 'Maw3ed <bookings@example.test>',
+                  APP_URL: JOURNEY_APP_URL,
+                  NEXT_PUBLIC_APP_URL: JOURNEY_APP_URL,
+                  E2E_EMAIL_OUTBOX_FILE: OUTBOX_FILE,
+                  NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require ${RESEND_STUB}`.trim(),
+                },
               },
             ]
           : []),

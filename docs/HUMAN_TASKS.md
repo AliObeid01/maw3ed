@@ -73,3 +73,31 @@ The `production` Neon branch exists (the `dev` branch was created from it) but i
 8b. **Before deploying the deposit migrations (P3.9)**: against the production DIRECT string run `psql "$DIRECT_URL" -f scripts/db/check-overlaps.sql` (must return zero rows) and `SELECT count(*) FROM "Appointment" WHERE status = 'PENDING_PAYMENT';` (expected 0: nothing creates that status before this release). The two migrations are additive; after deploy run `scripts/db/check-constraints.sql` (it asserts `appointment_no_overlap` now covers BOOKED, CONFIRMED and PENDING_PAYMENT). No new cron job is needed: holds expire inside the existing `/api/jobs/waitlist-expiry`.
 9. **Reserved slugs check** (one-off, before launch): `SELECT slug FROM "Business" WHERE slug IN ('directory','explore');` must return no rows. Reserved slugs are only enforced at signup, so existing rows are not re-validated.
 10. **Phone test**: open `https://maw3edlb.com/b/<slug>` on a real phone, book, check the confirmation email, open the confirm and cancel links.
+
+---
+
+## Real-email waitlist check on production (F26, about 20 minutes, two inboxes)
+
+The automated journey (`tests/e2e/waitlistJourney.spec.ts`) proves the flow with a stub for the email network call. Only a real send proves that Resend, your sending domain and the spam filters deliver the offer. Do this once on `https://maw3edlb.com` before the demo, and again after any change to the sending domain.
+
+You need: two real inboxes you can read (call them **Inbox A** and **Inbox B**, for example two Gmail addresses; a third person's inbox is even better), a phone, and a test business you own (create one at `/signup`, slug for example `test-f26`, add one service, make yourself bookable, add weekly hours). Use a time at least two days away so every reminder window applies.
+
+1. **Book.** On the phone open `https://maw3edlb.com/b/test-f26`, book the service for two days from now at 09:00 as "Client A" with **Inbox A** as the email. Expect the "You're booked" screen.
+2. **Join the waitlist twice.** In two separate browser windows (the second one private or on another device) open `/b/test-f26/waitlist`, pick the same service, leave the dates as they are, and join as "Waiter B1" with **Inbox B** and as "Waiter B2" with Inbox B again but a different name and phone (or a third inbox). Expect "You're on the waitlist" both times.
+3. **Wait for the confirmation email** in Inbox A. The booking confirmation is sent by the reminders job (cron-job.org, every 5 minutes), so allow up to 6 minutes. It must show the right business, the time in the business's time zone, a Confirm link and a Cancel link.
+4. **Cancel from Inbox A.** Open the Cancel link, press "I can't come, cancel", confirm. Expect "Appointment cancelled".
+5. **Offer emails.** Within about a minute both waiters receive "A spot opened up: <service> on <date> at 09:00" in Inbox B. Check: subject, business name, service, date and 09:00 in the business time zone, "held for you until HH:mm" (about 30 minutes from now), the green "Take this spot" button, and the grey "Remove me from the waitlist" link at the bottom. Check the spam folder too and note where it landed.
+6. **Claim at the same time.** Open both claim links on two devices and press "Book this slot" on both within a second or two. Exactly one shows "You're booked"; the other shows "Someone else got this slot" and the line saying they stay on the waitlist.
+7. **Owner view.** Log in as the owner. On Today the "Waitlist activity" card shows "<name> took 9:00 with <staff>". Move to the booking's day: the appointment is badged "Waitlist" and the "Refilled from waitlist" counter reads 1.
+8. **Winner's email.** The winner gets a normal "Booking confirmed" email within 6 minutes (again the reminders job).
+9. **Leave link.** In the loser's inbox open "Remove me from the waitlist", press the button, expect "You're off the waitlist". Press the link again: still fine.
+10. **Expiry** (optional, 35 minutes): cancel the winner's booking from its Cancel link, do not claim the new offers, and wait for the cron job. After 30 minutes the offers show "This offer has expired" and, if a third waiter exists, they get the next offer.
+
+Where to look when an email does not arrive:
+- **Resend dashboard, Emails tab** (resend.com/emails): search the recipient address. Status `Delivered` means Resend handed it over (check spam, and Gmail's "Promotions"); `Bounced` or `Complained` shows the reason; `Suppressed` means that address was blocked earlier. No row at all means the app never called Resend: check the Vercel function logs for `waitlist offer email failed` or `offer not emailed: entry has no contact email`.
+- **Idempotency**: an offer email key is `waitlist-offer-<offerId>`; Resend shows one row per key. Two rows for the same offer would be a bug: report it.
+- **Domain**: Resend, Domains must be Verified (SPF and DKIM green). A new domain often lands in spam for the first sends.
+- **Cron**: cron-job.org history for `/api/jobs/reminders` and `/api/jobs/waitlist-expiry` must show recent HTTP 200 runs (a 401 means the `x-cron-secret` header is wrong).
+- Offers are only sent to entries that have an email, and never to the person who cancelled the slot.
+
+Record the result (what landed in inbox or spam, how long each email took) in `docs/PLAN.md` next to F26.
