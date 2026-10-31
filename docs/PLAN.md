@@ -82,6 +82,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
 - [x] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
 - [x] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
+  - Done-note (test/e2e-time-stable): every e2e spec runs on a frozen browser clock (`tests/e2e/helpers/clock.ts`, `E2E_NOW` override), so results no longer depend on the time of day or the UTC vs Beirut day boundary.
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
 - [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.
 - [ ] **F12 FE** Narrow `use client` boundaries: `AppShell` and `StepRail` are fully client components; split the interactive parts (More sheet trigger, back button) so the rest renders on the server.

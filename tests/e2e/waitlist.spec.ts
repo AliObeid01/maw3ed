@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { clockNow, ORIGIN } from './helpers/clock';
 import { DateTime } from 'luxon';
 import { IDS, mockPublicApi, SLUG, TZ } from './helpers/publicMock';
 import { mockJoinWaitlist, type JoinOptions } from './helpers/waitlistMock';
@@ -33,7 +34,7 @@ test('join happy path sends the real contract and shows what happens next', asyn
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
   await expect(page.getByText('Each offer lasts about 30 minutes.')).toBeVisible();
   await expect(page.getByText('maya@example.com')).toBeVisible();
-  const today = DateTime.now().setZone(TZ).toISODate()!;
+  const today = clockNow().setZone(TZ).toISODate()!;
   expect(calls).toHaveLength(1);
   expect(calls[0]).toMatchObject({
     serviceId: IDS.haircut,
@@ -152,7 +153,7 @@ test('an unknown business is a friendly page', async ({ page }) => {
 });
 
 test('Arabic: RTL page, translated heading, email and phone stay LTR', async ({ page, context }) => {
-  await context.addCookies([{ name: 'locale', value: 'ar', url: 'http://localhost:3000' }]);
+  await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
   await mockPublicApi(page);
   await mockJoinWaitlist(page);
   await page.goto(`${WL}?service=${IDS.haircut}`);
@@ -208,7 +209,7 @@ test('the default range overshooting a short booking window is clipped to the na
   await submit(page).click();
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
   await expect(page.getByText("We shortened the range to fit this business's booking window.")).toBeVisible();
-  const today = DateTime.now().setZone(TZ).toISODate()!;
+  const today = clockNow().setZone(TZ).toISODate()!;
   expect(calls).toHaveLength(1);
   expect(calls[0]!.toDate).toBe(DateTime.fromISO(today).plus({ days: 7 }).toISODate());
 });
@@ -227,6 +228,6 @@ test('when the window complaint names no length, the range is retried once at 7 
   await expect(page.getByLabel('To day')).toHaveAttribute('aria-invalid', 'true');
   await expect.poll(() => rejected.length).toBe(2);
   expect(calls).toHaveLength(0);
-  const today = DateTime.now().setZone(TZ).toISODate()!;
+  const today = clockNow().setZone(TZ).toISODate()!;
   await expect(page.getByLabel('To day')).toHaveValue(DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
 });

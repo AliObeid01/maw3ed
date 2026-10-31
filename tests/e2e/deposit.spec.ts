@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { nowDate, nowMs, ORIGIN } from './helpers/clock';
 import { IDS, mockPublicApi, SLUG } from './helpers/publicMock';
 
 // Self-contained: every /api call is answered by page.route, so no database is needed. The server-side rules
@@ -16,8 +17,8 @@ const json = (status: number, body: unknown) => ({
 
 async function mockDeposit(page: Page) {
   const calls: { method: string; body: unknown }[] = [];
-  const startAt = new Date(Date.now() + 2 * 24 * 3600_000).toISOString();
-  const endAt = new Date(Date.now() + 2 * 24 * 3600_000 + 30 * 60_000).toISOString();
+  const startAt = new Date(nowMs() + 2 * 24 * 3600_000).toISOString();
+  const endAt = new Date(nowMs() + 2 * 24 * 3600_000 + 30 * 60_000).toISOString();
   const service = { id: IDS.haircut, name: 'Haircut', durationMin: 30, price: 15 };
   const staff = { id: 'ckstaff00000000000000000', displayName: 'Rima' };
   const view = (state: 'PENDING' | 'PAID') => ({
@@ -32,8 +33,8 @@ async function mockDeposit(page: Page) {
     },
     business: { name: 'Studio Nour', slug: SLUG, timezone: 'Asia/Beirut', locale: 'en' },
     deposit: { amount: 5, currency: 'USD' },
-    holdExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
-    now: new Date().toISOString(),
+    holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
+    now: nowDate().toISOString(),
     testMode: true,
   });
 
@@ -46,8 +47,8 @@ async function mockDeposit(page: Page) {
         links: { manage: '/l/mock-manage-token' },
         status: 'PENDING_PAYMENT',
         payToken: PAY_TOKEN,
-        payUrl: `http://localhost:3000/pay/${PAY_TOKEN}`,
-        holdExpiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+        payUrl: `${ORIGIN}/pay/${PAY_TOKEN}`,
+        holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
       }),
     );
   });

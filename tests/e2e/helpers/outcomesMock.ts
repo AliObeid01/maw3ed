@@ -1,5 +1,6 @@
 import type { Page, Request, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
+import { clockNow, freezeClock, nowMs, nowDate } from './clock';
 import {
   baselineRate,
   changeVsBaseline,
@@ -47,7 +48,7 @@ const apiError = (
   });
 
 /** Minutes from now as a UTC instant (negative = in the past). */
-export const fromNow = (minutes: number) => iso(DateTime.now().plus({ minutes }));
+export const fromNow = (minutes: number) => iso(clockNow().plus({ minutes }));
 
 export type MockClient = {
   id: string;
@@ -186,6 +187,7 @@ export function pilotHistory(clientId: string, counts: { attended: number; noSho
 }
 
 export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {}) {
+  await freezeClock(page);
   const clients = options.clients ?? [];
   const appointments = options.appointments ?? [];
   let baseline = options.baseline ?? null;
@@ -197,7 +199,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
   const serviceOf = (a: MockAppt) => SERVICE_LIST.find((s) => s.id === a.serviceId)!;
   const staffOf = (a: MockAppt) => STAFF_LIST.find((s) => s.id === a.staffId)!;
   const isEnded = (a: MockAppt) =>
-    Date.parse(a.endAt) <= Date.now() + (options.queueSkewMinutes ?? 0) * 60_000;
+    Date.parse(a.endAt) <= nowMs() + (options.queueSkewMinutes ?? 0) * 60_000;
   const queue = () =>
     appointments
       .filter((a) => (a.status === 'BOOKED' || a.status === 'CONFIRMED') && isEnded(a))
@@ -293,7 +295,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         cancelledVia: found.cancelledVia ?? null,
         startAt: new Date(found.startAt),
         endAt: new Date(found.endAt),
-        now: new Date(),
+        now: nowDate(),
         target: target as 'ATTENDED' | 'NO_SHOW' | 'LATE_CANCEL',
       });
       if (plan.kind === 'not_started') return apiError(route, 409, 'NOT_STARTED');
@@ -406,7 +408,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         if (role !== 'OWNER') return apiError(route, 403, 'FORBIDDEN');
         if (!c) return apiError(route, 404, 'NOT_FOUND');
         for (const a of appointments) {
-          if (a.clientId === c.id && Date.parse(a.startAt) > Date.now() && (a.status === 'BOOKED' || a.status === 'CONFIRMED')) {
+          if (a.clientId === c.id && Date.parse(a.startAt) > nowMs() && (a.status === 'BOOKED' || a.status === 'CONFIRMED')) {
             a.status = 'CANCELLED';
           }
         }
@@ -434,7 +436,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         }
         if (Object.keys(shapeErrors).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields: shapeErrors });
         const input = b as unknown as Baseline;
-        const fields = validateBaseline(input, localDateOf(new Date(), TZ));
+        const fields = validateBaseline(input, localDateOf(nowDate(), TZ));
         if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
         baseline = {
           fromDate: input.fromDate,
@@ -452,7 +454,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         if (!Number.isInteger(weeks) || weeks < 1 || weeks > 26) {
           return apiError(route, 400, 'VALIDATION_FAILED', { fields: { weeks: 'Invalid weeks.' } });
         }
-        const now = new Date();
+        const now = nowDate();
         const windows = weekWindows(now, TZ, weeks);
         // Like the server: only appointments that have started, over the WHOLE pilot (first appointment to today);
         // `weeks` only decides how many weekly points come back.

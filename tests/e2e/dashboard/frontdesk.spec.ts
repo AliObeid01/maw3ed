@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { nowMs } from '../helpers/clock';
 import { DateTime } from 'luxon';
 import { mockDashboardApi } from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';
@@ -97,7 +98,7 @@ test('Walk-in now picks the earliest free slot from now', async ({ page }) => {
   await page.getByRole('button', { name: 'Beard trim' }).click();
   const { slots } = (await (await slotsReply).json()) as { slots: { startAt: string }[] };
   await page.getByRole('button', { name: 'Walk-in now' }).click();
-  const now = Date.now();
+  const now = nowMs();
   const earliest = slots
     .map((s) => s.startAt)
     .filter((s) => Date.parse(s) >= now)
