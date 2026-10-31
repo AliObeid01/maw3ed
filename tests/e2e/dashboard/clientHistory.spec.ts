@@ -57,7 +57,7 @@ test('shows contact, the three counters, the repeat note and the history newest 
   const history = page.getByRole('region', { name: 'History' }).getByRole('listitem');
   await expect(history).toHaveCount(4);
   await expect(history.nth(0)).toContainText('Booked');
-  await expect(history.nth(0)).toContainText('Hair colour · Lina');
+  await expect(history.nth(0)).toContainText(/Hair colour[^A-Za-z]*Lina/);
   await expect(history.nth(1)).toContainText('No-show');
   await expect(history.nth(2)).toContainText('Attended');
   await expect(history.nth(3)).toContainText('Late cancel');

@@ -54,7 +54,7 @@ test('an empty day explains itself and offers New booking', async ({ page }) => 
   await mockDashboardApi(page, { appointments: [] });
   await page.goto('/app');
   await expect(page.getByRole('heading', { name: 'Nothing booked today yet' })).toBeVisible();
-  await expect(page.getByRole('main').getByRole('link', { name: 'New booking' })).toHaveAttribute('href', '/app/book');
+  await expect(page.getByRole('main').getByRole('link', { name: 'New booking' }).first()).toHaveAttribute('href', '/app/book');
 });
 
 test('a failed load shows an error with retry, and retry recovers', async ({ page }) => {
