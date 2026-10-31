@@ -64,7 +64,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P3.10 QA** Tests for outcomes/counters, pilot report maths, CSV, payments (fake), deposit hold/expiry; E2E `outcome.spec.ts`; RTL E2E.
 
 ## Phase 4 — Polish, docs, demo (6–8 Nov)
-- [ ] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
+- [x] **P4.1 FE** `design-qa` pass on every route at 360/768/1440 + RTL; fix blocking items; premium polish (skeletons, empty/error states, motion, focus); Lighthouse mobile a11y ≥ 90 on `/b/[slug]`, `/app`, `/app/reminders`.
 - [x] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [x] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
@@ -78,10 +78,10 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **F3 FE** `Logo`: optional `label` (decorative = `aria-hidden`), fix the SVG `fontFamily` to use the next/font CSS variable, `tone` prop for a white logo on the hero, derive height from width (P1.10).
 - [x] **F4 FE/BE (done in #19: proxy sets the locale cookie; per-business default via a client hint, see F14)** `?lang=` handoff: `src/proxy.ts` (Next 16) sets the `locale` cookie from `?lang=` and forwards `x-locale`/`x-business-locale`; export `LOCALE_COOKIE` from `src/i18n/config.ts`; resolution order per the `i18n-rtl` skill. Needed before the public booking page (P2.10).
 - [ ] **F5 (viewport done in #7; timeZone remaining) FE** `NextIntlClientProvider` needs `timeZone` from `Business.timezone` once business context exists; add a `viewport` export (P1.11).
-- [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists. Unit-test `isLocale`/`dirFor` (P1.9).
+- [ ] **F6 QA** `check-keys.mjs`: compare ICU placeholder names and empty values; typed message keys (`AppConfig.Messages`); remove the `[ -f ... ]` skip guards in `ci.yml` for the i18n check now that it exists (guard part done in the e2e CI PR; rest open). Unit-test `isLocale`/`dirFor` (P1.9).
 - [ ] **F7 BE** Security headers (CSP, `X-Frame-Options`) and `Referrer-Policy: no-referrer` on `/l`, `/o`, `/pay` (token in URL) (P4.1).
 - [x] **F8 FE** `muted` (#737C79) is about 4.3:1 on canvas, slightly under AA for normal text; `subtle` is lower. Use `subtle` only for placeholders; decide on darkening `muted` in the design-qa pass (P4.1).
-- [ ] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
+- [x] **F9 QA** Playwright `webServer` needs `pnpm build` first and test env vars; add an e2e CI job with `playwright install --with-deps chromium` (P2.16).
 - [ ] **F10 FE** Remove the stale `design/app-shots/` folder (gitignored; the safety check blocked an automated delete).
 - [ ] **F11 FE** Scope client messages per namespace: `NextIntlClientProvider` currently ships every namespace (including `dev.*`) to the browser; pass only the namespaces each route needs.
 - [ ] **F12 FE** Narrow `use client` boundaries: `AppShell` and `StepRail` are fully client components; split the interactive parts (More sheet trigger, back button) so the rest renders on the server.
@@ -93,7 +93,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **O4 H** Real phone test of the booking, confirmation email, confirm and cancel links.
 - [ ] **O5 H** Resend click tracking off; Neon usage check; optional DMARC record; optional Sentry DSN.
 - [ ] **O6 H** 24 h reminder end-to-end check (user will report).
-- [ ] **O7 H** Reserved-slug SQL check on the production database before the first public pilot (`docs/HUMAN_TASKS.md` §9).
+- [x] **O7 H** Reserved-slug SQL check on the production database before the first public pilot (`docs/HUMAN_TASKS.md` §9).
 - [ ] **O8 FE/BE** Flow adjustments from the production phone test (user is compiling the list; add each as an F item).
 - Branch protection on `main` is NOT possible on the free private repo (rules are not enforced); process rule instead: every change goes through a PR with green CI.
 
@@ -102,7 +102,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **L1 Shared login throttle.** Today's throttle is an in-memory map (per serverless instance, reset on cold start). Replace it with a shared store (Postgres table or Redis), keyed email + IP, plus a per-IP budget and a global argon2 concurrency/rate limit (this also protects signup, slug-check and unknown-email floods, which each cost an argon2 hash or a DB query). Known weakness until then: anyone can lock a victim out of login for 15 minutes by failing 5 times against their email.
 - [x] **L2 Session and invite hygiene.** Cron job to purge expired `Session` and `Invite` rows; add an absolute session lifetime (e.g. 90 days) on top of the 30-day sliding expiry; add a "sign out other sessions" option.
 - [ ] **L3 Staff removal revokes sessions.** When staff removal is built, delete that user's sessions for that business in the same transaction (otherwise a stale cookie revives access if they are re-added within 30 days).
-- [ ] **L4 No email verification at signup.** Consequence: an attacker can pre-register someone's address so that a later invite to it hits an existing account (accept then needs that account's password, so it fails for the real person). There is no account takeover, but it is a squatting/DoS vector. Decide whether to add email verification before launch.
+- [ ] **L4 (APPROVED by the user; starts after the e2e CI PR merges) No email verification at signup.** Consequence: an attacker can pre-register someone's address so that a later invite to it hits an existing account (accept then needs that account's password, so it fails for the real person). There is no account takeover, but it is a squatting/DoS vector. Decide whether to add email verification before launch.
 - [x] **L5 Referrer-Policy (done for /invite, /l, /o)** Send `Referrer-Policy: no-referrer` on `/invite/[token]` and every other page that carries a token in its URL (confirm/cancel/offer/pay links), so tokens never leak through the Referer header.
 - [x] **L6 Platform rate limiting.** Put rate limiting in front of the public routes (Vercel Firewall rules) for signup, login, slug-check, invite preview/accept and the signed-link routes.
 
@@ -114,7 +114,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **F17 FE** The booked screen does not survive a refresh (manage link is in the confirmation email afterwards); consider persisting the manage link for the session.
 - [x] **F18 QA** Real-API journey (signup -> setup -> client booking -> reminder runner -> confirm/cancel links) is currently a throwaway script; keep a cleaned-up version as a CI-able smoke test against the CI Postgres.
 - [ ] **F19 BE** `DST fall-back`: `time=HH:mm` in the booking URL is ambiguous for the one repeated hour per year in Beirut (24 Oct 23:xx); serialise with offset if it ever matters.
-- [ ] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
+- [x] **F20 QA** Playwright full-run is CPU-sensitive when other heavy processes run (auth specs time out); run per spec or lower workers locally; consider `workers: 2` in config.
 
 ## Added scope: public directory (team decision, 29 Oct)
 - [x] **D1 BE** `Business.published` flag (migration, default false for new businesses; the seeded demo businesses and existing rows published) + `published` and `publishedAt` in `GET/PATCH /api/business` (owner only; publishing requires at least one active service and one bookable staff member with hours, else 409 `NOT_READY` with the missing items); `GET /api/public/directory?query=&category=&cursor=&limit=` (public, no auth) returning only published businesses `{businesses:[{slug,name,category,address,serviceCount,fromPrice}], nextCursor}`; `GET /api/public/{slug}` and `/slots` and `POST .../bookings` return 404 for an UNPUBLISHED business (the owner previews via the dashboard); tests incl. tenant/unpublished isolation, no PII or owner data in the directory, pagination.
@@ -134,3 +134,4 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [ ] **F31 BE/FE** Email the pay link when a hold is created, so a closed tab does not lose the hold.
 - [ ] **F32 BE** (low) Booking-path and cron hold sweeps take at most 50 / 200 lapsed holds per call; a business with a larger backlog is cleared over several runs.
 - [ ] **F28 FE** `loadSlotWindow` (`src/lib/booking/window.ts`) has no fallback when a known `bookingWindowDays` is still rejected with 400 on `to` (for example the owner shortened the window meanwhile).
+- [ ] **F33 BE/FE** Slot speed (slots endpoint and booking page load time): pending, to be scoped.

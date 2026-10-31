@@ -56,5 +56,70 @@ jobs:
         run: |
           if [ -f scripts/openapi/check.ts ]; then pnpm openapi:check; else echo "no contract yet"; fi
       - name: i18n keys
-        run: |
-          if [ -f scripts/i18n/check-keys.mjs ]; then node scripts/i18n/check-keys.mjs; else echo "no check yet"; fi
+        run: node scripts/i18n/check-keys.mjs
+
+  # Browser flows: public specs on the Pixel 5 project, dashboard specs on dashboard-mobile, and the shell spec
+  # at desktop width (layout at lg). Runs in parallel with `checks`. Specs mock /api, so Postgres is only needed
+  # for the build and migrations to mirror `checks`.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: maw3ed
+          POSTGRES_PASSWORD: maw3ed
+          POSTGRES_DB: maw3ed_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U maw3ed" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # Throwaway values for CI only. Never put real secrets here.
+      DATABASE_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      DIRECT_URL: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      DATABASE_URL_TEST: postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test
+      APP_URL: http://localhost:3000
+      SESSION_SECRET: ci-only-session-secret-0000000000000000
+      LINK_SECRET: ci-only-link-secret-000000000000000000
+      CRON_SECRET: ci-only-cron-secret-0000000000000000
+      EMAIL_PROVIDER: fake
+      PAYMENT_PROVIDER: fake
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm prisma migrate deploy
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+      - name: Install Chromium with system deps
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Install system deps only (browser cached)
+        if: steps.pw-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+      - run: pnpm build
+      - name: Public and dashboard specs (mobile)
+        run: pnpm exec playwright test --project=mobile --project=dashboard-mobile
+      - name: Dashboard shell at desktop width
+        run: pnpm exec playwright test --project=dashboard-desktop tests/e2e/dashboard/shell.spec.ts
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
