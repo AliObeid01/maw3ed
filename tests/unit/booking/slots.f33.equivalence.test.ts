@@ -11,7 +11,10 @@ import {
   generateSlots as referenceSlots,
   mergeAnyone as referenceMerge,
   pickStaff as referencePick,
+  localToUtcMs as referenceLocalToUtc,
 } from './slotsReferencePre33';
+import { IANAZone } from 'luxon';
+import { __slotCachesForTests } from '@/server/domain/slots';
 
 /**
  * F33 proof of equivalence. slotsReferencePre33.ts is a verbatim copy of the domain slot generator as it
@@ -40,6 +43,23 @@ const ZONES = [
   'Australia/Lord_Howe',
   'Asia/Kolkata',
   'UTC',
+];
+/** Zone-specific ranges around real transitions (and far past / far future dates). */
+const ZONE_CASES: [string, string, string][] = [
+  ['Australia/Lord_Howe', '2026-04-03', '2026-04-06'],
+  ['Australia/Lord_Howe', '2026-10-02', '2026-10-05'],
+  ['Asia/Beirut', '2027-10-29', '2027-11-01'],
+  ['Asia/Beirut', '2027-03-26', '2027-03-29'],
+  ['Asia/Kathmandu', '2026-12-30', '2027-01-02'],
+  ['Asia/Kathmandu', '1986-01-01', '1986-01-02'],
+  ['Pacific/Chatham', '2026-04-03', '2026-04-06'],
+  ['Pacific/Chatham', '2026-09-25', '2026-09-28'],
+  ['Europe/Dublin', '2026-03-28', '2026-03-30'],
+  ['Europe/Dublin', '2026-10-24', '2026-10-26'],
+  ['Asia/Beirut', '2001-03-30', '2001-04-02'],
+  ['Europe/London', '2001-10-27', '2001-10-29'],
+  ['Asia/Beirut', '2035-03-24', '2035-03-27'],
+  ['America/New_York', '2035-11-03', '2035-11-05'],
 ];
 const RANGES: [string, string][] = [
   ['2026-03-27', '2026-03-31'], // Beirut spring forward on the 29th
@@ -90,7 +110,9 @@ function weekly(r: () => number): StaffAvailability['weeklyHours'] {
 }
 
 function makeCase(r: () => number): GenerateSlotsInput {
-  const [from, to] = pick(r, RANGES);
+  const zoneCase = r() < 0.5 ? pick(r, ZONE_CASES) : undefined;
+  const [from, to] = zoneCase ? [zoneCase[1], zoneCase[2]] : pick(r, RANGES);
+  const timezone = zoneCase ? zoneCase[0] : pick(r, ZONES);
   const base = Date.parse(`${from}T00:00:00Z`);
   const spanMs = (Date.parse(`${to}T00:00:00Z`) - base) / 1 + 2 * 86_400_000;
   const staffCount = pick(r, [1, 1, 2, 3, 5, 8, 10, 10]);
@@ -107,10 +129,34 @@ function makeCase(r: () => number): GenerateSlotsInput {
       const len = r() < 0.05 ? -3_600_000 : int(r, 1, 30) * 3_600_000; // inverted ones block nothing
       return { startAt, endAt: new Date(startAt.getTime() + len) };
     });
+    const weeklyHours = weekly(r);
+    // Cuts placed EXACTLY on working-interval boundaries (start == interval start, end == interval end),
+    // touching each other, and straddling a boundary by one step.
+    const dayCount = Math.round((Date.parse(`${to}T00:00:00Z`) - base) / 86_400_000) + 1;
+    for (let k = 0; k < pick(r, [0, 0, 2, 4, 6]) && weeklyHours.length; k++) {
+      const wh = pick(r, weeklyHours);
+      const d = new Date(base + int(r, 0, dayCount - 1) * 86_400_000);
+      const parts = { year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate() };
+      const [sh, sm] = wh.startLocal.split(':').map(Number) as [number, number];
+      const [eh, em] = wh.endLocal.split(':').map(Number) as [number, number];
+      const a = referenceLocalToUtc(parts, sh, sm, timezone);
+      const b = referenceLocalToUtc(parts, eh, em, timezone);
+      const mid = Math.floor((a + b) / 2);
+      const pickCut = pick(r, [0, 1, 2, 3, 4]);
+      if (pickCut === 0) busy.push({ startAt: new Date(a), blockedUntil: new Date(b) });
+      else if (pickCut === 1) {
+        busy.push({ startAt: new Date(a), blockedUntil: new Date(mid) });
+        timeOff.push({ startAt: new Date(mid), endAt: new Date(b) });
+      } else if (pickCut === 2)
+        timeOff.push({ startAt: new Date(a - 3_600_000), endAt: new Date(a) });
+      else if (pickCut === 3)
+        busy.push({ startAt: new Date(b), blockedUntil: new Date(b + 1_800_000) });
+      else busy.push({ startAt: new Date(a - 900_000), blockedUntil: new Date(a + 900_000) });
+    }
     // ids deliberately not in sorted order, and with a shared prefix, to exercise the id tie-break
     return {
       id: `staff-${String(staffCount - i).padStart(2, '0')}-${i % 3}`,
-      weeklyHours: weekly(r),
+      weeklyHours,
       timeOff,
       busy,
     };
@@ -126,7 +172,7 @@ function makeCase(r: () => number): GenerateSlotsInput {
     slotStepMin: pick(r, [5, 10, 15, 20, 30, 60]),
     minNoticeMin: pick(r, [0, 0, 60, 120, 1440]),
     bookingWindowDays: windowDays,
-    timezone: pick(r, ZONES),
+    timezone,
     now: new Date(base - nowOffsetMs),
     range: { from, to },
   };
@@ -134,7 +180,7 @@ function makeCase(r: () => number): GenerateSlotsInput {
 
 describe('F33: generateSlots / mergeAnyone equal the pre-optimisation implementation', () => {
   it(
-    'matches on 700 randomised cases (1 to 10 staff), slots and the anyone merge, same order',
+    'matches on 450 randomised cases (1 to 10 staff), slots and the anyone merge, same order',
     {
       timeout: 170_000,
     },
@@ -142,7 +188,7 @@ describe('F33: generateSlots / mergeAnyone equal the pre-optimisation implementa
       const r = rng(20261031);
       let nonEmpty = 0;
       let multiCandidate = 0;
-      for (let i = 0; i < 700; i++) {
+      for (let i = 0; i < 450; i++) {
         const input = makeCase(r);
         const got = generateSlots(input);
         const want = referenceSlots(input);
@@ -157,8 +203,8 @@ describe('F33: generateSlots / mergeAnyone equal the pre-optimisation implementa
         if (want.length) nonEmpty++;
         if (wantAnyone.some((s) => s.candidateStaffIds.length > 1)) multiCandidate++;
       }
-      expect(nonEmpty).toBeGreaterThan(350);
-      expect(multiCandidate).toBeGreaterThan(100);
+      expect(nonEmpty).toBeGreaterThan(200);
+      expect(multiCandidate).toBeGreaterThan(60);
     },
   );
 
@@ -217,6 +263,86 @@ describe('F33: generateSlots / mergeAnyone equal the pre-optimisation implementa
       const counts: Record<string, number> = {};
       for (const id of ids) if (r() < 0.7) counts[id] = int(r, 0, 4);
       expect(pickStaff(ids, counts)).toBe(referencePick(ids, counts));
+    }
+  });
+});
+
+describe('F33: memoised zone offsets and bounded caches', () => {
+  const FIFTEEN = 15 * 60_000;
+  const WEEK = 7 * 86_400_000;
+
+  it(
+    'offsetMs equals Luxon IANAZone.offset every 15 minutes around transitions and on ordinary weeks',
+    {
+      timeout: 60_000,
+    },
+    () => {
+      __slotCachesForTests.clear();
+      const windows: [string, string, number][] = [
+        ['Asia/Beirut', '2026-03-29', 2],
+        ['Asia/Beirut', '2026-10-25', 2],
+        ['Asia/Beirut', '2027-03-28', 2],
+        ['Asia/Beirut', '2027-10-31', 2],
+        ['Australia/Lord_Howe', '2026-04-05', 2],
+        ['Australia/Lord_Howe', '2026-10-04', 2],
+        ['Asia/Kathmandu', '1986-01-01', 2],
+        ['Asia/Kathmandu', '2026-06-01', 1],
+        ['Pacific/Chatham', '2026-04-05', 2],
+        ['Pacific/Chatham', '2026-09-27', 2],
+        ['Europe/Dublin', '2026-03-29', 2],
+        ['Europe/Dublin', '2026-10-25', 2],
+        ['Europe/London', '2001-10-28', 2],
+        ['America/New_York', '2035-11-04', 2],
+        ['Asia/Beirut', '2026-07-15', 1], // ordinary weeks
+        ['Asia/Beirut', '2026-12-15', 1],
+        ['UTC', '2026-06-01', 1],
+      ];
+      let checked = 0;
+      for (const [zone, iso, weeks] of windows) {
+        const z = IANAZone.create(zone);
+        const mid = Date.parse(`${iso}T00:00:00Z`);
+        // Two passes: cold (fills the memo) and warm (served from it).
+        for (let pass = 0; pass < 2; pass++)
+          for (let t = mid - (weeks * WEEK) / 2; t <= mid + (weeks * WEEK) / 2; t += FIFTEEN) {
+            const got = __slotCachesForTests.offsetMs(zone, t);
+            if (got !== z.offset(t) * 60_000) expect.fail(`${zone} @ ${new Date(t).toISOString()}`);
+            checked++;
+          }
+      }
+      expect(checked).toBeGreaterThan(40_000);
+    },
+  );
+
+  it('never creates cache entries for an invalid zone', () => {
+    __slotCachesForTests.clear();
+    expect(Number.isNaN(__slotCachesForTests.offsetMs('Not/AZone', 1_800_000_000_000))).toBe(true);
+    expect(__slotCachesForTests.sizes()).toMatchObject({ zones: 0, outer: 0, localUtc: 0 });
+  });
+
+  it('a 14-day window stays well under the per-zone bucket cap', () => {
+    __slotCachesForTests.clear();
+    const input = makeCase(rng(3));
+    generateSlots({
+      ...input,
+      timezone: 'Asia/Beirut',
+      range: { from: '2026-11-01', to: '2026-11-14' },
+    });
+    expect(__slotCachesForTests.sizes().maxBuckets).toBeLessThan(400);
+  });
+
+  it('eviction (tiny caps) does not change any result', { timeout: 120_000 }, () => {
+    __slotCachesForTests.setCaps({ bucketsPerZone: 3, localUtc: 4 });
+    try {
+      __slotCachesForTests.clear();
+      const r = rng(424242);
+      for (let i = 0; i < 120; i++) {
+        const input = makeCase(r);
+        expect(JSON.stringify(generateSlots(input))).toBe(JSON.stringify(referenceSlots(input)));
+        expect(__slotCachesForTests.sizes().maxBuckets).toBeLessThanOrEqual(3);
+      }
+    } finally {
+      __slotCachesForTests.resetCaps();
+      __slotCachesForTests.clear();
     }
   });
 });

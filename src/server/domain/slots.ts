@@ -90,13 +90,14 @@ const zoneCache = new Map<string, IANAZone>();
 const HOUR_MS = 3_600_000;
 /** zone -> (hour bucket -> offset in ms). Pure memo of an immutable tz database; bounded. */
 const offsetBuckets = new Map<string, Map<number, number>>();
-const MAX_BUCKETS_PER_ZONE = 60_000;
+// A 14-day window touches under 400 hour buckets; 4096 covers a full month with room to spare.
+let maxBucketsPerZone = 4096;
 
 function zoneFor(zone: string): IANAZone {
   let z = zoneCache.get(zone);
   if (!z) {
     z = IANAZone.create(zone);
-    zoneCache.set(zone, z);
+    if (z.isValid) zoneCache.set(zone, z); // never keep entries for invalid zone names
   }
   return z;
 }
@@ -110,6 +111,8 @@ function zoneFor(zone: string): IANAZone {
  */
 function offsetMs(zone: string, ms: number): number {
   const z = zoneFor(zone);
+  // Invalid zone (NaN offsets): no caching and no map entries at all.
+  if (!z.isValid) return z.offset(ms) * MIN_MS;
   const bucket = Math.floor(ms / HOUR_MS);
   let buckets = offsetBuckets.get(zone);
   if (!buckets) {
@@ -121,7 +124,7 @@ function offsetMs(zone: string, ms: number): number {
   const first = z.offset(bucket * HOUR_MS) * MIN_MS;
   const last = z.offset((bucket + 1) * HOUR_MS - 1) * MIN_MS;
   if (first !== last) return z.offset(ms) * MIN_MS;
-  if (buckets.size >= MAX_BUCKETS_PER_ZONE) buckets.clear();
+  if (buckets.size >= maxBucketsPerZone) buckets.clear();
   buckets.set(bucket, first);
   return first;
 }
@@ -162,7 +165,7 @@ export function localToUtcMs(
 }
 
 const localUtcCache = new Map<string, number>();
-const MAX_LOCAL_UTC_ENTRIES = 20_000;
+let maxLocalUtcEntries = 20_000;
 
 function subtract(free: Range[], cut: Range): Range[] {
   if (cut[1] <= cut[0]) return free; // empty or inverted ranges block nothing
@@ -209,7 +212,7 @@ export function generateSlots(input: GenerateSlotsInput): Slot[] {
     let ms = localUtcCache.get(key);
     if (ms === undefined) {
       ms = localToUtcMs(d, hour, minute, timezone);
-      if (localUtcCache.size >= MAX_LOCAL_UTC_ENTRIES) localUtcCache.clear();
+      if (localUtcCache.size >= maxLocalUtcEntries) localUtcCache.clear();
       localUtcCache.set(key, ms);
     }
     return ms;
@@ -325,3 +328,27 @@ export function pickStaff(
   }
   return best;
 }
+
+/** TEST ONLY: inspect, shrink and reset the module-level memo caches. Not used by application code. */
+export const __slotCachesForTests = {
+  offsetMs,
+  setCaps(caps: { bucketsPerZone: number; localUtc: number }) {
+    maxBucketsPerZone = caps.bucketsPerZone;
+    maxLocalUtcEntries = caps.localUtc;
+  },
+  resetCaps() {
+    maxBucketsPerZone = 4096;
+    maxLocalUtcEntries = 20_000;
+  },
+  clear() {
+    offsetBuckets.clear();
+    zoneCache.clear();
+    localUtcCache.clear();
+  },
+  sizes: () => ({
+    zones: zoneCache.size,
+    outer: offsetBuckets.size,
+    maxBuckets: Math.max(0, ...[...offsetBuckets.values()].map((m) => m.size)),
+    localUtc: localUtcCache.size,
+  }),
+};
