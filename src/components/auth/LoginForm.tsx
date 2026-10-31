@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
@@ -16,6 +17,7 @@ const FIELDS: readonly LoginField[] = ['email', 'password'];
 
 export function LoginForm() {
   const t = useTranslations('auth.login');
+  const forgot = useTranslations('recovery.forgot')('link');
   const router = useRouter();
   const text = useErrorText();
   const formRef = useRef<HTMLFormElement>(null);
@@ -94,6 +96,13 @@ export function LoginForm() {
         error={text.field(errors.password)}
         readOnly={pending}
       />
+
+      <Link
+        href="/forgot-password"
+        className="-mt-2 inline-flex min-h-11 items-center self-start text-sm font-semibold text-brand no-underline"
+      >
+        {forgot}
+      </Link>
 
       <Button type="submit" size="lg" block loading={pending} className="mt-1 h-[54px] text-base">
         {t('submit')}

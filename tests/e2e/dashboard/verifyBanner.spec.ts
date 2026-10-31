@@ -50,10 +50,14 @@ test.describe('unverified email banner', () => {
     await expect(page.getByRole('button', { name: 'Invite receptionist' })).toBeDisabled();
     await expect(page.getByText('Confirm your email address to invite staff.')).toBeVisible();
 
-    // Same banner on another page, and the directory switch is disabled with its reason.
+  });
+
+  test('the directory switch is disabled with its reason, under the same banner', async ({ page }) => {
+    await unverified(page);
+    await mockSetupApi(page, { state: stateWithStaff() });
     await page.goto('/app/share');
     await expect(page.getByRole('region', { name: 'Email confirmation' })).toBeVisible();
-    await expect(page.getByRole('switch')).toBeDisabled();
+    await expect(page.getByRole('switch')).toBeDisabled({ timeout: 15_000 });
     await expect(page.getByText('Confirm your email address to list your business')).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });

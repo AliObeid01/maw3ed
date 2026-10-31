@@ -48,8 +48,8 @@ test.describe('verify email page', () => {
     await mockVerify(page, (route) => err(route, 410, 'LINK_INVALID'));
     await page.goto('/verify-email/old');
     await page.getByRole('button', { name: 'Confirm my email' }).click();
-    await expect(page.getByRole('alert')).toContainText('This link is not valid');
-    await expect(page.getByRole('alert')).toContainText('Resend email');
+    await expect(page.getByRole('main').getByRole('alert')).toContainText('This link is not valid');
+    await expect(page.getByRole('main').getByRole('alert')).toContainText('Resend email');
     await expect(page.getByRole('link', { name: 'Go to my dashboard' })).toBeVisible();
   });
 
@@ -58,7 +58,7 @@ test.describe('verify email page', () => {
     await mockVerify(page, (route) => (n++ === 0 ? route.abort('connectionreset') : json(route, 200, { ok: true })));
     await page.goto('/verify-email/tok');
     await page.getByRole('button', { name: 'Confirm my email' }).click();
-    await expect(page.getByRole('alert')).toContainText("can't reach the server");
+    await expect(page.getByRole('main').getByRole('alert')).toContainText("can't reach the server");
     await page.getByRole('button', { name: 'Confirm my email' }).click();
     await expect(page.getByRole('heading', { name: 'Email confirmed' })).toBeVisible();
   });

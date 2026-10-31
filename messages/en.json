@@ -495,6 +495,24 @@
           "amount": "Enter an amount from {min} to {max} with at most two decimals.",
           "check": "Some details need another look. Check the fields and try again."
         }
+      },
+      "account": {
+        "title": "Account",
+        "body": "Change your password. Other devices are signed out; this one stays signed in.",
+        "current": "Current password",
+        "new": "New password",
+        "submit": "Change password",
+        "saved": "Password changed. Other devices were signed out.",
+        "errors": {
+          "currentRequired": "Enter your current password.",
+          "currentWrong": "That is not your current password.",
+          "newRequired": "Enter a new password.",
+          "newShort": "Use at least {min} characters.",
+          "newLong": "Use at most {max} characters.",
+          "rateLimited": "Too many attempts. Wait a few minutes and try again.",
+          "generic": "Something went wrong. Please try again.",
+          "network": "We can't reach the server. Check your connection and try again."
+        }
       }
     },
     "share": {
@@ -947,6 +965,14 @@
       "action": "Confirm my email",
       "expires": "This link works once and is valid for {hours} hours.",
       "ignore": "If you did not create a Maw3ed account, you can ignore this email."
+    },
+    "reset": {
+      "subject": "Reset your Maw3ed password",
+      "heading": "Reset your password",
+      "intro": "We received a request to reset the password of your Maw3ed account. Choose the button below to set a new one.",
+      "action": "Choose a new password",
+      "expires": "This link works once and is valid for {hours} hour.",
+      "ignore": "If you did not ask for this, ignore this email: your password stays the same."
     }
   },
   "dev": {
@@ -1631,6 +1657,46 @@
     "gate": {
       "invite": "Confirm your email address to invite staff.",
       "directory": "Confirm your email address to list your business in the directory."
+    }
+  },
+  "recovery": {
+    "forgot": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we will send you a link to choose a new one.",
+      "email": "Email",
+      "emailPlaceholder": "you@example.com",
+      "submit": "Send reset link",
+      "sentTitle": "Check your email",
+      "sentBody": "If an account exists for that address, we have sent a link to reset the password. It is valid for 1 hour.",
+      "back": "Back to sign in",
+      "link": "Forgot password?",
+      "errors": {
+        "required": "Enter your email address.",
+        "email": "Enter a valid email address.",
+        "rateLimited": "Too many requests. Wait a while and try again.",
+        "network": "We can't reach the server. Check your connection and try again.",
+        "generic": "Something went wrong. Please try again."
+      }
+    },
+    "reset": {
+      "title": "Choose a new password",
+      "subtitle": "Use at least {min} characters. You will be signed out everywhere.",
+      "password": "New password",
+      "submit": "Save new password",
+      "successTitle": "Password changed",
+      "successBody": "Your password was updated and every device was signed out. Sign in with your new password.",
+      "signIn": "Sign in",
+      "invalidTitle": "This link is not valid",
+      "invalidBody": "It may have expired or already been used. Request a new link and try again.",
+      "invalidAction": "Request a new link",
+      "errors": {
+        "required": "Enter a new password.",
+        "short": "Use at least {min} characters.",
+        "long": "Use at most {max} characters.",
+        "rateLimited": "Too many attempts. Wait a few minutes and try again.",
+        "network": "We can't reach the server. Check your connection and try again.",
+        "generic": "Something went wrong. Please try again."
+      }
     }
   }
 }

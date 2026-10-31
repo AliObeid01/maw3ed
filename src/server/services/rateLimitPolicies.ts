@@ -42,6 +42,16 @@ export const RATE_POLICIES = {
   resendVerificationIp: { windowSec: 60 * MIN, limit: 10 },
   /** POST /api/auth/resend-verification, per signed-in user (service-level) */
   resendVerificationUser: { windowSec: 60 * MIN, limit: 3 },
+  /** POST /api/auth/forgot-password, per ip (each known address costs an email) */
+  forgotIp: { windowSec: 60 * MIN, limit: 10 },
+  /** POST /api/auth/forgot-password, per sha256(email), known or not (service-level; identical answer either way) */
+  forgotEmail: { windowSec: 60 * MIN, limit: 3 },
+  /** POST /api/auth/reset-password (each valid attempt costs an argon2 hash) */
+  resetPasswordIp: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/change-password, per ip */
+  changePasswordIp: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/change-password, per signed-in user: bounds guessing the current password (service-level) */
+  changePasswordUser: { windowSec: 15 * MIN, limit: 5 },
   /** Login attempts per (sha256(email), ip). A success clears it. */
   loginEmailIp: { windowSec: 15 * MIN, limit: 5 },
   /** Failed logins per ip across all emails. A success refunds its hit. */

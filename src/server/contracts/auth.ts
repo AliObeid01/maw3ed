@@ -50,6 +50,21 @@ export const AcceptInviteBody = registry.register(
   z.object({ name, password: z.string().min(1).max(128) }).strict(),
 );
 
+export const ForgotPasswordBody = registry.register(
+  'ForgotPasswordBody',
+  z.object({ email }).strict(),
+);
+
+export const ResetPasswordBody = registry.register(
+  'ResetPasswordBody',
+  z.object({ token: z.string().min(1).max(200), newPassword: password }).strict(),
+);
+
+export const ChangePasswordBody = registry.register(
+  'ChangePasswordBody',
+  z.object({ currentPassword: z.string().min(1).max(128), newPassword: password }).strict(),
+);
+
 export const VerifyEmailBody = registry.register(
   'VerifyEmailBody',
   z.object({ token: z.string().min(1).max(200) }).strict(),
@@ -184,6 +199,56 @@ registry.registerPath({
     401: errorResponses[401],
     429: err('RATE_LIMITED'),
     503: err('SERVICE_UNAVAILABLE (the email could not be sent)'),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/auth/forgot-password',
+  summary: 'Ask for a password-reset email (public)',
+  description:
+    'ALWAYS answers the same 200 whether or not an account exists (no user enumeration); the email is only sent when it does. Limited to 3 per hour per email address (known or not) and 10 per hour per IP: the same 429 RATE_LIMITED either way. The link is valid for 1 hour, works once, and a newer request invalidates the older link.',
+  tags: ['auth'],
+  request: { body: { content: json(ForgotPasswordBody) } },
+  responses: {
+    200: { description: 'Generic acknowledgement', content: json(OkDto) },
+    400: errorResponses[400],
+    429: err('RATE_LIMITED'),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/auth/reset-password',
+  summary: 'Set a new password with the emailed token (public, single use)',
+  description:
+    'Sets the new argon2 hash, marks the token used, marks the email verified and REVOKES ALL sessions of that user (it does not sign anyone in). Same password rules as signup (10 to 128 characters). Unknown, expired, used and wrong-kind tokens are the same 410 LINK_INVALID; a weak password is a 400 and does not use up the token.',
+  tags: ['auth'],
+  request: { body: { content: json(ResetPasswordBody) } },
+  responses: {
+    200: { description: 'Password changed', content: json(OkDto) },
+    400: errorResponses[400],
+    410: err('LINK_INVALID (unknown, expired or already used; not distinguished)'),
+    429: err('RATE_LIMITED'),
+    503: err('SERVICE_BUSY (Retry-After: 2)'),
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/auth/change-password',
+  summary: 'Change the signed-in user password',
+  description:
+    'Verifies the current password (a wrong one is a 400 on currentPassword), sets the new hash and revokes all OTHER sessions of the user; the current session stays. Limited to 5 attempts per 15 minutes per user.',
+  tags: ['auth'],
+  security: [{ session: [] }],
+  request: { body: { content: json(ChangePasswordBody) } },
+  responses: {
+    200: { description: 'Password changed', content: json(OkDto) },
+    400: errorResponses[400],
+    401: errorResponses[401],
+    429: err('RATE_LIMITED'),
+    503: err('SERVICE_BUSY (Retry-After: 2)'),
   },
 });
 

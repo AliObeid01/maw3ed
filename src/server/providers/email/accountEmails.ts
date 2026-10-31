@@ -19,7 +19,7 @@ export interface AccountEmailOptions {
 export function accountEmail(opts: AccountEmailOptions) {
   const locale = opts.locale ?? 'en';
   const all = getEmailMessages(locale);
-  const m = all.verify;
+  const m = opts.kind === 'VERIFY' ? all.verify : all.reset;
   const rtl = isRtl(locale);
   const dir = rtl ? 'rtl' : 'ltr';
   const hours = String(EMAIL_TOKEN_TTL_MS[opts.kind] / 3_600_000);

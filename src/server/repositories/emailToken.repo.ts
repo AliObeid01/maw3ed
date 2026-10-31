@@ -48,6 +48,32 @@ export const emailTokenRepo = {
       return token.userId;
     }),
 
+  /**
+   * Single use, like verifyEmail: claim the RESET token, set the new hash, mark the email verified (they
+   * proved control of the inbox), delete EVERY session of the user (all businesses) and any other open reset
+   * link, all in one transaction. Returns the user id, or null when the token is not usable.
+   */
+  resetPassword: (tokenHash: string, now: Date, passwordHash: string): Promise<string | null> =>
+    db.$transaction(async (tx) => {
+      const token = await tx.emailToken.findUnique({ where: { tokenHash } });
+      if (!token || token.kind !== 'RESET') return null;
+      const claimed = await tx.emailToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      if (claimed.count !== 1) return null;
+      await tx.user.update({ where: { id: token.userId }, data: { passwordHash } });
+      await tx.user.updateMany({
+        where: { id: token.userId, emailVerifiedAt: null },
+        data: { emailVerifiedAt: now },
+      });
+      await tx.session.deleteMany({ where: { userId: token.userId } });
+      await tx.emailToken.deleteMany({
+        where: { userId: token.userId, kind: 'RESET', usedAt: null },
+      });
+      return token.userId;
+    }),
+
   /** Maintenance (all tenants, cron only): delete up to `limit` tokens that are used or already expired at `now`. */
   async deleteStale(now: Date, limit: number): Promise<number> {
     const rows = await db.emailToken.findMany({

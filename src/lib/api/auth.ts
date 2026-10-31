@@ -166,4 +166,15 @@ export const resendVerification = () =>
     { method: 'POST' },
   );
 
+const okSchema = z.object({ ok: z.literal(true) });
+
+export const forgotPassword = (email: string) =>
+  request('/api/auth/forgot-password', okSchema, { method: 'POST', body: { email } });
+
+export const resetPassword = (body: { token: string; newPassword: string }) =>
+  request('/api/auth/reset-password', okSchema, { method: 'POST', body });
+
+export const changePassword = (body: { currentPassword: string; newPassword: string }) =>
+  request('/api/auth/change-password', okSchema, { method: 'POST', body });
+
 export const logout = () => request('/api/auth/logout', z.unknown(), { method: 'POST' });
