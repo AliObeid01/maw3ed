@@ -78,13 +78,15 @@ export const pilotService = {
   },
 
   /**
-   * Pilot report. Window: from the first appointment's local date (or the business creation date when there
-   * is none) to today, over appointments that have started. Rates are percentages rounded to 1 decimal here
+   * Pilot report. Window: from the local date of the earlier of the first appointment and the business
+   * creation (today when neither exists) to today. Appointment counts cover appointments that have
+   * started; the waitlist signal covers offers created in the same window (F26-1: an offer is created when
+   * a slot is freed, usually before the first appointment day). Rates are percentages rounded to 1 decimal here
    * and only here.
    *
    * confirmRate: see pilotRepo.reminderConfirmSignal. waitlistRefillRate = freed slots rebooked from the
    * waitlist / freed slots offered (distinct freedFromAppointmentId of WaitlistOffer rows created in the
-   * pilot window), the PRD definition; the raw counts are returned beside it.
+   * window above), the PRD definition; the raw counts are returned beside it.
    */
   async report(ctx: SessionContext, weeks: number, now: Now = realNow) {
     requireRole(ctx, 'OWNER');
@@ -107,10 +109,15 @@ export const pilotService = {
     }
 
     const toDate = localDateOf(at, tz);
-    const fromDate = localDateOf(first ?? createdAt ?? at, tz);
+    // The pilot starts on the earlier of the business's creation and its first appointment: offers are
+    // created when a slot is freed, which is normally days before the first booked slot starts.
+    const pilotStart = [first, createdAt]
+      .filter((d): d is Date => d !== null)
+      .reduce<Date>((min, d) => (d < min ? d : min), at);
+    const fromDate = localDateOf(pilotStart, tz);
     const waitlist = await pilotRepo.waitlistSignal(
       ctx.businessId,
-      localDayOf(first ?? createdAt ?? at, tz).startUtc,
+      localDayOf(pilotStart, tz).startUtc,
       at,
     );
     const rate = noShowRate(totals.attended, totals.noShows);

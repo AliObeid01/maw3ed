@@ -457,7 +457,7 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
   await expect(page.getByText(/from the waitlist/)).toBeVisible();
 
   // The data behind the pilot refill count is right: this business has exactly one CLAIMED offer.
-  // (The report itself does not show it yet: see the fixme test "pilot report counts the refill" below, finding F26-1.)
+  // (The pilot report itself is checked at the end of this file, finding F26-1.)
   const claimed = await sql(
     `SELECT count(DISTINCT o."freedFromAppointmentId")::int AS n FROM "WaitlistOffer" o JOIN "Appointment" a ON a.id = o."freedFromAppointmentId" WHERE a."staffId" = $1 AND o.status = 'CLAIMED'`,
     [biz.staffId],
@@ -709,11 +709,7 @@ test('no overlapping active appointments exist anywhere after the journey (scrip
 
 // ---- finding F26-1 -------------------------------------------------------------------------------------------------------
 
-// TODO(F26-1): the pilot report's waitlist signal only counts offers created on or after the local day of the business's
-// FIRST appointment (pilot.repo waitlistSignal 'since' = first appointment start). The refill here happened before that
-// day (the first appointment is two days ahead), so GET /api/pilot/report says waitlistSlotsOffered 0 / waitlistRefills 0
-// even though three slots were offered and one was refilled. Remove the fixme when the window includes them.
-test.fixme('pilot report counts the refill: waitlistRefills +1 and three freed slots offered (F26-1)', async () => {
+test('pilot report counts the refill: waitlistRefills +1 and three freed slots offered (F26-1)', async () => {
   const report = await api('/api/pilot/report?weeks=4', { cookie: biz.cookie });
   expect(report.status).toBe(200);
   expect(report.body.signals).toMatchObject({ waitlistRefills: 1, waitlistSlotsOffered: 3 });
