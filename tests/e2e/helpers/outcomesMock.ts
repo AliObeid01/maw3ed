@@ -1,6 +1,6 @@
 import type { Page, Request, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
-import { clockNow, freezeClock, nowMs, FIXED_NOW } from './clock';
+import { clockNow, freezeClock, nowMs, nowDate } from './clock';
 import {
   baselineRate,
   changeVsBaseline,
@@ -295,7 +295,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         cancelledVia: found.cancelledVia ?? null,
         startAt: new Date(found.startAt),
         endAt: new Date(found.endAt),
-        now: FIXED_NOW,
+        now: nowDate(),
         target: target as 'ATTENDED' | 'NO_SHOW' | 'LATE_CANCEL',
       });
       if (plan.kind === 'not_started') return apiError(route, 409, 'NOT_STARTED');
@@ -436,7 +436,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         }
         if (Object.keys(shapeErrors).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields: shapeErrors });
         const input = b as unknown as Baseline;
-        const fields = validateBaseline(input, localDateOf(FIXED_NOW, TZ));
+        const fields = validateBaseline(input, localDateOf(nowDate(), TZ));
         if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
         baseline = {
           fromDate: input.fromDate,
@@ -454,7 +454,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         if (!Number.isInteger(weeks) || weeks < 1 || weeks > 26) {
           return apiError(route, 400, 'VALIDATION_FAILED', { fields: { weeks: 'Invalid weeks.' } });
         }
-        const now = FIXED_NOW;
+        const now = nowDate();
         const windows = weekWindows(now, TZ, weeks);
         // Like the server: only appointments that have started, over the WHOLE pilot (first appointment to today);
         // `weeks` only decides how many weekly points come back.

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { FIXED_NOW } from '../helpers/clock';
+import { nowDate } from '../helpers/clock';
 import { mockDashboardApi } from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';
 
@@ -111,7 +111,7 @@ test('the list refreshes when the window regains focus (another device sent one)
   const maya = reminders.find((r) => r.id === 'rm2')!;
   maya.status = 'SENT';
   maya.sentBy = { id: 'u-rana', name: 'Rana' };
-  maya.sentAt = FIXED_NOW.toISOString();
+  maya.sentAt = nowDate().toISOString();
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(row(page, 'Maya Haddad')).toContainText('Sent by Rana');
   await expect(page.getByRole('status').filter({ hasText: '2 to send' })).toBeVisible();

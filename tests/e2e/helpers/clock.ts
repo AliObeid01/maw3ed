@@ -33,6 +33,9 @@ export const nowMs = (): number => Date.now() + CLOCK_OFFSET_MS;
 /** Virtual "now" as a Luxon DateTime (use instead of DateTime.now()); chain `.setZone(tz)` as needed. */
 export const clockNow = (): DateTime => DateTime.fromMillis(nowMs());
 
+/** Virtual "now" as a Date (use instead of new Date()). */
+export const nowDate = (): Date => new Date(nowMs());
+
 const frozen = new WeakSet<Page>();
 
 /**

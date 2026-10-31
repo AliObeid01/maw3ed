@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { FIXED_NOW, nowMs, ORIGIN } from './helpers/clock';
+import { nowDate, nowMs, ORIGIN } from './helpers/clock';
 import { IDS, mockPublicApi, SLUG } from './helpers/publicMock';
 
 // Self-contained: every /api call is answered by page.route, so no database is needed. The server-side rules
@@ -34,7 +34,7 @@ async function mockDeposit(page: Page) {
     business: { name: 'Studio Nour', slug: SLUG, timezone: 'Asia/Beirut', locale: 'en' },
     deposit: { amount: 5, currency: 'USD' },
     holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
-    now: FIXED_NOW.toISOString(),
+    now: nowDate().toISOString(),
     testMode: true,
   });
 

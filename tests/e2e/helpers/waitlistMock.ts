@@ -1,6 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
-import { clockNow, freezeClock, FIXED_NOW } from './clock';
+import { clockNow, freezeClock, nowDate } from './clock';
 import { catalogue, IDS, SLUG, TZ } from './publicMock';
 
 /**
@@ -142,7 +142,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        headers: mock.noDateHeader ? {} : { date: FIXED_NOW.toUTCString() },
+        headers: mock.noDateHeader ? {} : { date: nowDate().toUTCString() },
         body: JSON.stringify({
         offer: {
           id: 'of1',
