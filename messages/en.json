@@ -846,7 +846,7 @@
     "revoked": "Invite revoked.",
     "confirmRemove": {
       "title": "Remove access for {name}?",
-      "body": "They will be signed out immediately and can no longer open the dashboard. Appointments and the calendar entry are not deleted.",
+      "body": "They will be signed out immediately and can no longer open the dashboard. They will also be hidden from your booking page, but their calendar entry and existing appointments are kept. You can make them bookable again in Staff.",
       "confirm": "Remove access"
     },
     "confirmRevoke": {
@@ -857,7 +857,8 @@
     "errors": {
       "lastOwner": "A business must keep at least one owner.",
       "self": "You cannot remove your own access."
-    }
+    },
+    "remainingNote": "{name} is hidden from your booking page. {count, plural, one {# upcoming appointment remains} other {# upcoming appointments remain}} on their calendar: move or cancel them from Today, or make them bookable again in the staff list above."
   },
   "auth": {
     "tabs": {

@@ -18,6 +18,8 @@ export type MockState = {
   members: Array<Record<string, unknown>>;
   /** How many other sessions POST /api/auth/sign-out-others reports as removed. */
   otherSessions: number;
+  /** Upcoming appointments left on a removed member's calendar entry, by userId (DELETE /api/team/members). */
+  memberAppointments: Record<string, number>;
   /** Staff ids that still have future appointments: deactivating them answers 409 HAS_FUTURE_APPOINTMENTS. */
   staffWithFutureAppointments: string[];
   /** Emails that already belong to the business: inviting them answers 409 ALREADY_MEMBER. */
@@ -166,6 +168,7 @@ export function defaultState(): MockState {
       },
     ],
     otherSessions: 2,
+    memberAppointments: {},
     staffWithFutureAppointments: [],
     memberEmails: ['lina@example.com'],
   };
@@ -369,7 +372,10 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
       if (!found) return error(route, 404, 'NOT_FOUND');
       if (found.isYou) return error(route, 409, 'CANNOT_REMOVE_SELF');
       state.members = state.members.filter((m) => m !== found);
-      return json(route, 200, { ok: true });
+      return json(route, 200, {
+        ok: true,
+        futureAppointments: state.memberAppointments[found.userId as string] ?? 0,
+      });
     }
     const teamInvite = /^\/api\/team\/invites\/([^/]+)$/.exec(path);
     if (teamInvite && method === 'DELETE') {

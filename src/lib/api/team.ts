@@ -33,8 +33,10 @@ const seg = encodeURIComponent;
 
 export const listTeam = (signal?: AbortSignal) => request('/api/team', teamSchema, { signal });
 
+const removedSchema = z.object({ ok: z.literal(true), futureAppointments: z.number() });
+
 export const removeTeamMember = (userId: string) =>
-  request(`/api/team/members/${seg(userId)}`, okSchema, { method: 'DELETE' });
+  request(`/api/team/members/${seg(userId)}`, removedSchema, { method: 'DELETE' });
 
 export const revokeTeamInvite = (inviteId: string) =>
   request(`/api/team/invites/${seg(inviteId)}`, okSchema, { method: 'DELETE' });

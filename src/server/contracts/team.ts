@@ -45,6 +45,16 @@ export const SignedOutOthersDto = registry.register(
   z.object({ removed: z.number().int().min(0) }),
 );
 
+const RemovedDto = registry.register(
+  'TeamMemberRemoved',
+  z.object({
+    ok: z.literal(true),
+    futureAppointments: z.number().int().min(0).openapi({
+      description: 'Upcoming active appointments of this business that remain on their calendar entry.',
+    }),
+  }),
+);
+
 const OkDto = registry.register('TeamOk', z.object({ ok: z.literal(true) }));
 
 const json = <T extends z.ZodType>(schema: T) => ({ 'application/json': { schema } });
@@ -72,12 +82,12 @@ registry.registerPath({
   path: '/api/team/members/{id}',
   summary: 'Remove a team member access (owner)',
   description:
-    'Deletes the user Membership for THIS business and all of that user Sessions for THIS business in one transaction, and any pending invite for their email here. The User row, their other businesses, the calendar entry (StaffMember, which is only unlinked) and appointments are kept. `id` is the member userId. An owner cannot remove themselves (409 CANNOT_REMOVE_SELF) and the last owner can never be removed (409 LAST_OWNER). Another business, an unknown or an already removed member is 404.',
+    'Deletes the user Membership for THIS business and all of that user Sessions for THIS business in one transaction, and any pending invite for their email here. The calendar entry (StaffMember) is only unlinked and made non-bookable (hidden from the booking page; active, hours and appointments untouched). The User row, their other businesses and appointments are kept. `id` is the member userId. If the caller was removed while the request was in flight: 401. An owner cannot remove themselves (409 CANNOT_REMOVE_SELF) and the last owner can never be removed (409 LAST_OWNER). Another business, an unknown or an already removed member is 404.',
   tags: ['team'],
   security,
   request: { params: TeamIdParams },
   responses: {
-    200: { description: 'Removed', content: json(OkDto) },
+    200: { description: 'Removed', content: json(RemovedDto) },
     400: e[400],
     401: e[401],
     403: e[403],

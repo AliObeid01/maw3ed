@@ -49,6 +49,13 @@ export function TeamAccess({
   const [expanded, setExpanded] = useState(false);
   const [target, setTarget] = useState<Target | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [note, setNote] = useState<{ name: string; count: number }>();
+  // A second tap while the confirmation is opening must not replace its target.
+  const ask = (next: Target) => {
+    if (confirmOpen) return;
+    setTarget(next);
+    setConfirmOpen(true);
+  };
 
   const data = team.data;
   const open = desktop || expanded;
@@ -74,7 +81,10 @@ export function TeamAccess({
         members: (c ?? snapshot).members.filter((m) => m.userId !== member.userId),
       }));
       removeTeamMember(member.userId)
-        .then(() => toast.show(t('removed', { name: isolate(member.name) })))
+        .then(({ futureAppointments }) => {
+          toast.show(t('removed', { name: isolate(member.name) }));
+          setNote(futureAppointments > 0 ? { name: member.name, count: futureAppointments } : undefined);
+        })
         .catch((error: unknown) => {
           team.setData(snapshot);
           toast.show(failure(error), 'error');
@@ -144,6 +154,12 @@ export function TeamAccess({
           </p>
         ) : null}
 
+        {note ? (
+          <p aria-live="polite" className="m-0 mt-3 rounded-input bg-amber-soft p-3 text-[13px] text-amber">
+            {t('remainingNote', { name: isolate(note.name), count: note.count })}
+          </p>
+        ) : null}
+
         {data ? (
           <div className="mt-3 flex flex-col gap-4">
             <ul aria-label={t('membersLabel')} className="m-0 flex list-none flex-col p-0">
@@ -177,11 +193,10 @@ export function TeamAccess({
                   {m.isYou ? null : (
                     <Button
                       variant="secondary"
+                      size="row"
+                      disabled={confirmOpen}
                       aria-label={t('removeFor', { name: m.name })}
-                      onClick={() => {
-                        setTarget({ kind: 'member', member: m });
-                        setConfirmOpen(true);
-                      }}
+                      onClick={() => ask({ kind: 'member', member: m })}
                     >
                       {t('remove')}
                     </Button>
@@ -217,11 +232,10 @@ export function TeamAccess({
                       </span>
                       <Button
                         variant="secondary"
+                        size="row"
+                        disabled={confirmOpen}
                         aria-label={t('revokeFor', { email: i.email })}
-                        onClick={() => {
-                          setTarget({ kind: 'invite', invite: i });
-                          setConfirmOpen(true);
-                        }}
+                        onClick={() => ask({ kind: 'invite', invite: i })}
                       >
                         {t('revoke')}
                       </Button>

@@ -60,6 +60,9 @@ test.describe('Staff > Team access', () => {
     await expect(rows.filter({ hasText: 'Samir' })).toContainText('Email not verified');
     const remove = rows.filter({ hasText: 'Rana' }).getByRole('button', { name: 'Remove access' });
     expect((await remove.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // Revoke is a tap target too.
+    const revokeBtn = section.getByRole('button', { name: /Revoke the invite/ });
+    expect((await revokeBtn.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   });
 
@@ -78,7 +81,7 @@ test.describe('Staff > Team access', () => {
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('heading')).toContainText(/Remove access for .*Rana.*\?/);
     await expect(dialog).toContainText(
-      'They will be signed out immediately and can no longer open the dashboard. Appointments and the calendar entry are not deleted.',
+      'They will be signed out immediately and can no longer open the dashboard. They will also be hidden from your booking page, but their calendar entry and existing appointments are kept. You can make them bookable again in Staff.',
     );
     await dialog.getByRole('button', { name: 'Cancel' }).click();
     await expect(dialog).toBeHidden();
@@ -93,6 +96,18 @@ test.describe('Staff > Team access', () => {
     expect(calls.filter((c) => c.method === 'DELETE').map((c) => c.path)).toEqual([
       '/api/team/members/u2',
     ]);
+  });
+
+  test('shows how many upcoming appointments remain on the removed person calendar', async ({ page }) => {
+    const st = state();
+    st.memberAppointments = { u2: 3 };
+    await mockSetupApi(page, { state: st });
+    await page.goto('/app/staff');
+    const section = await openTeam(page);
+    await section.getByRole('button', { name: /Remove access for Rana/ }).click();
+    await page.getByRole('dialog').getByRole('button', { name: 'Remove access' }).click();
+    await expect(section.getByText(/3 upcoming appointments remain on their calendar/)).toBeVisible();
+    await expect(section.getByText(/is hidden from your booking page/)).toBeVisible();
   });
 
   test('a refused removal rolls the row back and says why', async ({ page }) => {

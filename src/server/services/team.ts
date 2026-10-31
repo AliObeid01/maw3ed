@@ -3,7 +3,7 @@ import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
 import { inviteRepo } from '@/server/repositories/invite.repo';
-import { MemberNotFoundError, membershipRepo } from '@/server/repositories/membership.repo';
+import { ActorGoneError, MemberNotFoundError, membershipRepo } from '@/server/repositories/membership.repo';
 
 const defaultDeps = { now: () => new Date() };
 
@@ -31,10 +31,15 @@ export const teamService = {
    * OWNER only. Takes a person's login away (L3): membership + that user's sessions for this business go in
    * one transaction. Not yourself, never the last owner; another business or an already removed member is 404.
    */
-  async removeMember(ctx: SessionContext, userId: string): Promise<{ ok: true }> {
+  async removeMember(
+    ctx: SessionContext,
+    userId: string,
+    deps = defaultDeps,
+  ): Promise<{ ok: true; futureAppointments: number }> {
     requireRole(ctx, 'OWNER');
+    let result: { futureAppointments: number };
     try {
-      await membershipRepo.removeMember(ctx.businessId, userId, ({ role, ownerCount }) => {
+      result = await membershipRepo.removeMember(ctx.businessId, ctx.userId, userId, deps.now(), ({ role, ownerCount }) => {
         const verdict = checkRemoval({
           actorUserId: ctx.userId,
           targetUserId: userId,
@@ -56,10 +61,15 @@ export const teamService = {
       });
     } catch (error) {
       if (error instanceof MemberNotFoundError) throw AppError.notFound();
+      // The caller was removed while this request was in flight: same answer as a dead session.
+      if (error instanceof ActorGoneError) throw AppError.unauthenticated();
       throw error;
     }
-    ctx.logger.info({ removedUserId: userId }, 'team member access removed');
-    return { ok: true };
+    ctx.logger.info(
+      { removedUserId: userId, futureAppointments: result.futureAppointments },
+      'team member access removed',
+    );
+    return { ok: true, futureAppointments: result.futureAppointments };
   },
 
   /** OWNER only. Deletes an unaccepted invite so its link dies at once. Unknown/other business/accepted: 404. */

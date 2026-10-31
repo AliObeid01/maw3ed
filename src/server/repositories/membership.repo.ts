@@ -1,8 +1,11 @@
 import type { Role } from '@/generated/prisma/client';
+import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { db } from './db';
 
 /** The user has no membership in this business (also: it belongs to another business, or was removed). */
 export class MemberNotFoundError extends Error {}
+/** The acting owner no longer holds an OWNER membership (removed while their request was in flight). */
+export class ActorGoneError extends Error {}
 
 export interface TeamMemberRow {
   userId: string;
@@ -34,20 +37,25 @@ export const membershipRepo = {
 
   /**
    * Remove one user's access to ONE business, atomically: their Sessions for this business, the Membership,
-   * the login link on their StaffMember (the calendar person stays) and any open invite for their email here.
+   * the login link on their StaffMember (the calendar person stays, but is made non-bookable) and any open invite
+   * for their email here. Returns how many upcoming active appointments remain on that calendar person.
    * The business owner memberships are locked first (`FOR UPDATE`, ordered) so two owners removing each other
    * at once cannot both pass the last-owner check. `guard` runs inside the transaction with the target role
-   * and the current owner count; throwing from it rolls everything back. The User row is never touched.
+   * and the current owner count; throwing from it rolls everything back. The acting owner must still be in the
+   * locked OWNER set, otherwise ActorGoneError and nothing is written. The User row is never touched.
    */
   removeMember: (
     businessId: string,
+    actorUserId: string,
     userId: string,
+    now: Date,
     guard: (target: { role: Role; ownerCount: number }) => void,
-  ) =>
+  ): Promise<{ futureAppointments: number }> =>
     db.$transaction(async (tx) => {
-      const owners = await tx.$queryRaw<{ id: string }[]>`
-        SELECT id FROM "Membership" WHERE "businessId" = ${businessId} AND role = 'OWNER'
+      const owners = await tx.$queryRaw<{ id: string; userId: string }[]>`
+        SELECT id, "userId" FROM "Membership" WHERE "businessId" = ${businessId} AND role = 'OWNER'
         ORDER BY id FOR UPDATE`;
+      if (!owners.some((o) => o.userId === actorUserId)) throw new ActorGoneError();
       const target = await tx.membership.findUnique({
         where: { userId_businessId: { userId, businessId } },
         select: { id: true, role: true, user: { select: { email: true } } },
@@ -56,12 +64,26 @@ export const membershipRepo = {
       guard({ role: target.role, ownerCount: owners.length });
 
       await tx.session.deleteMany({ where: { businessId, userId } });
-      await tx.staffMember.updateMany({ where: { businessId, userId }, data: { userId: null } });
+      const people = await tx.staffMember.findMany({ where: { businessId, userId }, select: { id: true } });
+      // Unlink AND hide from the booking page: nobody is watching this calendar any more.
+      await tx.staffMember.updateMany({
+        where: { businessId, userId },
+        data: { userId: null, bookable: false },
+      });
+      const futureAppointments = await tx.appointment.count({
+        where: {
+          businessId,
+          staffId: { in: people.map((x) => x.id) },
+          startAt: { gt: now },
+          status: { in: [...ACTIVE_APPOINTMENT_STATUSES] },
+        },
+      });
       await tx.invite.deleteMany({
         where: { businessId, email: target.user.email, acceptedAt: null },
       });
       const gone = await tx.membership.deleteMany({ where: { id: target.id, businessId } });
       if (gone.count !== 1) throw new MemberNotFoundError();
+      return { futureAppointments };
     }),
 
 

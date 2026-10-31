@@ -10,7 +10,7 @@ import { GET as me } from '@/app/api/me/route';
 import { GET as teamList } from '@/app/api/team/route';
 import { DELETE as removeMember } from '@/app/api/team/members/[id]/route';
 import { DELETE as revokeInvite } from '@/app/api/team/invites/[id]/route';
-import { AppError } from '@/server/http/errors';
+import { GET as publicPage } from '@/app/api/public/[slug]/route';
 import { childLogger } from '@/server/http/logger';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { teamService } from '@/server/services/team';
@@ -151,7 +151,7 @@ describe('DELETE /api/team/members/{id}', () => {
 
     const res = await remove(owner.cookie, staff.userId);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ ok: true });
+    expect(res.body).toEqual({ ok: true, futureAppointments: 0 });
 
     expect(await count(`SELECT count(*)::int n FROM "Membership" WHERE "userId" = $1`, [staff.userId])).toBe(0);
     expect(await count(`SELECT count(*)::int n FROM "Session" WHERE "userId" = $1`, [staff.userId])).toBe(0);
@@ -230,24 +230,107 @@ describe('DELETE /api/team/members/{id}', () => {
     ).toBe(1);
   });
 
-  it('is atomic: if the membership delete fails nothing is committed (sessions stay)', async () => {
+  it('is atomic: if the membership delete fails nothing is committed (sessions stay, still bookable)', async () => {
     const owner = await signup();
     const staff = await addStaff(owner, 'karim@example.test');
+    await pg.query(`UPDATE "StaffMember" SET bookable = true WHERE "userId" = $1`, [staff.userId]);
     await pg.query(`
       CREATE OR REPLACE FUNCTION fail_membership_delete() RETURNS trigger AS $$
       BEGIN RAISE EXCEPTION 'injected failure'; END; $$ LANGUAGE plpgsql`);
     await pg.query(`
       CREATE TRIGGER fail_membership_delete BEFORE DELETE ON "Membership"
       FOR EACH ROW EXECUTE FUNCTION fail_membership_delete()`);
-    const res = await remove(owner.cookie, staff.userId);
-    expect(res.status).toBe(500);
-    await pg.query('DROP TRIGGER fail_membership_delete ON "Membership"');
+    try {
+      const res = await remove(owner.cookie, staff.userId);
+      expect(res.status).toBe(500);
+    } finally {
+      await pg.query('DROP TRIGGER IF EXISTS fail_membership_delete ON "Membership"');
+      await pg.query('DROP FUNCTION IF EXISTS fail_membership_delete()');
+    }
     expect(await count(`SELECT count(*)::int n FROM "Membership" WHERE "userId" = $1`, [staff.userId])).toBe(1);
     expect(await count(`SELECT count(*)::int n FROM "Session" WHERE "userId" = $1`, [staff.userId])).toBe(1);
     expect(
-      await count(`SELECT count(*)::int n FROM "StaffMember" WHERE "userId" = $1`, [staff.userId]),
+      await count(
+        `SELECT count(*)::int n FROM "StaffMember" WHERE "userId" = $1 AND bookable = true`,
+        [staff.userId],
+      ),
     ).toBe(1);
     expect((await meWith(staff.cookie)).status).toBe(200);
+  });
+
+  it('makes the unlinked calendar person non-bookable, hides them from the booking page and counts upcoming appointments', async () => {
+    const owner = await signup();
+    const bizId = owner.info.business.id as string;
+    const gone = await addStaff(owner, 'karim@example.test', 'Karim');
+    const other = await addStaff(owner, 'rana@example.test', 'Rana');
+    await pg.query(`UPDATE "StaffMember" SET bookable = true WHERE "businessId" = $1 AND "userId" IS NOT NULL`, [bizId]);
+    await pg.query(
+      `INSERT INTO "Service" (id, "businessId", name, "durationMin", price, "updatedAt") VALUES ('svc-team-1', $1, 'Cut', 30, 10, now())`,
+      [bizId],
+    );
+    await pg.query(
+      `INSERT INTO "StaffService" ("businessId", "staffId", "serviceId")
+       SELECT $1, id, 'svc-team-1' FROM "StaffMember" WHERE "businessId" = $1 AND "userId" IS NOT NULL`,
+      [bizId],
+    );
+    const slug = owner.body.slug as string;
+    const names = async () =>
+      ((await call(publicPage, `/api/public/${slug}`, { params: { slug } })).body!.staff as any[]).map(
+        (s) => s.displayName,
+      );
+    expect(await names()).toEqual(expect.arrayContaining(['Karim', 'Rana']));
+
+    const staffId = (
+      await pg.query(`SELECT id FROM "StaffMember" WHERE "userId" = $1`, [gone.userId])
+    ).rows[0].id as string;
+    await pg.query(
+      `INSERT INTO "Client" (id, "businessId", name, phone, "updatedAt") VALUES ('cl-team-1', $1, 'Client', '+96171000001', now())`,
+      [bizId],
+    );
+    const appt = (id: string, days: number, status: string) =>
+      pg.query(
+        `INSERT INTO "Appointment" (id, "businessId", "clientId", "staffId", "serviceId", "startAt", "endAt", "blockedUntil", status, "updatedAt")
+         VALUES ($1, $2, 'cl-team-1', $3, 'svc-team-1', now() + ($4 || ' days')::interval,
+                 now() + ($4 || ' days')::interval + interval '30 minutes',
+                 now() + ($4 || ' days')::interval + interval '30 minutes', $5::"AppointmentStatus", now())`,
+        [id, bizId, staffId, String(days), status],
+      );
+    await appt('ap-team-future', 10, 'BOOKED');
+    await appt('ap-team-future2', 11, 'CONFIRMED');
+    await appt('ap-team-cancelled', 12, 'CANCELLED');
+    await appt('ap-team-past', -5, 'BOOKED');
+
+    const res = await remove(owner.cookie, gone.userId);
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true, futureAppointments: 2 });
+
+    const row = (
+      await pg.query(`SELECT bookable, active, "userId" FROM "StaffMember" WHERE id = $1`, [staffId])
+    ).rows[0];
+    expect(row).toEqual({ bookable: false, active: true, userId: null });
+    expect(await count(`SELECT count(*)::int n FROM "Appointment" WHERE "staffId" = $1`, [staffId])).toBe(4);
+    const after = await names();
+    expect(after).toContain('Rana');
+    expect(after).not.toContain('Karim');
+    expect(
+      (await pg.query(`SELECT bookable FROM "StaffMember" WHERE "userId" = $1`, [other.userId])).rows[0]
+        .bookable,
+    ).toBe(true);
+    // Re-invite still creates a new StaffMember, as before.
+    const { token } = await invite(owner.cookie, 'karim@example.test');
+    expect((await accept(token, { name: 'Karim', password: PASSWORD })).status).toBe(200);
+    expect(
+      await count(`SELECT count(*)::int n FROM "StaffMember" WHERE "userId" = $1`, [gone.userId]),
+    ).toBe(1);
+  });
+
+  it('answers futureAppointments 0 when nothing is upcoming', async () => {
+    const owner = await signup();
+    const staff = await addStaff(owner, 'karim@example.test');
+    expect((await remove(owner.cookie, staff.userId)).body).toEqual({
+      ok: true,
+      futureAppointments: 0,
+    });
   });
 
   it('a removed user can be invited again and accept with the existing account', async () => {
@@ -281,21 +364,28 @@ describe('DELETE /api/team/members/{id}', () => {
     expect((await meWith(owner.cookie)).status).toBe(200);
   });
 
-  it('the last owner can never be removed (409 LAST_OWNER), even by a stale owner context', async () => {
-    const owner = await signup();
+  it('a removed owner whose request is already in flight cannot remove anyone (401, nothing written)', async () => {
+    const a = await signup();
+    const b = await addStaff(a, 'b@example.test', 'B');
+    const c = await addStaff(a, 'c@example.test', 'C');
+    await pg.query(`UPDATE "Membership" SET role = 'OWNER' WHERE "userId" = ANY($1)`, [
+      [b.userId, c.userId],
+    ]);
+    // B passed the session guard, then A removes B. The in-flight service call is B's.
+    expect((await remove(a.cookie, b.userId)).status).toBe(200);
     const ctx = {
-      requestId: 'req-last-owner',
-      logger: childLogger({ requestId: 'req-last-owner' }),
-      businessId: owner.info.business.id as string,
-      userId: 'someone-who-is-no-longer-an-owner',
+      requestId: 'req-stale-actor',
+      logger: childLogger({ requestId: 'req-stale-actor' }),
+      businessId: a.info.business.id as string,
+      userId: b.userId,
       role: 'OWNER' as const,
       sessionId: 'stale',
     };
-    const error = await teamService.removeMember(ctx, ownerId(owner)).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(AppError);
-    expect(error).toMatchObject({ status: 409, code: 'LAST_OWNER' });
-    expect(await count(`SELECT count(*)::int n FROM "Membership"`)).toBe(1);
-    expect((await meWith(owner.cookie)).status).toBe(200);
+    const error = await teamService.removeMember(ctx, c.userId).catch((e: unknown) => e);
+    expect(error).toMatchObject({ status: 401, code: 'UNAUTHENTICATED' });
+    expect(await count(`SELECT count(*)::int n FROM "Membership" WHERE "userId" = $1`, [c.userId])).toBe(1);
+    expect(await count(`SELECT count(*)::int n FROM "Session" WHERE "userId" = $1`, [c.userId])).toBe(1);
+    expect((await meWith(c.cookie)).status).toBe(200);
   });
 
   it('two owners removing each other at the same moment never leave the business without an owner', async () => {
