@@ -3,6 +3,7 @@ import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
 import { businessRepo, type BusinessPatch } from '@/server/repositories/business.repo';
+import { emailVerificationService } from './emailVerification';
 
 async function load(ctx: SessionContext): Promise<BusinessDtoT> {
   const [b, setup] = await Promise.all([
@@ -64,6 +65,8 @@ export const businessService = {
     }
     // Going public needs a bookable business. Checked before anything is written; turning off is always allowed.
     if (data.listed === true) {
+      // Soft verification: going public needs a confirmed owner address (unlisting is always allowed).
+      await emailVerificationService.assertVerified(ctx.userId);
       const setup = await businessRepo.setupFlags(ctx.businessId);
       const missing = [
         ...(setup.hasServices ? [] : ['services']),

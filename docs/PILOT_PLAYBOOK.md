@@ -35,7 +35,7 @@ Details for each step:
 3. Staff: add each practitioner as bookable; tick their services. Add the receptionist (not bookable).
 4. Hours: weekly intervals per staff member (split shifts allowed) + any known time off.
 5. Enter **next week's existing appointments** from the book through front-desk booking.
-6. Invite the receptionist; show them **Reminders due** (it's their first screen) and **Mark outcome**.
+6. **The owner must confirm their email first** (the link in the message sent at signup; the dashboard shows a banner with **Resend email**, 3 per hour) before they can invite staff or list the business in the directory. Everything else works before that. If someone forgets their password: **Forgot password?** on the sign-in page emails a one-hour link (signing out every device). Then invite the receptionist; show them **Reminders due** (it's their first screen) and **Mark outcome**.
 7. Share the booking link: Instagram bio, WhatsApp status, Google Maps profile.
 8. Enter the **baseline** on the Pilot page: from/to dates (up to 31 days, ending today or earlier), **appointments held or missed** (people who came plus no-shows; do NOT count cancellations or late cancels), no-shows, and late cancels (entered separately). Baseline rate = no-shows / appointments, the same measure as the pilot rate.
 

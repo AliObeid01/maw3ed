@@ -70,16 +70,26 @@ export const inviteRepo = {
       const invite = await tx.invite.findFirstOrThrow({
         where: { id: input.inviteId, businessId },
       });
-      const user =
-        'existingId' in input.user
-          ? await tx.user.findUniqueOrThrow({ where: { id: input.user.existingId } })
-          : await tx.user.create({
-              data: {
-                email: invite.email,
-                name: input.user.name,
-                passwordHash: input.user.passwordHash,
-              },
-            });
+      // The invite link was e-mailed to this address, so accepting it proves control of the inbox: the user
+      // is verified (a new user is created verified; an existing unverified one is marked now).
+      const target = input.user;
+      let user;
+      if ('existingId' in target) {
+        await tx.user.updateMany({
+          where: { id: target.existingId, emailVerifiedAt: null },
+          data: { emailVerifiedAt: input.now },
+        });
+        user = await tx.user.findUniqueOrThrow({ where: { id: target.existingId } });
+      } else {
+        user = await tx.user.create({
+          data: {
+            email: invite.email,
+            name: target.name,
+            passwordHash: target.passwordHash,
+            emailVerifiedAt: input.now,
+          },
+        });
+      }
       await tx.membership.create({ data: { businessId, userId: user.id, role: invite.role } });
       await tx.staffMember.create({
         data: { businessId, userId: user.id, displayName: user.name, bookable: false },

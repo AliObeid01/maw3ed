@@ -193,6 +193,104 @@
         ],
         "additionalProperties": false
       },
+      "ForgotPasswordBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ResetPasswordBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ],
+        "additionalProperties": false
+      },
+      "ChangePasswordBody": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "additionalProperties": false
+      },
+      "VerifyEmailBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "additionalProperties": false
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          }
+        },
+        "required": [
+          "ok"
+        ]
+      },
+      "ResendVerification": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "alreadyVerified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "alreadyVerified"
+        ]
+      },
       "SessionInfo": {
         "type": "object",
         "properties": {
@@ -207,12 +305,17 @@
               },
               "email": {
                 "type": "string"
+              },
+              "emailVerified": {
+                "type": "boolean",
+                "description": "False until the address is confirmed (verify link, password reset or accepted staff invite). An unverified owner cannot invite staff or list the business in the directory (409 EMAIL_NOT_VERIFIED)."
               }
             },
             "required": [
               "id",
               "name",
-              "email"
+              "email",
+              "emailVerified"
             ]
           },
           "business": {
@@ -410,7 +513,7 @@
           },
           "listed": {
             "type": "boolean",
-            "description": "Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY)."
+            "description": "Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED) and a ready business (409 NOT_READY)."
           }
         },
         "additionalProperties": false
@@ -3913,6 +4016,317 @@
         }
       }
     },
+    "/api/auth/verify-email": {
+      "post": {
+        "summary": "Confirm an email address with the emailed token (public, single use)",
+        "description": "The token comes from the link in the verification email (valid 24 hours). Unknown, expired, used and wrong-kind tokens are the same 410 LINK_INVALID. The page that shows the link only displays a button: opening the link never changes state, only this POST does.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Address confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "LINK_INVALID (unknown, expired or already used; not distinguished)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/resend-verification": {
+      "post": {
+        "summary": "Send a new verification email to the signed-in user",
+        "description": "Older unused links keep working until one succeeds (at most 5 live per user). Limited to 3 per hour per user and 10 per hour per IP (429 RATE_LIMITED with Retry-After). An already verified user gets 200 with alreadyVerified true and nothing is sent.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sent (or already verified)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResendVerification"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_UNAVAILABLE (the email could not be sent)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/forgot-password": {
+      "post": {
+        "summary": "Ask for a password-reset email (public)",
+        "description": "ALWAYS answers the same 200 whether or not an account exists (no user enumeration); only the rate-limit count happens before the response, the lookup and the email run after it. Past 5 per hour per email address the answer is still the same 200 and nothing is sent (no per-email 429). 10 per hour per IP -> 429 RATE_LIMITED, identical for every email. The link is valid for 1 hour and works once; several links may coexist (at most 5 live) and using one deletes the others.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generic acknowledgement",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/reset-password": {
+      "post": {
+        "summary": "Set a new password with the emailed token (public, single use)",
+        "description": "Sets the new argon2 hash, marks the token used, marks the email verified and REVOKES ALL sessions of that user (it does not sign anyone in). Same password rules as signup (10 to 128 characters). Unknown, expired, used and wrong-kind tokens are the same 410 LINK_INVALID; a weak password is a 400 and does not use up the token.",
+        "tags": [
+          "auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "LINK_INVALID (unknown, expired or already used; not distinguished)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_BUSY (Retry-After: 2)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/change-password": {
+      "post": {
+        "summary": "Change the signed-in user password",
+        "description": "Verifies the current password (a wrong one is a 400 on currentPassword), sets the new hash and revokes all OTHER sessions of the user; the current session stays. Limited to 5 attempts per 15 minutes per user.",
+        "tags": [
+          "auth"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password changed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "SERVICE_BUSY (Retry-After: 2)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/logout": {
       "post": {
         "summary": "Sign out: delete the session and clear the cookie",
@@ -4039,7 +4453,7 @@
             }
           },
           "409": {
-            "description": "ALREADY_MEMBER",
+            "description": "ALREADY_MEMBER, or EMAIL_NOT_VERIFIED when the owner has not confirmed their email yet",
             "content": {
               "application/json": {
                 "schema": {
@@ -4323,7 +4737,7 @@
             }
           },
           "409": {
-            "description": "NOT_READY with `error.data.missing` (services, staff, hours) when `listed: true` is requested too early",
+            "description": "EMAIL_NOT_VERIFIED when `listed: true` is requested before the owner confirmed their email; NOT_READY with `error.data.missing` (services, staff, hours) when it is requested too early",
             "content": {
               "application/json": {
                 "schema": {

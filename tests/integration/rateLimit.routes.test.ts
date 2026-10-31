@@ -1,7 +1,12 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { GET as slugCheck } from '@/app/api/auth/slug-check/route';
+import { POST as changePassword } from '@/app/api/auth/change-password/route';
+import { POST as forgotPassword } from '@/app/api/auth/forgot-password/route';
+import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
+import { POST as resendVerification } from '@/app/api/auth/resend-verification/route';
 import { POST as signupRoute } from '@/app/api/auth/signup/route';
+import { POST as verifyEmail } from '@/app/api/auth/verify-email/route';
 import { GET as inviteGet } from '@/app/api/invites/[token]/route';
 import { POST as inviteAccept } from '@/app/api/invites/[token]/accept/route';
 import { GET as linkGet, POST as linkPost } from '@/app/api/links/[token]/route';
@@ -110,6 +115,36 @@ const CASES: Case[] = [
     handler: inviteAccept,
     path: '/api/invites/nope/accept',
     opts: { method: 'POST', params: { token: 'nope' }, body: {} },
+  },
+  {
+    policy: 'verifyEmail',
+    handler: verifyEmail,
+    path: '/api/auth/verify-email',
+    opts: { method: 'POST', body: {} },
+  },
+  {
+    policy: 'resendVerificationIp',
+    handler: resendVerification,
+    path: '/api/auth/resend-verification',
+    opts: { method: 'POST' },
+  },
+  {
+    policy: 'forgotIp',
+    handler: forgotPassword,
+    path: '/api/auth/forgot-password',
+    opts: { method: 'POST', body: {} },
+  },
+  {
+    policy: 'resetPasswordIp',
+    handler: resetPassword,
+    path: '/api/auth/reset-password',
+    opts: { method: 'POST', body: {} },
+  },
+  {
+    policy: 'changePasswordIp',
+    handler: changePassword,
+    path: '/api/auth/change-password',
+    opts: { method: 'POST', body: {} },
   },
 ];
 

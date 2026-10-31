@@ -59,7 +59,7 @@ export const UpdateBusinessBody = registry.register(
         .openapi({ description: 'Deposit in the business currency (USD placeholder).' }),
       listed: z.boolean().openapi({
         description:
-          'Opt in to the public directory. Turning it on needs a ready business (409 NOT_READY).',
+          'Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED) and a ready business (409 NOT_READY).',
       }),
     })
     .partial()
@@ -246,7 +246,7 @@ registry.registerPath({
     401: e[401],
     403: e[403],
     409: err(
-      'NOT_READY with `error.data.missing` (services, staff, hours) when `listed: true` is requested too early',
+      'EMAIL_NOT_VERIFIED when `listed: true` is requested before the owner confirmed their email; NOT_READY with `error.data.missing` (services, staff, hours) when it is requested too early',
     ),
   },
 });

@@ -16,6 +16,21 @@ const nextConfig: NextConfig = {
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],
       },
       {
+        // Verify-email and reset-password links carry a one-time token in the URL: no Referer, never cached.
+        source: '/verify-email/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
+        source: '/reset-password/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
         // The link token is a bearer secret (it can cancel an appointment): never send it in a Referer header.
         source: '/l/:path*',
         headers: [

@@ -36,6 +36,22 @@ export const RATE_POLICIES = {
   invitePreview: { windowSec: 10 * MIN, limit: 60 },
   /** POST /api/invites/{token}/accept (new users cost an argon2 hash) */
   inviteAccept: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/verify-email (a token guess costs one indexed lookup, but nothing needs more than a few) */
+  verifyEmail: { windowSec: 10 * MIN, limit: 30 },
+  /** POST /api/auth/resend-verification, per ip (each one sends an email) */
+  resendVerificationIp: { windowSec: 60 * MIN, limit: 10 },
+  /** POST /api/auth/resend-verification, per signed-in user (service-level) */
+  resendVerificationUser: { windowSec: 60 * MIN, limit: 3 },
+  /** POST /api/auth/forgot-password, per ip (each known address costs an email) */
+  forgotIp: { windowSec: 60 * MIN, limit: 10 },
+  /** POST /api/auth/forgot-password, per sha256(email), known or not. Past it: same 200, nothing issued or sent. */
+  forgotEmail: { windowSec: 60 * MIN, limit: 5 },
+  /** POST /api/auth/reset-password (each valid attempt costs an argon2 hash) */
+  resetPasswordIp: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/change-password, per ip */
+  changePasswordIp: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/auth/change-password, per signed-in user: bounds guessing the current password (service-level) */
+  changePasswordUser: { windowSec: 15 * MIN, limit: 5 },
   /** Login attempts per (sha256(email), ip). A success clears it. */
   loginEmailIp: { windowSec: 15 * MIN, limit: 5 },
   /** Failed logins per ip across all emails. A success refunds its hit. */

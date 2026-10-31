@@ -15,7 +15,7 @@ Live: https://maw3edlb.com
 - Signed confirm and cancel links (late cancel after the cutoff is recorded separately).
 - Waitlist: join for a service and date range; a cancellation offers the freed slot by email in batches of 3, first claim wins.
 - Dashboard: Today, Reminders due, Mark outcome, Clients and per-client history, front-desk booking, Setup (services, staff, hours, time off, settings, booking link with QR).
-- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database.
+- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and change password in Settings > Account.
 - Pilot report: baseline entry, weekly no-show rate versus baseline with raw counts, CSV export.
 - Deposits (test mode): optional deposit for clients with past no-shows, 15 minute slot hold, pay page.
 - Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and a `/pricing` page.
@@ -137,7 +137,7 @@ All job routes are `POST`, authenticated with the `x-cron-secret` header, and id
 |---|---|---|---|
 | Send due reminders | `/api/jobs/reminders` | every 5 min | cron-job.org, GitHub Actions backup |
 | Expire waitlist offers and lapsed deposit holds, offer freed slots | `/api/jobs/waitlist-expiry` | every 5 min | cron-job.org, GitHub Actions backup |
-| Purge expired sessions, old invites, old rate-limit rows | `/api/jobs/cleanup` | daily (03:00) | cron-job.org, GitHub Actions backup (03:00 UTC) |
+| Purge expired sessions, old invites, used or expired email tokens, old rate-limit rows | `/api/jobs/cleanup` | daily (03:00) | cron-job.org, GitHub Actions backup (03:00 UTC) |
 
 The GitHub backup is `.github/workflows/reminders-backup.yml` and needs the `APP_URL` Actions variable and the `CRON_SECRET` secret. Vercel Hobby cron runs once a day, which is why an external scheduler is used.
 

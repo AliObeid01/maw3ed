@@ -16,7 +16,7 @@ Done:
 Open:
 - [ ] Recruit 3 to 5 pilot businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`).
 - [ ] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves.
-- [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails).
+- [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
 - [ ] Neon usage check (storage and compute hours on the free plan).
 - [ ] Optional: DMARC TXT record (`_dmarc`) and a Sentry DSN.
 - [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.

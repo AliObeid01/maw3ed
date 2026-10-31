@@ -94,6 +94,17 @@ export class AppError extends Error {
       { retryAfterSec },
     );
   }
+  /**
+   * Soft e-mail verification: the account works, but inviting staff and listing in the directory need a
+   * confirmed address. A state precondition (like NOT_READY), so 409 rather than 403.
+   */
+  static emailNotVerified() {
+    return new AppError(
+      409,
+      'EMAIL_NOT_VERIFIED',
+      'Verify your email address first. Use "Resend email" in your dashboard if you need a new link.',
+    );
+  }
   static gone(code: ErrorCode = 'LINK_EXPIRED', message = 'This link has expired.') {
     return new AppError(410, code, message);
   }

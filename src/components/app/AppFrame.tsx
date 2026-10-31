@@ -12,6 +12,7 @@ import { greetingFor } from '@/lib/dashboard/agenda';
 import { errorKey } from '@/lib/setup/errors';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
+import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
 import { defaultHrefs, type ActiveId } from './nav';
@@ -138,6 +139,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
         </>
       }
     >
+      <VerifyBanner />
       {children}
       </AppShell>
       {/* Polite announcement when the badge counts change (the visible digits are hidden from AT). */}

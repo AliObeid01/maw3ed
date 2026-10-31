@@ -8,6 +8,21 @@ export interface NewBusinessInput {
 }
 
 export const accountRepo = {
+  /**
+   * Signed-in password change: new hash, every OTHER session of the user deleted (the current one stays) and
+   * any open reset link invalidated, in one transaction.
+   */
+  changePassword: (input: { userId: string; passwordHash: string; keepSessionId: string }) =>
+    db.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: input.userId }, data: { passwordHash: input.passwordHash } });
+      await tx.session.deleteMany({
+        where: { userId: input.userId, id: { not: input.keepSessionId } },
+      });
+      await tx.emailToken.deleteMany({
+        where: { userId: input.userId, kind: 'RESET', usedAt: null },
+      });
+    }),
+
   /** Business, owner User, OWNER Membership, bookable owner StaffMember and Session in ONE transaction. */
   createBusinessWithOwner: (input: NewBusinessInput) =>
     db.$transaction(async (tx) => {
