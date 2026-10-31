@@ -67,6 +67,7 @@ For each local day in range and each staff member:
 4. "Anyone": union of starts across staff; each slot keeps the candidate staff ids. On booking, the service picks the free
    candidate with the fewest bookings that local day (ties → stable order by staff id).
 The repository loads all inputs for the range in a fixed number of queries (no N+1), keeping NFR-09 (< 300 ms p95).
+**F33 speed:** the profile showed ~60 % of a request in Luxon `IANAZone.offset` (an Intl format on every call, thousands per request). The generator now memoises zone offsets per hour bucket (a bucket that contains a transition is never cached, so DST answers still come from Luxon), memoises local-to-UTC conversions, walks the calendar days once per call, and scans only the time-off/busy intervals that overlap each working interval. Output is proven identical to the pre-change code by `tests/unit/booking/slots.f33.equivalence.test.ts`. These are memoised pure functions of the immutable tz database: no business data is cached.
 
 ### 2. No double booking (Postgres exclusion constraint)
 The hand-written migration `appointment_no_overlap` (see the `db-migration` skill) excludes overlapping
@@ -106,6 +107,7 @@ with GET (no side effect) and act with POST, so email link scanners can't cancel
 ## Key decisions
 | Decision | Why |
 |---|---|
+| No cache of slot inputs or responses (F33) | Measured: after removing the Luxon offset cost the endpoint is bound by row decoding and the domain loop, not by the settings/staff/hours reads, so a TTL cache would save little and add stale-data risk. Slots stay uncached (no CDN/HTTP caching); the booking insert, its friendly re-check and the exclusion constraint always read fresh data. |
 | Exclusion constraint in a hand-written SQL migration | The database is the referee; no application race can create an overlap. Prisma can't express it. |
 | `FOR UPDATE SKIP LOCKED` + unique job key + provider idempotency key | Three independent layers make a duplicate send impossible to record, to claim and to deliver. |
 | External scheduler (cron-job.org) instead of Vercel Cron | Vercel Hobby cron runs once a day; the job route is idempotent, so a backup scheduler is safe. |
