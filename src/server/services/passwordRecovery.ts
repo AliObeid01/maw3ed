@@ -29,60 +29,54 @@ const defaultDeps: RecoveryDeps = {
 
 export const passwordRecoveryService = {
   /**
-   * Public. The answer is the same for every address: a known and an unknown email get an identical 200, the
-   * per-email limit counts both alike (same 429), and the work is shaped alike (a hash and one indexed
-   * database call either way; the email itself goes out after the response). A failure on the known path
-   * (provider down, misconfiguration) is logged and swallowed, otherwise it would reveal that the user exists.
+   * Public. The ONLY work done before the response is counting the per-email limit, so the response path is
+   * identical for every address and its latency cannot reveal whether an account exists. Everything else
+   * (user lookup, membership read, token issue, rendering, sending) runs in `defer`, after the response,
+   * and a failure there is logged, never surfaced. Past the per-email cap (5 per hour) the answer is still the
+   * same 200 and nothing is issued or sent: no per-email 429, so nobody can use the cap to probe an address,
+   * and the per-IP 429 (same for every email) is the only visible limit.
    */
   async forgot(ctx: RouteContext, email: string, deps = defaultDeps): Promise<{ ok: true }> {
     const now = deps.now();
     const decision = await deps.limiter.consume('forgotEmail', emailHash(email));
-    if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+    if (decision.limited) return { ok: true };
 
-    const token = newOpaqueToken();
-    const tokenHash = sha256Hex(token);
-    const user = await userRepo.findByEmail(email);
-    if (!user) {
-      // Same shape of work as the known path: an indexed lookup keyed by a fresh hash.
-      await emailTokenRepo.findUsable('RESET', tokenHash, now);
-      ctx.logger.info('password reset requested for an unknown address');
-      return { ok: true };
-    }
-
-    try {
-      const provider = getEmailProvider();
-      const appUrl = getServerEnv().APP_URL;
-      const membership = await membershipRepo.findLatestForUser(user.id);
-      const row = await emailTokenRepo.issue({
-        userId: user.id,
-        kind: 'RESET',
-        tokenHash,
-        expiresAt: emailTokenExpiry('RESET', now),
-      });
-      const message = accountEmail({
-        kind: 'RESET',
-        url: `${appUrl}/reset-password/${token}`,
-        locale: membership?.business.locale,
-        businessName: membership?.business.name,
-      });
-      await deps.defer(async () => {
-        try {
-          const sent = await provider.send({
-            to: user.email,
-            ...message,
-            idempotencyKey: `reset:${row.id}`,
-          });
-          ctx.logger.info(
-            { userId: user.id, emailTokenId: row.id, providerMessageId: sent.providerMessageId },
-            'password reset email sent',
-          );
-        } catch (error) {
-          ctx.logger.error({ userId: user.id, err: safeError(error) }, 'password reset email failed');
+    await deps.defer(async () => {
+      try {
+        const user = await userRepo.findByEmail(email);
+        if (!user) {
+          ctx.logger.info('password reset requested for an unknown address');
+          return;
         }
-      });
-    } catch (error) {
-      ctx.logger.error({ userId: user.id, err: safeError(error) }, 'password reset email failed');
-    }
+        const provider = getEmailProvider();
+        const appUrl = getServerEnv().APP_URL;
+        const membership = await membershipRepo.findLatestForUser(user.id);
+        const token = newOpaqueToken();
+        const row = await emailTokenRepo.issue({
+          userId: user.id,
+          kind: 'RESET',
+          tokenHash: sha256Hex(token),
+          expiresAt: emailTokenExpiry('RESET', now),
+        });
+        const message = accountEmail({
+          kind: 'RESET',
+          url: `${appUrl}/reset-password/${token}`,
+          locale: membership?.business.locale,
+          businessName: membership?.business.name,
+        });
+        const sent = await provider.send({
+          to: user.email,
+          ...message,
+          idempotencyKey: `reset:${row.id}`,
+        });
+        ctx.logger.info(
+          { userId: user.id, emailTokenId: row.id, providerMessageId: sent.providerMessageId },
+          'password reset email sent',
+        );
+      } catch (error) {
+        ctx.logger.error({ err: safeError(error) }, 'password reset email failed');
+      }
+    });
     return { ok: true };
   },
 

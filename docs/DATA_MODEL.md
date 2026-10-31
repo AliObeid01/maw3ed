@@ -8,7 +8,7 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 |---|---|---|---|
 | Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, address | — | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; deposits are off until `depositEnabled` |
 | User | email, passwordHash, name, emailVerifiedAt | — | email unique (lowercased); can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
-| EmailToken | userId, kind (VERIFY, RESET), tokenHash, expiresAt, usedAt | User | tokenHash unique (only sha256 is stored); single use; VERIFY 24 h, RESET 1 h; a new token of a kind deletes the older unused ones; cleanup purges used or expired rows |
+| EmailToken | userId, kind (VERIFY, RESET), tokenHash, expiresAt, usedAt | User | tokenHash unique (only sha256 is stored); single use; VERIFY 24 h, RESET 1 h; at most 5 live unused tokens per user and kind (oldest deleted); a successful use deletes all the user's unused tokens of that kind; cleanup purges used or expired rows |
 | Session | tokenHash, userId, businessId, expiresAt, lastSeenAt | User, Business | tokenHash unique; 30-day sliding expiry |
 | Membership | role (OWNER, STAFF) | User, Business | unique (userId, businessId) |
 | Invite | email, role, tokenHash, expiresAt, acceptedAt | Business | single use; 72 h expiry |

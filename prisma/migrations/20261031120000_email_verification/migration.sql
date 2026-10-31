@@ -5,7 +5,8 @@
 ALTER TABLE "User" ADD COLUMN "emailVerifiedAt" TIMESTAMPTZ(3);
 
 -- 2. One-time backfill: every user that exists today is treated as verified (they already work and sign in).
---    Only rows still NULL are touched, so re-running changes nothing.
+--    The migration is atomic and is NOT meant to be re-run: it applies once. The backfill only touches rows that
+--    exist at migration time; users created afterwards start unverified (NULL).
 UPDATE "User" SET "emailVerifiedAt" = "createdAt" WHERE "emailVerifiedAt" IS NULL;
 
 -- 3. Tokens. Only the sha256 of the token is stored; the token itself exists only in the e-mailed link.

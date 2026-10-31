@@ -8,6 +8,7 @@ import { POST as createInvite } from '@/app/api/invites/route';
 import { POST as acceptInvite } from '@/app/api/invites/[token]/accept/route';
 import { GET as me } from '@/app/api/me/route';
 import { fakeEmailProvider, setEmailProviderOverride } from '@/server/providers/email';
+import { emailTokenRepo } from '@/server/repositories/emailToken.repo';
 import { sha256Hex } from '@/server/services/crypto';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
@@ -23,6 +24,15 @@ vi.mock('@/server/http/logger', async (importOriginal) => {
   return { ...mod, rootLogger: logger, childLogger: (b: Parameters<typeof mod.childLogger>[0]) => logger.child(b) };
 });
 
+// Deferred work (what runs after the response) can be held back to prove the response does not wait for it.
+const deferral = vi.hoisted(() => ({ hold: false, queue: [] as Array<() => Promise<void>> }));
+vi.mock('@/server/http/afterResponse', () => ({
+  afterResponse: async (task: () => Promise<void>) => {
+    if (deferral.hold) deferral.queue.push(task);
+    else await task();
+  },
+}));
+
 let pg: Client;
 beforeAll(async () => {
   await setupSchema();
@@ -36,6 +46,8 @@ beforeEach(async () => {
   await truncateAll(pg);
   fakeEmailProvider.reset();
   logLines.length = 0;
+  deferral.hold = false;
+  deferral.queue.length = 0;
 });
 
 const tokenIn = (text: string) => /\/verify-email\/([A-Za-z0-9_-]+)/.exec(text)![1]!;
@@ -48,6 +60,23 @@ const dbVerified = async (email: string) =>
     .emailVerifiedAt as Date | null;
 
 describe('signup', () => {
+  it('the verification email is sent AFTER the response, not inline', async () => {
+    deferral.hold = true;
+    const { body, res } = await signup({ verified: false });
+    expect(res.status).toBe(201);
+    expect(fakeEmailProvider.calls).toHaveLength(0);
+    expect(deferral.queue).toHaveLength(1);
+    deferral.hold = false;
+    await deferral.queue.shift()!();
+    expect(fakeEmailProvider.calls).toHaveLength(1);
+    expect(fakeEmailProvider.calls[0]!.to).toBe(body.email);
+  });
+
+  it('a user created by signup after the migration has emailVerifiedAt NULL', async () => {
+    const { body } = await signup({ verified: false });
+    expect(await dbVerified(body.email)).toBeNull();
+  });
+
   it('creates an UNVERIFIED user and sends exactly one verification email', async () => {
     const before = Date.now();
     const { body, cookie, res } = await signup({ verified: false });
@@ -191,7 +220,7 @@ describe('POST /api/auth/resend-verification', () => {
     expect(res.status).toBe(401);
   });
 
-  it('sends a fresh email and invalidates the older unused token', async () => {
+  it('sends a fresh email; the older link keeps working, and using either deletes all the unused ones', async () => {
     const { cookie } = await signup({ verified: false });
     const first = lastVerifyToken();
     const res = await call(resend, '/api/auth/resend-verification', { method: 'POST', cookie });
@@ -200,9 +229,27 @@ describe('POST /api/auth/resend-verification', () => {
     expect(fakeEmailProvider.calls).toHaveLength(2);
     const second = lastVerifyToken();
     expect(second).not.toBe(first);
-    expect((await pg.query(`SELECT 1 FROM "EmailToken" WHERE "usedAt" IS NULL`)).rowCount).toBe(1);
-    expect((await verifyCall(first)).status).toBe(410);
-    expect((await verifyCall(second)).status).toBe(200);
+    const live = `SELECT 1 FROM "EmailToken" WHERE "usedAt" IS NULL`;
+    expect((await pg.query(live)).rowCount).toBe(2);
+    // A failed or lost second email can never leave the user without a working link: the first one works.
+    expect((await verifyCall(first)).status).toBe(200);
+    expect((await pg.query(live)).rowCount).toBe(0);
+    expect((await verifyCall(second)).status).toBe(410);
+  });
+
+  it('keeps at most 5 live unused VERIFY tokens per user (the oldest go first)', async () => {
+    const { body } = await signup({ verified: false });
+    const user = (await pg.query('SELECT id FROM "User" WHERE email = $1', [body.email])).rows[0]
+      .id as string;
+    const expiresAt = new Date(Date.now() + 3_600_000);
+    for (let i = 0; i < 6; i++)
+      await emailTokenRepo.issue({ userId: user, kind: 'VERIFY', tokenHash: `vcap-${i}`, expiresAt });
+    const rows = (
+      await pg.query(`SELECT "tokenHash" FROM "EmailToken" WHERE "userId" = $1 AND kind = 'VERIFY'`, [user])
+    ).rows.map((r) => r.tokenHash as string);
+    expect(rows).toHaveLength(5);
+    expect(rows).not.toContain('vcap-0');
+    expect(rows).toContain('vcap-5');
   });
 
   it('sends nothing when already verified', async () => {

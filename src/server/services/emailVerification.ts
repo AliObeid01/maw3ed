@@ -1,5 +1,6 @@
 import { emailTokenExpiry } from '@/server/domain/emailTokens';
 import { getServerEnv } from '@/server/env';
+import { afterResponse } from '@/server/http/afterResponse';
 import { AppError, safeError } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
 import type { RouteContext, SessionContext } from '@/server/http/withRoute';
@@ -56,8 +57,9 @@ export async function sendVerificationEmail(
 
 export const emailVerificationService = {
   /**
-   * Signup: never fails the signup. If the email cannot be sent the owner can use "Resend email"; the
-   * failure is logged (without recipient or token).
+   * Signup: never fails the signup and never delays it: the token and the email are handled after the
+   * response. If the email cannot be sent the owner can use "Resend email"; the failure is logged (without
+   * recipient or token).
    */
   async sendForNewAccount(
     ctx: RouteContext,
@@ -65,14 +67,16 @@ export const emailVerificationService = {
     business: { id: string; name: string; locale: string },
     now: Date,
   ): Promise<void> {
-    try {
-      await sendVerificationEmail(ctx.logger, user, business, now);
-    } catch (error) {
-      ctx.logger.error(
-        { userId: user.id, businessId: business.id, err: safeError(error) },
-        'verification email failed',
-      );
-    }
+    await afterResponse(async () => {
+      try {
+        await sendVerificationEmail(ctx.logger, user, business, now);
+      } catch (error) {
+        ctx.logger.error(
+          { userId: user.id, businessId: business.id, err: safeError(error) },
+          'verification email failed',
+        );
+      }
+    });
   },
 
   /**

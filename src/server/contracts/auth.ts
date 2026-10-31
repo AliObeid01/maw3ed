@@ -191,7 +191,7 @@ registry.registerPath({
   path: '/api/auth/resend-verification',
   summary: 'Send a new verification email to the signed-in user',
   description:
-    'Older unused verification links stop working. Limited to 3 per hour per user and 10 per hour per IP (429 RATE_LIMITED with Retry-After). An already verified user gets 200 with alreadyVerified true and nothing is sent.',
+    'Older unused links keep working until one succeeds (at most 5 live per user). Limited to 3 per hour per user and 10 per hour per IP (429 RATE_LIMITED with Retry-After). An already verified user gets 200 with alreadyVerified true and nothing is sent.',
   tags: ['auth'],
   security: [{ session: [] }],
   responses: {
@@ -207,7 +207,7 @@ registry.registerPath({
   path: '/api/auth/forgot-password',
   summary: 'Ask for a password-reset email (public)',
   description:
-    'ALWAYS answers the same 200 whether or not an account exists (no user enumeration); the email is only sent when it does. Limited to 3 per hour per email address (known or not) and 10 per hour per IP: the same 429 RATE_LIMITED either way. The link is valid for 1 hour, works once, and a newer request invalidates the older link.',
+    'ALWAYS answers the same 200 whether or not an account exists (no user enumeration); only the rate-limit count happens before the response, the lookup and the email run after it. Past 5 per hour per email address the answer is still the same 200 and nothing is sent (no per-email 429). 10 per hour per IP -> 429 RATE_LIMITED, identical for every email. The link is valid for 1 hour and works once; several links may coexist (at most 5 live) and using one deletes the others.',
   tags: ['auth'],
   request: { body: { content: json(ForgotPasswordBody) } },
   responses: {

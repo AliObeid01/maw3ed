@@ -6,17 +6,27 @@ import { db } from './db';
  * several businesses), so like userRepo these methods are not businessId-scoped; the token IS the credential.
  * Only sha256(token) is ever passed in or stored.
  */
+/** Unused tokens kept per user and kind. */
+export const MAX_LIVE_TOKENS = 5;
+
 export const emailTokenRepo = {
   /**
-   * Store a new token and invalidate the older unused tokens of the same kind for that user, atomically:
-   * after this call only the new link works.
+   * Store a new token. Older unused tokens of the same kind are NOT invalidated (otherwise anyone could kill the
+   * link a user is about to click by asking again); instead at most MAX_LIVE_TOKENS unused tokens are kept per
+   * user and kind and the oldest beyond that are deleted. Several valid links may therefore coexist for at most
+   * their lifetime (1 h reset, 24 h verify); all are single use and all are deleted when one succeeds.
    */
   issue: (data: { userId: string; kind: EmailTokenKind; tokenHash: string; expiresAt: Date }) =>
     db.$transaction(async (tx) => {
-      await tx.emailToken.deleteMany({
+      const created = await tx.emailToken.create({ data });
+      const unused = await tx.emailToken.findMany({
         where: { userId: data.userId, kind: data.kind, usedAt: null },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        select: { id: true },
       });
-      return tx.emailToken.create({ data });
+      const surplus = unused.slice(MAX_LIVE_TOKENS).map((t) => t.id);
+      if (surplus.length) await tx.emailToken.deleteMany({ where: { id: { in: surplus } } });
+      return created;
     }),
 
   /** Read-only: the user a usable (unused, unexpired) token of this kind belongs to. Never changes state. */
@@ -44,6 +54,10 @@ export const emailTokenRepo = {
       await tx.user.updateMany({
         where: { id: token.userId, emailVerifiedAt: null },
         data: { emailVerifiedAt: now },
+      });
+      // Success consumes every other open verification link of this user.
+      await tx.emailToken.deleteMany({
+        where: { userId: token.userId, kind: 'VERIFY', usedAt: null },
       });
       return token.userId;
     }),

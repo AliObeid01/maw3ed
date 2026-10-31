@@ -6,6 +6,8 @@ import { POST as login } from '@/app/api/auth/login/route';
 import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
 import { GET as me } from '@/app/api/me/route';
 import { fakeEmailProvider, setEmailProviderOverride } from '@/server/providers/email';
+import { emailTokenRepo } from '@/server/repositories/emailToken.repo';
+import { userRepo } from '@/server/repositories/user.repo';
 import { sha256Hex } from '@/server/services/crypto';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
@@ -25,6 +27,15 @@ vi.mock('@/server/http/logger', async (importOriginal) => {
   };
 });
 
+// Deferred work (what runs after the response) can be held back to prove the response path does none of it.
+const deferral = vi.hoisted(() => ({ hold: false, queue: [] as Array<() => Promise<void>> }));
+vi.mock('@/server/http/afterResponse', () => ({
+  afterResponse: async (task: () => Promise<void>) => {
+    if (deferral.hold) deferral.queue.push(task);
+    else await task();
+  },
+}));
+
 const NEW_PASSWORD = 'a-brand-new-passphrase';
 
 let pg: Client;
@@ -40,6 +51,8 @@ beforeEach(async () => {
   await truncateAll(pg);
   fakeEmailProvider.reset();
   logLines.length = 0;
+  deferral.hold = false;
+  deferral.queue.length = 0;
 });
 
 const forgotCall = (email: string, headers?: Record<string, string>) =>
@@ -107,14 +120,6 @@ describe('POST /api/auth/forgot-password', () => {
     expect(minutes).toBeLessThan(61);
   });
 
-  it('a new request invalidates the older unused reset link', async () => {
-    const { body, token: first } = await requestReset();
-    await forgotCall(body.email);
-    const second = resetTokenIn(fakeEmailProvider.calls.at(-1)!.text);
-    expect((await resetCall(first)).status).toBe(410);
-    expect((await resetCall(second)).status).toBe(200);
-  });
-
   it('a provider failure still answers the same generic 200', async () => {
     const { body } = await signup();
     process.env.EMAIL_PROVIDER = 'stub';
@@ -134,21 +139,96 @@ describe('POST /api/auth/forgot-password', () => {
     expect(logLines.join('')).toContain('password reset email failed');
   });
 
-  it('is limited to 3 per hour per email, with the same 429 for known and unknown addresses', async () => {
+  it('the response path does NOTHING but the rate-limit count: lookup, token, render and send all run after it, alike for known and unknown emails', async () => {
+    const { body } = await signup();
+    fakeEmailProvider.reset();
+    const find = vi.spyOn(userRepo, 'findByEmail');
+    const issue = vi.spyOn(emailTokenRepo, 'issue');
+    try {
+      for (const email of [body.email, 'ghost@example.test']) {
+        find.mockClear();
+        issue.mockClear();
+        const mailsBefore = fakeEmailProvider.calls.length;
+        deferral.hold = true;
+        const res = await forgotCall(email);
+        // The HTTP response has resolved: nothing else has happened yet.
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ ok: true });
+        expect(find).not.toHaveBeenCalled();
+        expect(issue).not.toHaveBeenCalled();
+        expect(fakeEmailProvider.calls).toHaveLength(mailsBefore);
+        expect(deferral.queue).toHaveLength(1);
+        // ...and then the deferred work runs, with the same first step for both.
+        deferral.hold = false;
+        await deferral.queue.shift()!();
+        expect(find).toHaveBeenCalledTimes(1);
+        expect(issue).toHaveBeenCalledTimes(email === body.email ? 1 : 0);
+      }
+      expect(fakeEmailProvider.calls).toHaveLength(1);
+      expect(fakeEmailProvider.calls[0]!.to).toBe(body.email);
+    } finally {
+      find.mockRestore();
+      issue.mockRestore();
+    }
+  });
+
+  it('several reset links may coexist; using one deletes ALL the others (a new request does not kill the old link)', async () => {
+    const { body } = await signup();
+    fakeEmailProvider.reset();
+    await forgotCall(body.email);
+    await forgotCall(body.email);
+    const [first, second] = fakeEmailProvider.calls.map((m) => resetTokenIn(m.text));
+    expect(first).not.toBe(second);
+    const live = `SELECT 1 FROM "EmailToken" WHERE kind = 'RESET' AND "usedAt" IS NULL`;
+    expect((await pg.query(live)).rowCount).toBe(2);
+    expect((await resetCall(first!)).status).toBe(200);
+    expect((await resetCall(second!)).status).toBe(410);
+    expect((await pg.query(live)).rowCount).toBe(0);
+  });
+
+  it('keeps at most 5 live unused tokens per user and kind (the oldest go first)', async () => {
+    const { body } = await signup();
+    const user = (await pg.query('SELECT id FROM "User" WHERE email = $1', [body.email])).rows[0]
+      .id as string;
+    const expiresAt = new Date(Date.now() + 3_600_000);
+    for (let i = 0; i < 7; i++)
+      await emailTokenRepo.issue({ userId: user, kind: 'RESET', tokenHash: `cap-${i}`, expiresAt });
+    const rows = (
+      await pg.query(
+        `SELECT "tokenHash" FROM "EmailToken" WHERE "userId" = $1 AND kind = 'RESET' ORDER BY "createdAt", "tokenHash"`,
+        [user],
+      )
+    ).rows.map((r) => r.tokenHash as string);
+    expect(rows).toEqual(['cap-2', 'cap-3', 'cap-4', 'cap-5', 'cap-6']);
+    // The other kind is untouched.
+    await emailTokenRepo.issue({ userId: user, kind: 'VERIFY', tokenHash: 'v-1', expiresAt });
+    expect(
+      (await pg.query(`SELECT 1 FROM "EmailToken" WHERE "userId" = $1 AND kind = 'RESET'`, [user]))
+        .rowCount,
+    ).toBe(5);
+  });
+
+  it('past 5 per hour per email the answer is the same 200: nothing issued or sent, no 429, known or unknown', async () => {
     const { body } = await signup();
     const unknownEmail = 'ghost@example.test';
-    for (const email of [body.email, unknownEmail]) {
-      for (let i = 0; i < 3; i++) expect((await forgotCall(email)).status).toBe(200);
+    fakeEmailProvider.reset();
+    for (const email of [body.email, unknownEmail])
+      for (let i = 0; i < 5; i++) expect((await forgotCall(email)).status).toBe(200);
+    expect(fakeEmailProvider.calls).toHaveLength(5);
+    const tokens = `SELECT 1 FROM "EmailToken" WHERE kind = 'RESET'`;
+    const before = (await pg.query(tokens)).rowCount;
+
+    const knownOver = await forgotCall(body.email);
+    const unknownOver = await forgotCall(unknownEmail);
+    for (const r of [knownOver, unknownOver]) {
+      expect(r.status).toBe(200);
+      expect(r.body).toEqual({ ok: true });
     }
-    const knownLimited = await forgotCall(body.email);
-    const unknownLimited = await forgotCall(unknownEmail);
-    expect(knownLimited.status).toBe(429);
-    expect(unknownLimited.status).toBe(429);
-    expect(unknownLimited.body!.error).toEqual(knownLimited.body!.error);
-    expect(knownLimited.body!.error.code).toBe('RATE_LIMITED');
-    expect(Number(knownLimited.headers.get('retry-after'))).toBeGreaterThan(0);
+    expect(fakeEmailProvider.calls).toHaveLength(5);
+    expect((await pg.query(tokens)).rowCount).toBe(before);
     // Another address is unaffected.
     expect((await forgotCall('someone-else@example.test')).status).toBe(200);
+    expect(fakeEmailProvider.calls).toHaveLength(5);
   });
 
   it('400 with fields on a bad email or an unknown field', async () => {

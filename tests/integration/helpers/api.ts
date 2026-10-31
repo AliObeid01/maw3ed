@@ -94,8 +94,12 @@ export async function signup(over: Record<string, unknown> = {}) {
       await pg.end();
     }
   }
-  // Tests that ask for a verified owner are about something else: don't leave the signup verification mail
-  // in the fake outbox where it would be counted as theirs.
-  if (verified) fakeEmailProvider.reset();
+  // Tests that ask for a verified owner are about something else: take only THIS signup's verification mail
+  // out of the fake outbox (other mails, e.g. earlier ones in the same test, stay countable).
+  if (verified) {
+    const calls = fakeEmailProvider.calls;
+    for (let i = calls.length - 1; i >= 0; i--)
+      if (calls[i]!.to === body.email && calls[i]!.text.includes('/verify-email/')) calls.splice(i, 1);
+  }
   return { body, res, cookie: res.cookie as string, info: res.body as Json };
 }
