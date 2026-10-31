@@ -11,8 +11,10 @@ export type OfferScreen =
   | 'taken'
   /** This offer was already claimed (by the person holding the link). */
   | 'claimed'
-  /** Open but not claimable: the waitlist entry is no longer active. */
-  | 'unavailable';
+  /** The client left the waitlist (or staff removed the entry): the request is no longer active. */
+  | 'unavailable'
+  /** Another offer of this same waitlist request was claimed: the client already holds a booking. */
+  | 'alreadyBooked';
 
 /** Milliseconds until the offer ends; 0 once `now` reaches `expiresAt` (exactly at expiry counts as over). */
 export function msLeft(expiresAt: string, nowMs: number): number {
@@ -44,6 +46,10 @@ export function offerScreen(view: Pick<OfferView, 'offer' | 'canClaim'>, serverN
       return 'taken';
     case 'CLAIMED':
       return 'claimed';
+    case 'UNAVAILABLE':
+      return 'unavailable';
+    case 'ALREADY_BOOKED':
+      return 'alreadyBooked';
     default:
       if (view.canClaim) return 'open';
       return isExpired(view.offer.expiresAt, serverNowMs) ? 'expired' : 'unavailable';
@@ -61,19 +67,31 @@ export function announcementFor(expiresAt: string, nowMs: number): Announcement 
   return '';
 }
 
-export type OfferFailure = 'invalid' | 'expired' | 'taken' | 'unavailable' | 'network' | 'tooMany' | 'generic';
+export type OfferFailure =
+  | 'invalid'
+  | 'expired'
+  | 'taken'
+  | 'unavailable'
+  | 'alreadyBooked'
+  | 'network'
+  | 'tooMany'
+  | 'generic';
 
 /**
  * Maps a failed offer request (read or claim) to what the screen shows:
  * 404 = malformed or forged link, 410 = expired, 409 SLOT_TAKEN = someone else got it,
- * 409 CONFLICT = the waitlist entry is no longer open.
+ * 409 ALREADY_BOOKED = this request already holds a booking, any other 409 (WAITLIST_INACTIVE, CONFLICT) =
+ * the waitlist request is no longer active.
  */
 export function classifyOfferError(error: unknown): OfferFailure {
   if (!(error instanceof ApiError)) return 'generic';
   if (error.code === 'NETWORK') return 'network';
   if (error.status === 404 || error.status === 400) return 'invalid';
   if (error.status === 410) return 'expired';
-  if (error.status === 409) return error.code === 'SLOT_TAKEN' ? 'taken' : 'unavailable';
+  if (error.status === 409) {
+    if (error.code === 'SLOT_TAKEN') return 'taken';
+    return error.code === 'ALREADY_BOOKED' ? 'alreadyBooked' : 'unavailable';
+  }
   if (error.status === 429) return 'tooMany';
   return 'generic';
 }

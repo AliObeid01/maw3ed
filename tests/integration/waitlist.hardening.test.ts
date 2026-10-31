@@ -260,11 +260,13 @@ describe('claim bookkeeping', () => {
     const before = (await pg.query('SELECT count(*)::int AS n FROM "Appointment"')).rows[0].n;
     const res = await offerClaim(t2);
     expect(res.status).toBe(409);
-    expect(res.body!.error.code).toBe('CONFLICT');
+    expect(res.body!.error.code).toBe('ALREADY_BOOKED');
     expect((await pg.query('SELECT count(*)::int AS n FROM "Appointment"')).rows[0].n).toBe(before);
 
     await prisma.waitlistEntry.update({ where: { id: e!.entryId }, data: { status: 'CANCELLED' } });
-    expect((await offerClaim(t2)).status).toBe(409);
+    const cancelled = await offerClaim(t2);
+    expect(cancelled.status).toBe(409);
+    expect(cancelled.body!.error.code).toBe('WAITLIST_INACTIVE');
   });
 
   it('repeating a claim whose booking was later cancelled is 409, not the old booking', async () => {

@@ -7,6 +7,7 @@ import {
   offerExpiryFor as tokenExpiryFor,
   signToken,
 } from '@/server/domain/tokens';
+import { offerViewStatus } from '@/server/domain/offerState';
 import { summarizeActivity } from '@/server/domain/waitlistActivity';
 import { matchEntries, offerExpiryFor, OFFER_BATCH_SIZE } from '@/server/domain/waitlistMatch';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
@@ -323,8 +324,22 @@ export async function onSlotFreedOffer(
 
 // ---- offer page and claim ------------------------------------------------------------------------
 
-type ViewStatus = 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN';
-const viewStatus = (s: OfferRow['status']): ViewStatus => (s === 'SUPERSEDED' ? 'TAKEN' : s);
+const viewStatus = (o: OfferRow) => offerViewStatus(o.status, o.entry.status);
+
+/** The 409 for an offer whose waitlist request cannot book any more (the client left, or already booked). */
+function entryInactive(entryStatus: OfferRow['entry']['status']): AppError {
+  return entryStatus === 'FULFILLED'
+    ? AppError.conflict(
+        'ALREADY_BOOKED',
+        undefined,
+        'You already have a booking from this waitlist request.',
+      )
+    : AppError.conflict(
+        'WAITLIST_INACTIVE',
+        undefined,
+        'This waitlist request is no longer active, so the offer cannot be claimed.',
+      );
+}
 
 const price = (v: { toString(): string }) => Number(v.toString());
 
@@ -343,7 +358,7 @@ export const offersService = {
     return {
       offer: {
         id: o.id,
-        status: viewStatus(o.status),
+        status: viewStatus(o),
         startAt: o.startAt,
         endAt: o.endAt,
         expiresAt: o.expiresAt,
@@ -390,16 +405,12 @@ export const offersService = {
     const now = deps.now();
     if (o.status === 'EXPIRED' || (o.status === 'OPEN' && now.getTime() >= o.expiresAt.getTime()))
       throw AppError.gone('OFFER_EXPIRED', 'This offer has expired.');
+    // An entry that is already fulfilled (another slot claimed) or cancelled (the client left) must not
+    // book anything new, and says why. A CLAIMED offer is the replay path and goes on to book() with the same key.
+    if (o.status !== 'CLAIMED' && o.entry.status !== 'OPEN') throw entryInactive(o.entry.status);
+    // Superseded while the entry is still waiting: the slot really went to someone else.
     if (o.status === 'SUPERSEDED')
       throw AppError.conflict('SLOT_TAKEN', { slots: [] }, 'Someone else took this spot.');
-    // An entry that is already fulfilled (another slot claimed) or cancelled must not book anything new.
-    // A CLAIMED offer is the replay path and goes on to book() with the same key.
-    if (o.status !== 'CLAIMED' && o.entry.status !== 'OPEN')
-      throw AppError.conflict(
-        'CONFLICT',
-        undefined,
-        'This waitlist entry is no longer active, so the offer cannot be claimed.',
-      );
 
     // F21 for deposits: a live deposit hold made through another offer of this entry keeps the entry
     // reserved until that hold is paid, swept or abandoned (the 60 s lease alone would go stale).

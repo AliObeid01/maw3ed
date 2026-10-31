@@ -1366,7 +1366,12 @@
     },
     "unavailable": {
       "title": "This offer can't be claimed",
-      "body": "Your waitlist request is no longer active.",
+      "body": "Your waitlist request is no longer active, so this offer can't be booked. Join the waitlist again if you still want a spot.",
+      "action": "See free times"
+    },
+    "alreadyBooked": {
+      "title": "You already have a booking",
+      "body": "A spot from this waitlist request is already booked for you, so this one isn't needed. Check your email for the booking.",
       "action": "See free times"
     },
     "invalid": {
