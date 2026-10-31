@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { clockNow } from '../helpers/clock';
 import { DateTime } from 'luxon';
 import { trackIntlErrors } from '../helpers/intlErrors';
 import { setRole } from '../helpers/mockApi';
@@ -18,7 +19,7 @@ test.afterEach(() => {
 });
 
 const MAYA = client('clmaya', 'Maya Khoury', '+96171234567');
-const today = () => DateTime.now().setZone(TZ);
+const today = () => clockNow().setZone(TZ);
 const ymd = (dt: DateTime) => dt.toISODate()!;
 const BASELINE: Baseline = {
   fromDate: ymd(today().minus({ days: 40 })),

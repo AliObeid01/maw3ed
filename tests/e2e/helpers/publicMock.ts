@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
+import { clockNow, freezeClock, nowMs } from './clock';
 import { normalizePhone } from '../../../src/server/domain/phone';
 
 /**
@@ -112,7 +113,7 @@ export type BookingCall = {
 
 /** The next local day (tomorrow or later) that has slots in the mock: never a Sunday. */
 export function firstBookableDay(): string {
-  let day = DateTime.now().setZone(TZ).startOf('day').plus({ days: 1 });
+  let day = clockNow().setZone(TZ).startOf('day').plus({ days: 1 });
   while (day.weekday === 7) day = day.plus({ days: 1 });
   return day.toISODate()!;
 }
@@ -125,8 +126,8 @@ function slotsFor(
   booked: string[],
 ) {
   const out: { startAt: string; endAt: string; staffId?: string }[] = [];
-  const today = DateTime.now().setZone(TZ).startOf('day');
-  const earliest = DateTime.now().plus({ minutes: MIN_NOTICE_MIN });
+  const today = clockNow().setZone(TZ).startOf('day');
+  const earliest = clockNow().plus({ minutes: MIN_NOTICE_MIN });
   let day = DateTime.fromISO(from, { zone: TZ });
   const last = DateTime.fromISO(to, { zone: TZ });
   while (day <= last) {
@@ -151,6 +152,7 @@ function slotsFor(
 }
 
 export async function mockPublicApi(page: Page, options: PublicMockOptions = {}) {
+  await freezeClock(page);
   const taken = new Set<string>();
   const bookings = new Map<string, { body: BookingCall['body']; phone: string; result: unknown }>();
   const calls: BookingCall[] = [];
@@ -195,7 +197,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
       const first = DateTime.fromISO(from, { zone: 'utc' });
       const last = DateTime.fromISO(to, { zone: 'utc' });
       const span = Math.round(last.diff(first, 'days').days) + 1;
-      const today = DateTime.now().setZone(TZ);
+      const today = clockNow().setZone(TZ);
       const limit = DateTime.fromObject({ year: today.year, month: today.month, day: today.day }, { zone: 'utc' }).plus({
         days: windowDays,
       });
@@ -289,7 +291,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
 
     // Minimum notice and already-booked slots are a 409 with fresh slots, like the real booking path.
     const startMs = Date.parse(body.startAt);
-    if (taken.has(body.startAt) || startMs < Date.now() + MIN_NOTICE_MIN * 60_000) {
+    if (taken.has(body.startAt) || startMs < nowMs() + MIN_NOTICE_MIN * 60_000) {
       return apiError(route, 409, 'SLOT_TAKEN', { data: { slots: freshSlots() } });
     }
 
@@ -337,7 +339,7 @@ export type LinkMock = {
 };
 
 export function linkBody(mock: LinkMock = {}, patch: { pastCutoff?: boolean; status?: string } = {}) {
-  const start = DateTime.now().setZone(TZ).plus({ days: 2 }).set({ hour: 10, minute: 30, second: 0, millisecond: 0 });
+  const start = clockNow().setZone(TZ).plus({ days: 2 }).set({ hour: 10, minute: 30, second: 0, millisecond: 0 });
   const status = patch.status ?? mock.status ?? 'BOOKED';
   return {
     act: mock.act ?? 'confirm',
@@ -359,6 +361,7 @@ export function linkBody(mock: LinkMock = {}, patch: { pastCutoff?: boolean; sta
 }
 
 export async function mockLinkApi(page: Page, mock: LinkMock = {}) {
+  await freezeClock(page);
   const calls: { method: string; token: string; body?: unknown }[] = [];
   let gets = 0;
   let conflicted = false;

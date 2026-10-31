@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
+import { clockNow, freezeClock, FIXED_NOW } from './clock';
 import { catalogue, IDS, SLUG, TZ } from './publicMock';
 
 /**
@@ -36,6 +37,7 @@ export type JoinOptions = {
 };
 
 export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
+  await freezeClock(page);
   const calls: JoinBody[] = [];
   let open = options.existingOpen ?? 0;
   let first: unknown;
@@ -56,7 +58,7 @@ export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
       if (!person || !(person.serviceIds as string[]).includes(body.serviceId)) fields.staffId = 'Invalid staff.';
     }
     const date = /^\d{4}-\d{2}-\d{2}$/;
-    const today = DateTime.now().setZone(TZ).startOf('day');
+    const today = clockNow().setZone(TZ).startOf('day');
     const from = DateTime.fromISO(body.fromDate ?? '', { zone: 'utc' });
     const to = DateTime.fromISO(body.toDate ?? '', { zone: 'utc' });
     if (!date.test(body.fromDate ?? '') || !from.isValid) fields.fromDate = 'Use a date like 2026-11-10.';
@@ -114,9 +116,10 @@ export type OfferMock = {
 };
 
 export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
+  await freezeClock(page);
   const calls: { method: string; token: string; body?: unknown; contentType?: string }[] = [];
-  const start = DateTime.now().setZone(TZ).plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
-  const expiresAt = DateTime.now().plus({ minutes: mock.expiresInMin ?? 28 });
+  const start = clockNow().setZone(TZ).plus({ days: 1 }).set({ hour: 15, minute: 0, second: 0, millisecond: 0 });
+  const expiresAt = clockNow().plus({ minutes: mock.expiresInMin ?? 28 });
   let booked: unknown;
   let dropped = false;
   await page.route('**/api/offers/**', async (route) => {
@@ -139,7 +142,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
       return route.fulfill({
         status: 200,
         contentType: 'application/json',
-        headers: mock.noDateHeader ? {} : { date: new Date().toUTCString() },
+        headers: mock.noDateHeader ? {} : { date: FIXED_NOW.toUTCString() },
         body: JSON.stringify({
         offer: {
           id: 'of1',

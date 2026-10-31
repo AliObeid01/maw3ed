@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { freezeClock, nowMs } from './clock';
 import { rules, validate, validateHours } from './serverRules';
 
 /**
@@ -178,6 +179,7 @@ export type MockOptions = {
 
 /** Registers the mock; returns the state and the list of calls the page made. */
 export async function mockSetupApi(page: Page, options: MockOptions = {}) {
+  await freezeClock(page);
   const state = options.state ?? defaultState();
   const calls: MockCalls = [];
   let counter = 100;
@@ -305,7 +307,7 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
       }
       // Like the server: only upcoming and ongoing time off unless ?includePast=1.
       const includePast = ['1', 'true'].includes(url.searchParams.get('includePast') ?? '');
-      const now = Date.now();
+      const now = nowMs();
       const items = (state.timeOff[id] ?? []).filter(
         (i) => includePast || new Date(i.endAt as string).getTime() >= now,
       );
@@ -348,5 +350,6 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
 
 /** Marks the browser session as OWNER or STAFF (read by the fake-session switch in the dev server). */
 export async function setRole(page: Page, role: 'OWNER' | 'STAFF', baseURL: string) {
+  await freezeClock(page);
   await page.context().addCookies([{ name: 'e2e_role', value: role, url: baseURL }]);
 }

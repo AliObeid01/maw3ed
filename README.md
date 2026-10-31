@@ -116,6 +116,8 @@ Three levels, so feedback is fast and CI is the full verdict:
 2. Once before a pull request: lint, typecheck, unit tests, the integration files for the touched area, i18n keys, `openapi:check` if the API changed, and a build.
 3. After the pull request opens: GitHub Actions (`.github/workflows/ci.yml`) runs everything against a throwaway Postgres 16: migrate, lint, typecheck, unit, integration, build, OpenAPI contract and i18n keys, plus a parallel `e2e` job (Playwright, chromium only: public specs and dashboard specs on the mobile projects, `shell.spec.ts` at desktop width; the report is uploaded on failure). The full integration and e2e suites are not run locally: run only the spec you touched.
 
+E2E specs never depend on the real clock (time of day, midnight in Beirut, CI running in UTC). Every mocked spec freezes the browser clock and derives its dates from `tests/e2e/helpers/clock.ts` (`FIXED_NOW`, default Wed 4 Nov 2026 10:00 Beirut; `clockNow()`, `nowMs()`, `freezeClock(page)`). To check a spec at another time: `E2E_NOW=2026-11-04T23:55:00+02:00 pnpm exec playwright test --project=dashboard-mobile --workers=2 <spec>`. Never call `Date.now()` or `DateTime.now()` in a spec or mock.
+
 ## Deploys and migrations
 
 The app deploys to Vercel; production is https://maw3edlb.com. Vercel runs the `vercel-build` script (`scripts/vercel-build.mjs`):

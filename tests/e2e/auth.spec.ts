@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test';
+import { freezeClock, nowMs } from './helpers/clock';
 
 // Self-contained: every API call is answered by page.route, so no database or backend is needed.
 
@@ -13,10 +14,11 @@ const invite = {
   businessName: 'Studio Nour',
   email: 'rana@example.com',
   role: 'STAFF',
-  expiresAt: new Date(Date.now() + 6 * 86_400_000).toISOString(),
+  expiresAt: new Date(nowMs() + 6 * 86_400_000).toISOString(),
 };
 
 async function mockInvite(page: Page, accept: (route: Route) => unknown) {
+  await freezeClock(page);
   await page.route('**/api/invites/tok', (route) => json(route, 200, invite));
   await page.route('**/api/invites/tok/accept', accept);
 }
