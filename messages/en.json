@@ -352,11 +352,7 @@
       "invites": {
         "title": "Receptionist logins",
         "body": "Invite someone to run the calendar. They join as Staff.",
-        "cta": "Invite receptionist",
-        "pending": "Pending invites",
-        "expires": "Expires {date}",
-        "loadFailed": "Could not load pending invites.",
-        "retry": "Try again"
+        "cta": "Invite receptionist"
       },
       "invite": {
         "title": "Invite receptionist",
@@ -512,6 +508,17 @@
           "rateLimited": "Too many attempts. Wait a few minutes and try again.",
           "generic": "Something went wrong. Please try again.",
           "network": "We can't reach the server. Check your connection and try again."
+        },
+        "others": {
+          "title": "Other devices",
+          "body": "Signs you out everywhere else, in every business you belong to. This device stays signed in.",
+          "cta": "Sign out other devices",
+          "confirmTitle": "Sign out other devices?",
+          "confirmBody": "Every other browser or phone signed in to your account will be signed out. This device stays signed in.",
+          "confirm": "Sign out other devices",
+          "cancel": "Cancel",
+          "close": "Close",
+          "done": "{count, plural, =0 {No other devices were signed in.} one {# other device was signed out.} other {# other devices were signed out.}}"
         }
       }
     },
@@ -810,6 +817,46 @@
         }
       },
       "exportClamped": "Exports the latest {count} days, the most the server allows."
+    }
+  },
+  "team": {
+    "title": "Team access",
+    "loading": "Loading…",
+    "summary": "{people, plural, one {# person} other {# people}} · {pending, plural, =0 {no pending invites} one {# pending invite} other {# pending invites}}",
+    "invite": "Invite someone",
+    "membersLabel": "People with access",
+    "pending": "Pending invites",
+    "expires": "Expires {date}",
+    "you": "(you)",
+    "role": {
+      "owner": "Owner",
+      "staff": "Staff"
+    },
+    "verified": "Email verified",
+    "unverified": "Email not verified",
+    "remove": "Remove access",
+    "removeFor": "Remove access for {name}",
+    "revoke": "Revoke",
+    "revokeFor": "Revoke the invite for {email}",
+    "cancel": "Cancel",
+    "close": "Close",
+    "loadFailed": "Could not load the team.",
+    "retry": "Try again",
+    "removed": "Access removed for {name}.",
+    "revoked": "Invite revoked.",
+    "confirmRemove": {
+      "title": "Remove access for {name}?",
+      "body": "They will be signed out immediately and can no longer open the dashboard. Appointments and the calendar entry are not deleted.",
+      "confirm": "Remove access"
+    },
+    "confirmRevoke": {
+      "title": "Revoke this invite?",
+      "body": "The link sent to {email} stops working immediately.",
+      "confirm": "Revoke invite"
+    },
+    "errors": {
+      "lastOwner": "A business must keep at least one owner.",
+      "self": "You cannot remove your own access."
     }
   },
   "auth": {

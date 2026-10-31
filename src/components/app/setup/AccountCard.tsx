@@ -1,14 +1,16 @@
 'use client';
 
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, LogOut } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useId, useRef, useState, type FormEvent } from 'react';
 import { PasswordField, PasswordStrength } from '@/components/auth/PasswordField';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
+import { ConfirmSheet } from '../ConfirmSheet';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError, changePassword } from '@/lib/api/auth';
+import { signOutOtherSessions } from '@/lib/api/team';
 import { PASSWORD_MAX, PASSWORD_MIN } from '@/lib/auth/password';
 
 type Errors = { current?: string; next?: string };
@@ -24,6 +26,9 @@ export function AccountCard() {
   const [errors, setErrors] = useState<Errors>({});
   const [banner, setBanner] = useState<string>();
   const [pending, setPending] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [others, setOthers] = useState<{ text: string; failed: boolean }>();
 
   const focusFirstInvalid = () =>
     requestAnimationFrame(() =>
@@ -69,6 +74,29 @@ export function AccountCard() {
       }
     } finally {
       setPending(false);
+    }
+  }
+
+  async function signOutOthers() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      const { removed } = await signOutOtherSessions();
+      const text = t('others.done', { count: removed });
+      setOthers({ text, failed: false });
+      toast.show(text);
+    } catch (error) {
+      const text =
+        error instanceof ApiError && error.status === 429
+          ? t('errors.rateLimited')
+          : error instanceof ApiError && error.code === 'NETWORK'
+            ? t('errors.network')
+            : t('errors.generic');
+      setOthers({ text, failed: true });
+      toast.show(text, 'error');
+    } finally {
+      setSigningOut(false);
+      setConfirmOpen(false);
     }
   }
 
@@ -124,6 +152,40 @@ export function AccountCard() {
           {t('submit')}
         </Button>
       </form>
+
+      <div className="flex flex-col gap-3 border-t border-row pt-4">
+        <div className="flex flex-col gap-1">
+          <h3 className="m-0 text-base font-semibold">{t('others.title')}</h3>
+          <p className="m-0 text-sm text-muted">{t('others.body')}</p>
+        </div>
+        <Button
+          variant="secondary"
+          size="lg"
+          className="self-start"
+          onClick={() => setConfirmOpen(true)}
+        >
+          <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+          {t('others.cta')}
+        </Button>
+        <p
+          aria-live="polite"
+          className={others?.failed ? 'm-0 text-sm text-danger' : 'm-0 text-sm text-muted'}
+        >
+          {others?.text}
+        </p>
+      </div>
+
+      <ConfirmSheet
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title={t('others.confirmTitle')}
+        description={t('others.confirmBody')}
+        confirmLabel={t('others.confirm')}
+        cancelLabel={t('others.cancel')}
+        closeLabel={t('others.close')}
+        pending={signingOut}
+        onConfirm={signOutOthers}
+      />
     </Card>
   );
 }

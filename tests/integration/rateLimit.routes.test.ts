@@ -5,6 +5,7 @@ import { POST as changePassword } from '@/app/api/auth/change-password/route';
 import { POST as forgotPassword } from '@/app/api/auth/forgot-password/route';
 import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
 import { POST as resendVerification } from '@/app/api/auth/resend-verification/route';
+import { POST as signOutOthers } from '@/app/api/auth/sign-out-others/route';
 import { POST as signupRoute } from '@/app/api/auth/signup/route';
 import { POST as verifyEmail } from '@/app/api/auth/verify-email/route';
 import { GET as inviteGet } from '@/app/api/invites/[token]/route';
@@ -145,6 +146,12 @@ const CASES: Case[] = [
     handler: changePassword,
     path: '/api/auth/change-password',
     opts: { method: 'POST', body: {} },
+  },
+  {
+    policy: 'signOutOthersIp',
+    handler: signOutOthers,
+    path: '/api/auth/sign-out-others',
+    opts: { method: 'POST' },
   },
 ];
 

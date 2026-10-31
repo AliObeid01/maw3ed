@@ -15,7 +15,7 @@ Live: https://maw3edlb.com
 - Signed confirm and cancel links (late cancel after the cutoff is recorded separately).
 - Waitlist: join for a service and date range; a cancellation offers the freed slot by email in batches of 3, first claim wins.
 - Dashboard: Today, Reminders due, Mark outcome, Clients and per-client history, front-desk booking, Setup (services, staff, hours, time off, settings, booking link with QR).
-- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and change password in Settings > Account.
+- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and change password in Settings > Account; team access: the owner removes a departed member (their sessions for that business end in the same transaction), lists and revokes pending invites, and anyone can sign out their other devices.
 - Pilot report: baseline entry, weekly no-show rate versus baseline with raw counts, CSV export.
 - Deposits (test mode): optional deposit for clients with past no-shows, 15 minute slot hold, pay page.
 - Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and a `/pricing` page.
