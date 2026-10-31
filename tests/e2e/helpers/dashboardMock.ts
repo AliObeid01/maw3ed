@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
+import { clockNow, freezeClock } from './clock';
 import { normalizePhone } from '../../../src/server/domain/phone';
 import { catalogue, IDS, SLUG, TZ } from './publicMock';
 
@@ -79,10 +80,10 @@ const iso = (dt: DateTime) => dt.toUTC().toISO({ suppressMilliseconds: true })!;
 
 /** Local time today (business zone) as a UTC instant. `dayOffset` moves by calendar days. */
 export function at(hour: number, minute = 0, dayOffset = 0): string {
-  const day = DateTime.now().setZone(TZ).startOf('day').plus({ days: dayOffset });
+  const day = clockNow().setZone(TZ).startOf('day').plus({ days: dayOffset });
   return iso(day.set({ hour, minute }));
 }
-export const todayLocal = () => DateTime.now().setZone(TZ).toISODate()!;
+export const todayLocal = () => clockNow().setZone(TZ).toISODate()!;
 
 const MAYA = { id: 'cl-maya', name: 'Maya Haddad', phone: '+96170555218', noShows: 2 };
 const NADINE = { id: 'cl-nadine', name: 'Nadine Aoun', phone: '+96176418902', noShows: 2 };
@@ -144,7 +145,7 @@ const STAFF_BY_ID = Object.fromEntries(catalogue.staff.map((s) => [s.id, s]));
 /** Free slots: from the next quarter hour today (the front-desk API has no minimum notice), then 09:00-17:00. */
 function slotsFor(from: string, to: string, staffId: string | undefined, takenStarts: Set<string>) {
   const out: { startAt: string; endAt: string; staffId?: string }[] = [];
-  const now = DateTime.now().setZone(TZ);
+  const now = clockNow().setZone(TZ);
   const earliest = now.plus({ minutes: 15 - (now.minute % 15) }).startOf('minute');
   let day = DateTime.fromISO(from, { zone: TZ });
   const last = DateTime.fromISO(to, { zone: TZ });
@@ -166,6 +167,7 @@ function slotsFor(from: string, to: string, staffId: string | undefined, takenSt
 }
 
 export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
+  await freezeClock(page);
   const appointments = options.appointments ?? defaultAppointments();
   const reminders = options.reminders ?? defaultReminders();
   const calls: DashCall[] = [];
@@ -309,7 +311,7 @@ export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
       }
       reminder.status = 'SENT';
       reminder.sentBy = ME;
-      reminder.sentAt = iso(DateTime.now());
+      reminder.sentAt = iso(clockNow());
       return json(route, 200, {
         id: reminder.id,
         status: 'SENT',

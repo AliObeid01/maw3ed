@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { nowDate } from '../helpers/clock';
 import { mockDashboardApi } from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';
 
@@ -58,6 +59,8 @@ test('a double tap opens WhatsApp once and records once', async ({ page }) => {
   await page.goto('/app/reminders');
   let opened = 0;
   page.context().on('page', () => (opened += 1));
+  // The new tab opens asynchronously: wait for it instead of hoping 300 ms is enough on a slow runner.
+  const firstTab = page.context().waitForEvent('page');
   await row(page, 'Nadine Aoun')
     .getByRole('link', { name: /Send the reminder/ })
     .evaluate((el: HTMLElement) => {
@@ -65,6 +68,7 @@ test('a double tap opens WhatsApp once and records once', async ({ page }) => {
       el.click();
     });
   await expect(row(page, 'Nadine Aoun')).toContainText('Sent by');
+  await firstTab;
   await page.waitForTimeout(300);
   expect(opened).toBe(1);
   expect(calls.filter((c) => c.path.endsWith('/mark-sent'))).toHaveLength(1);
@@ -84,7 +88,9 @@ test('a failed mark-sent after WhatsApp opened shows a retry that does not reope
   await page.goto('/app/reminders');
   let opened = 0;
   page.context().on('page', () => (opened += 1));
+  const firstTab = page.context().waitForEvent('page');
   await row(page, 'Nadine Aoun').getByRole('link', { name: /Send the reminder/ }).click();
+  await firstTab;
   const alert = row(page, 'Nadine Aoun').getByRole('alert');
   await expect(alert).toContainText('could not record it as sent');
   await expect(alert).toContainText('may already be sent');
@@ -105,7 +111,7 @@ test('the list refreshes when the window regains focus (another device sent one)
   const maya = reminders.find((r) => r.id === 'rm2')!;
   maya.status = 'SENT';
   maya.sentBy = { id: 'u-rana', name: 'Rana' };
-  maya.sentAt = new Date().toISOString();
+  maya.sentAt = nowDate().toISOString();
   await page.evaluate(() => window.dispatchEvent(new Event('focus')));
   await expect(row(page, 'Maya Haddad')).toContainText('Sent by Rana');
   await expect(page.getByRole('status').filter({ hasText: '2 to send' })).toBeVisible();

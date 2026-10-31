@@ -70,6 +70,7 @@ pnpm design:extract    # unpack design boards to design/screens
   1. While coding: `pnpm typecheck` plus only the test file or Playwright spec you touched (`--workers=2`). Integration files run against local Docker Postgres (`docker compose up -d db`, `DATABASE_URL_TEST=postgresql://maw3ed:maw3ed@localhost:5432/maw3ed_test`), about 8 s each.
   2. Once before the PR: lint, typecheck, unit, the integration files for the touched area, i18n keys, `openapi:check` if the API changed, build.
   3. After the PR opens: CI runs everything, including the Playwright `e2e` job. Never run the full integration or e2e suite locally (about 4 min); never re-verify after green; pipe output through `| tail -30`.
+  - e2e specs must not depend on the real clock: freeze it and derive every mock date from `tests/e2e/helpers/clock.ts` (`FIXED_NOW`, `clockNow()`, `freezeClock(page)`; override with `E2E_NOW`).
 - Keep tasks small and clear: one screen or one endpoint group per agent, an explicit scope, and a stop rule. Related tasks may share one PR.
 - TDD for `src/server/domain` and services (`superpowers:test-driven-development`).
 - Before claiming done: run the `ship-check` skill (or at least lint + typecheck + affected tests).

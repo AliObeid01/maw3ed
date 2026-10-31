@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { freezeClock, ORIGIN } from './helpers/clock';
 import { TZ } from './helpers/publicMock';
 import { mockOfferApi, type OfferMock } from './helpers/waitlistMock';
 
@@ -99,7 +100,7 @@ test('a dropped connection on claim shows a retry that books', async ({ page }) 
 });
 
 test('the countdown updates politely every 30 s without moving the layout', async ({ page }) => {
-  await page.clock.install({ time: new Date() });
+  await freezeClock(page);
   await open(page, { expiresInMin: 28 });
   const box = page.getByTestId('expiry');
   await expect(box).toContainText(/2[789] minutes left/);
@@ -128,14 +129,14 @@ test('a SUPERSEDED offer (TAKEN on GET) is the taken screen with no Book button'
 
 test.describe('device clock skew', () => {
   test('a slow device clock (10 min behind) still shows the server countdown', async ({ page }) => {
-    await page.clock.install({ time: new Date(Date.now() - 10 * 60_000) });
+    await freezeClock(page, -10 * 60_000);
     await open(page, { expiresInMin: 28 });
     await expect(page.getByTestId('expiry')).toContainText(/2[789] minutes left/);
     await expect(book(page)).toBeEnabled();
   });
 
   test('a fast device clock (40 min ahead) does not turn an open offer into an expired one', async ({ page }) => {
-    await page.clock.install({ time: new Date(Date.now() + 40 * 60_000) });
+    await freezeClock(page, +40 * 60_000);
     const { calls } = await open(page, { expiresInMin: 28 });
     await expect(page.getByTestId('expiry')).toContainText(/2[789] minutes left/);
     await expect(book(page)).toBeEnabled();
@@ -148,7 +149,7 @@ test.describe('device clock skew', () => {
   test('without a Date header and a clock past expiry: Book is disabled with the ended text, no expired screen, nothing is sent', async ({
     page,
   }) => {
-    await page.clock.install({ time: new Date(Date.now() + 40 * 60_000) });
+    await freezeClock(page, +40 * 60_000);
     const { calls } = await open(page, { expiresInMin: 28, noDateHeader: true });
     await expect(page.getByTestId('expiry')).toContainText('Offer ended at');
     await expect(book(page)).toBeDisabled();
@@ -160,7 +161,7 @@ test.describe('device clock skew', () => {
 test('the visible countdown is not a live region; a hidden one speaks only at 10, 5 and 1 minute and expiry', async ({
   page,
 }) => {
-  await page.clock.install({ time: new Date() });
+  await freezeClock(page);
   await open(page, { expiresInMin: 28 });
   await expect(page.getByTestId('expiry')).not.toHaveAttribute('aria-live', /.+/);
   const live = page.getByTestId('expiry-live');
@@ -180,14 +181,14 @@ test('the visible countdown is not a live region; a hidden one speaks only at 10
 test('a dotted token with ?lang=ar sets the language cookie and strips the parameter', async ({ page, context }) => {
   await mockOfferApi(page);
   await page.goto('/o/tok.abc?lang=ar');
-  await expect(page).toHaveURL('http://localhost:3000/o/tok.abc');
+  await expect(page).toHaveURL(`${ORIGIN}/o/tok.abc`);
   expect((await context.cookies()).find((c) => c.name === 'locale')?.value).toBe('ar');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByRole('heading', { name: 'توفر موعد للتو' })).toBeVisible();
 });
 
 test('Arabic: RTL, translated expiry text, times and money isolated as LTR', async ({ page, context }) => {
-  await context.addCookies([{ name: 'locale', value: 'ar', url: 'http://localhost:3000' }]);
+  await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
   await mockOfferApi(page);
   await page.goto('/o/tok.abc');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

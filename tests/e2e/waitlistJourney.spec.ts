@@ -156,9 +156,17 @@ async function overlappingRows() {
 }
 
 test.beforeAll(async () => {
+  // Real server clock on purpose (the only real-stack spec). All dates are computed in the BUSINESS zone, two
+  // days ahead, so neither the runner's zone nor today's remaining slots matter. The Today view and the day
+  // labels would shift if the business day rolled over mid-run, so do not start in the last minutes of it.
+  const nowLocal = DateTime.now().setZone(TZ);
+  const minutesToMidnight = nowLocal.endOf('day').diff(nowLocal, 'minutes').minutes;
+  test.skip(
+    minutesToMidnight < 5,
+    `within 5 minutes of midnight in ${TZ} (${nowLocal.toFormat('HH:mm')}): the business day would roll over mid-journey; run again shortly`,
+  );
   resetOutbox();
-  const base = DateTime.now().setZone(TZ).startOf('day');
-  day = base.plus({ days: 2 });
+  day = nowLocal.startOf('day').plus({ days: 2 });
 });
 
 // ---- 1. setup and the first booking ----------------------------------------------------------------------------
@@ -326,7 +334,9 @@ test('3. W1 and W2 tap "Book this slot" at the same moment: exactly one booking,
       await expect(claimButton(p)).toBeEnabled();
     }
     await expect(
-      p1.getByText(`Offer expires at ${localTime((await offersOf(aAppointmentId))[0].expiresAt)}`),
+      p1.getByText(
+        `Offer expires at ${DateTime.fromJSDate((await offersOf(aAppointmentId))[0].expiresAt, { zone: TZ }).toFormat('H:mm')}`,
+      ),
     ).toBeVisible();
     expect(
       await sql(

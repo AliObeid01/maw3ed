@@ -6,6 +6,8 @@ import {
   OUTBOX_FILE,
   RESEND_STUB,
 } from './tests/e2e/helpers/journeyEnv';
+// Importing the clock also fixes the shared real start instant (E2E_REAL_T0) before any worker starts.
+import { CLOCK_OFFSET_MS } from './tests/e2e/helpers/clock';
 
 const port = Number(process.env.PORT ?? 3000);
 const dashboardPort = Number(process.env.DASHBOARD_PORT ?? 3100);
@@ -90,7 +92,13 @@ export default defineConfig({
               {
                 command: `pnpm exec next dev -p ${dashboardPort}`,
                 url: `${dashboardURL}/login`,
-                env: { E2E_FAKE_SESSION: '1' },
+                env: {
+                  E2E_FAKE_SESSION: '1',
+                  // Same virtual clock as the browser (see tests/e2e/helpers/clock.ts), so server-rendered
+                  // greeting and dates match what the frozen browser clock renders.
+                  E2E_CLOCK_OFFSET_MS: String(CLOCK_OFFSET_MS),
+                  NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ''} --require ./tests/e2e/helpers/serverClock.cjs`.trim(),
+                },
                 reuseExistingServer: !process.env.CI,
                 timeout: 180_000,
               },
