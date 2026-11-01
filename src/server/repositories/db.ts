@@ -60,7 +60,9 @@ function createClient(): PrismaClient {
       ...poolConfigFromUrl(connectionString),
       max: 5,
       idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 5_000,
+      // Test seam (F22): a burst larger than the pool queues for a connection; on a slow remote test database
+      // that wait can pass 5 s. Production keeps the default.
+      connectionTimeoutMillis: Number(process.env.DATABASE_POOL_CONNECT_TIMEOUT_MS) || 5_000,
     },
     {
       // DATABASE_SCHEMA points the app at a non-default schema (integration tests use "itest").

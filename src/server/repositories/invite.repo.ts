@@ -1,17 +1,20 @@
 import type { Role } from '@/generated/prisma/client';
 import { db } from './db';
+import { lockUserPasswordHash } from './user.repo';
 
 export interface AcceptInput {
   inviteId: string;
   now: Date;
   /** Existing user to attach, or the details of a new one. */
-  user: { existingId: string } | { name: string; passwordHash: string };
+  user: { existingId: string; verifiedPasswordHash: string } | { name: string; passwordHash: string };
   sessionTokenHash: string;
   sessionExpiresAt: Date;
 }
 
 /** Thrown inside the accept transaction when the invite was already used or has expired. */
 export class InviteGoneError extends Error {}
+/** Thrown when the existing user's password changed between the check and the accept (F36). */
+export class PasswordChangedError extends Error {}
 
 export const inviteRepo = {
   /** Maintenance (all tenants, cron only): delete up to `limit` invites accepted or expired before `cutoff`. */
@@ -71,6 +74,13 @@ export const inviteRepo = {
    */
   accept: (businessId: string, input: AcceptInput) =>
     db.$transaction(async (tx) => {
+      // Existing user: lock the User row first and require the verified password to still be current (F36),
+      // before anything is claimed or written.
+      if ('existingId' in input.user) {
+        const current = await lockUserPasswordHash(tx, input.user.existingId);
+        if (!current || current !== input.user.verifiedPasswordHash)
+          throw new PasswordChangedError();
+      }
       const claimed = await tx.invite.updateMany({
         where: {
           id: input.inviteId,

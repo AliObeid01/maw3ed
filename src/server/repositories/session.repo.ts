@@ -1,8 +1,31 @@
 import { db } from './db';
+import { lockUserPasswordHash } from './user.repo';
 
 export const sessionRepo = {
   create: (businessId: string, data: { userId: string; tokenHash: string; expiresAt: Date }) =>
     db.session.create({ data: { businessId, ...data } }),
+  /**
+   * Insert a session for a user whose password was checked OUTSIDE this transaction. The User row is locked
+   * first (see lockUserPasswordHash for the lock order) and the hash read under the lock must still be the one
+   * that was verified; otherwise a reset/change-password committed in between and NO session is created (false).
+   */
+  createIfPasswordUnchanged: (
+    businessId: string,
+    data: { userId: string; tokenHash: string; expiresAt: Date; verifiedPasswordHash: string },
+  ): Promise<boolean> =>
+    db.$transaction(async (tx) => {
+      const current = await lockUserPasswordHash(tx, data.userId);
+      if (!current || current !== data.verifiedPasswordHash) return false;
+      await tx.session.create({
+        data: {
+          businessId,
+          userId: data.userId,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt,
+        },
+      });
+      return true;
+    }),
   /** Entry point of session auth: the businessId is not known until the session is found. */
   findByTokenHash: (tokenHash: string) => db.session.findUnique({ where: { tokenHash } }),
   async touch(businessId: string, id: string, lastSeenAt: Date, expiresAt: Date) {

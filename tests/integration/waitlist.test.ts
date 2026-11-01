@@ -132,9 +132,15 @@ describe('POST /api/public/{slug}/waitlist', () => {
         }),
       ),
     );
-    expect(results.filter((r) => r.status === 201)).toHaveLength(5);
-    expect(results.filter((r) => r.status === 409)).toHaveLength(3);
-  });
+    // F22: 8 requests against the app pool of 5. The advisory lock serialises them per client, so the last 3
+    // queue for a connection; helpers/env.ts lifts the production 5 s connect timeout so a slow remote DB turns
+    // into a slower test instead of a 500. The invariant (never more than 5 OPEN) is checked, not loosened.
+    expect(results.map((r) => r.status).sort()).toEqual([201, 201, 201, 201, 201, 409, 409, 409]);
+    const open = await pg.query(
+      `SELECT count(*)::int AS n FROM "WaitlistEntry" WHERE status = 'OPEN'`,
+    );
+    expect(open.rows[0].n).toBe(5);
+  }, 90_000);
 
   it('validation: 400 with fields', async () => {
     const base = joinBody(aScn.serviceId);

@@ -1,4 +1,5 @@
 import { db } from './db';
+import { lockUserPasswordHash } from './user.repo';
 
 export interface NewBusinessInput {
   business: { slug: string; name: string; timezone: string };
@@ -14,6 +15,9 @@ export const accountRepo = {
    */
   changePassword: (input: { userId: string; passwordHash: string; keepSessionId: string }) =>
     db.$transaction(async (tx) => {
+      // Lock the User row first (F36): a login that verified the old password either committed its session
+      // before this point (deleted below) or sees the new hash under the lock and is rejected.
+      await lockUserPasswordHash(tx, input.userId);
       await tx.user.update({ where: { id: input.userId }, data: { passwordHash: input.passwordHash } });
       await tx.session.deleteMany({
         where: { userId: input.userId, id: { not: input.keepSessionId } },

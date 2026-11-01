@@ -6,7 +6,7 @@ import type { RouteContext, SessionContext } from '@/server/http/withRoute';
 import { getEmailProvider, isFakeEmail } from '@/server/providers/email';
 import { inviteEmail } from '@/server/providers/email/inviteTemplate';
 import { businessRepo } from '@/server/repositories/business.repo';
-import { InviteGoneError, inviteRepo } from '@/server/repositories/invite.repo';
+import { InviteGoneError, inviteRepo, PasswordChangedError } from '@/server/repositories/invite.repo';
 import { membershipRepo } from '@/server/repositories/membership.repo';
 import { userRepo } from '@/server/repositories/user.repo';
 import { toSessionInfo, type AuthDeps, type SignedIn } from './auth';
@@ -121,7 +121,7 @@ export const invitesService = {
     if (!invite) throw notFound();
 
     const existing = await userRepo.findByEmail(invite.email);
-    let user: { existingId: string } | { name: string; passwordHash: string };
+    let user: { existingId: string; verifiedPasswordHash: string } | { name: string; passwordHash: string };
     if (existing) {
       // Same keys as login: guessing the password here spends the same budget as guessing it there.
       const ip = ctx.ip ?? UNKNOWN_IP;
@@ -135,7 +135,7 @@ export const invitesService = {
           undefined,
           'You already belong to this business.',
         );
-      user = { existingId: existing.id };
+      user = { existingId: existing.id, verifiedPasswordHash: existing.passwordHash! };
     } else {
       if (input.password.length < 10)
         throw AppError.validation({ password: 'Use at least 10 characters.' });
@@ -159,6 +159,7 @@ export const invitesService = {
       };
     } catch (error) {
       if (error instanceof InviteGoneError) throw notFound();
+      if (error instanceof PasswordChangedError) throw AppError.invalidCredentials();
       if (fromDbError(error)?.code === 'CONFLICT') {
         // New user: the only unique key that can collide is User.email (someone registered it meanwhile),
         // so answer generically. Existing user: the Membership (userId, businessId) pair already exists.

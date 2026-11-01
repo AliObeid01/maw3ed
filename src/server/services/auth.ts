@@ -151,7 +151,17 @@ export const authService = {
       throw AppError.invalidCredentials();
     }
     await deps.guard.succeeded(input.email, ip, ticket);
-    const session = await sessionService.create(membership.businessId, user.id, now);
+    // F36: the session is inserted under a User row lock and only if the verified hash is still current.
+    const session = await sessionService.createVerified(
+      membership.businessId,
+      user.id,
+      user.passwordHash!,
+      now,
+    );
+    if (!session) {
+      ctx.logger.warn('login rejected: password changed during login');
+      throw AppError.invalidCredentials();
+    }
     ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
     return {
       info: toSessionInfo(user, membership.business, membership.role),
