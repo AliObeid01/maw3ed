@@ -342,6 +342,33 @@ export function sanitizeError(error: unknown): unknown {
   }
 }
 
+const MAX_CODE_PATH = 500;
+const WIN_HOME = /\b([A-Za-z]):[\\/]+Users[\\/]+[^\\/\s]+/g;
+const POSIX_HOME = /(^|[\s(])\/(?:Users|home)\/[^/\s)]+/g;
+const SIGNED_SEGMENT = /(^|[/\\])[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}(?=$|[/\\])/g;
+
+/**
+ * Narrow sanitiser for stack-frame location fields only (filename, abs_path, module, function).
+ * Keeps code paths readable (pnpm folders like `next@16.4.3_@babel+core@...`, chunk names): it only strips
+ * query/fragment, OS home directories, signed tokens and secret-link segments, and caps the length.
+ * Never use it for messages, tags, breadcrumbs, extra, request or contexts.
+ */
+export function sanitizeCodePath(input: string): string {
+  try {
+    let s = input;
+    const cut = s.search(/[?#]/);
+    if (cut !== -1) s = s.slice(0, cut);
+    if (/^[A-Za-z]:\\/.test(s)) s = s.replace(/\\/g, '/');
+    s = s.replace(WIN_HOME, '$1:/Users/[user]');
+    s = s.replace(POSIX_HOME, '$1/[user]');
+    s = s.replace(SIGNED_SEGMENT, `$1${TOKEN_MARK}`);
+    s = s.replace(TOKEN_ROUTE, `$1${TOKEN_MARK}`);
+    return s.length > MAX_CODE_PATH ? `${s.slice(0, MAX_CODE_PATH)}...` : s;
+  } catch {
+    return REDACTED;
+  }
+}
+
 function scrubException(v: ExceptionLike): ExceptionLike {
   const out: ExceptionLike = {};
   if (typeof v.type === 'string') out.type = scrubString(v.type);
@@ -352,15 +379,15 @@ function scrubException(v: ExceptionLike): ExceptionLike {
     out.stacktrace = {
       frames: frames.slice(-50).map((f) => {
         const fr: FrameLike = {};
-        if (typeof f.filename === 'string') fr.filename = scrubUrl(f.filename);
-        if (typeof f.abs_path === 'string') fr.abs_path = scrubUrl(f.abs_path);
-        if (typeof f.function === 'string') fr.function = scrubString(f.function);
-        if (typeof f.module === 'string') fr.module = scrubString(f.module);
+        if (typeof f.filename === 'string') fr.filename = sanitizeCodePath(f.filename);
+        if (typeof f.abs_path === 'string') fr.abs_path = sanitizeCodePath(f.abs_path);
+        if (typeof f.function === 'string') fr.function = sanitizeCodePath(f.function);
+        if (typeof f.module === 'string') fr.module = sanitizeCodePath(f.module);
         if (typeof f.lineno === 'number') fr.lineno = f.lineno;
         if (typeof f.colno === 'number') fr.colno = f.colno;
         if (typeof f.in_app === 'boolean') fr.in_app = f.in_app;
         if (typeof f.platform === 'string') fr.platform = f.platform;
-        return fr; // `vars` (local variables) are never copied
+        return fr; // `vars`, `data` and source context lines (context_line, pre_context, post_context) are never copied
       }),
     };
   }
