@@ -4,7 +4,9 @@ import { findIntlProblems } from './intlErrorPatterns';
 /**
  * The `test` every spec uses. In a production build (what e2e serves) a missing message does not throw: it
  * logs a next-intl error and renders the raw key. This fixture records console errors and page errors and fails
- * the test at teardown when one is a next-intl problem, so a scope hole (src/i18n/scopes.ts) cannot ship.
+ * the test at teardown when one is a next-intl problem, so a scope hole (src/i18n/scopes.ts) cannot ship. In production the
+ * same error is also reported once per key to Sentry (src/components/i18n/IntlBoundary.tsx); e2e builds have no DSN, so that
+ * path is inert here and this guard stays the CI gate.
  * A spec that expects such errors opts out with `test.use({ allowIntlErrors: true })`.
  */
 export const test = base.extend<{ allowIntlErrors: boolean; intlGuard: void }>({

@@ -13,6 +13,10 @@ const good = {
   RESEND_API_KEY: 're_test_key',
   EMAIL_FROM: 'Maw3ed <reminders@mail.maw3edlb.com>',
 };
+const sentry = {
+  SENTRY_DSN: 'https://abc123@o1.ingest.de.sentry.io/42',
+  NEXT_PUBLIC_SENTRY_DSN: 'https://abc123@o1.ingest.de.sentry.io/42',
+};
 const errorsOf = (env: Record<string, string | undefined>) => checkProductionEnv(env).errors;
 
 describe('shouldMigrate: migrations run for Vercel production deploys only', () => {
@@ -30,7 +34,24 @@ describe('shouldMigrate: migrations run for Vercel production deploys only', () 
 
 describe('checkProductionEnv', () => {
   it('accepts a complete production environment with no warnings', () => {
-    expect(checkProductionEnv(good)).toEqual({ errors: [], warnings: [] });
+    expect(checkProductionEnv({ ...good, ...sentry })).toEqual({ errors: [], warnings: [] });
+  });
+
+  it('never requires Sentry: without a DSN it is only an informational warning', () => {
+    const result = checkProductionEnv(good);
+    expect(result.errors).toEqual([]);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings[0]).toMatch(/Sentry is not configured/);
+    expect(result.warnings[0]).toMatch(/Optional/);
+  });
+
+  it('warns (does not fail) when only one of the two Sentry DSNs is set, and never prints the value', () => {
+    for (const half of [{ SENTRY_DSN: sentry.SENTRY_DSN }, { NEXT_PUBLIC_SENTRY_DSN: sentry.NEXT_PUBLIC_SENTRY_DSN }]) {
+      const result = checkProductionEnv({ ...good, ...half });
+      expect(result.errors).toEqual([]);
+      expect(result.warnings.join(' ')).toMatch(/half configured/);
+      expect(result.warnings.join(' ')).not.toContain('ingest.de.sentry.io');
+    }
   });
 
   it('lists every missing variable by name only', () => {

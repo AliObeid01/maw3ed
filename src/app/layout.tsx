@@ -1,23 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Outfit, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { ScopedIntl } from '@/components/i18n/ScopedIntl';
 import { defaultLocale, dirFor, isLocale } from '@/i18n/config';
+import { outfit, plexArabic } from './fonts';
 import './globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-outfit',
-  display: 'swap',
-});
-
-const plexArabic = IBM_Plex_Sans_Arabic({
-  subsets: ['arabic'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-plex-arabic',
-  display: 'swap',
-});
 
 // viewport-fit=cover lets env(safe-area-inset-*) work for the tab bar and sticky CTAs.
 export const viewport: Viewport = {

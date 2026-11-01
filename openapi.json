@@ -6748,6 +6748,62 @@
         }
       }
     },
+    "/api/jobs/sentry-test": {
+      "post": {
+        "summary": "Throw a deliberate server error to confirm error monitoring (manual, owner only)",
+        "description": "Verification of the Sentry setup. Fails closed: 401 without the cron secret, 404 when error monitoring is not active (no SENTRY_DSN, or not a Production deployment). Otherwise throws on purpose and answers 500 INTERNAL; one event arrives in Sentry. Does nothing else.",
+        "tags": [
+          "jobs"
+        ],
+        "security": [
+          {
+            "cronSecret": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "INTERNAL: the deliberate error (expected)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/links/{token}": {
       "get": {
         "summary": "Read an appointment through a signed link (no side effects)",

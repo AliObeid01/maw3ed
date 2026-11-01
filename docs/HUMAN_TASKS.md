@@ -18,7 +18,8 @@ Open:
 - [ ] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves.
 - [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
 - [ ] Neon usage check (storage and compute hours on the free plan).
-- [ ] Optional: DMARC TXT record (`_dmarc`) and a Sentry DSN.
+- [ ] Optional: DMARC TXT record (`_dmarc`).
+- [ ] Optional: Sentry error monitoring. The code is merged and inert until you do this: follow "Sentry setup" below.
 - [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
 - [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
 
@@ -28,11 +29,32 @@ Open:
 | 2 | **Vercel**: import the GitHub repo; set env vars (below) for Production and Preview; create a token. | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (GitHub secrets) | P0.5 |
 | 3 | **Resend**: create an account, add and **verify a sending domain** (SPF + DKIM DNS records; DMARC recommended). Without a verified domain Resend only delivers to your own address. | `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `Maw3ed <reminders@yourdomain>`) | P2.4 |
 | 4 | **cron-job.org**: two jobs every 5 min, `POST https://<prod>/api/jobs/reminders` and `/api/jobs/waitlist-expiry`, header `x-cron-secret: <CRON_SECRET>`. Add a third job, **daily** (for example 03:00): `POST https://<prod>/api/jobs/cleanup` with the same header. It purges expired sessions, old invites and rate-limit buckets; the backup GitHub workflow also calls it daily at 03:00 UTC. Turn on failure notifications. | `CRON_SECRET` (also a GitHub secret for the backup workflow) | P2.17 |
-| 5 | **Sentry**: create a Next.js project. | `SENTRY_DSN`, `SENTRY_AUTH_TOKEN` | P0.5 |
+| 5 | **Sentry** (optional): see "Sentry setup" below. | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` (`SENTRY_AUTH_TOKEN` only with F39) | O5 |
 | 6 | **Whish Money** (optional): request merchant test credentials and API docs from the accelerator or Whish onboarding. Until then the FakePaymentProvider is used. | `WHISH_*` | P3.9 |
 | 7 | **Pilots**: recruit 3–5 businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`). | baselines | P2.17 |
 | 8 | **GitHub**: protect `main` (require the CI check, require a PR). | — | P0.5 |
 | 9 | **Demo**: record the 3-min demo and the 60-s backup video. | videos | P4.4 |
+
+## Sentry setup (optional, errors only, about 15 minutes)
+
+The app already contains the Sentry code; it does nothing until a DSN exists in Production. Steps:
+
+1. Create an account at sentry.io and **choose the EU data region** (it shows as `de.sentry.io`; the region cannot be changed later).
+2. Create a project: platform **Next.js**. Copy its DSN (looks like `https://<key>@o<id>.ingest.de.sentry.io/<project>`). A DSN is a public identifier, not a secret.
+3. In Vercel, Project, Settings, Environment Variables, add **two variables for the Production environment only** (untick Preview and Development): `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN`, both with the same DSN. `NEXT_PUBLIC_SENTRY_DSN` is baked in at build time, so a redeploy is required.
+4. Redeploy Production (Deployments, the latest one, Redeploy). The build log line "Sentry is not configured" disappears.
+5. Confirm it works: send one request with the production cron secret (the same value as the cron-job.org jobs; never paste it into chat or git):
+
+   ```
+   curl -i -X POST https://maw3edlb.com/api/jobs/sentry-test -H "x-cron-secret: <your CRON_SECRET>"
+   ```
+
+   Expected: `HTTP 500` with `{"error":{"code":"INTERNAL",...}}` (the deliberate error) and, within a minute, one new issue "Sentry test event (deliberate, from /api/jobs/sentry-test)" in Sentry. `401` means a wrong secret; `404` means reporting is not active in this deployment (check the variable names, that they are on the Production environment, and that you redeployed).
+6. Sentry, Alerts, Create Alert, Issues: "When a new issue is created, send a notification to" your email. This is the "email me on every new issue" rule.
+7. Sentry, Project Settings, Security & Privacy: switch **Prevent Storing of IP Addresses** ON and **Data Scrubber** ON (keep "Use Default Scrubbers" ON). The app removes personal data on a best-effort basis before sending (emails, phone numbers, link tokens, database error values); free-text names cannot be detected automatically, so error messages are built without client data and a rare residual risk remains. Keep these Sentry scrubbing options on as the second layer, and look at the first few real issues to confirm nothing personal appears.
+8. Resolve the test issue in Sentry so it does not stay open.
+
+Not done on purpose (follow-up F39): readable stack traces. Source map upload needs `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` as Production-only build variables; until then Sentry shows minified frames.
 
 ## Environment variables
 ```
