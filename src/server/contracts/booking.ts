@@ -107,6 +107,23 @@ const BookedAppointment = z.object({
   staff: z.object({ id: z.string(), displayName: z.string() }),
 });
 
+export const RemindersDto = registry.register(
+  'Reminders',
+  z
+    .object({
+      h24: z.boolean().openapi({
+        description: 'An email reminder 24 hours before the appointment will be sent (booked at least 24 h ahead).',
+      }),
+      h2: z.boolean().openapi({
+        description: 'An email reminder 2 hours before the appointment will be sent (booked at least 2 h ahead).',
+      }),
+    })
+    .openapi({
+      description:
+        'The email reminders this booking actually has, from the same plan that creates the ReminderJob rows. Pages promise nothing else. All false for a deposit hold (none until paid).',
+    }),
+);
+
 export const BookingResultDto = registry.register(
   'BookingResult',
   z.object({
@@ -114,6 +131,7 @@ export const BookingResultDto = registry.register(
     links: z.object({
       manage: z.string().openapi({ description: 'Signed link, expires at the appointment start.' }),
     }),
+    reminders: RemindersDto,
     status: z.literal('PENDING_PAYMENT').optional().openapi({
       description:
         'Only when a deposit is needed first: the slot is held (appointment.status PENDING_PAYMENT) until holdExpiresAt. No reminders or confirmation email until it is paid.',

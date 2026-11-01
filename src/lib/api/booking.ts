@@ -43,6 +43,8 @@ export const slotSchema = z.object({
 export const slotsSchema = z.object({ slots: z.array(slotSchema) });
 export type Slot = z.infer<typeof slotSchema>;
 
+export const remindersSchema = z.object({ h24: z.boolean(), h2: z.boolean() });
+
 export const bookingResultSchema = z.object({
   appointment: z.object({
     id: z.string(),
@@ -58,6 +60,8 @@ export const bookingResultSchema = z.object({
     staff: z.object({ id: z.string(), displayName: z.string() }),
   }),
   links: z.object({ manage: z.string() }),
+  /** The email reminders that will really be sent (server truth; see lib/reminders/promise.ts). */
+  reminders: remindersSchema,
   /** Only when a deposit is needed first: the slot is held until `holdExpiresAt`; go to /pay/{payToken}. */
   status: z.literal('PENDING_PAYMENT').optional(),
   payToken: z.string().optional(),

@@ -363,7 +363,10 @@ export const TodayDto = registry.register(
       appointments: z.number().int(),
       confirmed: z.number().int(),
       noReply: z.number().int(),
-      refilledFromWaitlist: z.number().int(),
+      refilledFromWaitlist: z.number().int().openapi({
+        description:
+          'Refilled from the waitlist ON this local day (business timezone): replacement bookings whose claim happened on this day, for any appointment day. Cancelled replacements and unpaid deposit holds are not counted.',
+      }),
     }),
     whatsappDue: z.number().int(),
     outcomesToMark: z.number().int(),

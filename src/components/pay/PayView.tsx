@@ -22,6 +22,7 @@ import {
   type PayFailure,
   type PayView as Pay,
 } from '@/lib/api/pay';
+import { reminderPromiseKind } from '@/lib/reminders/promise';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { msLeft } from '@/lib/waitlist/offer';
 import { serverNow } from '@/lib/waitlist/clock';
@@ -195,6 +196,7 @@ type Outcome =
 
 function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs: number }) {
   const t = useTranslations('deposit');
+  const tr = useTranslations('reminderPromise');
   const f = useBookingFormat(view.business.timezone);
   const [timeUp, setTimeUp] = useState(false);
   const [outcome, setOutcome] = useState<Outcome>(
@@ -250,6 +252,8 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
   );
 
   if (outcome.kind === 'paid') {
+    // The post-payment truth (F44): the reminders created when the deposit was paid.
+    const reminderCopy = tr('promise', { kind: reminderPromiseKind(shown.reminders) });
     return (
       <>
         <BusinessHeader name={shown.business.name} />
@@ -271,6 +275,7 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
             <p className="m-0 text-[17px] font-semibold">{when}</p>
             <p className="m-0 text-[15px] text-muted">{service}</p>
             <p className="m-0 text-[15px]">{t('done.next')}</p>
+            <p className="m-0 text-[15px]">{reminderCopy}</p>
             <ButtonLink
               href={`/b/${encodeURIComponent(shown.business.slug)}`}
               size="lg"

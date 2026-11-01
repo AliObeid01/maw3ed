@@ -116,7 +116,11 @@ export function TodayView() {
             />
             <StatTile value={stats!.confirmed} label={t('stats.confirmed')} tone="brand" />
             <StatTile value={stats!.noReply} label={t('stats.noReply')} />
-            <StatTile value={stats!.refilledFromWaitlist} label={t('stats.refilled')} tone="amber" />
+            <StatTile
+              value={stats!.refilledFromWaitlist}
+              label={isToday ? t('stats.refilledToday') : t('stats.refilledDay')}
+              tone="amber"
+            />
           </div>
 
           <div className="flex flex-col gap-[18px] lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:grid-rows-[auto_auto_1fr] lg:items-start lg:gap-x-[18px] lg:gap-y-3.5">

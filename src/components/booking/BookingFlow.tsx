@@ -505,7 +505,6 @@ export function BookingFlow({ slug }: { slug: string }) {
             clientName={booked.name}
             hasEmail={booked.hasEmail}
             timezone={timezone}
-            now={now}
             onAnother={another}
           />
         </main>

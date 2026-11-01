@@ -37,6 +37,7 @@ async function mockDeposit(page: Page) {
     holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
     now: nowDate().toISOString(),
     testMode: true,
+    reminders: state === 'PAID' ? { h24: true, h2: true } : { h24: false, h2: false },
   });
 
   // Registered after mockPublicApi, so these win for the booking POST.
@@ -46,6 +47,7 @@ async function mockDeposit(page: Page) {
       json(201, {
         appointment: { id: 'ckappt000000000000000000', startAt, endAt, status: 'PENDING_PAYMENT', service, staff },
         links: { manage: '/l/mock-manage-token' },
+        reminders: { h24: false, h2: false },
         status: 'PENDING_PAYMENT',
         payToken: PAY_TOKEN,
         payUrl: `${ORIGIN}/pay/${PAY_TOKEN}`,
@@ -94,6 +96,7 @@ test.describe('deposit journey', () => {
 
     await pay.click();
     await expect(page.getByRole('heading', { name: "You're booked and confirmed" })).toBeVisible();
+    await expect(page.getByText('We will email you reminders 24 hours and 2 hours before.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Pay deposit (test)' })).toHaveCount(0);
 
     // The POST carries an empty body: whether it was paid is the server's call, never the page's.

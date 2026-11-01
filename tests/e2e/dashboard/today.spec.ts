@@ -19,7 +19,7 @@ test('greets by name, shows the stats and the Do this first card above the day',
   // 4 non-cancelled appointments: 2 confirmed, 2 not yet confirmed, 1 from the waitlist.
   const stats = page.getByText('Appointments today').locator('xpath=..');
   await expect(stats).toContainText('4');
-  await expect(page.getByText('Refilled from waitlist').locator('xpath=..')).toContainText('1');
+  await expect(page.getByText('Refilled from waitlist today').locator('xpath=..')).toContainText('1');
   const card = page.getByRole('region', { name: 'Do this first' });
   await expect(card).toContainText('3 WhatsApp reminders due');
   await expect(card.getByRole('link', { name: 'Send now' })).toHaveAttribute('href', '/app/reminders');
@@ -214,4 +214,13 @@ test('RTL: Arabic Today lays out right to left without horizontal scroll', async
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('F45: the refill tile names the day it counts (today vs another day)', async ({ page }) => {
+  await mockDashboardApi(page);
+  await page.goto('/app');
+  await expect(page.getByText('Refilled from waitlist today')).toBeVisible();
+  await page.getByRole('button', { name: 'Next day' }).click();
+  await expect(page.getByText('Refilled from waitlist on this day')).toBeVisible();
+  await expect(page.getByText('Refilled from waitlist today')).toHaveCount(0);
 });

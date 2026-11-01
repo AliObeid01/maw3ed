@@ -88,6 +88,14 @@ export const reminderJobRepo = {
     });
   },
 
+  /** The H24 / H2 rows an appointment actually has (any status): what its client may be promised. */
+  async emailReminderKinds(businessId: string, appointmentId: string) {
+    return db.reminderJob.findMany({
+      where: { businessId, appointmentId, channel: 'EMAIL', kind: { in: ['H24', 'H2'] } },
+      select: { kind: true, channel: true },
+    });
+  },
+
   /** Cancel path: pending jobs for the appointment will never be sent. */
   async skipPending(businessId: string, tx: Prisma.TransactionClient, appointmentId: string) {
     const res = await tx.reminderJob.updateMany({

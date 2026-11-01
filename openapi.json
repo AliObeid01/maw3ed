@@ -1397,6 +1397,24 @@
         ],
         "additionalProperties": false
       },
+      "Reminders": {
+        "type": "object",
+        "properties": {
+          "h24": {
+            "type": "boolean",
+            "description": "An email reminder 24 hours before the appointment will be sent (booked at least 24 h ahead)."
+          },
+          "h2": {
+            "type": "boolean",
+            "description": "An email reminder 2 hours before the appointment will be sent (booked at least 2 h ahead)."
+          }
+        },
+        "required": [
+          "h24",
+          "h2"
+        ],
+        "description": "The email reminders this booking actually has, from the same plan that creates the ReminderJob rows. Pages promise nothing else. All false for a deposit hold (none until paid)."
+      },
       "BookingResult": {
         "type": "object",
         "properties": {
@@ -1477,6 +1495,9 @@
               "manage"
             ]
           },
+          "reminders": {
+            "$ref": "#/components/schemas/Reminders"
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -1498,7 +1519,8 @@
         },
         "required": [
           "appointment",
-          "links"
+          "links",
+          "reminders"
         ]
       },
       "Appointment": {
@@ -3071,7 +3093,8 @@
                 "type": "integer"
               },
               "refilledFromWaitlist": {
-                "type": "integer"
+                "type": "integer",
+                "description": "Refilled from the waitlist ON this local day (business timezone): replacement bookings whose claim happened on this day, for any appointment day. Cancelled replacements and unpaid deposit holds are not counted."
               }
             },
             "required": [
@@ -3948,6 +3971,9 @@
           },
           "testMode": {
             "type": "boolean"
+          },
+          "reminders": {
+            "$ref": "#/components/schemas/Reminders"
           }
         },
         "required": [
@@ -3957,7 +3983,8 @@
           "deposit",
           "holdExpiresAt",
           "now",
-          "testMode"
+          "testMode",
+          "reminders"
         ]
       }
     },

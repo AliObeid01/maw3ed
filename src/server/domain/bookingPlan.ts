@@ -19,6 +19,31 @@ export function plannedJobs(startAt: Date, bookedAt: Date): PlannedJob[] {
   return jobs;
 }
 
+/** Which email reminders a booking has (or will have). The ONLY thing a page or email may promise. */
+export interface PlannedReminders {
+  h24: boolean;
+  h2: boolean;
+}
+
+/**
+ * Reduce reminder rows (planned or stored) to what the client may be promised: the EMAIL H24 / H2 rows.
+ * BOOKING is the confirmation, and WhatsApp rows are the receptionist's, never an email to the client.
+ */
+export function remindersOf(
+  jobs: readonly { kind: string; channel?: string | undefined }[],
+): PlannedReminders {
+  const email = jobs.filter((j) => j.channel === undefined || j.channel === 'EMAIL');
+  return {
+    h24: email.some((j) => j.kind === 'H24'),
+    h2: email.some((j) => j.kind === 'H2'),
+  };
+}
+
+/** The reminders `plannedJobs(startAt, bookedAt)` would create: one function decides both. */
+export function plannedReminders(startAt: Date, bookedAt: Date): PlannedReminders {
+  return remindersOf(plannedJobs(startAt, bookedAt));
+}
+
 export interface BookingFingerprint {
   serviceId: string;
   staffId: string;

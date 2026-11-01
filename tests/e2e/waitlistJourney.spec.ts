@@ -361,7 +361,7 @@ test('3. W1 and W2 tap "Book this slot" at the same moment: exactly one booking,
 
     // Winner: confirmation with the slot, the reminders note and a manage link.
     await expect(winPage.getByText(`${SERVICE}`).first()).toBeVisible();
-    await expect(winPage.getByText(/Reminders will follow by email/)).toBeVisible();
+    await expect(winPage.getByText('We will email you reminders 24 hours and 2 hours before.')).toBeVisible();
     await expect(
       winPage.getByRole('link', { name: /Confirm or cancel your booking/ }),
     ).toHaveAttribute('href', /\/l\//);
@@ -437,7 +437,10 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
   // The activity card names the winner and the slot.
   await expect(page.getByText(`${first(winner)} took 9:00 with ${biz.staffName}`)).toBeVisible();
 
-  // Move to the day of the slot: the replacement booking is listed and the refill counter reads 1.
+  // F45: the tile counts refills made ON the viewed day, so today (when the claim happened) reads 1 ...
+  await expect(page.getByText('Refilled from waitlist today').locator('..')).toContainText('1');
+
+  // ... and on the day of the slot the replacement booking is listed, but the counter reads 0.
   for (let i = 0; i < 2; i++) await page.getByRole('button', { name: 'Next day' }).click();
   await expect(
     page.getByRole('heading', {
@@ -445,8 +448,8 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
       name: new RegExp(`${day.toFormat('LLLL')} ${day.toFormat('d')}$`),
     }),
   ).toBeVisible();
-  const refilledTile = page.getByText('Refilled from waitlist').locator('..');
-  await expect(refilledTile).toContainText('1');
+  const refilledTile = page.getByText('Refilled from waitlist on this day').locator('..');
+  await expect(refilledTile).toContainText('0');
   // The agenda card is badged "Waitlist" so the front desk sees where the booking came from.
   const card = page.getByRole('button', { name: new RegExp(`${first(winner)}.*Waitlist`) });
   await expect(card).toHaveCount(1);

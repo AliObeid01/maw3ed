@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RemindersDto } from './booking';
 import { LinkParams } from './reminders';
 import { ErrorResponse, errorResponses, registry } from './registry';
 
@@ -33,6 +34,8 @@ export const PayViewDto = registry.register(
     now: z.string().datetime(),
     /** True while the payment provider is the fake: no card is ever charged or collected. */
     testMode: z.boolean(),
+    /** The reminders created when the deposit was paid (all false while state is PENDING). */
+    reminders: RemindersDto,
   }),
 );
 

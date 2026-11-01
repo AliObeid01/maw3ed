@@ -1,4 +1,4 @@
-import { plannedJobs } from '@/server/domain/bookingPlan';
+import { plannedJobs, remindersOf, type PlannedReminders } from '@/server/domain/bookingPlan';
 import { localDayOf } from '@/server/domain/dateRange';
 import { holdIsLive } from '@/server/domain/deposit';
 import { verifyToken } from '@/server/domain/tokens';
@@ -8,6 +8,7 @@ import type { Logger } from '@/server/http/logger';
 import { getPaymentProvider, type PaymentProvider } from '@/server/providers/payment';
 import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
+import { reminderJobRepo } from '@/server/repositories/reminderJob.repo';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
 import { defaultWaitlistDeps, expireLapsedHolds, type WaitlistDeps } from './waitlist';
 
@@ -74,7 +75,13 @@ async function load(r: Resolved): Promise<Row> {
   return row;
 }
 
-function view(row: Row, now: Date, state: 'PENDING' | 'PAID', testMode: boolean) {
+function view(
+  row: Row,
+  now: Date,
+  state: 'PENDING' | 'PAID',
+  testMode: boolean,
+  reminders: PlannedReminders,
+) {
   const deposit = row.payments[0];
   return {
     state,
@@ -95,7 +102,27 @@ function view(row: Row, now: Date, state: 'PENDING' | 'PAID', testMode: boolean)
     /** The server's clock, so the page's countdown does not trust the phone's. */
     now,
     testMode,
+    /** Post-payment truth: the rows created when it was paid (none while it is still a hold). */
+    reminders,
   };
+}
+
+/**
+ * A paid booking's reminders were planned at payment time (not at booking time), so the confirmed screen
+ * reads the stored rows. A pending hold has none yet.
+ */
+async function viewOf(
+  r: Resolved,
+  row: Row,
+  now: Date,
+  state: 'PENDING' | 'PAID',
+  testMode: boolean,
+) {
+  const reminders =
+    state === 'PAID'
+      ? remindersOf(await reminderJobRepo.emailReminderKinds(r.businessId, row.id))
+      : { h24: false, h2: false };
+  return view(row, now, state, testMode, reminders);
 }
 
 /** Fresh bookable slots for the same service on the appointment's day. Empty when none can be loaded. */
@@ -157,9 +184,9 @@ export const payService = {
     const row = await load(r);
     const provider = deps.payments();
     if (PAID_ON.includes(row.status) && row.payments[0]?.status === 'PAID')
-      return view(row, now, 'PAID', provider.testMode);
+      return await viewOf(r, row, now, 'PAID', provider.testMode);
     if (row.status === 'PENDING_PAYMENT' && !r.tokenExpired && holdIsLive(row.holdExpiresAt, now))
-      return view(row, now, 'PENDING', provider.testMode);
+      return await viewOf(r, row, now, 'PENDING', provider.testMode);
     throw await expired(row, r.businessId, now);
   },
 
@@ -176,7 +203,7 @@ export const payService = {
     let row = await load(r);
 
     if (PAID_ON.includes(row.status) && row.payments[0]?.status === 'PAID')
-      return { ...view(row, now, 'PAID', provider.testMode) };
+      return await viewOf(r, row, now, 'PAID', provider.testMode);
 
     const lapsed = async () => {
       // Free the slot right away instead of waiting for the next cron run.
@@ -214,11 +241,11 @@ export const payService = {
     row = await load(r);
     if (flipped) {
       logger.info({ requestId: ctx.requestId, paymentId: payment.id }, 'deposit paid, booking confirmed');
-      return { ...view(row, now, 'PAID', provider.testMode) };
+      return await viewOf(r, row, now, 'PAID', provider.testMode);
     }
     // Lost the race: whoever won decides what we answer.
     if (PAID_ON.includes(row.status) && row.payments[0]?.status === 'PAID')
-      return { ...view(row, now, 'PAID', provider.testMode) };
+      return await viewOf(r, row, now, 'PAID', provider.testMode);
     throw await expired(row, r.businessId, now);
   },
 };

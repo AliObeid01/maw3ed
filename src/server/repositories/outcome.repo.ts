@@ -106,6 +106,21 @@ export const outcomeRepo = {
   countQueue: (businessId: string, now: Date) =>
     db.appointment.count({ where: queueWhere(businessId, now) }),
 
+  /**
+   * Waitlist refills CLAIMED in [startUtc, endUtc): replacement bookings (source WAITLIST) created in the
+   * window, whatever day the appointment is on. `createdAt` is the claim time (the same instant the waitlist
+   * activity card shows). A deposit hold (PENDING_PAYMENT) is no refill until paid, and cancelled ones are not.
+   */
+  countRefilledBetween: (businessId: string, startUtc: Date, endUtc: Date) =>
+    db.appointment.count({
+      where: {
+        businessId,
+        source: 'WAITLIST',
+        createdAt: { gte: startUtc, lt: endUtc },
+        status: { notIn: ['CANCELLED', 'LATE_CANCEL', 'PENDING_PAYMENT'] },
+      },
+    }),
+
   /** Every appointment of the local day (any status) with what the dashboard timeline needs. */
   listForDay: (businessId: string, startUtc: Date, endUtc: Date, now: Date) =>
     db.appointment.findMany({

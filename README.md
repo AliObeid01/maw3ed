@@ -10,7 +10,7 @@ Live: https://maw3edlb.com
 
 - Public booking page at `/b/{slug}` (service, staff or "anyone", day, time, details; phone-first, English and Arabic with RTL).
 - Public directory at `/directory` (opt-in: a business chooses to be listed; unlisted businesses still work by direct link) and a home page at `/`.
-- Reminders: booking confirmation with a calendar file, then 24 h and 2 h email reminders sent by a scheduled job.
+- Reminders: booking confirmation with a calendar file, then 24 h and 2 h email reminders sent by a scheduled job. A reminder exists only if its time is still ahead when the booking is made (or its deposit is paid); the confirmation pages show exactly the reminders the server planned.
 - WhatsApp reminders as a "due" list for the receptionist with prefilled `wa.me` links; the server never sends WhatsApp, it records who sent each one.
 - Signed confirm and cancel links (late cancel after the cutoff is recorded separately).
 - Waitlist: join for a service and date range; a cancellation offers the freed slot by email in batches of 3, first claim wins.

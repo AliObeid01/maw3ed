@@ -7,9 +7,8 @@ import { BookingSummary } from '@/components/public/BookingSummary';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import type { BookingResult } from '@/lib/api/booking';
+import { reminderPromiseKind } from '@/lib/reminders/promise';
 import { useBookingFormat } from './useBookingFormat';
-
-const HOUR = 3_600_000;
 
 /** Board 1.5: confirmation, what happens next, the manage link and the booking details. */
 export function BookedView({
@@ -17,37 +16,37 @@ export function BookedView({
   clientName,
   hasEmail,
   timezone,
-  now,
   onAnother,
 }: {
   result: BookingResult;
   clientName: string;
   hasEmail: boolean;
   timezone: string;
-  now: Date;
   onAnother: () => void;
 }) {
   const t = useTranslations('booking.booked');
+  const tr = useTranslations('reminderPromise');
   const ts = useTranslations('booking.summary');
   const f = useBookingFormat(timezone);
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
 
   const { appointment, links } = result;
-  const start = new Date(appointment.startAt);
-  const first = new Date(start.getTime() - 24 * HOUR);
-  const second = new Date(start.getTime() - 2 * HOUR);
   const when = `${f.day(appointment.startAt)} · ${f.time(appointment.startAt)}`;
-  const at = (d: Date) => `${f.day(d.toISOString())} · ${f.time(d.toISOString())}`;
 
+  // Which reminders exist is the server's word (result.reminders); the page never works the windows out.
   const next = [
-    ...(first > now
-      ? [{ id: 'one', title: t('next1Title'), body: t('next1Body', { when: at(first) }) }]
-      : []),
-    ...(second > now
-      ? [{ id: 'two', title: t('next2Title'), body: t('next2Body', { when: at(second) }) }]
-      : []),
-    { id: 'three', title: t('next3Title'), body: t('next3Body') },
+    {
+      id: 'one',
+      title: tr('title'),
+      body: tr('promise', { kind: reminderPromiseKind(result.reminders) }),
+    },
+    // Confirm / cancel links ride on reminders, so a booking without any points to its own link instead.
+    {
+      id: 'three',
+      title: t('next3Title'),
+      body: t(result.reminders.h24 || result.reminders.h2 ? 'next3Body' : 'next3BodyNoReminder'),
+    },
   ];
 
   const rows = [

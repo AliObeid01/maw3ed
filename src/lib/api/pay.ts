@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { ApiError, request } from './auth';
-import { slotSchema } from './booking';
+import { remindersSchema, slotSchema } from './booking';
 
 // Typed client for the deposit pay page (`/api/pay/{token}`). TEST MODE: no card is ever collected, the
 // page sends an empty POST and the server asks the payment provider.
@@ -27,6 +27,7 @@ export const payViewSchema = z.object({
   holdExpiresAt: z.string().nullable(),
   now: z.string(),
   testMode: z.boolean(),
+  reminders: remindersSchema,
 });
 export type PayView = z.infer<typeof payViewSchema>;
 
