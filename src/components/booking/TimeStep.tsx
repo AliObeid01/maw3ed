@@ -100,7 +100,7 @@ export function TimeStep(props: TimeStepProps) {
               className="max-sm:w-full"
             >
               {t('cta.bookInstead', {
-                time: picked ? f.time(picked.startAt) : props.time,
+                time: picked ? f.time(picked.startAt) : props.time.slice(0, 5),
               })}
             </Button>
           ) : null}

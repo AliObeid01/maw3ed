@@ -64,9 +64,28 @@ export function partitionByDayPart(
     .filter((group) => group.slots.length > 0);
 }
 
-/** The slot starting at local `HH:mm` (the first one if a DST fall-back repeats the hour). */
+/**
+ * The URL/state token for a slot: local `HH:mm` plus the UTC offset in force at that instant (`23:30+03:00`).
+ * Plain `HH:mm` is ambiguous for the one repeated hour of a DST fall-back; the offset names the exact instant.
+ */
+export function slotTime(startAt: string, timezone: string): string {
+  const at = DateTime.fromISO(startAt, { zone: 'utc' }).setZone(timezone);
+  return `${at.toFormat('HH:mm')}${at.toFormat('ZZ')}`;
+}
+
+/** Does a slot match a time token (`HH:mm` matches any slot at that wall-clock time, `HH:mm+hh:mm` only that instant)? */
+export function slotMatchesTime(slot: Slot, timezone: string, time: string | undefined): boolean {
+  if (!time) return false;
+  return (time.length > 5 ? slotTime(slot.startAt, timezone) : localTime(slot.startAt, timezone)) === time;
+}
+
+/**
+ * The slot a time token names. A token with an offset (`23:30+03:00`) picks exactly that instant; plain `HH:mm`
+ * (old links) picks the first slot at that wall-clock time, so the repeated hour of a DST fall-back resolves to
+ * its first occurrence.
+ */
 export function findSlotByLocalTime(slots: Slot[], timezone: string, time: string) {
-  return slots.find((s) => localTime(s.startAt, timezone) === time);
+  return slots.find((s) => slotMatchesTime(s, timezone, time));
 }
 
 /** First local day of the window that has a slot (to open the strip on something bookable). */

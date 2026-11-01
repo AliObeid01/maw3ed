@@ -35,7 +35,7 @@ import {
   findSlotByLocalTime,
   firstDayWithSlots,
   localDay,
-  localTime,
+  slotTime,
   replaceDay,
 } from '@/lib/booking/slots';
 import { parseBookingParams } from '@/lib/booking/urlState';
@@ -191,7 +191,7 @@ export function FrontDeskForm() {
       return;
     }
     setTaken(undefined);
-    choose({ day: localDay(next.startAt, timezone), time: localTime(next.startAt, timezone) });
+    choose({ day: localDay(next.startAt, timezone), time: slotTime(next.startAt, timezone) });
   };
 
   async function submit() {
@@ -478,12 +478,12 @@ export function FrontDeskForm() {
               <SlotGrid
                 slots={slotsOfDay}
                 timezone={timezone}
-                selectedTime={slot ? localTime(slot.startAt, timezone) : undefined}
+                selectedTime={slot ? slotTime(slot.startAt, timezone) : undefined}
                 struckTimes={taken && taken.day === day ? [taken.time] : []}
                 labelId={timesLabelId}
                 onSelect={(s) => {
                   setTaken(undefined);
-                  choose({ day: localDay(s.startAt, timezone), time: localTime(s.startAt, timezone) });
+                  choose({ day: localDay(s.startAt, timezone), time: slotTime(s.startAt, timezone) });
                 }}
               />
             )}
