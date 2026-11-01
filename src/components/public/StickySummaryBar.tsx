@@ -19,6 +19,8 @@ export type StickySummaryBarProps = {
   ctaLoading?: boolean;
   /** One short line of muted text under the price and CTA (e.g. the free-cancellation cutoff). Hidden at `lg` with the bar. */
   note?: ReactNode;
+  /** Keep the note's line (empty) while there is no note yet, so the bar does not grow and move the CTA later. */
+  reserveNote?: boolean;
   className?: string;
 };
 
@@ -34,6 +36,7 @@ export function StickySummaryBar({
   ctaDisabled,
   ctaLoading,
   note,
+  reserveNote,
   className,
 }: StickySummaryBarProps) {
   const t = useTranslations('public.summary');
@@ -66,10 +69,13 @@ export function StickySummaryBar({
           </Button>
         </div>
         {note ? (
-          <p className="mx-auto -mt-1 flex max-w-[1240px] items-start gap-1.5 px-4 pb-2.5 text-[13px] leading-snug text-muted">
+          <p className="mx-auto -mt-1 flex min-h-[18px] max-w-[1240px] items-start gap-1.5 px-4 pb-2.5 text-[13px] leading-snug text-muted box-content">
             <ShieldCheck size={14} aria-hidden="true" className="mt-px shrink-0" />
             <span className="min-w-0">{note}</span>
           </p>
+        ) : reserveNote ? (
+          // Same height as the note, so the button does not move when the note appears after a time is picked.
+          <p aria-hidden="true" className="mx-auto -mt-1 box-content min-h-[18px] max-w-[1240px] px-4 pb-2.5" />
         ) : null}
       </div>
       <Sheet open={open} onOpenChange={setOpen} title={t('title')} closeLabel={t('close')}>

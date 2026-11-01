@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { radioGroupKeyDown } from '@/components/ui/radioKeys';
 import type { Slot } from '@/lib/api/booking';
-import { partitionByDayPart, slotMatchesTime } from '@/lib/booking/slots';
+import { findSlotByLocalTime, partitionByDayPart } from '@/lib/booking/slots';
 import { cn } from '@/lib/cn';
 import { useBookingFormat } from './useBookingFormat';
 
@@ -32,8 +32,11 @@ export function SlotGrid({
   const f = useBookingFormat(timezone);
   const groups = partitionByDayPart(slots, timezone);
   const flat = groups.flatMap((g) => g.slots);
+  // The ONE selected slot: an offset token names an instant; a plain HH:mm (old link) names the first slot at that
+  // wall time, so the repeated hour of a DST fall-back never shows two checked radios.
+  const selected = selectedTime ? findSlotByLocalTime(flat, timezone, selectedTime) : undefined;
   // Roving tabindex: the selected time, else the first one.
-  const tabStop = flat.find((s) => slotMatchesTime(s, timezone, selectedTime)) ?? flat[0];
+  const tabStop = selected ?? flat[0];
 
   return (
     <div
@@ -67,7 +70,7 @@ export function SlotGrid({
           </span>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
             {group.slots.map((slot) => {
-              const checked = slotMatchesTime(slot, timezone, selectedTime);
+              const checked = slot === selected;
               return (
                 <button
                   key={slot.startAt}

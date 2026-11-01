@@ -1136,7 +1136,7 @@
       "dayAvailable": "{date}, {count, plural, one {# time} other {# times}} available",
       "dayFull": "{date}, no free times",
       "noTimesDay": "No free times on this day. Try another day.",
-      "noTimesAtAll": "{days, plural, one {No free times today. Please check back soon.} other {No free times in the next # days. Please check back soon.}}",
+      "noTimesAtAll": "{days, plural, one {No free times right now. Please check back soon.} other {No free times in the next # days. Please check back soon.}}",
       "slotsFailed": "We couldn't load the free times.",
       "timezoneNote": "Times are shown in {zone} time (UTC{offset}), where the business is.",
       "pickDay": "Pick a day to see the free times.",

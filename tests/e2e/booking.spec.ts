@@ -436,11 +436,12 @@ test.describe('the booking window', () => {
     }) => {
       const { slotRequests } = await mockPublicApi(page, { bookingWindowDays: published, timezone: WINDOW_TZ });
       await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-      // A one-day window is only today, which never has bookable times (minimum notice), so the page shows the
-      // "no free times today" state (F38: singular, never "1 days") instead of a strip; longer windows draw one pill per day.
+      // A one-day window is the local day of "now" only (the server's own window is rolling, now + N days), which
+      // has no bookable times in the mock (minimum notice), so the page shows the neutral "no free times right now"
+      // state (F38: singular, never "1 days") instead of a strip; longer windows draw one pill per day.
       let days: string[] = [];
       if (asked === 1) {
-        await expect(page.getByText('No free times today. Please check back soon.')).toBeVisible();
+        await expect(page.getByText('No free times right now. Please check back soon.')).toBeVisible();
         await expect(page.getByText(/next 1 days/)).toHaveCount(0);
         await expect(pills(page)).toHaveCount(0);
       } else {
@@ -545,11 +546,24 @@ test.describe('the booking window', () => {
     await page.setViewportSize({ width: 360, height: 640 });
     await mockPublicApi(page, { bookingWindowDays: 14, cancelCutoffMin: 120 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    const bar = page.locator('.sticky-summary-bar');
+    const continueButton = page.getByRole('button', { name: 'Continue' }).locator('visible=true');
+    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByText(/^Free cancellation until /).locator('visible=true')).toHaveCount(0);
+    // Before a time is picked the note's line is already reserved: neither the bar nor the button moves later.
+    const barBefore = (await bar.boundingBox())!;
+    const buttonBefore = (await continueButton.boundingBox())!;
     await pickFirstTime(page);
-    await page.getByRole('button', { name: 'Continue' }).click();
-    await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
-
     const note = page.getByText(/^Free cancellation until /).locator('visible=true');
+    await expect(note).toBeVisible();
+    const barAfter = (await bar.boundingBox())!;
+    const buttonAfter = (await continueButton.boundingBox())!;
+    expect(barAfter.y).toBeCloseTo(barBefore.y, 0);
+    expect(barAfter.height).toBeCloseTo(barBefore.height, 0);
+    expect(buttonAfter.y).toBeCloseTo(buttonBefore.y, 0);
+
+    await continueButton.click();
+    await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
     await expect(note).toBeVisible();
     const cta = page.getByRole('button', { name: 'Confirm booking' }).locator('visible=true');
     const ctaBox = (await cta.boundingBox())!;
@@ -563,6 +577,17 @@ test.describe('the booking window', () => {
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow).toBeLessThanOrEqual(0);
+
+    // Scrolled to the very end, the fixed bar covers neither the last form element nor the footer text.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const bottoms = await page.evaluate(() => {
+      const bar = document.querySelector('.sticky-summary-bar')!.getBoundingClientRect().top;
+      const form = document.querySelector('main section')!.lastElementChild!.getBoundingClientRect().bottom;
+      const footer = document.querySelector('footer span')!.getBoundingClientRect().bottom;
+      return { bar, form, footer };
+    });
+    expect(bottoms.form).toBeLessThanOrEqual(bottoms.bar);
+    expect(bottoms.footer).toBeLessThanOrEqual(bottoms.bar);
   });
 
   test('F37: the line reads right to left in Arabic and stays inside the phone viewport', async ({
@@ -585,6 +610,8 @@ test.describe('the booking window', () => {
     const box = (await note.boundingBox())!;
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(360);
+    // One line, so the reserved line in the bar is enough and the button does not move.
+    expect(box.height).toBeLessThan(24);
   });
 
   test('F19: the picked time is kept in the URL with its UTC offset and survives a reload', async ({ page }) => {
@@ -593,10 +620,18 @@ test.describe('the booking window', () => {
     await pickFirstTime(page);
     // 9:00 in Beirut in November is +02:00: the instant is unambiguous even on the repeated hour of a fall-back night.
     await expect(page).toHaveURL(/time=09%3A00%2B02%3A00/);
+    const urlTime = new URL(page.url()).searchParams.get('time');
+    const urlDay = new URL(page.url()).searchParams.get('day');
+    // Reload on the time step: the SAME slot (same day, 9:00) is still the checked one.
+    await page.reload();
+    await expect(page.getByRole('radio', { name: '9:00', exact: true }).locator('visible=true')).toBeChecked();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
+    const after = new URL(page.url()).searchParams;
+    expect(after.get('time')).toBe(urlTime);
+    expect(after.get('day')).toBe(urlDay);
   });
 
   test('coming back to the tab refetches the times', async ({ page }) => {

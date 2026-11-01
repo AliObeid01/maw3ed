@@ -61,7 +61,7 @@ const HOUR = 3_600_000;
 /** How long the slots from a 409 are trusted before the normal (refetched) data takes over again. */
 const FRESH_MS = 60_000;
 const mainClass =
-  'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-28 md:px-8 md:pt-7 lg:pb-10';
+  'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-[calc(9rem+env(safe-area-inset-bottom))] md:px-8 md:pt-7 lg:pb-10';
 
 // BookedState lives in @/lib/booking/bookedStore
 type FreshDays = { key: string; days: Record<string, Slot[]> };
@@ -494,7 +494,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     return (
       <>
         {hero}
-        <main className={mainClass.replace('pb-28', 'pb-10')}>
+        <main className={mainClass.replace('pb-[calc(9rem+env(safe-area-inset-bottom))]', 'pb-10')}>
           <BookedView
             result={booked.result}
             clientName={booked.name}
@@ -648,6 +648,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           ctaDisabled={cta.disabled}
           ctaLoading={ctaLoading}
           note={freeCancelNote}
+          reserveNote
         />
       ) : null}
     </>

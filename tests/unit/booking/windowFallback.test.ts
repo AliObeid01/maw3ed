@@ -74,6 +74,19 @@ describe('loadSlotWindow: a known window the server still rejects (F28)', () => 
     expect(refresh).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['429 too many requests', new ApiError(429, 'RATE_LIMITED', 'x')],
+    ['400 on another field than `to`', new ApiError(400, 'VALIDATION_FAILED', 'x', { serviceId: 'Invalid id.' })],
+  ])('%s is rethrown at once: no fallback, no business refresh', async (_name, error) => {
+    const fetchSlots = vi.fn(async (): Promise<typeof slots> => {
+      throw error;
+    });
+    const refresh = vi.fn(async () => 3 as number | undefined);
+    await expect(run(fetchSlots as never, 7, refresh)).rejects.toBe(error);
+    expect(fetchSlots).toHaveBeenCalledTimes(1);
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
   it('keeps abort handling: an aborted refresh ends the load with the abort error', async () => {
     const controller = new AbortController();
     const refresh = vi.fn(async (): Promise<number | undefined> => {
