@@ -1,5 +1,6 @@
 import { escapeHtml, interpolate, oneLine } from '@/server/i18n/emailRender';
-import { emailFontStack, getEmailMessages, isRtl } from '@/server/i18n/messages';
+import { emailStyles, renderEmailLayout } from '@/server/i18n/emailLayout';
+import { getEmailMessages, isRtl } from '@/server/i18n/messages';
 import { EMAIL_TOKEN_TTL_MS, type EmailTokenKind } from '@/server/domain/emailTokens';
 
 export interface AccountEmailOptions {
@@ -21,7 +22,6 @@ export function accountEmail(opts: AccountEmailOptions) {
   const all = getEmailMessages(locale);
   const m = opts.kind === 'VERIFY' ? all.verify : all.reset;
   const rtl = isRtl(locale);
-  const dir = rtl ? 'rtl' : 'ltr';
   const hours = String(EMAIL_TOKEN_TTL_MS[opts.kind] / 3_600_000);
   const vars: Record<string, string> = {
     business: oneLine(opts.businessName ?? ''),
@@ -49,20 +49,13 @@ export function accountEmail(opts: AccountEmailOptions) {
         return val === undefined ? escapeHtml(p) : bdi(val);
       })
       .join('');
-  const html = [
-    '<!doctype html>',
-    `<html lang="${rtl ? 'ar' : 'en'}" dir="${dir}">`,
-    '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
-    `<body dir="${dir}" style="margin:0;padding:16px;background:#f6f5f1;font-family:${emailFontStack(locale)};color:#1b1b1b">`,
-    `<div dir="${dir}" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;text-align:start">`,
-    `<h1 style="margin:0 0 8px;font-size:20px">${escapeHtml(m.heading)}</h1>`,
-    `<p style="margin:0 0 16px">${withVars(m.intro)}</p>`,
-    `<p style="margin:0 0 16px"><a href="${escapeHtml(opts.url)}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#0E7C66;color:#ffffff;text-decoration:none;font-weight:600">${escapeHtml(m.action)}</a></p>`,
-    `<p style="margin:0 0 8px;color:#5a5a5a;font-size:13px">${withVars(m.expires)}</p>`,
-    `<p style="margin:0;color:#5a5a5a;font-size:13px">${escapeHtml(m.ignore)}</p>`,
-    '</div>',
-    '</body>',
-    '</html>',
-  ].join('\n');
+  const html = renderEmailLayout({
+    locale,
+    preheader: interpolate(m.intro, vars),
+    title: m.heading,
+    bodyHtml: `<p style="${emailStyles.p}">${withVars(m.intro)}</p>`,
+    cta: { label: m.action, url: opts.url },
+    notesHtml: [withVars(m.expires), escapeHtml(m.ignore)],
+  });
   return { subject, text, html };
 }

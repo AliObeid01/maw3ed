@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
-import { emailFontStack, getEmailMessages, isRtl } from './messages';
+import { emailDetails, emailStyles, renderEmailLayout } from './emailLayout';
+import { getEmailMessages, isRtl } from './messages';
 
 export type EmailKind = 'BOOKING' | 'H24' | 'H2';
 
@@ -100,7 +101,6 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
   const greeting = interpolate(m.greeting, v);
   const footer = interpolate(m.footer, v);
   const rtl = isRtl(c.locale);
-  const bdi = (value: string) => (rtl ? `<bdi>${escapeHtml(value)}</bdi>` : escapeHtml(value));
   const f = formatLocal(c.startAt, c.timezone, c.locale);
   const details: Array<[string, string]> = [
     [m.labels.service, v.service!],
@@ -128,37 +128,21 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
     '',
   ].join('\n');
 
-  const dir = isRtl(c.locale) ? 'rtl' : 'ltr';
-  const lang = isRtl(c.locale) ? 'ar' : 'en';
   const e = escapeHtml;
-  const button = (label: string, url: string, bg: string) =>
-    `<a href="${e(url)}" style="display:inline-block;padding:12px 20px;margin:4px 0;border-radius:8px;background:${bg};color:#ffffff;text-decoration:none;font-weight:600">${e(label)}</a>`;
-  const html = [
-    '<!doctype html>',
-    `<html lang="${lang}" dir="${dir}">`,
-    '<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>',
-    `<body dir="${dir}" style="margin:0;padding:16px;background:#f6f5f1;font-family:${emailFontStack(c.locale)};color:#1b1b1b">`,
-    `<div dir="${dir}" style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:12px;padding:24px;text-align:start">`,
-    `<p style="margin:0 0 12px">${interpolateHtml(m.greeting, v, rtl)}</p>`,
-    `<h1 style="margin:0 0 8px;font-size:20px">${e(copy.heading)}</h1>`,
-    `<p style="margin:0 0 16px">${interpolateHtml(copy.intro, v, rtl)}</p>`,
-    '<table role="presentation" style="border-collapse:collapse;margin:0 0 20px">',
-    ...details.map(
-      ([k, val]) =>
-        `<tr><td style="padding:4px 12px;color:#5a5a5a">${e(k)}</td><td style="padding:4px 12px;font-weight:600">${bdi(val)}</td></tr>`,
-    ),
-    '</table>',
-    `<p style="margin:0 0 8px">${button(m.actions.confirm, c.confirmUrl, '#0E7C66')}</p>`,
-    `<p style="margin:0 0 16px">${button(m.actions.cancel, c.cancelUrl, '#8a3b2e')}</p>`,
-    `<p style="margin:0 0 8px;color:#5a5a5a;font-size:13px">${e(m.actions.linkNote)}</p>`,
-    ...(calendarNote
-      ? [`<p style="margin:0 0 8px;color:#5a5a5a;font-size:13px">${e(calendarNote)}</p>`]
-      : []),
-    `<p style="margin:16px 0 0;color:#8a8a8a;font-size:12px">${interpolateHtml(m.footer, v, rtl)}</p>`,
-    '</div>',
-    '</body>',
-    '</html>',
-  ].join('\n');
+  const html = renderEmailLayout({
+    locale: c.locale,
+    preheader: intro,
+    title: copy.heading,
+    bodyHtml: [
+      `<p style="${emailStyles.p}">${interpolateHtml(m.greeting, v, rtl)}</p>`,
+      `<p style="${emailStyles.p}">${interpolateHtml(copy.intro, v, rtl)}</p>`,
+      emailDetails(details, rtl),
+    ].join('\n'),
+    cta: { label: m.actions.confirm, url: c.confirmUrl },
+    secondary: [{ label: m.actions.cancel, url: c.cancelUrl }],
+    notesHtml: [e(m.actions.linkNote), ...(calendarNote ? [e(calendarNote)] : [])],
+    footerHtml: interpolateHtml(m.footer, v, rtl),
+  });
 
   return { subject, text, html };
 }

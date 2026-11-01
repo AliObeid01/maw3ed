@@ -16,3 +16,4 @@ design/shots-*/
 # Prisma generated client (rebuilt by postinstall)
 src/generated/
 .impeccable/
+tmp/
