@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON bodies and SQL rows */
-import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { type Browser, type BrowserContext, type Page } from '@playwright/test';
+import { expect, test } from './helpers/test';
 import { readFileSync } from 'node:fs';
 import { DateTime } from 'luxon';
 import {

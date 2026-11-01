@@ -1,4 +1,5 @@
-import { expect, test, type Page, type Route } from '@playwright/test';
+import { type Page, type Route } from '@playwright/test';
+import { expect, test } from './helpers/test';
 import { freezeClock, ORIGIN } from './helpers/clock';
 
 // Self-contained: every API call is answered by page.route (virtual clock via freezeClock), no backend.

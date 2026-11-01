@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { nowDate } from '../helpers/clock';
 import { mockDashboardApi } from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';

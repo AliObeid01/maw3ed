@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { defaultState, mockSetupApi, setRole } from '../helpers/mockApi';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;

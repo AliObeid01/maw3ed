@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { defaultState, mockSetupApi, setRole, type MockState } from '../helpers/mockApi';
 
 // Dashboard specs run against `next dev` with a fake session (see playwright.config.ts); every /api call is

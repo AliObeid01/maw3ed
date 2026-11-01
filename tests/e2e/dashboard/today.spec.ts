@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { defaultAppointments, mockDashboardApi, todayLocal } from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';
 
