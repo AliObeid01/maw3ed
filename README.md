@@ -106,6 +106,8 @@ pnpm openapi:check     # fail if committed openapi.json is stale
 pnpm design:extract    # unpack design boards to design/screens
 ```
 
+Previewing emails: `node scripts/email/preview.mjs` renders every email kind in English and Arabic to `tmp/email-preview/*.html` (gitignored; open them in a browser, no network or secrets needed).
+
 Also available: `pnpm db:deploy` (apply migrations), `pnpm db:check` (verify the constraints exist), `pnpm i18n:check` (en and ar keys match), `pnpm format`.
 
 ## How checks work
