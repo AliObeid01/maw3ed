@@ -97,6 +97,12 @@ export type PublicMockOptions = {
   slotsDelayMs?: number;
   /** Booking window of the business (days ahead). Default 30. */
   windowDays?: number;
+  /** Published as business.bookingWindowDays (omitted when unset, like an older server). Also the server limit unless windowDays is set. */
+  bookingWindowDays?: number;
+  /** Published as business.cancelCutoffMin (omitted when unset). */
+  cancelCutoffMin?: number;
+  /** Business timezone (default Asia/Beirut); slots, the booking day and the window limit follow it. */
+  timezone?: string;
   /** Local times that are already booked (excluded from every slots answer). */
   bookedTimes?: string[];
 };
@@ -124,12 +130,13 @@ function slotsFor(
   staffId: string | undefined,
   taken: Set<string>,
   booked: string[],
+  tz: string = TZ,
 ) {
   const out: { startAt: string; endAt: string; staffId?: string }[] = [];
-  const today = clockNow().setZone(TZ).startOf('day');
+  const today = clockNow().setZone(tz).startOf('day');
   const earliest = clockNow().plus({ minutes: MIN_NOTICE_MIN });
-  let day = DateTime.fromISO(from, { zone: TZ });
-  const last = DateTime.fromISO(to, { zone: TZ });
+  let day = DateTime.fromISO(from, { zone: tz });
+  const last = DateTime.fromISO(to, { zone: tz });
   while (day <= last) {
     if (day > today && day.weekday !== 7) {
       for (const time of TIMES) {
@@ -157,7 +164,17 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
   const bookings = new Map<string, { body: BookingCall['body']; phone: string; result: unknown }>();
   const calls: BookingCall[] = [];
   const slotRequests: string[] = [];
-  const windowDays = options.windowDays ?? 30;
+  const tz = options.timezone ?? TZ;
+  const windowDays = options.windowDays ?? options.bookingWindowDays ?? 30;
+  const publicCatalogue = {
+    ...catalogue,
+    business: {
+      ...catalogue.business,
+      timezone: tz,
+      ...(options.bookingWindowDays === undefined ? {} : { bookingWindowDays: options.bookingWindowDays }),
+      ...(options.cancelCutoffMin === undefined ? {} : { cancelCutoffMin: options.cancelCutoffMin }),
+    },
+  };
   const script: Attempt[] = options.script ?? [
     ...(options.takeSlotOnFirstBook ? (['taken'] as const) : []),
     ...(options.failFirstWith500 ? (['500'] as const) : []),
@@ -179,7 +196,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
 
     if (!match[2]) {
       if (options.businessDelayMs) await new Promise((r) => setTimeout(r, options.businessDelayMs));
-      return json(route, 200, catalogue);
+      return json(route, 200, publicCatalogue);
     }
 
     if (match[2] === '/slots') {
@@ -197,7 +214,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
       const first = DateTime.fromISO(from, { zone: 'utc' });
       const last = DateTime.fromISO(to, { zone: 'utc' });
       const span = Math.round(last.diff(first, 'days').days) + 1;
-      const today = clockNow().setZone(TZ);
+      const today = clockNow().setZone(tz);
       const limit = DateTime.fromObject({ year: today.year, month: today.month, day: today.day }, { zone: 'utc' }).plus({
         days: windowDays,
       });
@@ -213,7 +230,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
         : true;
       if (!service || !staff) return apiError(route, 404, 'NOT_FOUND');
       return json(route, 200, {
-        slots: slotsFor(from, to, staffId, taken, options.bookedTimes ?? []),
+        slots: slotsFor(from, to, staffId, taken, options.bookedTimes ?? [], tz),
       });
     }
 
@@ -272,9 +289,9 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
 
     attempts += 1;
     const step: Attempt = script[attempts - 1] ?? 'ok';
-    const day = DateTime.fromISO(body.startAt).setZone(TZ).toISODate()!;
+    const day = DateTime.fromISO(body.startAt).setZone(tz).toISODate()!;
     const staffForSlots = body.staffId === 'anyone' ? undefined : body.staffId;
-    const freshSlots = () => slotsFor(day, day, staffForSlots, taken, options.bookedTimes ?? []);
+    const freshSlots = () => slotsFor(day, day, staffForSlots, taken, options.bookedTimes ?? [], tz);
 
     if (step === 'taken') {
       taken.add(body.startAt);
