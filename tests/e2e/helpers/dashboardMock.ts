@@ -425,7 +425,7 @@ export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
           staff: { id: staff.id, displayName: staff.displayName },
         },
         links: { manage: '/l/mock-manage-token' },
-        reminders: mockReminders(b.startAt!),
+        reminders: mockReminders(b.startAt!, !!b.client?.email),
       };
       taken.add(b.startAt!);
       if (key) bookings.set(key, { body: b, phone, result });

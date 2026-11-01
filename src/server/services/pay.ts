@@ -1,4 +1,4 @@
-import { plannedJobs, remindersOf, type PlannedReminders } from '@/server/domain/bookingPlan';
+import { plannedJobs, type PlannedReminders } from '@/server/domain/bookingPlan';
 import { localDayOf } from '@/server/domain/dateRange';
 import { holdIsLive } from '@/server/domain/deposit';
 import { verifyToken } from '@/server/domain/tokens';
@@ -8,7 +8,7 @@ import type { Logger } from '@/server/http/logger';
 import { getPaymentProvider, type PaymentProvider } from '@/server/providers/payment';
 import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
-import { reminderJobRepo } from '@/server/repositories/reminderJob.repo';
+import { storedReminders } from './reminderPromise';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
 import { defaultWaitlistDeps, expireLapsedHolds, type WaitlistDeps } from './waitlist';
 
@@ -118,10 +118,7 @@ async function viewOf(
   state: 'PENDING' | 'PAID',
   testMode: boolean,
 ) {
-  const reminders =
-    state === 'PAID'
-      ? remindersOf(await reminderJobRepo.emailReminderKinds(r.businessId, row.id))
-      : { h24: false, h2: false };
+  const reminders = await storedReminders(r.businessId, row.id);
   return view(row, now, state, testMode, reminders);
 }
 

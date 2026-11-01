@@ -43,7 +43,7 @@ export const slotSchema = z.object({
 export const slotsSchema = z.object({ slots: z.array(slotSchema) });
 export type Slot = z.infer<typeof slotSchema>;
 
-export const remindersSchema = z.object({ h24: z.boolean(), h2: z.boolean() });
+export const remindersSchema = z.object({ h24: z.boolean(), h2: z.boolean(), email: z.boolean() });
 
 export const bookingResultSchema = z.object({
   appointment: z.object({

@@ -88,12 +88,29 @@ export const reminderJobRepo = {
     });
   },
 
-  /** The H24 / H2 rows an appointment actually has (any status): what its client may be promised. */
-  async emailReminderKinds(businessId: string, appointmentId: string) {
-    return db.reminderJob.findMany({
-      where: { businessId, appointmentId, channel: 'EMAIL', kind: { in: ['H24', 'H2'] } },
-      select: { kind: true, channel: true },
+  /**
+   * What an appointment's client may be promised: its EMAIL H24 / H2 rows (any job status: a reminder that
+   * was already SENT stays promised, one SKIPPED by a cancel does not), whether the client has an email
+   * address, and whether the appointment was cancelled. Null when it is not this business's.
+   */
+  async reminderFacts(businessId: string, appointmentId: string) {
+    const a = await db.appointment.findFirst({
+      where: { id: appointmentId, businessId },
+      select: {
+        status: true,
+        client: { select: { email: true } },
+        reminderJobs: {
+          where: { channel: 'EMAIL', kind: { in: ['H24', 'H2'] } },
+          select: { kind: true, channel: true },
+        },
+      },
     });
+    if (!a) return null;
+    return {
+      jobs: a.reminderJobs,
+      hasEmail: !!a.client.email?.trim(),
+      cancelled: a.status === 'CANCELLED' || a.status === 'LATE_CANCEL',
+    };
   },
 
   /** Cancel path: pending jobs for the appointment will never be sent. */

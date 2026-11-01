@@ -1151,9 +1151,9 @@
       "email": "Email (optional)",
       "emailPlaceholder": "For a calendar invite",
       "consent": "Reminders by email and WhatsApp; no account needed.",
-      "reminder1": "Reminder 1",
-      "reminder2": "Reminder 2",
-      "reminderNote": "Each reminder has one-tap Confirm and Cancel links.",
+      "reminder1": "Reminder 1 (estimate)",
+      "reminder2": "Reminder 2 (estimate)",
+      "reminderNote": "Times are estimates. Reminders are sent only if there is enough time before your appointment. Each reminder has one-tap Confirm and Cancel links.",
       "errorSummary": "Please fix the highlighted fields."
     },
     "summary": {
@@ -1413,7 +1413,7 @@
   },
   "reminderPromise": {
     "title": "Reminders",
-    "promise": "{kind, select, both {We will email you reminders 24 hours and 2 hours before.} h24 {We will email you a reminder 24 hours before.} h2 {We will email you a reminder 2 hours before, because this time is less than 24 hours away.} other {This time is very close, so we will not send reminder emails. Please add it to your calendar.}}"
+    "promise": "{kind, select, both {We will email you reminders 24 hours and 2 hours before.} h24 {We will email you a reminder 24 hours before.} h2 {We will email you a reminder 2 hours before, because this time is less than 24 hours away.} noEmail {No email address was added, so we cannot send reminder emails. Please add this time to your calendar.} other {This time is very close, so we will not send reminder emails. Please add it to your calendar.}}"
   },
   "offer": {
     "pageTitle": "Waitlist offer",

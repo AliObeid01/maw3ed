@@ -109,7 +109,7 @@ export type PublicMockOptions = {
   /** Local times that are already booked (excluded from every slots answer). */
   bookedTimes?: string[];
   /** What the booking answers in `reminders` (default: from the slot's lead time, like the server). */
-  reminders?: { h24: boolean; h2: boolean };
+  reminders?: { h24: boolean; h2: boolean; email: boolean };
 };
 
 export type BookingCall = {
@@ -340,7 +340,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
         staff: { id: staff.id, displayName: staff.displayName },
       },
       links: { manage: `/l/mock-manage-token` },
-      reminders: options.reminders ?? mockReminders(body.startAt),
+      reminders: options.reminders ?? mockReminders(body.startAt, !!body.client?.email),
     };
     bookings.set(key, { body, phone, result });
     taken.add(body.startAt);

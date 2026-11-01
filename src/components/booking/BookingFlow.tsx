@@ -84,6 +84,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   useLocaleHint(data?.business.locale, pathname);
 
   const [now, setNow] = useState(() => new Date());
+  // Only the reminder estimate on the details step reads this; kept apart so refreshing it moves nothing else.
+  const [previewNow, setPreviewNow] = useState(() => new Date());
   const days = useMemo(() => dayWindow(now, timezone), [now, timezone]);
   const searchText = search.toString();
   const resolved = useMemo(
@@ -363,6 +365,7 @@ export function BookingFlow({ slug }: { slug: string }) {
     );
   };
   const toDetails = () => {
+    setPreviewNow(new Date()); // the estimate below reads a clock as fresh as the step
     setTaken(undefined);
     clearMessages();
     go({ step: 'details', ...base, day: selectedDay, time: resolved.time });
@@ -524,8 +527,11 @@ export function BookingFlow({ slug }: { slug: string }) {
   const ctaLoading = (pending && onDetailsStep) || waitingForTimes;
   const retryable = banner === 'network' || banner === 'generic' || banner === 'tooMany';
   const startMs = selectedSlot ? Date.parse(selectedSlot.startAt) : undefined;
+  // A preview ESTIMATE only (the confirmation shows what the server planned): same `>=` rule as the server's
+  // reminderPlan, the device clock re-read on entering the step and on each keystroke, and no preview at all without an email address.
+  const hasTypedEmail = values.email.trim().length > 0;
   const reminderAt = (hours: number) =>
-    startMs !== undefined && startMs - hours * HOUR > now.getTime()
+    hasTypedEmail && startMs !== undefined && startMs - hours * HOUR >= previewNow.getTime()
       ? tSum('whenValue', {
           date: f.day(new Date(startMs - hours * HOUR).toISOString()),
           time: f.time(new Date(startMs - hours * HOUR).toISOString()),
@@ -608,6 +614,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           <DetailsStep
             values={values}
             onChange={(patch) => {
+              setPreviewNow(new Date());
               setValues((v) => ({ ...v, ...patch }));
               const touched = Object.keys(patch) as (keyof DetailsValues)[];
               setErrors((e) => {

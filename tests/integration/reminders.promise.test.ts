@@ -34,6 +34,7 @@ const HOUR = 3_600_000;
 const MIN = 60_000;
 const SLOT = at('07:00'); // Wed 4 Nov 2026, 09:00 Beirut
 const SLOT_MS = Date.parse(SLOT);
+const EMAIL = 'maya@example.test';
 
 const payGet = (token: string) => call(getPay, `/api/pay/${token}`, { params: { token } });
 const payPost = (token: string) => call(postPay, `/api/pay/${token}`, { params: { token }, body: {} });
@@ -45,7 +46,7 @@ async function stored(appointmentId: string) {
     [appointmentId],
   );
   const kinds = rows.map((r: { kind: string }) => r.kind);
-  return { h24: kinds.includes('H24'), h2: kinds.includes('H2') };
+  return { h24: kinds.includes('H24'), h2: kinds.includes('H2'), email: true };
 }
 
 beforeAll(async () => {
@@ -72,16 +73,19 @@ beforeEach(async () => {
 });
 
 const LEADS = [
-  ['30 h ahead', 30 * HOUR, { h24: true, h2: true }],
-  ['exactly 24 h ahead', 24 * HOUR, { h24: true, h2: true }],
-  ['10 h ahead', 10 * HOUR, { h24: false, h2: true }],
-  ['1 h ahead', 1 * HOUR, { h24: false, h2: false }],
+  ['30 h ahead', 30 * HOUR, { h24: true, h2: true, email: true }],
+  ['exactly 24 h ahead', 24 * HOUR, { h24: true, h2: true, email: true }],
+  ['10 h ahead', 10 * HOUR, { h24: false, h2: true, email: true }],
+  ['2 h ahead exactly (H2 is >=)', 2 * HOUR, { h24: false, h2: true, email: true }],
+  ['2 h less 1 ms (no H2)', 2 * HOUR - 1, { h24: false, h2: false, email: true }],
+  ['24 h less 1 ms (no H24)', 24 * HOUR - 1, { h24: false, h2: true, email: true }],
+  ['1 h ahead', 1 * HOUR, { h24: false, h2: false, email: true }],
 ] as const;
 
 describe('public booking: reminders equals the ReminderJob rows', () => {
   it.each(LEADS)('%s', async (_label, lead, expected) => {
     vi.setSystemTime(SLOT_MS - lead);
-    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT));
+    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { email: EMAIL }));
     expect(res.status).toBe(201);
     expect(res.body!.reminders).toEqual(expected);
     expect(await stored(res.body!.appointment.id)).toEqual(res.body!.reminders);
@@ -90,12 +94,12 @@ describe('public booking: reminders equals the ReminderJob rows', () => {
   it('a replay of the same Idempotency-Key reports the stored rows', async () => {
     vi.setSystemTime(SLOT_MS - 10 * HOUR);
     const key = newKey();
-    const body = bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT);
+    const body = bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { email: EMAIL });
     const first = await bookPublicly(a.slug, body, key);
     expect(first.status).toBe(201);
     const again = await bookPublicly(a.slug, body, key);
     expect(again.status).toBe(200);
-    expect(again.body!.reminders).toEqual({ h24: false, h2: true });
+    expect(again.body!.reminders).toEqual({ h24: false, h2: true, email: true });
     expect(await stored(again.body!.appointment.id)).toEqual(again.body!.reminders);
   });
 });
@@ -152,18 +156,18 @@ describe('DST in Asia/Beirut: the windows are absolute hours, not wall-clock day
 
   it('booked at the same wall-clock time the day before (spring): only 23 h away, no H24', async () => {
     vi.setSystemTime(Date.parse('2027-03-27T07:00:00.000Z')); // Saturday 09:00 local (UTC+2)
-    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SPRING));
+    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SPRING, { email: EMAIL }));
     expect(res.status).toBe(201);
-    expect(res.body!.reminders).toEqual({ h24: false, h2: true });
-    expect(await stored(res.body!.appointment.id)).toEqual({ h24: false, h2: true });
+    expect(res.body!.reminders).toEqual({ h24: false, h2: true, email: true });
+    expect(await stored(res.body!.appointment.id)).toEqual({ h24: false, h2: true, email: true });
   });
 
   it('booked 24 h before the slot across the same change: H24 and H2', async () => {
     vi.setSystemTime(Date.parse('2027-03-27T06:00:00.000Z')); // Saturday 08:00 local
-    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SPRING));
+    const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SPRING, { email: EMAIL }));
     expect(res.status).toBe(201);
-    expect(res.body!.reminders).toEqual({ h24: true, h2: true });
-    expect(await stored(res.body!.appointment.id)).toEqual({ h24: true, h2: true });
+    expect(res.body!.reminders).toEqual({ h24: true, h2: true, email: true });
+    expect(await stored(res.body!.appointment.id)).toEqual({ h24: true, h2: true, email: true });
   });
 
   it('fall back: Sunday 25 Oct 2026 is 25 h long, booked at the same wall-clock time the day before, H24 exists', async () => {
@@ -171,11 +175,11 @@ describe('DST in Asia/Beirut: the windows are absolute hours, not wall-clock day
     vi.setSystemTime(Date.parse('2026-10-24T06:00:00.000Z'));
     const res = await bookPublicly(
       a.slug,
-      bookingBody(scn.serviceId, scn.staffIds[0]!, '2026-10-25T07:00:00.000Z'),
+      bookingBody(scn.serviceId, scn.staffIds[0]!, '2026-10-25T07:00:00.000Z', { email: EMAIL }),
     );
     expect(res.status).toBe(201);
-    expect(res.body!.reminders).toEqual({ h24: true, h2: true });
-    expect(await stored(res.body!.appointment.id)).toEqual({ h24: true, h2: true });
+    expect(res.body!.reminders).toEqual({ h24: true, h2: true, email: true });
+    expect(await stored(res.body!.appointment.id)).toEqual({ h24: true, h2: true, email: true });
   });
 });
 
@@ -204,11 +208,11 @@ describe('deposit: the confirmed screen uses the post-payment truth', () => {
 
   it('a hold has no reminders until it is paid', async () => {
     const hold = await holdFor(SLOT_MS - 30 * HOUR);
-    expect(hold.body!.reminders).toEqual({ h24: false, h2: false });
-    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: false, h2: false });
+    expect(hold.body!.reminders).toEqual({ h24: false, h2: false, email: true });
+    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: false, h2: false, email: true });
     const pending = await payGet(hold.body!.payToken);
     expect(pending.body!.state).toBe('PENDING');
-    expect(pending.body!.reminders).toEqual({ h24: false, h2: false });
+    expect(pending.body!.reminders).toEqual({ h24: false, h2: false, email: true });
   });
 
   it('held 5 min before the 24 h line and paid 5 min after it: no H24, only H2', async () => {
@@ -217,18 +221,18 @@ describe('deposit: the confirmed screen uses the post-payment truth', () => {
     const paid = await payPost(hold.body!.payToken);
     expect(paid.status).toBe(200);
     expect(paid.body!.state).toBe('PAID');
-    expect(paid.body!.reminders).toEqual({ h24: false, h2: true });
-    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: false, h2: true });
+    expect(paid.body!.reminders).toEqual({ h24: false, h2: true, email: true });
+    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: false, h2: true, email: true });
     // Opening the page again later reports the same stored truth.
     const again = await payGet(hold.body!.payToken);
-    expect(again.body!.reminders).toEqual({ h24: false, h2: true });
+    expect(again.body!.reminders).toEqual({ h24: false, h2: true, email: true });
   });
 
   it('held and paid 24 h 20 min ahead: both', async () => {
     const hold = await holdFor(SLOT_MS - 24 * HOUR - 30 * MIN);
     vi.setSystemTime(SLOT_MS - 24 * HOUR - 20 * MIN);
     const paid = await payPost(hold.body!.payToken);
-    expect(paid.body!.reminders).toEqual({ h24: true, h2: true });
-    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: true, h2: true });
+    expect(paid.body!.reminders).toEqual({ h24: true, h2: true, email: true });
+    expect(await stored(hold.body!.appointment.id)).toEqual({ h24: true, h2: true, email: true });
   });
 });

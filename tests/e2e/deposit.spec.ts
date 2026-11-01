@@ -37,7 +37,7 @@ async function mockDeposit(page: Page) {
     holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
     now: nowDate().toISOString(),
     testMode: true,
-    reminders: state === 'PAID' ? { h24: true, h2: true } : { h24: false, h2: false },
+    reminders: state === 'PAID' ? { h24: true, h2: true, email: true } : { h24: false, h2: false, email: true },
   });
 
   // Registered after mockPublicApi, so these win for the booking POST.
@@ -47,7 +47,7 @@ async function mockDeposit(page: Page) {
       json(201, {
         appointment: { id: 'ckappt000000000000000000', startAt, endAt, status: 'PENDING_PAYMENT', service, staff },
         links: { manage: '/l/mock-manage-token' },
-        reminders: { h24: false, h2: false },
+        reminders: { h24: false, h2: false, email: true },
         status: 'PENDING_PAYMENT',
         payToken: PAY_TOKEN,
         payUrl: `${ORIGIN}/pay/${PAY_TOKEN}`,

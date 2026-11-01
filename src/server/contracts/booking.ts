@@ -112,15 +112,20 @@ export const RemindersDto = registry.register(
   z
     .object({
       h24: z.boolean().openapi({
-        description: 'An email reminder 24 hours before the appointment will be sent (booked at least 24 h ahead).',
+        description: 'An email reminder 24 hours before the appointment is planned (booked at least 24 h ahead).',
       }),
       h2: z.boolean().openapi({
-        description: 'An email reminder 2 hours before the appointment will be sent (booked at least 2 h ahead).',
+        description: 'An email reminder 2 hours before the appointment is planned (booked at least 2 h ahead).',
+      }),
+      email: z.boolean().openapi({
+        description:
+          'Whether the client has an email address. When false no reminder email can be sent, so h24 and h2 are false too.',
       }),
     })
+    .strict()
     .openapi({
       description:
-        'The email reminders this booking actually has, from the same plan that creates the ReminderJob rows. Pages promise nothing else. All false for a deposit hold (none until paid).',
+        'The email reminders planned for this booking (a send can still be skipped, for example by the daily email budget), from the ReminderJob rows. Pages promise nothing else. All false for a deposit hold (none until paid), for a cancelled booking and for a client without an email address.',
     }),
 );
 

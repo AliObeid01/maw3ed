@@ -1,6 +1,5 @@
 import {
   plannedJobs,
-  remindersOf,
   sameBookingRequest,
   type PlannedReminders,
 } from '@/server/domain/bookingPlan';
@@ -20,7 +19,7 @@ import {
 } from '@/server/repositories/appointment.repo';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { clientRepo } from '@/server/repositories/client.repo';
-import { reminderJobRepo } from '@/server/repositories/reminderJob.repo';
+import { storedReminders } from './reminderPromise';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
 import { onSlotFreed } from './slotFreed';
@@ -301,9 +300,8 @@ async function bookInner(
         'This Idempotency-Key was already used for a different booking.',
       );
     ctx.logger.info({ businessId, appointmentId: stored.id }, 'booking replayed (idempotent)');
-    // What the first booking really got: the stored rows (a deposit paid later has its own).
-    const rows = await reminderJobRepo.emailReminderKinds(businessId, stored.id);
-    return result(stored, true, cfg, remindersOf(rows));
+    // What the first booking really got, from the stored rows.
+    return result(stored, true, cfg, await storedReminders(businessId, stored.id));
   };
 
   if (key) {
@@ -395,8 +393,8 @@ async function bookInner(
         deposit ? 'appointment held pending deposit' : 'appointment booked',
       );
       if (plan) await openCheckout(ctx, plan, stored, key, deps.now());
-      // `reminders` is the very list that was inserted with the appointment.
-      return result(stored, false, cfg, remindersOf(reminders));
+      // Read back from the rows just inserted with the appointment.
+      return result(stored, false, cfg, await storedReminders(businessId, stored.id));
     } catch (error) {
       if (error instanceof AppError) throw error;
       const pg = pgErrorCode(error);
