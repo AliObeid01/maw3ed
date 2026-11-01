@@ -99,6 +99,8 @@ export type PublicMockOptions = {
   windowDays?: number;
   /** Published as business.bookingWindowDays (omitted when unset, like an older server). Also the server limit unless windowDays is set. */
   bookingWindowDays?: number;
+  /** What GET /api/public/{slug} publishes as bookingWindowDays from its SECOND call on (the owner changed it meanwhile). */
+  refreshedBookingWindowDays?: number;
   /** Published as business.cancelCutoffMin (omitted when unset). */
   cancelCutoffMin?: number;
   /** Business timezone (default Asia/Beirut); slots, the booking day and the window limit follow it. */
@@ -164,6 +166,7 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
   const bookings = new Map<string, { body: BookingCall['body']; phone: string; result: unknown }>();
   const calls: BookingCall[] = [];
   const slotRequests: string[] = [];
+  let businessRequests = 0;
   const tz = options.timezone ?? TZ;
   const windowDays = options.windowDays ?? options.bookingWindowDays ?? 30;
   const publicCatalogue = {
@@ -196,6 +199,13 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
 
     if (!match[2]) {
       if (options.businessDelayMs) await new Promise((r) => setTimeout(r, options.businessDelayMs));
+      businessRequests += 1;
+      if (businessRequests > 1 && options.refreshedBookingWindowDays !== undefined) {
+        return json(route, 200, {
+          ...publicCatalogue,
+          business: { ...publicCatalogue.business, bookingWindowDays: options.refreshedBookingWindowDays },
+        });
+      }
       return json(route, 200, publicCatalogue);
     }
 
@@ -334,7 +344,15 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     return json(route, 201, result);
   });
 
-  return { calls, slotRequests, bookings };
+  return {
+    calls,
+    slotRequests,
+    bookings,
+    /** How many times GET /api/public/{slug} was called. */
+    get businessRequests() {
+      return businessRequests;
+    },
+  };
 }
 
 // ---- signed links ------------------------------------------------------------------------

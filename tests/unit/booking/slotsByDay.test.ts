@@ -8,6 +8,8 @@ import {
   localTime,
   partitionByDayPart,
   replaceDay,
+  slotMatchesTime,
+  slotTime,
   timezonesDiffer,
 } from '@/lib/booking/slots';
 
@@ -104,6 +106,37 @@ describe('day parts, lookups and replacing a day', () => {
     expect(after['2026-11-02']).toHaveLength(1);
     expect(after['2026-11-03']).toBe(before['2026-11-03']);
     expect(replaceDay(before, '2026-11-02', [], 'Asia/Beirut')['2026-11-02']).toEqual([]);
+  });
+});
+
+describe('time tokens on the DST fall-back night (Asia/Beirut, 24 Oct 2026 23:xx happens twice, F19)', () => {
+  // Beirut falls back at 00:00 EEST on 25 Oct: 23:30 on the 24th is first +03:00 (20:30Z), then +02:00 (21:30Z).
+  const first = slot('2026-10-24T20:30:00Z');
+  const second = slot('2026-10-24T21:30:00Z');
+  const zone = 'Asia/Beirut';
+
+  it('both instants read 23:30 on the wall clock but carry different tokens', () => {
+    expect(localTime(first.startAt, zone)).toBe('23:30');
+    expect(localTime(second.startAt, zone)).toBe('23:30');
+    expect(slotTime(first.startAt, zone)).toBe('23:30+03:00');
+    expect(slotTime(second.startAt, zone)).toBe('23:30+02:00');
+  });
+
+  it('a token with the offset resolves to exactly that slot', () => {
+    expect(findSlotByLocalTime([first, second], zone, '23:30+02:00')).toBe(second);
+    expect(findSlotByLocalTime([first, second], zone, '23:30+03:00')).toBe(first);
+    expect(slotMatchesTime(first, zone, '23:30+02:00')).toBe(false);
+  });
+
+  it('an old HH:mm link still works and picks the first occurrence', () => {
+    expect(findSlotByLocalTime([first, second], zone, '23:30')).toBe(first);
+  });
+
+  it('an ordinary slot round trips, and a token with the wrong offset finds nothing', () => {
+    const noon = slot('2026-11-03T10:00:00Z');
+    expect(slotTime(noon.startAt, zone)).toBe('12:00+02:00');
+    expect(findSlotByLocalTime([noon], zone, '12:00+02:00')).toBe(noon);
+    expect(findSlotByLocalTime([noon], zone, '12:00+03:00')).toBeUndefined();
   });
 });
 
