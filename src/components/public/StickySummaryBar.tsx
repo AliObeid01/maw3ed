@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +17,8 @@ export type StickySummaryBarProps = {
   onCta?: () => void;
   ctaDisabled?: boolean;
   ctaLoading?: boolean;
+  /** One short line of muted text under the price and CTA (e.g. the free-cancellation cutoff). Hidden at `lg` with the bar. */
+  note?: ReactNode;
   className?: string;
 };
 
@@ -31,6 +33,7 @@ export function StickySummaryBar({
   onCta,
   ctaDisabled,
   ctaLoading,
+  note,
   className,
 }: StickySummaryBarProps) {
   const t = useTranslations('public.summary');
@@ -62,6 +65,12 @@ export function StickySummaryBar({
             {cta}
           </Button>
         </div>
+        {note ? (
+          <p className="mx-auto -mt-1 flex max-w-[1240px] items-start gap-1.5 px-4 pb-2.5 text-[13px] leading-snug text-muted">
+            <ShieldCheck size={14} aria-hidden="true" className="mt-px shrink-0" />
+            <span className="min-w-0">{note}</span>
+          </p>
+        ) : null}
       </div>
       <Sheet open={open} onOpenChange={setOpen} title={t('title')} closeLabel={t('close')}>
         <BookingSummary rows={rows} bare />

@@ -437,10 +437,11 @@ test.describe('the booking window', () => {
       const { slotRequests } = await mockPublicApi(page, { bookingWindowDays: published, timezone: WINDOW_TZ });
       await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
       // A one-day window is only today, which never has bookable times (minimum notice), so the page shows the
-      // "no free times in the next 1 days" state instead of a strip; longer windows draw one pill per day.
+      // "no free times today" state (F38: singular, never "1 days") instead of a strip; longer windows draw one pill per day.
       let days: string[] = [];
       if (asked === 1) {
-        await expect(page.getByText(/No free times in the next 1 day/)).toBeVisible();
+        await expect(page.getByText('No free times today. Please check back soon.')).toBeVisible();
+        await expect(page.getByText(/next 1 days/)).toHaveCount(0);
         await expect(pills(page)).toHaveCount(0);
       } else {
         days = await stripLabels(page);
@@ -463,26 +464,57 @@ test.describe('the booking window', () => {
     });
   }
 
-  // Finding F28 (open): the window is trusted. If the owner shortens it after the page loaded its business, the
-  // slots endpoint answers 400 on `to`; loadSlotWindow has no fallback for a known window and rethrows, so the
-  // page shows the "could not load the free times" state with a retry button (no crash, no probing).
-  // This documents what happens today; the fix is tracked as F28.
-  test('slots rejected as beyond the window although the window was published (F28, current behaviour)', async ({
+  // Finding F28: the window is trusted, but if the owner shortens it after the page loaded its business the slots
+  // endpoint answers 400 on `to`. loadSlotWindow then re-reads the business ONCE and falls back through 7, 3, 1
+  // days below the attempted length, so the page still shows times for the shorter window.
+  test('slots rejected as beyond the published window: falls back to a shorter range, one business refresh (F28)', async ({
     page,
   }) => {
-    const { slotRequests } = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 3 });
+    const mock = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 3 });
+    await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('alert').filter({ hasText: "We couldn't load the free times." })).toHaveCount(0);
+    // 7 days was rejected, 3 days worked; the business was read once at load and once to refresh the window.
+    const today = clockNow().setZone('Asia/Beirut').startOf('day');
+    expect(mock.slotRequests.map((s) => new URLSearchParams(s).get('to'))).toEqual([
+      today.plus({ days: 6 }).toISODate(),
+      today.plus({ days: 2 }).toISODate(),
+    ]);
+    expect(mock.businessRequests).toBe(2);
+    expect(await stripLabels(page)).toHaveLength(3);
+  });
+
+  test('the refreshed business window is used directly when it is not on the 7, 3, 1 ladder (F28)', async ({
+    page,
+  }) => {
+    const mock = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 2, refreshedBookingWindowDays: 2 });
+    await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    const today = clockNow().setZone('Asia/Beirut').startOf('day');
+    expect(mock.slotRequests.map((s) => new URLSearchParams(s).get('to'))).toEqual([
+      today.plus({ days: 6 }).toISODate(),
+      today.plus({ days: 1 }).toISODate(),
+    ]);
+    expect(mock.businessRequests).toBe(2);
+  });
+
+  test('when every range is rejected the error shows and Try again is bounded, not an endless loop (F28)', async ({
+    page,
+  }) => {
+    const mock = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: -1 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
     const alert = page.getByRole('alert').filter({ hasText: "We couldn't load the free times." });
     await expect(alert).toBeVisible();
-    await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
-    expect(slotRequests).toHaveLength(1);
+    // 7, 3 and 1 day once each, and exactly one extra business read (plus the initial load).
+    expect(mock.slotRequests).toHaveLength(3);
+    expect(mock.businessRequests).toBe(2);
 
-    // Retrying asks the same thing again (still no fallback) and lands in the same state.
     await alert.getByRole('button', { name: 'Try again' }).click();
-    await expect.poll(() => slotRequests.length).toBe(2);
-    expect(slotRequests[1]).toBe(slotRequests[0]);
+    await expect.poll(() => mock.slotRequests.length).toBe(6);
     await expect(alert).toBeVisible();
+    expect(mock.slotRequests).toHaveLength(6);
+    expect(mock.businessRequests).toBe(3);
   });
 
   for (const timezone of ['Asia/Tokyo', 'America/New_York']) {
@@ -498,10 +530,74 @@ test.describe('the booking window', () => {
       start = start.set({ hour: 9 });
       const cutoff = start.minus({ minutes: cancelCutoffMin }).setLocale('en');
       const when = `${cutoff.toFormat('ccc, LLL d')}, ${cutoff.toFormat('H:mm')}`;
-      // The summary aside is `hidden lg:flex` (not displayed on a phone), so assert the rendered text, not visibility.
-      await expect(page.getByText(`Free cancellation until ${when}.`)).toBeAttached();
+      // F37: shown on phones in the sticky summary bar and at lg in the side card, exactly once at any width.
+      const line = page.getByText(`Free cancellation until ${when}.`).locator('visible=true');
+      await expect(line).toBeVisible();
+      await expect(line).toHaveCount(1);
     });
   }
+
+  test('F37: on a 360 x 640 phone the cancellation line shows in the summary bar and the CTA stays on screen', async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'phone layout');
+    await page.setViewportSize({ width: 360, height: 640 });
+    await mockPublicApi(page, { bookingWindowDays: 14, cancelCutoffMin: 120 });
+    await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    await pickFirstTime(page);
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
+
+    const note = page.getByText(/^Free cancellation until /).locator('visible=true');
+    await expect(note).toBeVisible();
+    const cta = page.getByRole('button', { name: 'Confirm booking' }).locator('visible=true');
+    const ctaBox = (await cta.boundingBox())!;
+    const noteBox = (await note.boundingBox())!;
+    expect(ctaBox.y + ctaBox.height).toBeLessThanOrEqual(640);
+    expect(ctaBox.height).toBeGreaterThanOrEqual(44);
+    // The line sits under the price and button, inside the viewport, and the page does not scroll sideways.
+    expect(noteBox.y).toBeGreaterThanOrEqual(ctaBox.y + ctaBox.height - 1);
+    expect(noteBox.y + noteBox.height).toBeLessThanOrEqual(640);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('F37: the line reads right to left in Arabic and stays inside the phone viewport', async ({
+    page,
+    context,
+    baseURL,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, 'phone layout');
+    await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
+    await page.setViewportSize({ width: 360, height: 640 });
+    await mockPublicApi(page, { bookingWindowDays: 14, cancelCutoffMin: 120 });
+    await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    const slot = page.getByRole('radio', { name: /9:00/ }).first();
+    await expect(slot).toBeVisible();
+    await slot.click();
+    const note = page.getByText(/^إلغاء مجاني حتى/).locator('visible=true');
+    await expect(note).toBeVisible();
+    const box = (await note.boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(360);
+  });
+
+  test('F19: the picked time is kept in the URL with its UTC offset and survives a reload', async ({ page }) => {
+    await mockPublicApi(page, { bookingWindowDays: 14 });
+    await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+    await pickFirstTime(page);
+    // 9:00 in Beirut in November is +02:00: the instant is unambiguous even on the repeated hour of a fall-back night.
+    await expect(page).toHaveURL(/time=09%3A00%2B02%3A00/);
+    await page.getByRole('button', { name: 'Continue' }).click();
+    await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
+  });
 
   test('coming back to the tab refetches the times', async ({ page }) => {
     const { slotRequests } = await mockPublicApi(page);

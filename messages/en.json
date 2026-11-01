@@ -1136,7 +1136,7 @@
       "dayAvailable": "{date}, {count, plural, one {# time} other {# times}} available",
       "dayFull": "{date}, no free times",
       "noTimesDay": "No free times on this day. Try another day.",
-      "noTimesAtAll": "No free times in the next {days} days. Please check back soon.",
+      "noTimesAtAll": "{days, plural, one {No free times today. Please check back soon.} other {No free times in the next # days. Please check back soon.}}",
       "slotsFailed": "We couldn't load the free times.",
       "timezoneNote": "Times are shown in {zone} time (UTC{offset}), where the business is.",
       "pickDay": "Pick a day to see the free times.",
@@ -1172,7 +1172,7 @@
     "side": {
       "noAccount": "No account needed. Confirm or cancel from the reminder in one tap.",
       "freeCancel": "Free cancellation up to the cutoff in your reminder",
-      "freeCancelUntil": "Free cancellation until {when}."
+      "freeCancelUntil": "Free cancellation until <d>{when}</d>."
     },
     "footer": {
       "brand": "Bookings by Maw3ed · Fewer no-shows. More time.",

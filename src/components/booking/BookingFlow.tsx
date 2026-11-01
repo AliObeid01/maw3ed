@@ -37,8 +37,8 @@ import {
   findSlotByLocalTime,
   firstDayWithSlots,
   localDay,
-  localTime,
   replaceDay,
+  slotTime,
 } from '@/lib/booking/slots';
 import {
   backParams,
@@ -97,6 +97,8 @@ export function BookingFlow({ slug }: { slug: string }) {
   // ---- slots: one request per service + person, covering up to 14 local days --------------
   const ready = !!(resolved?.serviceId && resolved.staffId);
   const slotKey = `${ready}:${resolved?.serviceId}:${resolved?.staffId}:${days[0]}`;
+  // The booking window re-read after the server rejected the published one (F28); wins over the first load.
+  const knownWindow = useRef<number | undefined>(undefined);
   const windowRes = useResource(async (signal) => {
     if (!ready) return null;
     const window = await loadSlotWindow(
@@ -109,7 +111,13 @@ export function BookingFlow({ slug }: { slug: string }) {
       now,
       signal,
       undefined,
-      data!.business.bookingWindowDays,
+      knownWindow.current ?? data!.business.bookingWindowDays,
+      async (abort) => {
+        // The window the page was loaded with was rejected: re-read the business and remember what it says now.
+        const fresh = await getPublicBusiness(slug, abort);
+        knownWindow.current = fresh.business.bookingWindowDays;
+        return fresh.business.bookingWindowDays;
+      },
     );
     return window;
   }, slotKey);
@@ -275,6 +283,13 @@ export function BookingFlow({ slug }: { slug: string }) {
     const cutoff = new Date(Date.parse(startAt) - cutoffMin * 60_000).toISOString();
     return `${f.day(cutoff)}, ${f.time(cutoff)}`;
   };
+  // One line for both the desktop card and the phone's summary bar; the date is isolated so it reads in order in Arabic.
+  const freeCancelNote = selectedSlot
+    ? t.rich('side.freeCancelUntil', {
+        when: freeCancelUntil(selectedSlot.startAt, data.business.cancelCutoffMin),
+        d: (chunks) => <Bidi>{chunks}</Bidi>,
+      })
+    : undefined;
   const whenLabel = selectedSlot
     ? tSum('whenValue', { date: f.day(selectedSlot.startAt), time: f.time(selectedSlot.startAt) })
     : undefined;
@@ -337,7 +352,7 @@ export function BookingFlow({ slug }: { slug: string }) {
         step: 'time',
         ...base,
         day: localDay(slot.startAt, timezone),
-        time: localTime(slot.startAt, timezone),
+        time: slotTime(slot.startAt, timezone),
       },
       'replace',
     );
@@ -435,7 +450,7 @@ export function BookingFlow({ slug }: { slug: string }) {
         step: 'time',
         ...base,
         day: takenDay,
-        time: closest ? localTime(closest.startAt, timezone) : undefined,
+        time: closest ? slotTime(closest.startAt, timezone) : undefined,
       },
       'replace',
     );
@@ -620,13 +635,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             </Button>
           ) : null}
           <Callout icon={<Bell />}>{taken ? t('taken.saved') : t('side.noAccount')}</Callout>
-          {selectedSlot && data ? (
-            <Callout icon={<ShieldCheck />}>
-              {t('side.freeCancelUntil', {
-                when: freeCancelUntil(selectedSlot.startAt, data.business.cancelCutoffMin),
-              })}
-            </Callout>
-          ) : null}
+          {freeCancelNote ? <Callout icon={<ShieldCheck />}>{freeCancelNote}</Callout> : null}
         </aside>
       </main>
       {cta ? (
@@ -638,6 +647,7 @@ export function BookingFlow({ slug }: { slug: string }) {
           onCta={cta.onClick}
           ctaDisabled={cta.disabled}
           ctaLoading={ctaLoading}
+          note={freeCancelNote}
         />
       ) : null}
     </>

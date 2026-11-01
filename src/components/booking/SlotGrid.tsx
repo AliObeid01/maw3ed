@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl';
 import { radioGroupKeyDown } from '@/components/ui/radioKeys';
 import type { Slot } from '@/lib/api/booking';
-import { localTime, partitionByDayPart } from '@/lib/booking/slots';
+import { partitionByDayPart, slotMatchesTime } from '@/lib/booking/slots';
 import { cn } from '@/lib/cn';
 import { useBookingFormat } from './useBookingFormat';
 
@@ -21,7 +21,7 @@ export function SlotGrid({
 }: {
   slots: Slot[];
   timezone: string;
-  /** Local `HH:mm` of the selected slot. */
+  /** Time token of the selected slot (`slotTime`, or a plain `HH:mm` from an old link). */
   selectedTime?: string;
   onSelect: (slot: Slot) => void;
   /** Id of the element that names this group. */
@@ -33,7 +33,7 @@ export function SlotGrid({
   const groups = partitionByDayPart(slots, timezone);
   const flat = groups.flatMap((g) => g.slots);
   // Roving tabindex: the selected time, else the first one.
-  const tabStop = flat.find((s) => localTime(s.startAt, timezone) === selectedTime) ?? flat[0];
+  const tabStop = flat.find((s) => slotMatchesTime(s, timezone, selectedTime)) ?? flat[0];
 
   return (
     <div
@@ -67,8 +67,7 @@ export function SlotGrid({
           </span>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
             {group.slots.map((slot) => {
-              const time = localTime(slot.startAt, timezone);
-              const checked = time === selectedTime;
+              const checked = slotMatchesTime(slot, timezone, selectedTime);
               return (
                 <button
                   key={slot.startAt}
