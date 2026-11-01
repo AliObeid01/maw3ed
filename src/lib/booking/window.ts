@@ -9,9 +9,13 @@ export type SlotWindow = {
 };
 
 /**
- * Loads the free slots for the day strip in ONE request covering the next 14 local days. The public API does
- * not publish the business's booking window, so when the range is rejected as too far ahead (400 on `to`) the
- * request is retried with a shorter range (7, 3, then 1 day).
+ * Loads the free slots for the day strip in ONE request covering the next local days of the business.
+ *
+ * The public API publishes the booking window (`bookingWindowDays` on GET /api/public/{slug}) and callers pass it
+ * as `maxDays`. A known window shorter than 14 days is requested exactly (one request, no probing). With the
+ * default `maxDays` (14, also what an older server's missing value parses to) the first request covers 14 days,
+ * and only if the server rejects it as too far ahead (400 on `to`) is it retried with 7, 3, then 1 day: a safety
+ * net, not the main path. A known short window that the server still rejects is not retried (finding F28).
  */
 export async function loadSlotWindow(
   slug: string,
@@ -20,7 +24,7 @@ export async function loadSlotWindow(
   now: Date,
   signal?: AbortSignal,
   fetchSlots: typeof getSlots = getSlots,
-  /** Longest range to try first: pass the length discovered earlier so a short booking window is not re-probed. */
+  /** The business's booking window in days. Below 14 it is requested exactly; 14 or more is capped at 14 and may be probed down. */
   maxDays: number = DAY_WINDOW,
 ): Promise<SlotWindow> {
   const days = dayWindow(now, timezone, DAY_WINDOW);
@@ -45,7 +49,11 @@ export async function loadSlotWindow(
 
 const windowKey = (slug: string) => `maw3ed:slot-window:${slug}`;
 
-/** The window length discovered earlier in this browser session for a business (14 when unknown). */
+/**
+ * The window length remembered earlier in this browser session for a business (14 when unknown). The booking
+ * page does not use it (it passes the published `bookingWindowDays`); it is the read side of
+ * `rememberWindowLength`, kept for callers without a published window.
+ */
 export function readWindowLength(
   slug: string,
   storage: Pick<Storage, 'getItem'> | undefined = typeof sessionStorage === 'undefined' ? undefined : sessionStorage,
@@ -58,7 +66,7 @@ export function readWindowLength(
   }
 }
 
-/** Remember a window shorter than 14 days so the next load goes straight to it instead of probing again. */
+/** Remember a window shorter than 14 days (the waitlist join writes it when the server names the window). */
 export function rememberWindowLength(
   slug: string,
   days: number,

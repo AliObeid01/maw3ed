@@ -1,4 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
+import { DateTime } from 'luxon';
+import { clockNow } from './helpers/clock';
 import { firstBookableDay, IDS, mockPublicApi, SLUG, type PublicMockOptions } from './helpers/publicMock';
 
 // Self-contained: every /api/public call is answered by page.route (see helpers/publicMock.ts), so no database is needed.
@@ -399,29 +401,107 @@ test.describe('submitting', () => {
 });
 
 test.describe('the booking window', () => {
-  // TODO(app bug, found by the new CI e2e job): BookingFlow never calls readWindowLength/rememberWindowLength, so a short
-  // booking window is re-probed (14, 7, 3) on every load instead of being remembered for the session. Re-enable when fixed.
-  test.skip('a business with a short window: the range falls back, only covered days are shown, and it is remembered', async ({
+  // The public API publishes bookingWindowDays (F13) and BookingFlow hands it to loadSlotWindow, so a business
+  // with a short window costs ONE slots request for exactly that many local days: no probing, no 400 retries.
+  // The business is in Pacific/Honolulu so its "today" differs from the runner's and from Beirut's at the default now.
+  const WINDOW_TZ = 'Pacific/Honolulu';
+  const pills = (page: Page) => page.getByRole('radio', { name: /times? available|no free times/ });
+  const nextDays = (page: Page) => page.getByRole('button', { name: 'Next days' });
+  const prevDays = (page: Page) => page.getByRole('button', { name: 'Previous days' });
+
+  /** Every day pill across the strip's pages, as aria labels in order. */
+  async function stripLabels(page: Page): Promise<string[]> {
+    await expect(pills(page).first()).toBeVisible();
+    while (await prevDays(page).isEnabled()) await prevDays(page).click();
+    const labels: string[] = [];
+    for (;;) {
+      labels.push(...(await pills(page).evaluateAll((els) => els.map((el) => el.getAttribute('aria-label') ?? ''))));
+      if (!(await nextDays(page).isEnabled())) break;
+      await nextDays(page).click();
+    }
+    return labels;
+  }
+  const label = (ymd: string) => DateTime.fromISO(ymd, { zone: 'utc' }).setLocale('en').toFormat('ccc, LLL d');
+
+  const cases: { published: number; asked: number }[] = [
+    { published: 1, asked: 1 },
+    { published: 3, asked: 3 },
+    { published: 7, asked: 7 },
+    { published: 14, asked: 14 },
+    { published: 30, asked: 14 },
+  ];
+  for (const { published, asked } of cases) {
+    test(`bookingWindowDays ${published}: one slots request for ${asked} local day(s) in the business timezone`, async ({
+      page,
+    }) => {
+      const { slotRequests } = await mockPublicApi(page, { bookingWindowDays: published, timezone: WINDOW_TZ });
+      await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+      // A one-day window is only today, which never has bookable times (minimum notice), so the page shows the
+      // "no free times in the next 1 days" state instead of a strip; longer windows draw one pill per day.
+      let days: string[] = [];
+      if (asked === 1) {
+        await expect(page.getByText(/No free times in the next 1 day/)).toBeVisible();
+        await expect(pills(page)).toHaveCount(0);
+      } else {
+        days = await stripLabels(page);
+      }
+
+      // Exactly one request, no 400 retry sequence, from today to the last covered day in the BUSINESS zone.
+      expect(slotRequests).toHaveLength(1);
+      const q = new URLSearchParams(slotRequests[0]);
+      const today = clockNow().setZone(WINDOW_TZ).startOf('day');
+      expect(q.get('from')).toBe(today.toISODate());
+      expect(q.get('to')).toBe(today.plus({ days: asked - 1 }).toISODate());
+
+      // The strip shows exactly the covered days: the last one is `to`, and the day after it is not drawn.
+      if (asked > 1) {
+        expect(days).toHaveLength(asked);
+        expect(days[0]).toContain(label(today.toISODate()!));
+        expect(days[asked - 1]).toContain(label(today.plus({ days: asked - 1 }).toISODate()!));
+        expect(days.join('|')).not.toContain(label(today.plus({ days: asked }).toISODate()!));
+      }
+    });
+  }
+
+  // Finding F28 (open): the window is trusted. If the owner shortens it after the page loaded its business, the
+  // slots endpoint answers 400 on `to`; loadSlotWindow has no fallback for a known window and rethrows, so the
+  // page shows the "could not load the free times" state with a retry button (no crash, no probing).
+  // This documents what happens today; the fix is tracked as F28.
+  test('slots rejected as beyond the window although the window was published (F28, current behaviour)', async ({
     page,
   }) => {
-    const { slotRequests } = await mockPublicApi(page, { windowDays: 5 });
+    const { slotRequests } = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 3 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-    const dayPills = page.getByRole('radio', { name: /times? available|no free times/ });
-    await expect(dayPills.first()).toBeVisible();
-    // 14 days is rejected (fields.to), 7 is rejected, 3 works.
-    const length = (search: string) => {
-      const q = new URLSearchParams(search);
-      return (Date.parse(q.get('to')!) - Date.parse(q.get('from')!)) / 86_400_000 + 1;
-    };
-    expect(slotRequests.map(length)).toEqual([14, 7, 3]);
-    // Days beyond the window are not drawn as "fully booked": only the three covered days exist.
-    await expect(dayPills).toHaveCount(3);
+    const alert = page.getByRole('alert').filter({ hasText: "We couldn't load the free times." });
+    await expect(alert).toBeVisible();
+    await expect(alert.getByRole('button', { name: 'Try again' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
+    expect(slotRequests).toHaveLength(1);
 
-    // The discovered length is remembered for the session: the next load goes straight to it.
-    await page.reload();
-    await expect(dayPills.first()).toBeVisible();
-    expect(slotRequests.slice(3).map(length)).toEqual([3]);
+    // Retrying asks the same thing again (still no fallback) and lands in the same state.
+    await alert.getByRole('button', { name: 'Try again' }).click();
+    await expect.poll(() => slotRequests.length).toBe(2);
+    expect(slotRequests[1]).toBe(slotRequests[0]);
+    await expect(alert).toBeVisible();
   });
+
+  for (const timezone of ['Asia/Tokyo', 'America/New_York']) {
+    test(`Free cancellation until: the cutoff is shown in the business timezone (${timezone})`, async ({ page }) => {
+      const cancelCutoffMin = 24 * 60;
+      await mockPublicApi(page, { bookingWindowDays: 14, cancelCutoffMin, timezone });
+      await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
+      await pickFirstTime(page);
+
+      // The mock's first free day: tomorrow or later, never a Sunday, 9:00 business time.
+      let start = clockNow().setZone(timezone).startOf('day').plus({ days: 1 });
+      while (start.weekday === 7) start = start.plus({ days: 1 });
+      start = start.set({ hour: 9 });
+      const cutoff = start.minus({ minutes: cancelCutoffMin }).setLocale('en');
+      const when = `${cutoff.toFormat('ccc, LLL d')}, ${cutoff.toFormat('H:mm')}`;
+      // The summary aside is `hidden lg:flex` (not displayed on a phone), so assert the rendered text, not visibility.
+      await expect(page.getByText(`Free cancellation until ${when}.`)).toBeAttached();
+    });
+  }
 
   test('coming back to the tab refetches the times', async ({ page }) => {
     const { slotRequests } = await mockPublicApi(page);
