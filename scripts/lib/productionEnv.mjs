@@ -75,6 +75,11 @@ export function checkProductionEnv(env) {
   } else {
     warnings.push('EXPECTED_DB_HOST is not set: set it to the production Neon endpoint host so a dev connection string can never be deployed to Production');
   }
+  // Error monitoring is optional (the code is inert without a DSN): only an informational note, never an error.
+  const serverDsn = present(env.SENTRY_DSN);
+  const clientDsn = present(env.NEXT_PUBLIC_SENTRY_DSN);
+  if (!serverDsn && !clientDsn) warnings.push('Sentry is not configured (SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN are unset): errors are logged but not reported. Optional.');
+  else if (serverDsn !== clientDsn) warnings.push(`Sentry is half configured: set both SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN (${serverDsn ? 'browser' : 'server'} errors will not be reported).`);
   for (const name of FORBIDDEN) if (present(env[name])) errors.push(`${name} must not be set in production`);
   return { errors, warnings };
 }

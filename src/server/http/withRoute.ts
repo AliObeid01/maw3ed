@@ -9,6 +9,7 @@ import {
 } from './auth';
 import type { TokenAction } from '@/server/domain/tokens';
 import { clientIp, UNKNOWN_IP } from './clientIp';
+import { isReportable, reportError } from '@/server/observability/report';
 import { rateLimiter, routeRateLimitDisabled } from '@/server/services/rateLimit';
 import type { RatePolicyName } from '@/server/services/rateLimitPolicies';
 import { sessionCookie } from './cookies';
@@ -278,6 +279,14 @@ export function withRoute<C extends RouteConfig>(
       return finish(res);
     } catch (error) {
       const mapped = mapError(error);
+      // Unexpected failures only (see isReportable). Templated route, never the URL; no body, cookie or query.
+      if (isReportable(mapped, error))
+        reportError(error, {
+          route: logPath,
+          requestId,
+          businessId: ctx.businessId,
+          method: req.method,
+        });
       return finish(
         json(mapped.body, mapped.status, mapped.headers),
         mapped.unexpected ? error : undefined,

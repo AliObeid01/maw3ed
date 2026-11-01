@@ -157,6 +157,22 @@ registry.registerPath({
   },
 });
 
+registry.registerPath({
+  method: 'post',
+  path: '/api/jobs/sentry-test',
+  summary: 'Throw a deliberate server error to confirm error monitoring (manual, owner only)',
+  description:
+    'Verification of the Sentry setup. Fails closed: 401 without the cron secret, 404 when error monitoring is not active (no SENTRY_DSN, or not a Production deployment). Otherwise throws on purpose and answers 500 INTERNAL; one event arrives in Sentry. Does nothing else.',
+  tags: ['jobs'],
+  security: cron,
+  responses: {
+    400: errorResponses[400],
+    401: errorResponses[401],
+    404: errorResponses[404],
+    500: err('INTERNAL: the deliberate error (expected)'),
+  },
+});
+
 const linkErrors = {
   400: errorResponses[400],
   404: errorResponses[404],
