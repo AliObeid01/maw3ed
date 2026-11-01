@@ -68,7 +68,7 @@ const nextConfig: NextConfig = {
 
 // Errors only (docs/ARCHITECTURE.md, Error monitoring). Build-time: no source map upload, no release, no telemetry,
 // no tunnel, and the SDK's tracing, replay and debug-logging code is tree-shaken out of the bundles.
-export default withSentryConfig(withNextIntl(nextConfig), {
+const withSentry = withSentryConfig(withNextIntl(nextConfig), {
   silent: true,
   telemetry: false,
   sourcemaps: { disable: true },
@@ -81,3 +81,15 @@ export default withSentryConfig(withNextIntl(nextConfig), {
     excludeReplayWorker: true,
   },
 });
+
+// withSentryConfig turns on the experimental clientTraceMetadata (trace meta tags for performance tracing). We run
+// errors only, so remove it and keep the rest of the wrapped config (headers() included) untouched.
+export default async function config(...args: unknown[]) {
+  const resolved = (
+    typeof withSentry === 'function'
+      ? await (withSentry as (...a: unknown[]) => unknown)(...args)
+      : withSentry
+  ) as NextConfig;
+  if (resolved.experimental) delete resolved.experimental.clientTraceMetadata;
+  return resolved;
+}

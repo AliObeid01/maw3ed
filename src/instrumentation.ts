@@ -13,11 +13,12 @@ export async function register() {
 /** Render, route and action errors Next.js catches itself (the ones `withRoute` does not already map). */
 export const onRequestError: Instrumentation.onRequestError = async (error, request, context) => {
   const { isActive } = await import('@/server/observability/report');
+  const { sanitizeError } = await import('@/lib/observability/scrub');
   if (!isActive()) return;
   const sdk = await import('@sentry/nextjs');
   sdk.withScope((scope) => {
     // The templated route (`/l/[token]`), never `request.path`.
     scope.setTags({ route: context.routePath, method: request.method });
-    sdk.captureRequestError(error, request, context);
+    sdk.captureRequestError(sanitizeError(error), request, context);
   });
 };

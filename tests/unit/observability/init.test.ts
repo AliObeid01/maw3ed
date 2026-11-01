@@ -29,7 +29,6 @@ function fakeSdk() {
     dedupeIntegration: () => ({ name: 'Dedupe' }),
     globalHandlersIntegration: () => ({ name: 'GlobalHandlers' }),
     breadcrumbsIntegration: () => ({ name: 'Breadcrumbs' }),
-    consoleIntegration: () => ({ name: 'Console' }),
   };
   return { sdk, calls };
 }
@@ -169,7 +168,6 @@ describe('client init', () => {
       'LinkedErrors',
       'Dedupe',
       'Breadcrumbs',
-      'Console',
     ]);
     reportClientError(new Error('later'));
     expect(calls.captured).toHaveLength(2);

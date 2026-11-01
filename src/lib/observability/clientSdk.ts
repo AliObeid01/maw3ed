@@ -12,5 +12,4 @@ export {
   linkedErrorsIntegration,
   dedupeIntegration,
   breadcrumbsIntegration,
-  consoleIntegration,
 } from '@sentry/nextjs';

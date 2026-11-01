@@ -12,5 +12,5 @@ export const dynamic = 'force-dynamic';
  */
 export const POST = withRoute({ auth: 'cron', query: NoQuery }, () => {
   if (!resolveSentryConfig(serverObservabilityEnv()).enabled) throw AppError.notFound();
-  throw new Error('Sentry test: deliberate server error from /api/jobs/sentry-test');
+  throw new Error('Sentry test event (deliberate, from /api/jobs/sentry-test)');
 });

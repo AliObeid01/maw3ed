@@ -77,7 +77,7 @@ describe('POST /api/jobs/sentry-test', () => {
     expect(res.status).toBe(500);
     expect(res.body?.error.code).toBe('INTERNAL');
     expect(errors).toHaveLength(1);
-    expect((errors[0]!.error as Error).message).toMatch(/deliberate server error/);
+    expect((errors[0]!.error as Error).message).toMatch(/Sentry test event \(deliberate/);
     expect(errors[0]!.ctx).toMatchObject({ route: '/api/jobs/sentry-test', method: 'POST' });
     expect(JSON.stringify(errors[0]!.ctx)).not.toContain(SECRET);
   });

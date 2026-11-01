@@ -13,7 +13,6 @@ export type ClientSdk = Pick<
   | 'linkedErrorsIntegration'
   | 'dedupeIntegration'
   | 'breadcrumbsIntegration'
-  | 'consoleIntegration'
 >;
 
 interface WindowLike {
@@ -92,7 +91,7 @@ export function initClientSentry(opts: {
             sdk.globalHandlersIntegration({ onerror: true, onunhandledrejection: true }),
             sdk.linkedErrorsIntegration(),
             sdk.dedupeIntegration(),
-            // Breadcrumbs: navigation (history) and console output only; beforeBreadcrumb keeps console errors, no data.
+            // Breadcrumbs: navigation (history) only, without data; console output is never attached.
             sdk.breadcrumbsIntegration({
               dom: false,
               fetch: false,
@@ -100,7 +99,6 @@ export function initClientSentry(opts: {
               xhr: false,
               sentry: false,
             }),
-            sdk.consoleIntegration(),
           ],
         });
         stopEarly();

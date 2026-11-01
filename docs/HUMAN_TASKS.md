@@ -49,9 +49,9 @@ The app already contains the Sentry code; it does nothing until a DSN exists in 
    curl -i -X POST https://maw3edlb.com/api/jobs/sentry-test -H "x-cron-secret: <your CRON_SECRET>"
    ```
 
-   Expected: `HTTP 500` with `{"error":{"code":"INTERNAL",...}}` (the deliberate error) and, within a minute, one new issue "Sentry test: deliberate server error" in Sentry. `401` means a wrong secret; `404` means reporting is not active in this deployment (check the variable names, that they are on the Production environment, and that you redeployed).
+   Expected: `HTTP 500` with `{"error":{"code":"INTERNAL",...}}` (the deliberate error) and, within a minute, one new issue "Sentry test event (deliberate, from /api/jobs/sentry-test)" in Sentry. `401` means a wrong secret; `404` means reporting is not active in this deployment (check the variable names, that they are on the Production environment, and that you redeployed).
 6. Sentry, Alerts, Create Alert, Issues: "When a new issue is created, send a notification to" your email. This is the "email me on every new issue" rule.
-7. Sentry, Project Settings, Security & Privacy: switch **Prevent Storing of IP Addresses** ON and **Data Scrubber** ON (keep "Use Default Scrubbers" ON). The app already scrubs personal data before sending; this is the second layer.
+7. Sentry, Project Settings, Security & Privacy: switch **Prevent Storing of IP Addresses** ON and **Data Scrubber** ON (keep "Use Default Scrubbers" ON). The app removes personal data on a best-effort basis before sending (emails, phone numbers, link tokens, database error values); free-text names cannot be detected automatically, so error messages are built without client data and a rare residual risk remains. Keep these Sentry scrubbing options on as the second layer, and look at the first few real issues to confirm nothing personal appears.
 8. Resolve the test issue in Sentry so it does not stay open.
 
 Not done on purpose (follow-up F39): readable stack traces. Source map upload needs `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` as Production-only build variables; until then Sentry shows minified frames.

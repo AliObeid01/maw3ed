@@ -1,5 +1,5 @@
 import type { ReportContext, ReportLevel, Reporter } from '@/lib/observability/report';
-import { isNoiseEvent } from '@/lib/observability/scrub';
+import { isNoiseEvent, sanitizeError } from '@/lib/observability/scrub';
 import { afterResponse } from '@/server/http/afterResponse';
 import type { MappedError } from '@/server/http/errors';
 
@@ -45,7 +45,8 @@ const sdkReporter: Reporter = {
     withSdk((sdk) =>
       sdk.withScope((scope) => {
         scope.setTags(tags(ctx));
-        sdk.captureException(error);
+        // Prisma / pg errors carry row values: reduce them to class + code before the SDK sees them.
+        sdk.captureException(sanitizeError(error));
       }),
     );
   },

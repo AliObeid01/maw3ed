@@ -263,13 +263,12 @@ describe('scrubEvent', () => {
     expect(frame.vars).toBeUndefined();
   });
 
-  it('limits breadcrumbs to console errors and navigation, without data', () => {
+  it('keeps only navigation breadcrumbs, without data; console output is dropped entirely', () => {
     const out = scrubEvent(event())!;
-    expect(out.breadcrumbs).toHaveLength(2);
-    expect(out.breadcrumbs![0]!).toMatchObject({ category: 'console', message: 'oops [email]' });
+    expect(out.breadcrumbs).toHaveLength(1);
+    expect(out.breadcrumbs![0]!.category).toBe('navigation');
     expect(out.breadcrumbs![0]!.data).toBeUndefined();
-    expect(out.breadcrumbs![1]!.category).toBe('navigation');
-    expect(out.breadcrumbs![1]!.data).toBeUndefined();
+    expect(JSON.stringify(out)).not.toContain('oops');
   });
 
   it('tells Sentry never to infer the IP address, and keeps the trace ids intact', () => {
@@ -299,10 +298,10 @@ describe('scrubEvent', () => {
 });
 
 describe('breadcrumbs', () => {
-  it('keeps only console errors and navigation', () => {
-    expect(scrubBreadcrumb({ category: 'console', level: 'error', message: 'x' })).toMatchObject({
-      category: 'console',
-    });
+  it('keeps only navigation: console (any level), fetch, xhr and ui crumbs are dropped', () => {
+    expect(
+      scrubBreadcrumb({ category: 'console', level: 'error', message: 'Booking for Rana Haddad' }),
+    ).toBeNull();
     expect(scrubBreadcrumb({ category: 'console', level: 'log', message: 'x' })).toBeNull();
     expect(scrubBreadcrumb({ category: 'xhr', data: { url: '/api/a?b=c' } })).toBeNull();
     expect(scrubBreadcrumb({ category: 'ui.input', message: 'input[name=phone]' })).toBeNull();

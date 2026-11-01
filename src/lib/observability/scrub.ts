@@ -20,25 +20,34 @@ const SENSITIVE_KEY =
 
 // `password=hunter2`, `authorization: Bearer abc`, `"secret":"x"` inside a message.
 const KEY_VALUE =
-  /\b(pass(?:word|wd)?|secret|authori[sz]ation|api[-_]?key|cookie|csrf[-_]?token)(["']?\s*[=:]\s*)("[^"]*"|'[^']*'|(?:Bearer\s+)?[^\s,;&]+)/gi;
+  /\b(pass(?:word|wd)?|secret|authori[sz]ation|api[-_]?key|cookie|csrf[-_]?token|msisdn)(["']?\s*[=:]\s*)("[^"]*"|'[^']*'|(?:Bearer\s+)?[^\s,;&]+)/gi;
 const BEARER = /\bBearer\s+[A-Za-z0-9._~+/=-]+/g;
 
-const EMAIL = /[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+/g;
+// Unicode local part and domain (Arabic names, IDNs); encoded at signs are decoded first.
+const EMAIL = /[\p{L}\p{N}._%+'-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
+const ENCODED_AT = /%40|&#0*64;|&#x0*40;|&commat;/gi;
+// Postgres unique-violation detail: `Key (email)=(rana@x.com) already exists`. Keep the column names, drop the values.
+const PG_KEY_DETAIL = /\bKey \(([^)]*)\)=\([^)]*\)/g;
+// Click-to-chat and tel links: the number follows the marker.
+const PHONE_LINK =
+  /(wa\.me\/|whatsapp\.com\/send\?phone=|[?&]phone=|\btel:)\+?[0-9\u0660-\u0669\u06F0-\u06F9][0-9\u0660-\u0669\u06F0-\u06F9 ()._-]{5,}[0-9\u0660-\u0669\u06F0-\u06F9]/gi;
 
 // Link pages whose last-but-one path segment is a bearer token (`/o/[token]/leave` keeps `/leave`).
 const TOKEN_ROUTE =
-  /(\/(?:l|o|pay|invite|verify-email|reset-password)\/)(?![[\]])[^/\s?#"'<>)\]]+/g;
+  /(\/(?:l|o|pay|invite|verify-email|reset-password|api\/(?:links|offers|invites|pay))\/)(?![[\]])[^/\s?#"'<>)\]]+/g;
 
 // A path or absolute URL followed by a query string: keep the path, drop `?...`.
 const URL_WITH_QUERY = /(https?:\/\/[^\s?#"'<>]+|\/[^\s?#"'<>]*)\?[^\s#"'<>]*/g;
 
 const OPAQUE = /[A-Za-z0-9_-]{32,}/g;
+// A signed link token is `body.signature`: both halves are long even when neither reaches 32 characters.
+const TOKEN_PAIR = /[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Western, Arabic-Indic and Persian digits.
 const D = '[0-9\\u0660-\\u0669\\u06F0-\\u06F9]';
 const PHONE_CANDIDATE = new RegExp(
-  `(?<![\\p{L}\\p{N}_$\\u20AC\\u00A3/-])(\\+?${D}[${'0-9\\u0660-\\u0669\\u06F0-\\u06F9'} \\u00A0().\\/-]{5,18}${D})(?![\\p{L}\\p{N}_])`,
+  `(?<![\\p{L}\\p{N}_$\\u20AC\\u00A3])(\\+?${D}[${'0-9\\u0660-\\u0669\\u06F0-\\u06F9'} \\u00A0().\\/-]{5,18}${D})(?![\\p{L}\\p{N}_])`,
   'gu',
 );
 
@@ -63,18 +72,26 @@ function looksLikePhone(candidate: string): boolean {
   if (/^00\d{8,15}$/.test(digits)) return true;
   if (/^961\d{7,8}$/.test(digits)) return true;
   // Lebanese national format: 0X + 6 digits (03, 01, ...), or the mobile prefixes 70-79 / 81 + 6 digits.
-  return digits.length === 8 && /^(0[1-9]|7\d|81)/.test(digits);
+  if (digits.length === 8 && /^(0[1-9]|7\d|81)/.test(digits)) return true;
+  // Mobile without the trunk zero, grouped: 3 123 456.
+  if (digits.length === 7 && /^[3-9]( |-)\d{3}( |-)\d{3}$/.test(plain)) return true;
+  // Other countries without a plus, grouped: 44 20 7946 0958.
+  return digits.length >= 11 && digits.length <= 15 && /[ -]/.test(plain);
 }
 
 /** Replace the personal data and secrets in a free-text string. Never throws. */
 export function scrubString(input: string): string {
   try {
     let s = input.length > MAX_STRING ? `${input.slice(0, MAX_STRING)}...` : input;
+    s = s.replace(PG_KEY_DETAIL, 'Key ($1)=([redacted])');
+    s = s.replace(ENCODED_AT, '@');
+    s = s.replace(PHONE_LINK, `$1${PHONE_MARK}`);
     s = s.replace(KEY_VALUE, `$1$2${REDACTED}`);
     s = s.replace(BEARER, `Bearer ${REDACTED}`);
     s = s.replace(EMAIL, EMAIL_MARK);
     s = s.replace(URL_WITH_QUERY, '$1');
     s = s.replace(TOKEN_ROUTE, `$1${TOKEN_MARK}`);
+    s = s.replace(TOKEN_PAIR, TOKEN_MARK);
     s = s.replace(OPAQUE, (m) => (UUID.test(m) ? m : TOKEN_MARK));
     s = s.replace(PHONE_CANDIDATE, (m) => (looksLikePhone(m) ? PHONE_MARK : m));
     return s;
@@ -246,12 +263,6 @@ export function isNoiseEvent(event: EventLike): boolean {
 
 export function scrubBreadcrumb<B extends BreadcrumbLike>(crumb: B): B | null {
   try {
-    if (crumb.category === 'console' && crumb.level === 'error') {
-      const out: BreadcrumbLike = { category: 'console', level: 'error' };
-      if (crumb.timestamp !== undefined) out.timestamp = crumb.timestamp;
-      if (typeof crumb.message === 'string') out.message = scrubString(crumb.message);
-      return out as B;
-    }
     if (crumb.category === 'navigation') {
       const out: BreadcrumbLike = { category: 'navigation' };
       if (crumb.timestamp !== undefined) out.timestamp = crumb.timestamp;
@@ -263,10 +274,78 @@ export function scrubBreadcrumb<B extends BreadcrumbLike>(crumb: B): B | null {
   }
 }
 
+const MAX_EXCEPTION_VALUE = 500;
+const DB_ERROR_NAME = /^(PrismaClient\w*|DriverAdapterError|\w*DatabaseError)$/;
+const IDENT = /^[A-Za-z_][A-Za-z0-9_]{0,62}$/;
+
+/** `Name CODE (col1,col2)`: the class, the code and column names; never a value, a query or a parameter. */
+function dbSummary(name: string, code: string | undefined, columns: string[]): string {
+  const cols = columns.filter((c) => IDENT.test(c)).slice(0, 8);
+  return `${name}${code ? ` ${code}` : ''}${cols.length ? ` (${cols.join(',')})` : ''}`;
+}
+const columnsFromMessage = (message: string): string[] => {
+  const m = /fields?:\s*\(([^)]*)\)/.exec(message);
+  return m ? [...m[1]!.matchAll(/`(\w+)`/g)].map((x) => x[1]!) : [];
+};
+const codeFromMessage = (message: string): string | undefined => /\b(P\d{4})\b/.exec(message)?.[1];
+
+function scrubExceptionValue(type: string | undefined, value: string): string {
+  // Already reduced by sanitizeError: `Name CODE (cols)`.
+  if (type && value.startsWith(type) && /^\w+( [A-Za-z0-9]{4,6})?( \([\w,]+\))?$/.test(value))
+    return value;
+  if (type && DB_ERROR_NAME.test(type))
+    return dbSummary(type, codeFromMessage(value), columnsFromMessage(value));
+  const clean = scrubString(value);
+  return clean.length > MAX_EXCEPTION_VALUE ? `${clean.slice(0, MAX_EXCEPTION_VALUE)}...` : clean;
+}
+
+function isDbError(e: Record<string, unknown>): boolean {
+  const name = typeof e.name === 'string' ? e.name : '';
+  return (
+    DB_ERROR_NAME.test(name) ||
+    (typeof e.code === 'string' && ('detail' in e || 'routine' in e || 'severity' in e))
+  );
+}
+
+/**
+ * Before an error object is handed to the SDK: Prisma and pg errors embed row values (validation arguments,
+ * `detail`, `query`, `parameters`). Replace them with a fresh error that has the class name, the code and the
+ * column names only, plus the original stack frames. Anything else is returned as is.
+ */
+export function sanitizeError(error: unknown): unknown {
+  try {
+    if (!error || typeof error !== 'object') return error;
+    const e = error as Record<string, unknown>;
+    if (!isDbError(e)) return error;
+    const name = typeof e.name === 'string' && e.name ? e.name : 'DatabaseError';
+    const message = typeof e.message === 'string' ? e.message : '';
+    const rawCode =
+      typeof e.code === 'string' && /^[A-Za-z0-9]{4,6}$/.test(e.code) ? e.code : undefined;
+    const target = (e.meta as { target?: unknown } | undefined)?.target;
+    const metaCols = (
+      Array.isArray(target) ? target : typeof target === 'string' ? [target] : []
+    ).filter((c): c is string => typeof c === 'string');
+    const safe = new Error(
+      dbSummary(
+        name,
+        rawCode ?? codeFromMessage(message),
+        metaCols.length ? metaCols : columnsFromMessage(message),
+      ),
+    );
+    safe.name = name;
+    const frames =
+      typeof e.stack === 'string' ? e.stack.split('\n').filter((l) => /^\s+at /.test(l)) : [];
+    safe.stack = [`${name}: ${safe.message}`, ...frames].join('\n');
+    return safe;
+  } catch {
+    return new Error('DatabaseError');
+  }
+}
+
 function scrubException(v: ExceptionLike): ExceptionLike {
   const out: ExceptionLike = {};
   if (typeof v.type === 'string') out.type = scrubString(v.type);
-  if (typeof v.value === 'string') out.value = scrubString(v.value);
+  if (typeof v.value === 'string') out.value = scrubExceptionValue(v.type, v.value);
   if (v.mechanism) out.mechanism = { type: v.mechanism.type, handled: v.mechanism.handled };
   const frames = v.stacktrace?.frames;
   if (Array.isArray(frames)) {
