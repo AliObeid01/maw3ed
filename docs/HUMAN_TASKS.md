@@ -14,9 +14,11 @@ Done:
 - [x] Reserved-slug SQL check (section 9 below) and the pre-deploy migration checks (`EXPECTED_DB_HOST` guard, constraint check) are done.
 
 Open:
-- [ ] Recruit 3 to 5 pilot businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`).
-- [ ] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves.
-- [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
+- [x] Recruit 3 to 5 pilot businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`). DONE, confirmed by the owner on 1 Nov.
+- [x] 24 h reminder end-to-end check: book an appointment about 25 hours ahead and confirm the email and the WhatsApp "due" item appear by themselves. DONE, confirmed by the owner on 1 Nov.
+- [x] Manual real-email waitlist check on production with two inboxes (section "Real-email waitlist check on production" below). DONE, confirmed by the owner on 1 Nov.
+- [x] Agree with Sami whether the full recovery flow is required at Checkpoint 1 (scope document). DONE, confirmed by the owner on 1 Nov.
+- [x] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
 - [ ] Neon usage check (storage and compute hours on the free plan).
 - [ ] Optional: DMARC TXT record (`_dmarc`).
 - [x] Sentry error monitoring: DONE 1 Nov 2026 (EU project, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` as Production-only Vercel variables, test event confirmed with `POST /api/jobs/sentry-test`, alert emails on, Sentry data scrubber and IP storage settings enabled). Still optional: mark the two test issues Resolved; the tunnel (PLAN F41) and source maps (F39).

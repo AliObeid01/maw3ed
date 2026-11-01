@@ -49,7 +49,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P2.14 FE** 4.2 Reminders due (one-tap `wa.me`, optimistic mark-sent, disabled "sent by …" state, red badge count). (FR-14)
 - [x] **P2.15 FE** 4.3 Front-desk booking (phone/walk-in, same slot engine, client lookup by phone, < 30 s). (FR-11)
 - [x] **P2.16 QA** E2E `booking.spec.ts` (Pixel 5) green against preview.
-- [ ] **P2.17 H** DONE 30 Oct: cron-job.org jobs live (3 jobs return 200), GitHub backup workflow green, production phone test (booking email arrived in the inbox, confirm and cancel links work). OPEN: 24 h reminder end-to-end check (email + WhatsApp item appear by themselves), **onboard pilots** (`docs/PILOT_PLAYBOOK.md`), enter baselines.
+- [x] **P2.17 H** DONE 30 Oct: cron-job.org jobs live (3 jobs return 200), GitHub backup workflow green, production phone test (booking email arrived in the inbox, confirm and cancel links work). DONE 1 Nov (confirmed by the owner): 24 h reminder end-to-end check, pilots onboarded (`docs/PILOT_PLAYBOOK.md`) and baselines entered; the pilot details are tracked outside the repo.
 
 ## Phase 3 — History, pilot report, extras (3–6 Nov)
 - [x] **P3.1 BE** `PATCH /api/appointments/{id}/outcome` (ATTENDED / NO_SHOW / LATE_CANCEL; only after start; counters in the same transaction; idempotent re-mark adjusts counters). (FR-21)
@@ -92,10 +92,10 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **O2** Resend sending domain `mail.maw3edlb.com` verified; real emails arrive in the inbox.
 - [x] **O3** cron-job.org: reminders and waitlist-expiry every 5 min, cleanup daily; `CRON_SECRET` rotated after an accidental exposure; failure notifications on. GitHub Actions backup runs.
 - [x] **O4 H** Real phone test of the booking, confirmation email, confirm and cancel links.
-- [ ] **O5 H** Resend click tracking off; Neon usage check; optional DMARC record. **Sentry part DONE 1 Nov:** EU-region project created, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` set as Production-only Vercel variables, redeployed, the protected `POST /api/jobs/sentry-test` produced an event in Sentry (tags: environment production, templated route, requestId, release = commit; no cookies, headers, body, IP, user id or breadcrumbs in the raw JSON), alert emails on, Sentry data scrubber and IP storage settings enabled. Known and accepted: Sentry derives a coarse `user.geo` from the sender IP (for server events this is the Vercel server in Frankfurt; for browser errors it could be the visitor's city, see F41).
-- [ ] **O6 H** 24 h reminder end-to-end check (user will report).
+- [ ] **O5 H** OPEN: Neon usage check (storage and compute hours), GitHub Actions minutes check (about 15 per PR run on the free 2,000), optional DMARC record. DONE 1 Nov (confirmed by the owner): Resend click tracking is off. **Sentry part DONE 1 Nov:** EU-region project created, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` set as Production-only Vercel variables, redeployed, the protected `POST /api/jobs/sentry-test` produced an event in Sentry (tags: environment production, templated route, requestId, release = commit; no cookies, headers, body, IP, user id or breadcrumbs in the raw JSON), alert emails on, Sentry data scrubber and IP storage settings enabled. Known and accepted: Sentry derives a coarse `user.geo` from the sender IP (for server events this is the Vercel server in Frankfurt; for browser errors it could be the visitor's city, see F41).
+- [x] **O6 H** 24 h reminder end-to-end check: confirmed by the owner on 1 Nov (email and WhatsApp "due" item appeared by themselves).
 - [x] **O7 H** Reserved-slug SQL check on the production database before the first public pilot (`docs/HUMAN_TASKS.md` §9).
-- [ ] **O8 FE/BE** Flow adjustments from the production phone test (user is compiling the list; add each as an F item).
+- [x] **O8 FE/BE** Flow adjustments from the production phone test: REMOVED by the owner on 1 Nov (no list will be supplied; any issue found later is recorded as a new F item).
 - Branch protection on `main` is NOT possible on the free private repo (rules are not enforced); process rule instead: every change goes through a PR with green CI.
 
 ## Launch gates (must be done before the pilot goes live)
