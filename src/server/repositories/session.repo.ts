@@ -16,6 +16,12 @@ export const sessionRepo = {
     db.$transaction(async (tx) => {
       const current = await lockUserPasswordHash(tx, data.userId);
       if (!current || current !== data.verifiedPasswordHash) return false;
+      // The Membership must still exist; FOR SHARE makes a concurrent removeMember (which deletes it and the
+      // business's sessions) wait for this insert instead of leaving an orphan Session. Safe with the lock
+      // order: removeMember never requests the User row, so it cannot hold the Membership while waiting on us.
+      const member = await tx.$queryRaw<{ id: string }[]>`
+        SELECT id FROM "Membership" WHERE "userId" = ${data.userId} AND "businessId" = ${businessId} FOR SHARE`;
+      if (!member.length) return false;
       await tx.session.create({
         data: {
           businessId,

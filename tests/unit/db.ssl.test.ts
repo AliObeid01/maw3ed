@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { poolConfigFromUrl, schemaFromEnv } from '@/server/repositories/db';
+import { poolConfigFromUrl, poolConnectTimeoutMs, schemaFromEnv } from '@/server/repositories/db';
 
 const TLS = { rejectUnauthorized: true };
 const remote = (q = '') => `postgresql://u:p@ep-x.neon.tech/db${q}`;
@@ -49,5 +49,20 @@ describe('schemaFromEnv', () => {
     expect(() => schemaFromEnv({ NODE_ENV: 'production', DATABASE_SCHEMA: 'itest' })).toThrow(
       /production/,
     );
+  });
+});
+
+describe('poolConnectTimeoutMs (TEST ONLY seam)', () => {
+  it('defaults to 5000 and ignores junk', () => {
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'test' })).toBe(5000);
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'test', DATABASE_POOL_CONNECT_TIMEOUT_MS: 'abc' })).toBe(5000);
+  });
+  it('clamps to 1000..120000', () => {
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'test', DATABASE_POOL_CONNECT_TIMEOUT_MS: '10' })).toBe(1000);
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'test', DATABASE_POOL_CONNECT_TIMEOUT_MS: '15000' })).toBe(15000);
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'test', DATABASE_POOL_CONNECT_TIMEOUT_MS: '999999' })).toBe(120000);
+  });
+  it('is ignored in production', () => {
+    expect(poolConnectTimeoutMs({ NODE_ENV: 'production', DATABASE_POOL_CONNECT_TIMEOUT_MS: '60000' })).toBe(5000);
   });
 });

@@ -28,6 +28,8 @@ let aScn: Awaited<ReturnType<typeof newScenario>>;
 let bScn: Awaited<ReturnType<typeof newScenario>>;
 
 beforeAll(async () => {
+  // F22: the 8-wide join burst queues behind the 5-connection pool; only this file needs the long wait.
+  process.env.DATABASE_POOL_CONNECT_TIMEOUT_MS = '60000';
   await setupSchema();
   pg = newClient();
   await pg.connect();

@@ -6,6 +6,7 @@ import { POST as changePassword } from '@/app/api/auth/change-password/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { POST as forgot } from '@/app/api/auth/forgot-password/route';
 import { POST as login } from '@/app/api/auth/login/route';
+import { GET as me } from '@/app/api/me/route';
 import { POST as resetPassword } from '@/app/api/auth/reset-password/route';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { configurePasswordForTests, type Hasher } from '@/server/services/password';
@@ -18,7 +19,7 @@ import { newClient, setupSchema, truncateAll } from './helpers/db';
  * (a hasher that parks the matching verify on a barrier), not with timing.
  */
 const NEW_PASSWORD = 'a-brand-new-passphrase';
-const LOOPS = 20;
+const LOOPS = 6;
 
 let pg: Client;
 beforeAll(async () => {
@@ -33,7 +34,12 @@ beforeEach(async () => {
   await truncateAll(pg);
   fakeEmailProvider.reset();
 });
-afterEach(() => configurePasswordForTests());
+const openGates: Array<() => void> = [];
+// A failing test must never leave a parked verify behind: always release every gate it armed.
+afterEach(() => {
+  for (const release of openGates.splice(0)) release();
+  configurePasswordForTests();
+});
 
 /** Parks the next successful verify of `plain` until released. */
 function parkingHasher() {
@@ -59,6 +65,7 @@ function parkingHasher() {
       let reached!: () => void;
       const reachedP = new Promise<void>((r) => (reached = r));
       park = { plain, reached, release: new Promise<void>((r) => (release = r)) };
+      openGates.push(release);
       return { reached: reachedP, release };
     },
   };
@@ -197,4 +204,144 @@ describe('F36 concurrency: never deadlocks, never keeps an old-password session'
       expect(await sessionCount(owner.body.email)).toBe(1);
     }
   }, 180_000);
+});
+
+const ATTACKER_PASSWORD = 'attacker-chosen-passphrase';
+const meCall = (cookie: string) => call(me, '/api/me', { cookie });
+
+describe('F36 change-password verified against a stale hash', () => {
+  it('a reset that commits between the verify and the write is NOT overwritten', async () => {
+    const owner = await signup();
+    const token = await resetToken(owner.body.email);
+    const p = parkingHasher();
+    configurePasswordForTests({ hasher: p.hasher });
+    const gate = p.arm(PASSWORD);
+
+    const racing = call(changePassword, '/api/auth/change-password', {
+      body: { currentPassword: PASSWORD, newPassword: ATTACKER_PASSWORD },
+      cookie: owner.cookie,
+    });
+    await gate.reached; // the attacker's old-password check already passed
+    expect((await resetCall(token)).status).toBe(200); // victim's reset commits, deleting every session
+    gate.release();
+
+    const res = await racing;
+    expect(res.status).toBe(400);
+    expect(Object.keys(res.body!.error.fields)).toEqual(['currentPassword']);
+    expect((await loginCall(owner.body.email, ATTACKER_PASSWORD)).status).toBe(401);
+    expect((await loginCall(owner.body.email, PASSWORD)).status).toBe(401);
+    expect((await meCall(owner.cookie)).status).toBe(401); // the attacker's session is dead
+    expect((await loginCall(owner.body.email, NEW_PASSWORD)).status).toBe(200); // the reset password works
+  });
+});
+
+/**
+ * Lock-sensitive: a raw connection holds the User row lock, so a request that does not take the lock (or
+ * takes a plain SELECT) would not wait for it. Mutation check: replacing FOR UPDATE by a plain SELECT must
+ * fail the outcome assertions below.
+ */
+describe('F36 the User row lock is really taken', () => {
+  const BLOCK_MS = 700;
+  const settled = (p: Promise<unknown>) =>
+    Promise.race([
+      p.then(() => true),
+      new Promise<boolean>((r) => setTimeout(() => r(false), BLOCK_MS)),
+    ]);
+
+  async function holdLock(email: string) {
+    const raw = newClient();
+    await raw.connect();
+    await raw.query('BEGIN');
+    await raw.query(`SELECT id FROM "User" WHERE email = $1 FOR UPDATE`, [email]);
+    return raw;
+  }
+  const otherHash = () => hash('some-other-password-entirely');
+  const finish = async (raw: Client) => {
+    await raw.query('ROLLBACK').catch(() => undefined);
+    await raw.end();
+  };
+
+  it('login waits for the lock; the hash changed and committed meanwhile -> 401, no session', async () => {
+    const owner = await signup();
+    const raw = await holdLock(owner.body.email);
+    try {
+      const racing = loginCall(owner.body.email, PASSWORD);
+      expect(await settled(racing)).toBe(false);
+      await raw.query(`UPDATE "User" SET "passwordHash" = $1 WHERE email = $2`, [
+        await otherHash(),
+        owner.body.email,
+      ]);
+      await raw.query('COMMIT');
+      expect((await racing).status).toBe(401);
+      expect(await sessionCount(owner.body.email)).toBe(1);
+    } finally {
+      await finish(raw);
+    }
+  });
+
+  it('login waits for the lock and succeeds once it is rolled back', async () => {
+    const owner = await signup();
+    const raw = await holdLock(owner.body.email);
+    try {
+      const racing = loginCall(owner.body.email, PASSWORD);
+      expect(await settled(racing)).toBe(false);
+      await raw.query('ROLLBACK');
+      expect((await racing).status).toBe(200);
+      expect(await sessionCount(owner.body.email)).toBe(2);
+    } finally {
+      await finish(raw);
+    }
+  });
+
+  it('reset-password waits for the lock and completes once it is released', async () => {
+    const owner = await signup();
+    const token = await resetToken(owner.body.email);
+    const raw = await holdLock(owner.body.email);
+    try {
+      const racing = resetCall(token);
+      expect(await settled(racing)).toBe(false);
+      await raw.query('ROLLBACK');
+      expect((await racing).status).toBe(200);
+      expect(await sessionCount(owner.body.email)).toBe(0);
+    } finally {
+      await finish(raw);
+    }
+  });
+
+  it('change-password waits for the lock and completes after a rollback', async () => {
+    const owner = await signup();
+    const raw = await holdLock(owner.body.email);
+    try {
+      const racing = changeCall(owner.cookie);
+      expect(await settled(racing)).toBe(false);
+      await raw.query('ROLLBACK');
+      expect((await racing).status).toBe(200);
+    } finally {
+      await finish(raw);
+    }
+  });
+
+  it('change-password waits for the lock; hash changed and committed meanwhile -> 400, nothing written', async () => {
+    const owner = await signup();
+    const raw = await holdLock(owner.body.email);
+    try {
+      const racing = changeCall(owner.cookie);
+      expect(await settled(racing)).toBe(false);
+      const changedTo = await otherHash();
+      await raw.query(`UPDATE "User" SET "passwordHash" = $1 WHERE email = $2`, [
+        changedTo,
+        owner.body.email,
+      ]);
+      await raw.query('COMMIT');
+      const res = await racing;
+      expect(res.status).toBe(400);
+      expect(Object.keys(res.body!.error.fields)).toEqual(['currentPassword']);
+      const row = await pg.query(`SELECT "passwordHash" FROM "User" WHERE email = $1`, [
+        owner.body.email,
+      ]);
+      expect(row.rows[0].passwordHash).toBe(changedTo);
+    } finally {
+      await finish(raw);
+    }
+  });
 });

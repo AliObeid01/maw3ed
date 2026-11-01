@@ -22,5 +22,5 @@ process.env.RATE_LIMIT_DISABLED = '1';
 // The remote test database is slow under concurrent bursts; production uses 300 ms.
 process.env.RATE_LIMIT_TIMEOUT_MS = '15000';
 // A burst larger than the app pool (max 5) queues for a connection; on the slow remote database the queue can
-// outlast the production 5 s connect timeout and surface as a 500 (F22). The pool size and the assertions stay.
-process.env.DATABASE_POOL_CONNECT_TIMEOUT_MS = '60000';
+// outlast the production 5 s connect timeout and surface as a 500 (F22). 15 s here; waitlist.test.ts raises it for its 8-wide burst.
+process.env.DATABASE_POOL_CONNECT_TIMEOUT_MS = '15000';

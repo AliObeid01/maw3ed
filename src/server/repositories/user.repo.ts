@@ -1,6 +1,9 @@
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
 
+/** Thrown inside a transaction when the password hash under the User lock is not the one that was verified. */
+export class PasswordChangedError extends Error {}
+
 /**
  * Row-lock the User (`SELECT ... FOR UPDATE`) inside a transaction and return the password hash read UNDER the
  * lock (undefined when the user is gone). USER-ROW LOCK ORDER (F36), the only order any transaction may use:

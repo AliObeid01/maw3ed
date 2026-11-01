@@ -37,6 +37,12 @@ describe('database errors', () => {
     expect(mapped.body.error.data).toEqual({ slots: [] });
   });
 
+  it.each(['40P01', '55P03'])('maps Postgres %s (deadlock / lock timeout) to 503 SERVICE_BUSY', (code) => {
+    const mapped = mapError(Object.assign(new Error('x'), { code }));
+    expect(mapped.status).toBe(503);
+    expect(mapped.body.error.code).toBe('SERVICE_BUSY');
+  });
+
   it('maps 23P01 nested in Prisma driver-adapter metadata', () => {
     const err = {
       code: 'P2010',

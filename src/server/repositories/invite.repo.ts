@@ -1,6 +1,6 @@
 import type { Role } from '@/generated/prisma/client';
 import { db } from './db';
-import { lockUserPasswordHash } from './user.repo';
+import { lockUserPasswordHash, PasswordChangedError } from './user.repo';
 
 export interface AcceptInput {
   inviteId: string;
@@ -13,8 +13,6 @@ export interface AcceptInput {
 
 /** Thrown inside the accept transaction when the invite was already used or has expired. */
 export class InviteGoneError extends Error {}
-/** Thrown when the existing user's password changed between the check and the accept (F36). */
-export class PasswordChangedError extends Error {}
 
 export const inviteRepo = {
   /** Maintenance (all tenants, cron only): delete up to `limit` invites accepted or expired before `cutoff`. */
