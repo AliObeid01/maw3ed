@@ -169,7 +169,8 @@
         "appointments": "Appointments",
         "confirmed": "Confirmed",
         "noReply": "No reply yet",
-        "refilled": "Refilled from waitlist"
+        "refilledToday": "Refilled from waitlist today",
+        "refilledDay": "Refilled from waitlist on this day"
       },
       "empty": {
         "titleToday": "Nothing booked today yet",
@@ -1150,9 +1151,9 @@
       "email": "Email (optional)",
       "emailPlaceholder": "For a calendar invite",
       "consent": "Reminders by email and WhatsApp; no account needed.",
-      "reminder1": "Reminder 1",
-      "reminder2": "Reminder 2",
-      "reminderNote": "Each reminder has one-tap Confirm and Cancel links.",
+      "reminder1": "Reminder 1 (estimate)",
+      "reminder2": "Reminder 2 (estimate)",
+      "reminderNote": "Times are estimates. Reminders are sent only if there is enough time before your appointment. Each reminder has one-tap Confirm and Cancel links.",
       "errorSummary": "Please fix the highlighted fields."
     },
     "summary": {
@@ -1192,12 +1193,9 @@
       "subtitle": "{when} · {service} with {staff}",
       "calendar": "Your confirmation email has a calendar invite (.ics) attached, so you can add this to your calendar.",
       "nextTitle": "What happens next",
-      "next1Title": "Reminder 24 h before",
-      "next1Body": "We'll remind you on {when}.",
-      "next2Title": "Second reminder 2 h before",
-      "next2Body": "{when}",
       "next3Title": "Can't make it?",
       "next3Body": "Confirm or cancel from any reminder, or from your booking link.",
+      "next3BodyNoReminder": "Confirm or cancel from your booking link below.",
       "detailsTitle": "Booking details",
       "manage": "Confirm or cancel your booking",
       "manageHint": "Keep this link. It stops working when your appointment starts.",
@@ -1337,7 +1335,7 @@
       "email": "Email",
       "emailHint": "Offers are sent by email, so we need this one."
     },
-    "consent": "We email you if a spot opens. You stay on the waitlist until the last day you chose or until you book, and each offer lasts about 30 minutes. To be removed earlier, contact the business.",
+    "consent": "We email you if a spot opens. You stay on the waitlist until the last day you chose or until you book, and each offer lasts about 30 minutes. Every offer email has a link to leave the waitlist. To be removed before an offer, contact the business.",
     "submit": "Join the waitlist",
     "summary": {
       "title": "Your waitlist request",
@@ -1389,7 +1387,7 @@
       "n2Body": "Each offer lasts about 30 minutes.",
       "n3Title": "First to claim gets it",
       "n3Body": "Tap the link to book the spot. If it's gone, you stay on the list for the next opening.",
-      "leave": "You stay on the waitlist until the last day you chose, or until you book. To be removed earlier, contact the business.",
+      "leave": "You stay on the waitlist until the last day you chose, or until you book. When a spot opens we email you an offer, and every offer email has a link to leave the waitlist. To be removed before an offer, contact the business.",
       "back": "Back to booking"
     },
     "notFound": {
@@ -1413,6 +1411,10 @@
     },
     "shortened": "We shortened the range to fit this business's booking window."
   },
+  "reminderPromise": {
+    "title": "Reminders",
+    "promise": "{kind, select, both {We will email you reminders 24 hours and 2 hours before.} h24 {We will email you a reminder 24 hours before.} h2 {We will email you a reminder 2 hours before, because this time is less than 24 hours away.} noEmail {No email address was added, so we cannot send reminder emails. Please add this time to your calendar.} other {This time is very close, so we will not send reminder emails. Please add it to your calendar.}}"
+  },
   "offer": {
     "pageTitle": "Waitlist offer",
     "loading": "Loading your offer",
@@ -1425,12 +1427,11 @@
     "firstToClaim": "First to claim gets it",
     "book": "Book this slot",
     "side": {
-      "reminders": "Booking is instant. You'll get the usual reminders by email."
+      "reminders": "Booking is instant. We email you a confirmation, and reminders when there is time before the appointment."
     },
     "done": {
       "title": "You're booked",
       "body": "<b>{service}</b> with <b>{staff}</b>, <b>{when}</b>.",
-      "next": "Reminders will follow by email, 24 h and 2 h before.",
       "manage": "Confirm or cancel your booking",
       "manageHint": "Keep this link. It stops working when your appointment starts."
     },
@@ -1639,7 +1640,7 @@
     "paying": "Paying",
     "done": {
       "title": "You're booked and confirmed",
-      "next": "Your confirmation email and reminders are on the way.",
+      "next": "Your confirmation email is on the way.",
       "action": "Back to the booking page"
     },
     "expired": {

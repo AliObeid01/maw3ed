@@ -38,7 +38,7 @@ test('claim books it and shows the summary, the manage link and the reminders no
   await book(page).click();
   await expect(page.getByRole('heading', { name: "You're booked" })).toBeVisible();
   await expect(page.getByRole('link', { name: /Confirm or cancel your booking/ })).toHaveAttribute('href', '/l/mock-manage-token');
-  await expect(page.getByText(/Reminders will follow by email/)).toBeVisible();
+  await expect(page.getByText('We will email you reminders 24 hours and 2 hours before.')).toBeVisible();
   const posts = calls.filter((c) => c.method === 'POST');
   expect(posts).toEqual([expect.objectContaining({ token: 'tok.abc', body: {} })]);
   expect(posts[0]!.contentType).toContain('application/json');

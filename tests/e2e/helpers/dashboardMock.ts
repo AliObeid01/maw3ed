@@ -1,3 +1,4 @@
+import { mockReminders } from './mockReminders';
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
 import { clockNow, freezeClock } from './clock';
@@ -239,6 +240,7 @@ export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
           appointments: live.length,
           confirmed: live.filter((a) => a.status === 'CONFIRMED').length,
           noReply: live.filter((a) => a.status === 'BOOKED').length,
+          // The mock treats a refill as claimed on its appointment's day (the real tile follows the claim day, F45).
           refilledFromWaitlist: live.filter((a) => a.source === 'WAITLIST').length,
         },
         whatsappDue: pending(),
@@ -423,6 +425,7 @@ export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
           staff: { id: staff.id, displayName: staff.displayName },
         },
         links: { manage: '/l/mock-manage-token' },
+        reminders: mockReminders(b.startAt!, !!b.client?.email),
       };
       taken.add(b.startAt!);
       if (key) bookings.set(key, { body: b, phone, result });

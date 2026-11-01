@@ -36,11 +36,12 @@ export const dashboardService = {
     if (!range.ok)
       throw AppError.validation({ date: range.fields.from ?? 'Use a date like 2026-11-10.' });
 
-    const [rows, staff, outcomesToMark, whatsappDue] = await Promise.all([
+    const [rows, staff, outcomesToMark, whatsappDue, refilled] = await Promise.all([
       outcomeRepo.listForDay(ctx.businessId, range.startUtc, range.endUtc, at),
       outcomeRepo.listColumns(ctx.businessId),
       outcomeRepo.countQueue(ctx.businessId, at),
       whatsappRemindersService.dueCount(ctx, now),
+      outcomeRepo.countRefilledBetween(ctx.businessId, range.startUtc, range.endUtc),
     ]);
 
     const live = rows.filter((r) => !NOT_LIVE.has(r.status));
@@ -52,8 +53,9 @@ export const dashboardService = {
         confirmed: live.filter((r) => r.confirmedAt !== null).length,
         // BOOKED and not started yet: a started one is an outcome to mark, not "no reply".
         noReply: live.filter((r) => r.status === 'BOOKED' && r.startAt > at).length,
-        // For the viewed date: WAITLIST-source appointments that start on it and are still live.
-        refilledFromWaitlist: live.filter((r) => r.source === 'WAITLIST').length,
+        // Refilled from the waitlist ON the viewed date: replacement bookings whose claim happened on that local
+        // day, for any appointment day (the activity card's "claimed" items on the same day). Not the day's list.
+        refilledFromWaitlist: refilled,
       },
       whatsappDue,
       outcomesToMark,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { plannedJobs, sameBookingRequest } from '@/server/domain/bookingPlan';
+import { plannedJobs, plannedReminders, remindersOf, sameBookingRequest } from '@/server/domain/bookingPlan';
 
 const booked = new Date('2026-11-10T08:00:00Z');
 const h = (n: number) => new Date(booked.getTime() + n * 3_600_000);
@@ -20,6 +20,27 @@ describe('plannedJobs', () => {
   it('skips H24 under 24 h and H2 under 2 h', () => {
     expect(keys(h(5))).toEqual(['BOOKING/EMAIL', 'H2/EMAIL', 'H2/WHATSAPP']);
     expect(keys(h(1))).toEqual(['BOOKING/EMAIL']);
+  });
+});
+
+describe('plannedReminders / remindersOf (what the pages may promise)', () => {
+  it('30 h ahead: both', () => expect(plannedReminders(h(30), booked)).toEqual({ h24: true, h2: true, email: true }));
+  it('exactly 24 h ahead: both (the same >= rule that creates the rows)', () =>
+    expect(plannedReminders(h(24), booked)).toEqual({ h24: true, h2: true, email: true }));
+  it('10 h ahead: only the 2 h reminder', () =>
+    expect(plannedReminders(h(10), booked)).toEqual({ h24: false, h2: true, email: true }));
+  it('1 h ahead: none', () => expect(plannedReminders(h(1), booked)).toEqual({ h24: false, h2: false, email: true }));
+  it('equals remindersOf the planned jobs, whatever the lead', () => {
+    for (const lead of [0.5, 1, 2, 5, 23.9, 24, 30, 100])
+      expect(plannedReminders(h(lead), booked)).toEqual(remindersOf(plannedJobs(h(lead), booked)));
+  });
+  it('a client without an email is promised nothing, whatever the rows', () => {
+    expect(remindersOf(plannedJobs(h(30), booked), false)).toEqual({ h24: false, h2: false, email: false });
+  });
+  it('only EMAIL H24/H2 rows count; BOOKING and other channels do not', () => {
+    expect(remindersOf([{ kind: 'BOOKING', channel: 'EMAIL' }])).toEqual({ h24: false, h2: false, email: true });
+    expect(remindersOf([{ kind: 'H24', channel: 'WHATSAPP' }])).toEqual({ h24: false, h2: false, email: true });
+    expect(remindersOf([{ kind: 'H24' }, { kind: 'H2' }])).toEqual({ h24: true, h2: true, email: true });
   });
 });
 

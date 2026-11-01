@@ -1,4 +1,8 @@
-import { plannedJobs, sameBookingRequest } from '@/server/domain/bookingPlan';
+import {
+  plannedJobs,
+  sameBookingRequest,
+  type PlannedReminders,
+} from '@/server/domain/bookingPlan';
 import { localDayOf } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
 import { pickStaff } from '@/server/domain/slots';
@@ -15,6 +19,7 @@ import {
 } from '@/server/repositories/appointment.repo';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { clientRepo } from '@/server/repositories/client.repo';
+import { storedReminders } from './reminderPromise';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { computeAvailability, toPublicSlots, type PublicSlot } from './availability';
 import { onSlotFreed } from './slotFreed';
@@ -71,6 +76,12 @@ export interface BookingResult {
   };
   links: { manage: string };
   /**
+   * The email reminders this booking has. Taken from the same plan that creates the ReminderJob rows (a
+   * replay reads the stored rows), so a page can only promise what will exist. A deposit hold has none until
+   * it is paid: the pay response then carries the post-payment truth.
+   */
+  reminders: PlannedReminders;
+  /**
    * Present ONLY when the booking needs a deposit first: the appointment holds its slot as
    * PENDING_PAYMENT until `holdExpiresAt`, with no reminders and no confirmation email until it is paid.
    */
@@ -108,8 +119,18 @@ function manageLink(a: Stored, cfg: LinkConfig): string {
   return `${cfg.appUrl.replace(/\/+$/, '')}/l/${token}`;
 }
 
-function result(a: Stored, replay: boolean, cfg: LinkConfig): BookingResult {
-  const base = { replay, appointment: appointmentSummary(a), links: { manage: manageLink(a, cfg) } };
+function result(
+  a: Stored,
+  replay: boolean,
+  cfg: LinkConfig,
+  reminders: PlannedReminders,
+): BookingResult {
+  const base = {
+    replay,
+    appointment: appointmentSummary(a),
+    links: { manage: manageLink(a, cfg) },
+    reminders,
+  };
   if (a.status !== 'PENDING_PAYMENT' || !a.holdExpiresAt) return base;
   const payToken = signToken(
     { a: a.id, act: 'pay', exp: payExpiryFor(a.holdExpiresAt) },
@@ -262,7 +283,7 @@ async function bookInner(
   const specific = input.staffId !== 'anyone' ? input.staffId : undefined;
   const key = input.idempotencyKey;
 
-  const replayOf = (stored: Stored): BookingResult => {
+  const replayOf = async (stored: Stored): Promise<BookingResult> => {
     const same = sameBookingRequest(
       {
         serviceId: stored.service.id,
@@ -279,7 +300,8 @@ async function bookInner(
         'This Idempotency-Key was already used for a different booking.',
       );
     ctx.logger.info({ businessId, appointmentId: stored.id }, 'booking replayed (idempotent)');
-    return result(stored, true, cfg);
+    // What the first booking really got, from the stored rows.
+    return result(stored, true, cfg, await storedReminders(businessId, stored.id));
   };
 
   if (key) {
@@ -371,7 +393,8 @@ async function bookInner(
         deposit ? 'appointment held pending deposit' : 'appointment booked',
       );
       if (plan) await openCheckout(ctx, plan, stored, key, deps.now());
-      return result(stored, false, cfg);
+      // Read back from the rows just inserted with the appointment.
+      return result(stored, false, cfg, await storedReminders(businessId, stored.id));
     } catch (error) {
       if (error instanceof AppError) throw error;
       const pg = pgErrorCode(error);

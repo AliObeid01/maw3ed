@@ -5,6 +5,7 @@ import { GET as outcomesQueue } from '@/app/api/outcomes/queue/route';
 import { GET as whatsappDue } from '@/app/api/reminders/whatsapp-due/route';
 import { GET as summary } from '@/app/api/dashboard/summary/route';
 import { GET as today } from '@/app/api/dashboard/today/route';
+import { GET as waitlistActivity } from '@/app/api/waitlist/activity/route';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
 import {
@@ -18,6 +19,7 @@ import {
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 import { newStaffCookie, seedAppointment, seedClient } from './helpers/outcomes';
+import { seedEntry } from './helpers/waitlist';
 
 let pg: Client;
 let prisma: PrismaClient;
@@ -76,6 +78,8 @@ afterAll(async () => {
   await pg.end();
 });
 beforeEach(async () => {
+  await pg.query('DELETE FROM "WaitlistOffer"');
+  await pg.query('DELETE FROM "WaitlistEntry"');
   await pg.query('DELETE FROM "ReminderJob"');
   await pg.query('DELETE FROM "Appointment"');
   await pg.query('DELETE FROM "Client"');
@@ -190,7 +194,7 @@ describe('GET /api/dashboard/today', () => {
       appointments: 6,
       confirmed: 1,
       noReply: 5,
-      refilledFromWaitlist: 2, // both WAITLIST-source appointments that start on the viewed date
+      refilledFromWaitlist: 0, // F45: counted on the day the claim happened (T = 3 Nov, 1 Nov), not the appointment day
     });
     expect(body.staff.map((s: any) => s.id)).toContain(aScn.staffIds[0]); // plus the bookable owner
 
@@ -220,7 +224,7 @@ describe('GET /api/dashboard/today', () => {
     expect(statuses).toEqual(expect.arrayContaining(['CANCELLED', 'LATE_CANCEL']));
   });
 
-  it('noReply only counts BOOKED appointments that have not started; refills follow the viewed date', async () => {
+  it('noReply only counts BOOKED appointments that have not started; refills follow the claim day', async () => {
     vi.setSystemTime(new Date('2026-11-03T09:30:00Z'));
     await add('2026-11-03T08:00:00Z', {}, a, aScn, { name: 'Started, unmarked' }); // an outcome to mark
     await add('2026-11-03T12:00:00Z', {}, a, aScn, { name: 'Still to come' });
@@ -239,7 +243,8 @@ describe('GET /api/dashboard/today', () => {
       noReply: 2,
       refilledFromWaitlist: 1,
     });
-    expect((await day(a.cookie, { date: '2026-11-04' })).body!.stats.refilledFromWaitlist).toBe(1);
+    // F45: the 4 Nov appointment was claimed on 3 Nov, so 4 Nov itself shows no refill.
+    expect((await day(a.cookie, { date: '2026-11-04' })).body!.stats.refilledFromWaitlist).toBe(0);
   });
 
   it('defaults to today in the business timezone and counts outcomes still to mark', async () => {
@@ -307,5 +312,100 @@ describe('GET /api/dashboard/today', () => {
     const res = await day(a.cookie, { date: '2026-11-04' });
     expect(res.body!.appointments).toEqual([]);
     expect(JSON.stringify(res.body)).not.toContain('OtherTenantPerson');
+  });
+});
+
+// F45: the "Refilled from waitlist" tile counts replacement bookings whose claim happened on the viewed local
+// day (business timezone), whatever day the appointment is on. The claim time is the replacement booking's
+// createdAt, the same instant the waitlist activity card shows for a claimed slot.
+describe('Refilled from waitlist tile (F45)', () => {
+  const refilled = async (date: string) =>
+    (await day(a.cookie, { date })).body!.stats.refilledFromWaitlist as number;
+  const refill = (startAt: string, createdAt: string, over: Record<string, unknown> = {}) =>
+    add(startAt, { source: 'WAITLIST', createdAt: new Date(createdAt), ...over });
+
+  it('a refill claimed on D for an appointment on D+3 counts on D and not on D+3', async () => {
+    await refill('2026-11-06T09:00:00Z', '2026-11-03T08:00:00Z');
+    expect(await refilled('2026-11-03')).toBe(1);
+    expect(await refilled('2026-11-06')).toBe(0);
+    expect(await refilled('2026-11-04')).toBe(0);
+    // The appointment itself is still listed on its own day, only the tile follows the claim.
+    expect((await day(a.cookie, { date: '2026-11-06' })).body!.appointments).toHaveLength(1);
+  });
+
+  it('two refills claimed the same day count twice, whichever days they are for', async () => {
+    await refill('2026-11-05T09:00:00Z', '2026-11-03T06:00:00Z');
+    await refill('2026-11-09T09:00:00Z', '2026-11-03T15:00:00Z');
+    await refill('2026-11-03T16:00:00Z', '2026-11-03T10:00:00Z'); // same day claim and visit
+    expect(await refilled('2026-11-03')).toBe(3);
+  });
+
+  it('a cancelled replacement (staff, link or late) is not counted', async () => {
+    await refill('2026-11-05T09:00:00Z', '2026-11-03T06:00:00Z');
+    await refill('2026-11-05T10:00:00Z', '2026-11-03T06:30:00Z', { status: 'CANCELLED', cancelledVia: 'STAFF' });
+    await refill('2026-11-05T11:00:00Z', '2026-11-03T07:00:00Z', { status: 'CANCELLED', cancelledVia: 'LINK' });
+    await refill('2026-11-05T12:00:00Z', '2026-11-03T07:30:00Z', { status: 'LATE_CANCEL', cancelledVia: 'LINK' });
+    expect(await refilled('2026-11-03')).toBe(1);
+  });
+
+  it('a deposit hold (PENDING_PAYMENT) is not a refill until it is paid', async () => {
+    const hold = await refill('2026-11-05T09:00:00Z', '2026-11-03T06:00:00Z', { status: 'PENDING_PAYMENT' });
+    expect(await refilled('2026-11-03')).toBe(0);
+    await prisma.appointment.update({ where: { id: hold.id }, data: { status: 'BOOKED' } });
+    expect(await refilled('2026-11-03')).toBe(1);
+  });
+
+  it('attended and no-show refills still count; other sources never do', async () => {
+    await refill('2026-11-02T09:00:00Z', '2026-11-03T06:00:00Z', { status: 'ATTENDED' });
+    await refill('2026-11-02T10:00:00Z', '2026-11-03T06:10:00Z', { status: 'NO_SHOW' });
+    await add('2026-11-05T09:00:00Z', { source: 'PUBLIC', createdAt: new Date('2026-11-03T06:00:00Z') });
+    await add('2026-11-05T10:00:00Z', { source: 'FRONT_DESK', createdAt: new Date('2026-11-03T06:00:00Z') });
+    expect(await refilled('2026-11-03')).toBe(2);
+  });
+
+  it('the day boundary is local midnight in Asia/Beirut (UTC+2 in November), not UTC', async () => {
+    await refill('2026-11-08T09:00:00Z', '2026-11-03T21:59:59Z'); // 23:59:59 on 3 Nov, Beirut
+    await refill('2026-11-08T10:00:00Z', '2026-11-03T22:00:00Z'); // 00:00:00 on 4 Nov, Beirut
+    await refill('2026-11-08T11:00:00Z', '2026-11-04T21:59:59Z'); // 23:59:59 on 4 Nov
+    await refill('2026-11-08T12:00:00Z', '2026-11-04T22:00:00Z'); // 00:00:00 on 5 Nov
+    expect(await refilled('2026-11-03')).toBe(1);
+    expect(await refilled('2026-11-04')).toBe(2);
+    expect(await refilled('2026-11-05')).toBe(1);
+  });
+
+  it('is scoped to the business', async () => {
+    await add('2026-11-05T09:00:00Z', { source: 'WAITLIST', createdAt: new Date('2026-11-03T06:00:00Z') }, b, bScn);
+    expect(await refilled('2026-11-03')).toBe(0);
+    expect((await day(b.cookie, { date: '2026-11-03' })).body!.stats.refilledFromWaitlist).toBe(1);
+  });
+
+  it('the activity card and the tile agree: each claimed slot is one refill on its claim day', async () => {
+    const claimedAt = '2026-11-03T08:00:00Z';
+    const entry = await seedEntry(prisma, a.businessId, aScn.serviceId, { createdAt: new Date(NOW.getTime() - 3_600_000) });
+    const claimedAppt = await refill('2026-11-06T09:00:00Z', claimedAt);
+    const freed = await add('2026-11-06T09:00:00Z', { status: 'CANCELLED', cancelledVia: 'STAFF' }, a, aScn);
+    await prisma.waitlistOffer.create({
+      data: {
+        businessId: a.businessId,
+        entryId: entry.entryId,
+        staffId: aScn.staffIds[0]!,
+        startAt: new Date('2026-11-06T09:00:00Z'),
+        endAt: new Date('2026-11-06T09:30:00Z'),
+        expiresAt: new Date('2026-11-03T08:30:00Z'),
+        status: 'CLAIMED',
+        claimedAppointmentId: claimedAppt.id,
+        freedFromAppointmentId: freed.id,
+      },
+    });
+    vi.setSystemTime(new Date('2026-11-03T12:00:00Z'));
+    const activity = await call(waitlistActivity, '/api/waitlist/activity', {
+      cookie: a.cookie,
+      query: { limit: '10' },
+    });
+    const claimedItems = activity.body!.items.filter((i: any) => i.type === 'CLAIMED');
+    expect(claimedItems).toHaveLength(1);
+    expect(claimedItems[0].at).toBe(new Date(claimedAt).toISOString());
+    expect(await refilled('2026-11-03')).toBe(claimedItems.length);
+    expect(await refilled('2026-11-06')).toBe(0);
   });
 });

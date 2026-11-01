@@ -24,6 +24,7 @@ const state = (startAt: string): BookedState => ({
       staff: { id: 'p', displayName: 'Nour' },
     },
     links: { manage: '/l/token.sig' },
+    reminders: { h24: true, h2: true, email: true },
   },
 });
 

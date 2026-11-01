@@ -34,6 +34,7 @@ const result = {
     staff: { id: 'p1', displayName: 'Lina' },
   },
   links: { manage: '/l/tok' },
+  reminders: { h24: true, h2: true, email: true },
 };
 
 describe('public booking client', () => {
@@ -41,6 +42,7 @@ describe('public booking client', () => {
     const fetchMock = mockFetch(201, result);
     await expect(createBooking('studio-nour', body, 'bk-1234abcd')).resolves.toMatchObject({
       links: { manage: '/l/tok' },
+      reminders: { h24: true, h2: true, email: true },
     });
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(url).toBe('/api/public/studio-nour/bookings');

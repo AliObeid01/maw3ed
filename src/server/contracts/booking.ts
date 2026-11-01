@@ -107,6 +107,28 @@ const BookedAppointment = z.object({
   staff: z.object({ id: z.string(), displayName: z.string() }),
 });
 
+export const RemindersDto = registry.register(
+  'Reminders',
+  z
+    .object({
+      h24: z.boolean().openapi({
+        description: 'An email reminder 24 hours before the appointment is planned (booked at least 24 h ahead).',
+      }),
+      h2: z.boolean().openapi({
+        description: 'An email reminder 2 hours before the appointment is planned (booked at least 2 h ahead).',
+      }),
+      email: z.boolean().openapi({
+        description:
+          'Whether the client has an email address. When false no reminder email can be sent, so h24 and h2 are false too.',
+      }),
+    })
+    .strict()
+    .openapi({
+      description:
+        'The email reminders planned for this booking (a send can still be skipped, for example by the daily email budget), from the ReminderJob rows. Pages promise nothing else. All false for a deposit hold (none until paid), for a cancelled booking and for a client without an email address.',
+    }),
+);
+
 export const BookingResultDto = registry.register(
   'BookingResult',
   z.object({
@@ -114,6 +136,7 @@ export const BookingResultDto = registry.register(
     links: z.object({
       manage: z.string().openapi({ description: 'Signed link, expires at the appointment start.' }),
     }),
+    reminders: RemindersDto,
     status: z.literal('PENDING_PAYMENT').optional().openapi({
       description:
         'Only when a deposit is needed first: the slot is held (appointment.status PENDING_PAYMENT) until holdExpiresAt. No reminders or confirmation email until it is paid.',

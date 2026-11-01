@@ -15,6 +15,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { BookingResult } from '@/lib/api/booking';
 import { claimOffer, getOffer } from '@/lib/api/waitlist';
+import { reminderPromiseKind } from '@/lib/reminders/promise';
 import { useResource } from '@/lib/api/useResource';
 import { safeHref, serverNow } from '@/lib/waitlist/clock';
 import {
@@ -117,6 +118,7 @@ type Outcome =
 
 function OfferBody({ token, view }: { token: string; view: Offer }) {
   const t = useTranslations('offer');
+  const tr = useTranslations('reminderPromise');
   const { offer, business } = view;
   const f = useBookingFormat(business.timezone);
   // Recorded once from the first response: every "now" after that is the server's now.
@@ -223,6 +225,10 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
         })
       : null;
     const manage = booked ? safeHref(booked.links.manage) : undefined;
+    // Only the reminders the server says exist (F44).
+    const reminderCopy = booked
+      ? tr('promise', { kind: reminderPromiseKind(booked.reminders) })
+      : undefined;
     return (
       <>
         <BusinessHero name={business.name} meta="" />
@@ -252,7 +258,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
               {tile}
               {booked ? (
                 <>
-                  <Callout icon={<BellRing />}>{t('done.next')}</Callout>
+                  <Callout icon={<BellRing />}>{reminderCopy}</Callout>
                   {manage ? (
                     <div className="flex flex-col gap-2">
                       <ButtonLink href={manage} variant="secondary" size="lg" className="max-sm:w-full sm:self-start">

@@ -842,7 +842,7 @@ describe('the booking response is not an oracle (B4)', () => {
     const text = JSON.stringify(res.body).toLowerCase();
     expect(text).not.toMatch(/noshow|no-show|no_show|history|threshold/);
     expect(Object.keys(res.body!).sort()).toEqual(
-      ['appointment', 'holdExpiresAt', 'links', 'payToken', 'payUrl', 'status'].sort(),
+      ['appointment', 'holdExpiresAt', 'links', 'payToken', 'payUrl', 'reminders', 'status'].sort(),
     );
   });
 

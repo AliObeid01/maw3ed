@@ -35,6 +35,10 @@ export function DetailsStep({
   const tErr = useTranslations('booking.errors');
   const err = (key?: NonNullable<DetailsErrors[keyof DetailsErrors]>) =>
     key ? tErr(key, { max: NAME_MAX }) : undefined;
+  const listed = [
+    { label: t('reminder1'), when: reminders.first },
+    { label: t('reminder2'), when: reminders.second },
+  ].filter((r) => r.when);
 
   return (
     <section className="flex min-w-0 flex-[999_1_320px] flex-col gap-4.5">
@@ -84,20 +88,19 @@ export function DetailsStep({
         {/* Lets Enter submit; the visible buttons live in the summary bar / card. */}
         <button type="submit" tabIndex={-1} aria-hidden="true" className="sr-only" />
       </form>
-      <div className="flex flex-col gap-2 rounded-[20px] bg-canvas p-4 text-sm">
-        {[
-          { label: t('reminder1'), when: reminders.first },
-          { label: t('reminder2'), when: reminders.second },
-        ]
-          .filter((r) => r.when)
-          .map((r) => (
+      {/* A preview only (the confirmation shows what the server really planned). A slot too close for any
+          reminder shows no panel at all, rather than a note about reminders that will not come. */}
+      {listed.length > 0 ? (
+        <div className="flex flex-col gap-2 rounded-[20px] bg-canvas p-4 text-sm">
+          {listed.map((r) => (
             <div key={r.label} className="flex flex-wrap justify-between gap-x-4 gap-y-1">
               <span className="text-muted">{r.label}</span>
               <span className="font-medium">{r.when}</span>
             </div>
           ))}
-        <span className="text-muted">{t('reminderNote')}</span>
-      </div>
+          <span className="text-muted">{t('reminderNote')}</span>
+        </div>
+      ) : null}
     </section>
   );
 }

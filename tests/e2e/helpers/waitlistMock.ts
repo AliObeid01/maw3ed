@@ -1,3 +1,4 @@
+import { mockReminders } from './mockReminders';
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
 import { clockNow, freezeClock, nowDate } from './clock';
@@ -113,6 +114,8 @@ export type OfferMock = {
   claimDelayMs?: number;
   /** Leave the `Date` response header out (the client then trusts the device clock). */
   noDateHeader?: boolean;
+  /** What the claim answers in `reminders` (default: from the slot's lead time, like the server). */
+  reminders?: { h24: boolean; h2: boolean; email: boolean };
 };
 
 export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
@@ -184,6 +187,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
         staff: { id: IDS.karim, displayName: 'Karim' },
       },
       links: { manage: '/l/mock-manage-token' },
+      reminders: mock.reminders ?? mockReminders(start.toUTC().toISO()!, true),
     };
     return json(route, 201, booked);
   });

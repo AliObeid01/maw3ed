@@ -24,6 +24,7 @@ export const INTL_SCOPES = {
     'booking',
     'link',
     'offer',
+    'reminderPromise',
     'waitlist',
     'deposit',
     'directory',

@@ -34,6 +34,9 @@ test('join happy path sends the real contract and shows what happens next', asyn
   await submit(page).click();
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
   await expect(page.getByText('Each offer lasts about 30 minutes.')).toBeVisible();
+  // F43: the confirmation tells the truth about leaving (the link in every offer email; contact the business before an offer).
+  await expect(page.getByText(/every offer email has a link to leave the waitlist. To be removed before an offer, contact the business./)).toBeVisible();
+  await expect(page.getByText('To be removed earlier')).toHaveCount(0);
   await expect(page.getByText('maya@example.com')).toBeVisible();
   const today = clockNow().setZone(TZ).toISODate()!;
   expect(calls).toHaveLength(1);
@@ -160,6 +163,7 @@ test('Arabic: RTL page, translated heading, email and phone stay LTR', async ({ 
   await page.goto(`${WL}?service=${IDS.haircut}`);
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByRole('heading', { name: 'الانضمام إلى قائمة الانتظار', level: 2 })).toBeVisible();
+  await expect(page.getByText(/في كل رسالة عرض رابط لمغادرة قائمة الانتظار/)).toBeVisible();
   await expect(page.locator('input[type="email"]')).toHaveAttribute('dir', 'ltr');
   await expect(page.locator('input[type="tel"]')).toHaveAttribute('dir', 'ltr');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
@@ -170,7 +174,9 @@ test('the consent copy tells the truth: the entry stays until the last day chose
   await open(page);
   const body = page.locator('main');
   await expect(body).toContainText('You stay on the waitlist until the last day you chose or until you book');
-  await expect(body).toContainText('contact the business');
+  await expect(body).toContainText('Every offer email has a link to leave the waitlist');
+  await expect(body).toContainText('To be removed before an offer, contact the business');
+  await expect(body).not.toContainText('To be removed earlier');
   await expect(body).not.toContainText('ignore the email');
 });
 
