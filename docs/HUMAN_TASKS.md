@@ -19,7 +19,7 @@ Open:
 - [ ] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
 - [ ] Neon usage check (storage and compute hours on the free plan).
 - [ ] Optional: DMARC TXT record (`_dmarc`).
-- [ ] Optional: Sentry error monitoring. The code is merged and inert until you do this: follow "Sentry setup" below.
+- [x] Sentry error monitoring: DONE 1 Nov 2026 (EU project, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` as Production-only Vercel variables, test event confirmed with `POST /api/jobs/sentry-test`, alert emails on, Sentry data scrubber and IP storage settings enabled). Still optional: mark the two test issues Resolved; the tunnel (PLAN F41) and source maps (F39).
 - [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
 - [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
 
