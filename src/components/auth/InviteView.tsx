@@ -14,7 +14,8 @@ import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { validateAccept, type AcceptField } from '@/lib/auth/validation';
 import { AuthCard, AuthHeading } from './AuthCard';
-import { FormBanner, useErrorText, useFocusFirstInvalid, type FieldError } from './formKit';
+import { FormBanner, useFocusFirstInvalid, type FieldError } from './formKit';
+import { useErrorText } from './useErrorText';
 import { PasswordField, PasswordStrength } from './PasswordField';
 
 type State =

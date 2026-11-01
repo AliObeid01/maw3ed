@@ -32,7 +32,8 @@ export type ActiveId = NavId | 'book';
 export const mainNav: NavId[] = ['today', 'reminders', 'outcomes', 'clients', 'pilot'];
 export const businessNav: NavId[] = ['setup', 'services', 'staff', 'hours', 'settings', 'share'];
 /** Bottom tab bar (the fifth tab is More). */
-export const tabNav: NavId[] = ['today', 'reminders', 'outcomes', 'clients'];
+export type TabId = 'today' | 'reminders' | 'outcomes' | 'clients';
+export const tabNav: TabId[] = ['today', 'reminders', 'outcomes', 'clients'];
 /** Everything that lives in the More sheet. */
 export const moreNav: NavId[] = ['pilot', ...businessNav];
 

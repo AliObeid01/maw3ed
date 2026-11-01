@@ -107,7 +107,7 @@ function LinkBody({
   const f = useBookingFormat(business.timezone);
   const guard = useRef(createSubmitGuard());
   const [pending, setPending] = useState<LinkAction>();
-  const [problem, setProblem] = useState<LinkFailure>();
+  const [problem, setProblem] = useState<Exclude<LinkFailure, 'invalid' | 'expired'>>();
   const [dialog, setDialog] = useState(false);
 
   const when = t('when', {

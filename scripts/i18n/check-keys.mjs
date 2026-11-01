@@ -2,7 +2,8 @@
 // Fails (exit 1) when messages/en.json and messages/ar.json differ in:
 //   - keys,
 //   - the set of ICU argument names used by a key ({name}, {count, plural, ...}),
-//   - plural/select blocks without an `other` branch (either language).
+//   - plural/select blocks without an `other` branch (either language),
+//   - empty or whitespace-only values (either language).
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -66,6 +67,9 @@ const en = load('en');
 const ar = load('ar');
 const errors = [];
 
+for (const [lang, map] of [['en', en], ['ar', ar]]) {
+  for (const [k, v] of map) if (!v.trim()) errors.push(`${lang} ${k}: empty value`);
+}
 for (const k of en.keys()) if (!ar.has(k)) errors.push(`missing in ar: ${k}`);
 for (const k of ar.keys()) if (!en.has(k)) errors.push(`missing in en: ${k}`);
 

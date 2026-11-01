@@ -10,7 +10,8 @@ import { login } from '@/lib/api/auth';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { validateLogin, type LoginField } from '@/lib/auth/validation';
-import { FormBanner, useErrorText, useFocusFirstInvalid, type FieldError } from './formKit';
+import { FormBanner, useFocusFirstInvalid, type FieldError } from './formKit';
+import { useErrorText } from './useErrorText';
 import { PasswordField } from './PasswordField';
 
 const FIELDS: readonly LoginField[] = ['email', 'password'];

@@ -1,3 +1,4 @@
+import type { StatusKey } from '@/i18n/keys';
 import type { ChipTone } from '@/components/ui/Chip';
 import type { ApptTone } from '@/lib/dashboard/agenda';
 
@@ -25,7 +26,7 @@ export const chipTone: Record<ApptTone, ChipTone> = {
 };
 
 /** Keys under `ui.status`. */
-export const toneLabelKey: Record<ApptTone, string> = {
+export const toneLabelKey: Record<ApptTone, StatusKey> = {
   booked: 'booked',
   confirmed: 'confirmed',
   attended: 'attended',

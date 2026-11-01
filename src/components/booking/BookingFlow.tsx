@@ -285,7 +285,12 @@ export function BookingFlow({ slug }: { slug: string }) {
   if (resolved.staffId && resolved.staffId !== 'anyone') waitlistQuery.set('staff', resolved.staffId);
   const waitlistHref = `/b/${encodeURIComponent(slug)}/waitlist?${waitlistQuery}`;
 
-  const stepIds = ['service', ...(resolved.staffSkipped ? [] : ['staff']), 'time', 'details'] as const;
+  const stepIds: ('service' | 'staff' | 'time' | 'details')[] = [
+    'service',
+    ...(resolved.staffSkipped ? [] : (['staff'] as const)),
+    'time',
+    'details',
+  ];
   const labelFor = (id: (typeof stepIds)[number]) => t(`steps.${id}`);
   const valueFor = (id: (typeof stepIds)[number]) =>
     id === 'service'

@@ -17,7 +17,8 @@ import {
   timezoneLabel,
 } from '@/lib/auth/timezones';
 import { validateSignup, type SignupField } from '@/lib/auth/validation';
-import { FormBanner, useErrorText, useFocusFirstInvalid, type FieldError } from './formKit';
+import { FormBanner, useFocusFirstInvalid, type FieldError } from './formKit';
+import { useErrorText } from './useErrorText';
 import { PasswordField, PasswordStrength } from './PasswordField';
 import { SlugField, useSlugAvailability } from './SlugField';
 

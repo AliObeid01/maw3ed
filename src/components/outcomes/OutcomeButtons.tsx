@@ -3,10 +3,11 @@
 import { useTranslations } from 'next-intl';
 import { Spinner } from '@/components/ui/Button';
 import { OUTCOMES, type Outcome } from '@/lib/api/outcomes';
+import type { StatusKey } from '@/i18n/keys';
 import { cn } from '@/lib/cn';
 import type { OptionState } from '@/lib/outcomes/eligibility';
 
-const labelKey: Record<Outcome, string> = {
+const labelKey: Record<Outcome, StatusKey> = {
   ATTENDED: 'attended',
   NO_SHOW: 'noShow',
   LATE_CANCEL: 'lateCancel',
