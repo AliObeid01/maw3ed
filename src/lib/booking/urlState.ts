@@ -16,13 +16,16 @@ export type BookingParams = {
   staff?: string;
   /** Local date in the business timezone, `yyyy-MM-dd`. */
   day?: string;
-  /** Local time in the business timezone, `HH:mm`. */
+  /**
+   * Local time in the business timezone: `HH:mm` (old links; the first occurrence when a DST fall-back repeats the
+   * hour) or `HH:mm+hh:mm` with the UTC offset, which names one exact instant.
+   */
   time?: string;
 };
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
-const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TIME = /^([01]\d|2[0-3]):[0-5]\d([+-](0\d|1[0-4]):[0-5]\d)?$/;
 
 type Reader = { get(name: string): string | null };
 
@@ -38,7 +41,8 @@ export function parseBookingParams(search: Reader): BookingParams {
   const day = search.get('day');
   // A real calendar date (2026-02-31 matches the shape but is not one).
   if (day && DAY.test(day) && DateTime.fromISO(day, { zone: 'utc' }).isValid) out.day = day;
-  const time = search.get('time');
+  // A `+` in a hand-written query reads as a space; treat it as the sign.
+  const time = search.get('time')?.replace(' ', '+');
   if (time && TIME.test(time)) out.time = time;
   return out;
 }

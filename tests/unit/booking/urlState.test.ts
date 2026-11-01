@@ -38,6 +38,13 @@ describe('parseBookingParams / serialiseBookingParams', () => {
       parse('step=hack&service=a b&staff=<x>&day=2026-1-3&time=25:00&other=1'),
     ).toEqual({});
     expect(parse('time=09:05')).toEqual({ time: '09:05' });
+    // F19: an offset names the exact instant (old HH:mm links keep working); `+` read as a space is the sign.
+    expect(parse('time=23:30%2B02:00')).toEqual({ time: '23:30+02:00' });
+    expect(parse('time=23:30+03:00')).toEqual({ time: '23:30+03:00' });
+    expect(parse('time=23:30-05:00')).toEqual({ time: '23:30-05:00' });
+    expect(parse('time=23:30+99:00')).toEqual({});
+    expect(parse('time=23:30Z')).toEqual({});
+    expect(serialiseBookingParams({ time: '23:30+02:00' })).toBe('?time=23%3A30%2B02%3A00');
   });
 });
 

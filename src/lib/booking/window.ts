@@ -8,14 +8,24 @@ export type SlotWindow = {
   byDay: Record<string, Slot[]>;
 };
 
+/** The request lengths to try for a window of `days`: the window itself, then 7, 3 and 1 day below it. */
+const ladder = (days: number): number[] => {
+  const top = Math.min(DAY_WINDOW, Math.max(1, days));
+  return [top, ...[7, 3, 1].filter((n) => n < top)];
+};
+
 /**
  * Loads the free slots for the day strip in ONE request covering the next local days of the business.
  *
  * The public API publishes the booking window (`bookingWindowDays` on GET /api/public/{slug}) and callers pass it
- * as `maxDays`. A known window shorter than 14 days is requested exactly (one request, no probing). With the
- * default `maxDays` (14, also what an older server's missing value parses to) the first request covers 14 days,
- * and only if the server rejects it as too far ahead (400 on `to`) is it retried with 7, 3, then 1 day: a safety
- * net, not the main path. A known short window that the server still rejects is not retried (finding F28).
+ * as `maxDays`. A known window shorter than 14 days is requested exactly (one request on the normal path). With
+ * the default `maxDays` (14, also what an older server's missing value parses to) the first request covers 14 days.
+ *
+ * Safety net (finding F28): if the server still rejects the attempted length as too far ahead (400 on `to`, for
+ * example the owner shortened the window after the page loaded its business), `refreshWindowDays` is called ONCE to
+ * re-read the business. A shorter published window is then tried directly; otherwise the page falls back through
+ * 7, 3 and 1 day below the attempted length. Every length is tried at most once, so it can never loop; when all
+ * are rejected the last error is thrown.
  */
 export async function loadSlotWindow(
   slug: string,
@@ -24,13 +34,19 @@ export async function loadSlotWindow(
   now: Date,
   signal?: AbortSignal,
   fetchSlots: typeof getSlots = getSlots,
-  /** The business's booking window in days. Below 14 it is requested exactly; 14 or more is capped at 14 and may be probed down. */
+  /** The business's booking window in days (capped at 14). */
   maxDays: number = DAY_WINDOW,
+  /** Re-reads GET /api/public/{slug} and returns its `bookingWindowDays` (and lets the caller remember it). Called at most once. */
+  refreshWindowDays?: (signal?: AbortSignal) => Promise<number | undefined>,
 ): Promise<SlotWindow> {
   const days = dayWindow(now, timezone, DAY_WINDOW);
-  // The business's real booking window is known (GET /api/public/{slug}): ask for exactly that, no probing.
-  const lengths = maxDays < DAY_WINDOW ? [Math.max(1, maxDays)] : [DAY_WINDOW, 7, 3, 1];
-  for (const length of lengths) {
+  let lengths = ladder(maxDays);
+  const tried = new Set<number>();
+  let refreshed = false;
+  let last: unknown = new ApiError(0, 'NETWORK', 'unreachable');
+  while (lengths.length > 0) {
+    const length = lengths.shift()!;
+    tried.add(length);
     const covered = days.slice(0, length);
     try {
       const slots = await fetchSlots(
@@ -41,10 +57,23 @@ export async function loadSlotWindow(
       return { coveredDays: covered, byDay: groupSlotsByDay(slots, timezone) };
     } catch (error) {
       const outOfWindow = error instanceof ApiError && error.status === 400 && 'to' in error.fields;
-      if (!outOfWindow || length === lengths[lengths.length - 1]) throw error;
+      if (!outOfWindow) throw error;
+      last = error;
+    }
+    if (!refreshed && refreshWindowDays) {
+      refreshed = true;
+      let published: number | undefined;
+      try {
+        published = await refreshWindowDays(signal);
+      } catch (error) {
+        if (signal?.aborted) throw error;
+      }
+      if (published !== undefined && Math.min(DAY_WINDOW, Math.max(1, published)) < length) {
+        lengths = ladder(published).filter((n) => !tried.has(n));
+      }
     }
   }
-  throw new ApiError(0, 'NETWORK', 'unreachable');
+  throw last;
 }
 
 const windowKey = (slug: string) => `maw3ed:slot-window:${slug}`;
