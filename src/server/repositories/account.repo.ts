@@ -1,4 +1,5 @@
 import { db } from './db';
+import { lockUserPasswordHash, PasswordChangedError } from './user.repo';
 
 export interface NewBusinessInput {
   business: { slug: string; name: string; timezone: string };
@@ -12,8 +13,20 @@ export const accountRepo = {
    * Signed-in password change: new hash, every OTHER session of the user deleted (the current one stays) and
    * any open reset link invalidated, in one transaction.
    */
-  changePassword: (input: { userId: string; passwordHash: string; keepSessionId: string }) =>
+  changePassword: (input: {
+    userId: string;
+    passwordHash: string;
+    keepSessionId: string;
+    /** The exact stored hash the caller's current-password check succeeded against. */
+    verifiedPasswordHash: string;
+  }) =>
     db.$transaction(async (tx) => {
+      // Lock the User row first (F36): a login that verified the old password either committed its session
+      // before this point (deleted below) or sees the new hash under the lock and is rejected. The hash read
+      // under the lock must still be the one verified, otherwise a reset/change that committed in between
+      // would be overwritten: PasswordChangedError rolls everything back.
+      const current = await lockUserPasswordHash(tx, input.userId);
+      if (!current || current !== input.verifiedPasswordHash) throw new PasswordChangedError();
       await tx.user.update({ where: { id: input.userId }, data: { passwordHash: input.passwordHash } });
       await tx.session.deleteMany({
         where: { userId: input.userId, id: { not: input.keepSessionId } },

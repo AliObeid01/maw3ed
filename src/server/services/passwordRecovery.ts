@@ -8,7 +8,7 @@ import { accountEmail } from '@/server/providers/email/accountEmails';
 import { accountRepo } from '@/server/repositories/account.repo';
 import { emailTokenRepo } from '@/server/repositories/emailToken.repo';
 import { membershipRepo } from '@/server/repositories/membership.repo';
-import { userRepo } from '@/server/repositories/user.repo';
+import { PasswordChangedError, userRepo } from '@/server/repositories/user.repo';
 import { newOpaqueToken, sha256Hex } from './crypto';
 import { linkInvalid } from './emailVerification';
 import { emailHash } from './loginGuard';
@@ -115,15 +115,24 @@ export const passwordRecoveryService = {
 
     const user = await userRepo.findById(ctx.userId);
     if (!user) throw AppError.unauthenticated();
-    if (!(await verifyPassword(input.currentPassword, user.passwordHash)))
-      throw AppError.validation({ currentPassword: 'Current password is incorrect.' });
+    const wrong = () => AppError.validation({ currentPassword: 'Current password is incorrect.' });
+    const verifiedPasswordHash = user.passwordHash;
+    if (!verifiedPasswordHash || !(await verifyPassword(input.currentPassword, verifiedPasswordHash)))
+      throw wrong();
 
     const passwordHash = await hashPassword(input.newPassword);
-    await accountRepo.changePassword({
-      userId: user.id,
-      passwordHash,
-      keepSessionId: ctx.sessionId,
-    });
+    try {
+      await accountRepo.changePassword({
+        userId: user.id,
+        passwordHash,
+        keepSessionId: ctx.sessionId,
+        verifiedPasswordHash,
+      });
+    } catch (error) {
+      // A reset or another change committed since the check: the password the caller proved is gone.
+      if (error instanceof PasswordChangedError) throw wrong();
+      throw error;
+    }
     await deps.limiter.clear('changePasswordUser', ctx.userId);
     ctx.logger.info({ userId: user.id }, 'password changed; other sessions revoked');
     return { ok: true };

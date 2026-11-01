@@ -1,5 +1,6 @@
 import type { EmailTokenKind } from '@/generated/prisma/client';
 import { db } from './db';
+import { lockUserPasswordHash } from './user.repo';
 
 /**
  * Single-use e-mailed tokens (verify address / reset password). Users are global (one login can belong to
@@ -71,6 +72,9 @@ export const emailTokenRepo = {
     db.$transaction(async (tx) => {
       const token = await tx.emailToken.findUnique({ where: { tokenHash } });
       if (!token || token.kind !== 'RESET') return null;
+      // Lock the User row BEFORE claiming the token (F36, lock order in lockUserPasswordHash): a login that
+      // verified the old password either committed its session first (deleted below) or is rejected.
+      await lockUserPasswordHash(tx, token.userId);
       const claimed = await tx.emailToken.updateMany({
         where: { id: token.id, usedAt: null, expiresAt: { gt: now } },
         data: { usedAt: now },

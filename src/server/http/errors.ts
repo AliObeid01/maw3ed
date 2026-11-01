@@ -185,6 +185,8 @@ export function fromDbError(error: unknown): AppError | undefined {
       { slots: [] },
       'That time was just taken. Pick another.',
     );
+  // 40P01 deadlock detected, 55P03 lock not available: transient, the client may retry (F36 row locks).
+  if (pg === '40P01' || pg === '55P03') return AppError.busy();
   if (pg === '23505' || prismaCode(error) === 'P2002') return AppError.conflict('CONFLICT');
   if (prismaCode(error) === 'P2025') return AppError.notFound();
   return undefined;

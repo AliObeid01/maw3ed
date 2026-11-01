@@ -56,6 +56,26 @@ export const sessionService = {
   },
 
   /**
+   * Login path: like create, but only if `verifiedPasswordHash` is still the user's hash under a User row lock
+   * (F36). Null = the password changed meanwhile; nothing was inserted.
+   */
+  async createVerified(
+    businessId: string,
+    userId: string,
+    verifiedPasswordHash: string,
+    now: Date = new Date(),
+  ) {
+    const issued = this.issue(now);
+    const ok = await sessionRepo.createIfPasswordUnchanged(businessId, {
+      userId,
+      tokenHash: issued.tokenHash,
+      expiresAt: issued.expiresAt,
+      verifiedPasswordHash,
+    });
+    return ok ? { token: issued.token, expiresAt: issued.expiresAt } : null;
+  },
+
+  /**
    * Cookie token -> identity, or undefined (unknown, expired, or the membership is gone).
    * The role is read from Membership on every request so a removed member loses access at once.
    * The expiry slides forward at most once an hour.

@@ -1,11 +1,12 @@
 import type { Role } from '@/generated/prisma/client';
 import { db } from './db';
+import { lockUserPasswordHash, PasswordChangedError } from './user.repo';
 
 export interface AcceptInput {
   inviteId: string;
   now: Date;
   /** Existing user to attach, or the details of a new one. */
-  user: { existingId: string } | { name: string; passwordHash: string };
+  user: { existingId: string; verifiedPasswordHash: string } | { name: string; passwordHash: string };
   sessionTokenHash: string;
   sessionExpiresAt: Date;
 }
@@ -71,6 +72,13 @@ export const inviteRepo = {
    */
   accept: (businessId: string, input: AcceptInput) =>
     db.$transaction(async (tx) => {
+      // Existing user: lock the User row first and require the verified password to still be current (F36),
+      // before anything is claimed or written.
+      if ('existingId' in input.user) {
+        const current = await lockUserPasswordHash(tx, input.user.existingId);
+        if (!current || current !== input.user.verifiedPasswordHash)
+          throw new PasswordChangedError();
+      }
       const claimed = await tx.invite.updateMany({
         where: {
           id: input.inviteId,

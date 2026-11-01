@@ -33,6 +33,16 @@ export function poolConfigFromUrl(rawUrl: string): {
     : { connectionString };
 }
 
+/**
+ * TEST ONLY (DATABASE_POOL_CONNECT_TIMEOUT_MS): how long a request may wait for a pooled connection. Ignored when
+ * NODE_ENV is production; otherwise clamped to 1000..120000 ms. Default 5000.
+ */
+export function poolConnectTimeoutMs(env: NodeJS.ProcessEnv = process.env): number {
+  const raw = Number(env.DATABASE_POOL_CONNECT_TIMEOUT_MS);
+  if (env.NODE_ENV === 'production' || !Number.isFinite(raw) || raw <= 0) return 5_000;
+  return Math.min(120_000, Math.max(1_000, raw));
+}
+
 /** DATABASE_SCHEMA is a test seam: refused in production and restricted to a plain identifier. */
 export function schemaFromEnv(env: NodeJS.ProcessEnv = process.env): string | undefined {
   const schema = env.DATABASE_SCHEMA;
@@ -60,7 +70,9 @@ function createClient(): PrismaClient {
       ...poolConfigFromUrl(connectionString),
       max: 5,
       idleTimeoutMillis: 10_000,
-      connectionTimeoutMillis: 5_000,
+      // Test seam (F22, TEST ONLY, ignored in production): a burst larger than the pool queues for a connection;
+      // on a slow remote test database that wait can pass 5 s.
+      connectionTimeoutMillis: poolConnectTimeoutMs(),
     },
     {
       // DATABASE_SCHEMA points the app at a non-default schema (integration tests use "itest").

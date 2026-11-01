@@ -150,8 +150,21 @@ export const authService = {
       ctx.logger.warn('login failed');
       throw AppError.invalidCredentials();
     }
+    const verifiedHash = user.passwordHash;
+    if (!verifiedHash) throw AppError.invalidCredentials(); // fail closed (cannot happen after a true verify)
+    // F36: the session is inserted under a User row lock and only if the verified hash is still current.
+    const session = await sessionService.createVerified(
+      membership.businessId,
+      user.id,
+      verifiedHash,
+      now,
+    );
+    if (!session) {
+      ctx.logger.warn('login rejected: password or membership changed during login');
+      throw AppError.invalidCredentials();
+    }
+    // Only a login that really produced a session clears the failure counters.
     await deps.guard.succeeded(input.email, ip, ticket);
-    const session = await sessionService.create(membership.businessId, user.id, now);
     ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
     return {
       info: toSessionInfo(user, membership.business, membership.role),
