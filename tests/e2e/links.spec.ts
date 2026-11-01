@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/test';
 import { mockLinkApi, type LinkMock } from './helpers/publicMock';
 
 // Self-contained: every /api/links call is answered by page.route.

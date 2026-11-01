@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { mockSetupApi, setRole } from '../helpers/mockApi';
 
 // Dashboard specs run against `next dev` with a fake session; every /api call is answered by page.route.

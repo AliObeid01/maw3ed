@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './helpers/test';
 
 // The global branded 404 (src/app/not-found.tsx): heading, link home, inside a landmark, in both languages.
 

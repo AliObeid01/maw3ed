@@ -369,7 +369,7 @@ function noticeHint(
   base: string,
   minutes: number | null,
   longDuration: (m: number) => string,
-  t: ReturnType<typeof useTranslations>,
+  t: (key: 'equals', values: { value: string }) => string,
 ) {
   return minutes === null || minutes === 0
     ? base

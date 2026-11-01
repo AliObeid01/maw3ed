@@ -35,7 +35,7 @@ function IconPill({ active, children }: { active: boolean; children: React.React
 export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore }: Props) {
   const t = useTranslations('app.tabs');
   const tn = useTranslations('app.nav');
-  const moreActive = moreNav.includes(activeId as never);
+  const moreActive = (moreNav as string[]).includes(activeId);
 
   return (
     <nav

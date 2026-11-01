@@ -32,6 +32,7 @@ import {
   type JoinBanner,
   type JoinErrors,
   type JoinField,
+  type JoinFieldError,
 } from '@/lib/waitlist/errors';
 import { addDays, defaultRange, followStart, MAX_SPAN_DAYS, todayIn } from '@/lib/waitlist/range';
 import { useLocaleHint } from '@/lib/useLocaleHint';
@@ -270,7 +271,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
     );
   }
 
-  const err = (key?: string) => (key ? tErr(key) : undefined);
+  const err = (key?: JoinFieldError) => (key ? tErr(key) : undefined);
   const today = todayIn(now, timezone);
   const clearField = (field: JoinField) =>
     setErrors((e) => {

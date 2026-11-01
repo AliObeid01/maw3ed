@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { defaultState, mockSetupApi, setRole, type MockState } from '../helpers/mockApi';
 
 // Dashboard specs run against `next dev` with a fake session; e2e_unverified=1 makes the fake owner unverified.

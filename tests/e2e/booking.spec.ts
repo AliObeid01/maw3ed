@@ -1,4 +1,5 @@
-import { expect, test, type Page } from '@playwright/test';
+import { type Page } from '@playwright/test';
+import { expect, test } from './helpers/test';
 import { DateTime } from 'luxon';
 import { clockNow } from './helpers/clock';
 import { firstBookableDay, IDS, mockPublicApi, SLUG, type PublicMockOptions } from './helpers/publicMock';

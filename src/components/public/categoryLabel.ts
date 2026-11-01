@@ -1,4 +1,5 @@
 import { useTranslations } from 'next-intl';
+import type { CategoryKey } from '@/i18n/keys';
 
 const letters = (text: string) => text.toLowerCase().replace(/[^a-z]+/g, '');
 
@@ -39,7 +40,8 @@ export function useCategoryLabel() {
   return (category: string | null | undefined): string | null =>
     categoryText(
       category,
-      (key) => t.has(key),
-      (key) => t(key),
+      // `key` comes from free text: `has` is the runtime check that it exists, so the cast is sound.
+      (key) => t.has(key as CategoryKey),
+      (key) => t(key as CategoryKey),
     );
 }

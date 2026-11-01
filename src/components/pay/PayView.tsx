@@ -191,7 +191,7 @@ type Outcome =
   | { kind: 'paid'; view: Pay }
   | { kind: 'ended'; slug?: string | undefined; as: 'expired' | 'cancelled' }
   | { kind: 'invalid' }
-  | { kind: 'problem'; failure: PayFailure };
+  | { kind: 'problem'; failure: Exclude<PayFailure, 'invalid' | 'expired' | 'cancelled'> };
 
 function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs: number }) {
   const t = useTranslations('deposit');

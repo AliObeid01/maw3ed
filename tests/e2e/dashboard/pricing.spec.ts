@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../helpers/test';
 import { mockSetupApi, setRole } from '../helpers/mockApi';
 
 // Runs against the fake-session dev server; /api is answered by page.route (no database, no card form).

@@ -10,7 +10,7 @@ import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
 import { updateBusiness, type Business } from '@/lib/api/setup';
-import { directoryChecklist, missingFromError } from '@/lib/directory/readiness';
+import { directoryChecklist, missingFromError, type DirectoryChecklistId } from '@/lib/directory/readiness';
 import { useAppSession } from '../SessionContext';
 import { useErrorMessage } from '../states';
 
@@ -26,7 +26,7 @@ export function DirectoryCard({
   const toast = useToast();
   const errorMessage = useErrorMessage();
   const [pending, setPending] = useState(false);
-  const [missing, setMissing] = useState<string[]>([]);
+  const [missing, setMissing] = useState<DirectoryChecklistId[]>([]);
   const { emailVerified } = useAppSession();
   const gateReason = useTranslations('verify')('gate.directory');
   const items = directoryChecklist(business.setup);
