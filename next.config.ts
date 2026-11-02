@@ -18,6 +18,28 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Every route. Listed FIRST: the more specific token rules below come later and override Referrer-Policy.
+        // No HSTS here: Vercel's custom domain already sends Strict-Transport-Security.
+        // The page CSP (nonce) is per request, so it is set in src/proxy.ts, not here.
+        // X-Frame-Options DENY is deliberate: the booking page cannot be embedded in another site's iframe.
+        source: '/:path*',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()',
+          },
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+        ],
+      },
+      {
+        // The proxy does not run for the API (JSON only): a static, fully locked-down policy.
+        source: '/api/:path*',
+        headers: [{ key: 'Content-Security-Policy', value: "default-src 'none'; frame-ancestors 'none'" }],
+      },
+      {
         // The invite token is a bearer secret in the URL: never send it in a Referer header.
         source: '/invite/:path*',
         headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }],

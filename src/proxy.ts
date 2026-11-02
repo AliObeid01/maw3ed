@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { isLocale, LOCALE_COOKIE, PATH_HEADER } from '@/i18n/config';
+import { buildCsp, generateNonce, resolveCspMode, sentryHostFromDsn } from '@/lib/security/csp';
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -14,9 +15,28 @@ export function proxy(request: NextRequest) {
     // language can be resolved before the first render.
     const forwarded = new Headers(request.headers);
     forwarded.set(PATH_HEADER, request.nextUrl.pathname);
-    return NextResponse.next({ request: { headers: forwarded } });
+
+    // Per-request CSP nonce. Read at request time (CSP_MODE is the owner's kill switch, no rebuild needed).
+    // Next reads the nonce from the REQUEST header and stamps it on its own inline scripts; the same policy goes on the response.
+    const mode = resolveCspMode(process.env.CSP_MODE);
+    if (mode === 'off') return NextResponse.next({ request: { headers: forwarded } });
+    const nonce = generateNonce();
+    const csp = buildCsp({
+      nonce,
+      // `||` not `??`: an empty variable (.env.example ships `NEXT_PUBLIC_SENTRY_DSN=`) counts as absent.
+      // NEXT_PUBLIC_ values are inlined at BUILD time, so changing the DSN needs a redeploy (rebuild).
+      sentryHost: sentryHostFromDsn(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN),
+      isProd: process.env.NODE_ENV === 'production',
+    });
+    const header = mode === 'report-only' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
+    forwarded.set('x-nonce', nonce);
+    forwarded.set(header, csp);
+    const response = NextResponse.next({ request: { headers: forwarded } });
+    response.headers.set(header, csp);
+    return response;
   }
 
+  // The `?lang=` redirect is bodyless, so it intentionally carries no CSP (the static headers from next.config.ts still apply).
   const url = request.nextUrl.clone();
   url.searchParams.delete('lang');
   const response = NextResponse.redirect(url);

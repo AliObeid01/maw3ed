@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { onIntlError } from '@/components/i18n/IntlBoundary';
-import { findIntlProblems } from '../e2e/helpers/intlErrorPatterns';
+import { findCspProblems, findIntlProblems } from '../e2e/helpers/intlErrorPatterns';
 
 // What the browser logs in production for a missing key (the shape next-intl's error has).
 const missing = 'MISSING_MESSAGE: Could not resolve `booking.title` in messages for locale `en`.';
@@ -20,6 +20,15 @@ describe('e2e next-intl guard (tests/e2e/helpers/test.ts)', () => {
         { type: 'pageerror', text: 'TypeError: x is undefined' },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe('e2e CSP guard (tests/e2e/helpers/test.ts)', () => {
+  it('flags Chromium CSP violation messages and ignores other errors', () => {
+    const refused = "Refused to execute inline script because it violates the following Content Security Policy directive: \"script-src 'self'\"";
+    expect(findCspProblems([{ type: 'error', text: refused }])).toEqual([refused]);
+    expect(findCspProblems([{ type: 'pageerror', text: 'Refused to load the image' }])).toHaveLength(1);
+    expect(findCspProblems([{ type: 'error', text: 'Failed to load resource: 404' }, { type: 'log', text: refused }])).toEqual([]);
   });
 });
 
