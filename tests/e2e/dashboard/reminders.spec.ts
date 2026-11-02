@@ -37,8 +37,9 @@ test('lists due reminders with chips, the sent one and the no-phone one', async 
   await expect(sent).toBeDisabled();
   await expect(sent).toHaveAttribute('aria-disabled', 'true');
   expect((await sent.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-  // It sits in a polite live region so the change is announced when a reminder flips to sent.
-  await expect(row(page, 'Rami Haddad').getByRole('status')).toContainText('Sent by Rana, 09:14');
+  // F56: the announcements come from ONE persistent polite live region, empty until a row flips to sent.
+  await expect(page.getByTestId('reminder-announcer')).toHaveAttribute('aria-live', 'polite');
+  await expect(page.getByTestId('reminder-announcer')).toHaveText('');
   const lea = row(page, 'Lea Saab');
   await expect(lea).toContainText('No valid phone');
   await expect(lea.getByRole('link', { name: 'Call instead' })).toHaveAttribute('href', 'tel:+9613512774');
@@ -61,6 +62,23 @@ test('Send opens WhatsApp in a new tab (noopener), records it, and updates the c
   await expect(page.getByRole('status').filter({ hasText: '2 to send' })).toBeVisible();
   await expect(badge(page, 2)).toBeVisible();
   expect(calls.filter((c) => c.path === '/api/reminders/rm1/mark-sent' && c.method === 'POST')).toHaveLength(1);
+});
+
+test('F56: the persistent live region exists before the flip and announces the sent text after', async ({ page }) => {
+  await mockDashboardApi(page);
+  await page.goto('/app/reminders');
+  const region = page.getByTestId('reminder-announcer');
+  await expect(row(page, 'Nadine Aoun').getByRole('link', { name: /Send the reminder/ })).toBeVisible();
+  // Before the update: already in the DOM (so a screen reader is watching it), polite, and empty.
+  await expect(region).toHaveCount(1);
+  await expect(region).toHaveAttribute('role', 'status');
+  await expect(region).toHaveAttribute('aria-live', 'polite');
+  await expect(region).toHaveText('');
+  const handle = await region.elementHandle();
+  await row(page, 'Nadine Aoun').getByRole('link', { name: /Send the reminder/ }).click();
+  await expect(region).toContainText('Nadine Aoun: Sent by Lina');
+  // The very same element received the text (it was not re-mounted with its content).
+  expect(await handle!.evaluate((el) => el.isConnected)).toBe(true);
 });
 
 test('a double tap opens WhatsApp once and records once', async ({ page }) => {

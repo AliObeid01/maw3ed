@@ -65,6 +65,9 @@ export const appointmentSchema = z.object({
     status: z.string(),
     source: z.string(),
     confirmedAt: z.string().nullable().optional(),
+    /** Staff-only: where reminder emails go (same rule as the reminder runner); null = no usable address. */
+    reminderEmail: z.string().nullable().optional(),
+    reminderEmailDiffers: z.boolean().optional(),
     service: z.object({
       id: z.string(),
       name: z.string(),

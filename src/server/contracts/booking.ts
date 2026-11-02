@@ -171,7 +171,17 @@ export const AppointmentListDto = registry.register(
 );
 export const AppointmentOneDto = registry.register(
   'AppointmentDetail',
-  z.object({ appointment: AppointmentItem }),
+  z.object({
+    appointment: AppointmentItem.extend({
+      reminderEmail: z.string().nullable().openapi({
+        description:
+          'Staff only. The address reminder emails for this booking go to (the booking address, else the client record address; null when neither is a plausible address). Never in a public response, link, email, log or export.',
+      }),
+      reminderEmailDiffers: z.boolean().openapi({
+        description: "True when reminderEmail is set and is not the client record's email.",
+      }),
+    }),
+  }),
 );
 
 const json = <T extends z.ZodType>(schema: T) => ({ 'application/json': { schema } });

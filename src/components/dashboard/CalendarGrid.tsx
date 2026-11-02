@@ -103,6 +103,7 @@ export function CalendarGrid({
                   appt.client.name,
                   timeRangeText(start, end),
                   appt.service.name,
+                  appt.staff.displayName,
                   status,
                   noShowText,
                 ]
@@ -123,6 +124,8 @@ export function CalendarGrid({
                     <button
                       type="button"
                       title={details}
+                      // `title` is not an accessible name: the full details (client, time, service, staff, status) are.
+                      aria-label={details}
                       onClick={() => onOpen(appt)}
                       className={cn(
                         'flex size-full overflow-hidden text-start transition-[filter] duration-200 ease-out hover:brightness-95 focus-visible:outline-offset-[-2px]',

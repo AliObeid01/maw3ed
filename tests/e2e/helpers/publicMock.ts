@@ -1,7 +1,7 @@
 import { mockReminders } from './mockReminders';
 import type { Page, Route } from '@playwright/test';
 import { DateTime } from 'luxon';
-import { clockNow, freezeClock, nowMs } from './clock';
+import { clockNow, FIXED_NOW, freezeClock, nowMs } from './clock';
 import { normalizePhone } from '../../../src/server/domain/phone';
 
 /**
@@ -122,9 +122,16 @@ export type BookingCall = {
   };
 };
 
+/**
+ * "Today" in the business timezone, taken from the suite's FIXED start instant and NOT from the ticking
+ * clock. The mock's slot list and the specs' expectations both read it here, so a run that crosses midnight in
+ * the business zone (E2E_NOW=23:55 and a slow test) cannot make them pick different days (F59).
+ */
+export const businessToday = (tz: string = TZ): DateTime => DateTime.fromJSDate(FIXED_NOW, { zone: tz }).startOf('day');
+
 /** The next local day (tomorrow or later) that has slots in the mock: never a Sunday. */
-export function firstBookableDay(): string {
-  let day = clockNow().setZone(TZ).startOf('day').plus({ days: 1 });
+export function firstBookableDay(tz: string = TZ): string {
+  let day = businessToday(tz).plus({ days: 1 });
   while (day.weekday === 7) day = day.plus({ days: 1 });
   return day.toISODate()!;
 }
@@ -138,7 +145,7 @@ function slotsFor(
   tz: string = TZ,
 ) {
   const out: { startAt: string; endAt: string; staffId?: string }[] = [];
-  const today = clockNow().setZone(tz).startOf('day');
+  const today = businessToday(tz);
   const earliest = clockNow().plus({ minutes: MIN_NOTICE_MIN });
   let day = DateTime.fromISO(from, { zone: tz });
   const last = DateTime.fromISO(to, { zone: tz });

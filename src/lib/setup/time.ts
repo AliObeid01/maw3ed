@@ -1,19 +1,60 @@
 import { DateTime } from 'luxon';
+import { clockOf } from '@/lib/time/clock';
 
 /** Value of an `<input type="datetime-local">`: `YYYY-MM-DDTHH:mm`, read as wall-clock time in `timezone`. */
 const LOCAL_FORMAT = "yyyy-MM-dd'T'HH:mm";
 
-/** Wall-clock time in the business timezone to a UTC instant (ISO, `Z`). Returns null when invalid. */
-export function localToUtcIso(local: string, timezone: string): string | null {
-  const dt = DateTime.fromFormat(local, LOCAL_FORMAT, { zone: timezone });
-  if (!dt.isValid) return null;
-  return dt.toUTC().toISO({ suppressMilliseconds: true });
+export type LocalResolution =
+  | { ok: true; iso: string }
+  /** `invalid`: not a date and time at all. `nonexistent`: skipped by a spring-forward change in that zone. */
+  | { ok: false; reason: 'invalid' | 'nonexistent' };
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Wall-clock time in the business timezone to a UTC instant (ISO, `Z`).
+ *
+ * - A time that does NOT exist (the hour skipped when clocks jump forward, e.g. 00:30 on the Beirut transition
+ *   day) is rejected as `nonexistent`; Luxon would silently move it an hour forward.
+ * - A time that happens TWICE (the repeated hour when clocks fall back) is accepted and resolves to its FIRST
+ *   occurrence (the earlier instant, the one with the larger UTC offset).
+ *
+ * Works from the offsets either side of the wall time instead of Luxon's own guess, so it never depends on
+ * Luxon's default locale or on the device's zone.
+ */
+export function resolveLocalToUtc(local: string, timezone: string): LocalResolution {
+  const naive = DateTime.fromFormat(local, LOCAL_FORMAT, { zone: 'utc', locale: 'en' });
+  if (!naive.isValid || !DateTime.fromMillis(0, { zone: timezone }).isValid) {
+    return { ok: false, reason: 'invalid' };
+  }
+  const wall = naive.toMillis(); // the wall clock read as if it were UTC
+  const offsetAt = (instant: number) => DateTime.fromMillis(instant, { zone: timezone }).offset;
+  const offsets = new Set([offsetAt(wall - DAY_MS), offsetAt(wall + DAY_MS)]);
+  const instants = [...offsets]
+    .map((minutes) => wall - minutes * 60_000)
+    .filter((instant) => offsetAt(instant) === (wall - instant) / 60_000)
+    .sort((a, b) => a - b);
+  const first = instants[0];
+  if (first === undefined) return { ok: false, reason: 'nonexistent' };
+  return {
+    ok: true,
+    iso: DateTime.fromMillis(first, { zone: 'utc' }).toISO({ suppressMilliseconds: true })!,
+  };
 }
+
+/** `resolveLocalToUtc` for callers that only need the instant: null when invalid or nonexistent. */
+export function localToUtcIso(local: string, timezone: string): string | null {
+  const result = resolveLocalToUtc(local, timezone);
+  return result.ok ? result.iso : null;
+}
+
+/** A zoned DateTime as the `datetime-local` value, through the shared clock formatter (locale independent). */
+const toLocalValue = (dt: DateTime) => `${dt.toISODate()}T${clockOf(dt.hour, dt.minute)}`;
 
 /** UTC instant to the `datetime-local` value as seen in the business timezone. */
 export function utcIsoToLocal(iso: string, timezone: string): string {
   const dt = DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone);
-  return dt.isValid ? dt.toFormat(LOCAL_FORMAT) : '';
+  return dt.isValid ? toLocalValue(dt) : '';
 }
 
 /**
@@ -38,10 +79,8 @@ export function allDayLastDay(endIso: string, timezone: string): Date {
 
 /** Midnight (plus `plusDays`) in the zone as a `datetime-local` value: default for the time-off form. */
 export function startOfDayLocal(now: Date, timezone: string, plusDays = 0): string {
-  return DateTime.fromJSDate(now, { zone: timezone })
-    .startOf('day')
-    .plus({ days: plusDays })
-    .toFormat(LOCAL_FORMAT);
+  const dt = DateTime.fromJSDate(now, { zone: timezone }).startOf('day').plus({ days: plusDays });
+  return dt.isValid ? toLocalValue(dt) : '';
 }
 
 /** Offset label such as `UTC+2` for a zone at a moment (timezone select options). */

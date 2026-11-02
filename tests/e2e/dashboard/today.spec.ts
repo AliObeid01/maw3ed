@@ -190,6 +190,8 @@ test.describe('desktop: calendar grid', () => {
     expect(box.height).toBeGreaterThan(60);
     expect(box.height).toBeLessThan(70);
     await expect(grid.getByRole('button', { name: /Nadine Aoun/ })).toContainText('2 no-shows');
+    // F55: a tall (non-compact) block has the full details as its accessible name too.
+    await expect(grid.getByRole('button', { name: /Nadine Aoun · .* · .* · (Lina|Karim|Jad) · / })).toHaveCount(1);
     // No staff filter chips on desktop.
     await expect(page.getByRole('group', { name: 'Filter by team member' })).toHaveCount(0);
   });
@@ -230,6 +232,9 @@ test.describe('desktop: calendar grid', () => {
     const first = grid.getByRole('button', { name: /Nadine Aoun/ });
     await expect(first).toContainText('12:00');
     await expect(first).toHaveAttribute('title', /Nadine Aoun · .*12:00 – 12:15.* · Beard trim/);
+    // F55: `title` is not an accessible name; the aria-label carries client, time, service and staff.
+    await expect(first).toHaveAttribute('aria-label', /Nadine Aoun · .*12:00 – 12:15.* · Beard trim · Lina/);
+    await expect(grid.getByRole('button', { name: /Nadine Aoun.*12:00 – 12:15.*Beard trim.*Lina/ })).toHaveCount(1);
     await first.focus();
     await expect(first).toBeFocused();
     const outline = await first.evaluate((el) => getComputedStyle(el).outlineStyle);

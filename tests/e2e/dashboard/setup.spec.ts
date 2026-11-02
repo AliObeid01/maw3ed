@@ -246,6 +246,21 @@ test.describe('3.7 hours and time off', () => {
     await expect(page.getByText('The end must be after the start.')).toBeVisible();
     expect(calls.some((c) => c.method === 'POST')).toBe(false);
   });
+
+  test('F57: a time skipped by the spring-forward change is refused, not moved an hour', async ({ page }) => {
+    const { calls } = await mockSetupApi(page, { state: freshState() });
+    await page.goto('/app/hours');
+    // Beirut jumps 00:00 -> 01:00 on 30 Mar 2036 (computed from the zone rules), so 00:30 does not exist.
+    await page.getByLabel('From, date').fill('2036-03-30');
+    await page.getByLabel('To, date').fill('2036-03-30');
+    await setTime(page.getByRole('group', { name: 'From', exact: true }), '00:30');
+    await setTime(page.getByRole('group', { name: 'To', exact: true }), '03:00');
+    await page.getByRole('button', { name: 'Add time off' }).click();
+    await expect(
+      page.getByText('That time does not exist on this day because the clocks change. Pick another time.'),
+    ).toBeVisible();
+    expect(calls.some((c) => c.method === 'POST')).toBe(false);
+  });
 });
 
 test.describe('3.6 staff', () => {

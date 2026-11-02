@@ -440,6 +440,7 @@
         "errors": {
           "required": "اختر التاريخ والوقت.",
           "endBeforeStart": "يجب أن تكون النهاية بعد البداية.",
+          "nonexistent": "هذا الوقت غير موجود في هذا اليوم بسبب تغيير الساعة. اختر وقتًا آخر.",
           "checkDates": "تحقق من التواريخ وحاول مرة أخرى."
         }
       }
@@ -593,6 +594,7 @@
       "sendAria": "أرسل التذكير إلى {name} عبر واتساب",
       "sentBy": "أرسله <who>{name}</who>، <clock>{time}</clock>",
       "sentByYou": "أرسله <who>{name}</who> الآن",
+      "announce": "{name}: {text}",
       "sentByNoTime": "أرسله <who>{name}</who>",
       "someone": "زميل",
       "noPhone": "لا رقم صالح",
@@ -687,6 +689,11 @@
       "confirmedByClient": "أكّده العميل",
       "clientLabel": "العميل",
       "clientHistoryAria": "اعرض سجل {name}",
+      "reminders": {
+        "goTo": "التذكيرات تُرسل إلى",
+        "none": "لا يوجد بريد إلكتروني في هذا الحجز، لذلك لا تُرسل رسائل تذكير بالبريد. تذكيرات واتساب ما زالت متاحة.",
+        "differs": "يختلف عن البريد المسجّل للعميل"
+      },
       "noShowCount": "{count, plural, one {لم يحضر مرة} two {لم يحضر مرتين} few {لم يحضر # مرات} many {لم يحضر # مرة} other {لم يحضر # مرة}}",
       "lateCancelCount": "{count, plural, one {إلغاء متأخر} two {إلغاءان متأخران} few {# إلغاءات متأخرة} many {# إلغاءً متأخرًا} other {# إلغاء متأخر}}",
       "cancel": "إلغاء باسم العميل",
