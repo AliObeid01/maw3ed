@@ -222,13 +222,12 @@ export const clientRepo = {
    * Runs on the caller's transaction so a failed booking leaves no client behind.
    *
    * Contact data of an EXISTING client:
-   * - `overwriteContact = false` (public and waitlist bookings, which are unauthenticated): only FILL a
-   *   name/email that is null or empty. A non-empty stored value is never replaced, otherwise anyone who
-   *   knows a victim's phone number could redirect that client's reminder emails to themselves.
+   * - `overwriteContact = false` (public and waitlist bookings, which are unauthenticated): the record
+   *   is set ONLY when this call creates it. An existing client is returned untouched (no fill, no
+   *   replace), otherwise anyone who knows a phone number could make their own address the record email.
    * - `overwriteContact = true` (session-authenticated front-desk booking): a provided, different
    *   name/email replaces the stored one. Nothing is ever wiped by an omitted value.
-   * F16: this record rule is deliberately unchanged. The address typed for a booking is stored on the
-   * APPOINTMENT (Appointment.contactEmail) and is what that booking's emails go to.
+   * F16: the address and name typed for a booking live on the APPOINTMENT (contactEmail, contactName).
    */
   async upsertByPhone(
     businessId: string,
@@ -243,11 +242,12 @@ export const clientRepo = {
     const client = await tx.client.findFirstOrThrow({
       where: { businessId, phone: input.phone },
     });
+    // F16 review (B1): an unauthenticated booking never touches an EXISTING record, not even to fill an
+    // empty field (filling the email would let a stranger make their own address "the record email").
+    if (!overwriteContact) return client;
     const data: { name?: string; email?: string } = {};
-    if (input.name && input.name !== client.name && (overwriteContact || !client.name.trim()))
-      data.name = input.name;
-    if (input.email && input.email !== client.email && (overwriteContact || !client.email))
-      data.email = input.email;
+    if (input.name && input.name !== client.name) data.name = input.name;
+    if (input.email && input.email !== client.email) data.email = input.email;
     if (Object.keys(data).length === 0) return client;
     return tx.client.update({ where: { id: client.id }, data });
   },

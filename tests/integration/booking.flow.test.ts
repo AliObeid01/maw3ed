@@ -236,7 +236,7 @@ describe('reminder jobs (FR-15)', () => {
 });
 
 describe('client upsert by phone', () => {
-  it('B1: a PUBLIC booking never replaces an existing client’s name or email (only fills an empty email)', async () => {
+  it('B1: a PUBLIC booking never replaces an existing client’s name or email (not even an empty email: the record is only set when the booking creates it)', async () => {
     const { serviceId, staffIds } = await newScenario(prisma, t);
     const clients = async () =>
       (
@@ -259,9 +259,9 @@ describe('client upsert by phone', () => {
       client: { name: 'Rana K', phone: '0096171987654' }, // no email: must not wipe it
     });
     expect([a.status, b.status, c.status]).toEqual([201, 201, 201]);
-    // different phone formats share one Client; the name stays; the EMPTY email was filled once
+    // different phone formats share one Client; an existing record is never filled or changed by a public booking
     expect(await clients()).toEqual([
-      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
+      { name: 'Rana', email: null, phone: '+96171987654' },
     ]);
     // the hijack attempt: victim's phone with another name and email changes nothing
     const evil = await bookPublicly(t.slug, {
@@ -269,9 +269,7 @@ describe('client upsert by phone', () => {
       client: { name: 'Mallory', phone: '71 987 654', email: 'mallory@evil.test' },
     });
     expect(evil.status).toBe(201);
-    expect(await clients()).toEqual([
-      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
-    ]);
+    expect(await clients()).toEqual([{ name: 'Rana', email: null, phone: '+96171987654' }]);
     const ids = await pg.query(
       `SELECT DISTINCT "clientId" FROM "Appointment" WHERE "serviceId" = $1`,
       [serviceId],

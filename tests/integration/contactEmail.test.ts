@@ -28,7 +28,7 @@ import {
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 import { seedClient } from './helpers/outcomes';
-import { offerClaim, seedEntry, staffCancel, tokenFromEmail } from './helpers/waitlist';
+import { joinBody, joinWaitlist, offerClaim, seedEntry, staffCancel, tokenFromEmail } from './helpers/waitlist';
 
 /**
  * F16: the email of an appointment is the one typed for THAT booking (Appointment.contactEmail); the client
@@ -323,6 +323,13 @@ describe('waitlist claim', () => {
     fake.reset();
     await runReminders(deps());
     expect(tos()).toEqual([entryEmail]);
+    // N1: a waitlist claim stores no typed name, and the entry address is not the record email, so the
+    // claimed appointment's mail is greeted generically (never with the record name).
+    expect(
+      (await pg.query(`SELECT "contactName" FROM "Appointment" WHERE id = $1`, [appt.id])).rows[0]
+        .contactName,
+    ).toBeNull();
+    expect(fake.calls[0]!.text.startsWith('Hello,')).toBe(true);
   });
 });
 
@@ -510,7 +517,7 @@ describe('review: the record name never reaches a recipient who is not the recor
     ).toBe(VICTIM);
   });
 
-  it('a record with an EMPTY email is filled by the booking, but the record name still never reaches the booker', async () => {
+  it('a record with an EMPTY email is NOT filled by a public booking, and the record name never reaches the booker', async () => {
     const phone = newPhone();
     await prisma.client.create({
       data: { businessId: a.businessId, name: VICTIM, phone: normalizePhone(phone)!, email: null },
@@ -519,7 +526,8 @@ describe('review: the record name never reaches a recipient who is not the recor
     expect(res.status).toBe(201);
     await runReminders(deps());
     expect(fake.calls[0]!.to).toBe(ATTACKER);
-    // The booker sets the empty record email, but is greeted with the name HE typed, never the record's.
+    expect(await clientEmail(phone)).toBeNull();
+    // The booker is greeted with the name HE typed, never the record's.
     expect(fake.calls[0]!.text.startsWith('Hi X,')).toBe(true);
     expect(fake.calls[0]!.text).not.toMatch(NAME_RE);
   });
@@ -552,6 +560,107 @@ describe('review: the record name never reaches a recipient who is not the recor
     expect((await staffCancel(a.cookie, holder.body!.appointment.id)).status).toBe(200);
     const mail = fake.calls.find((c) => c.to === VICTIM_EMAIL)!;
     expect(mail.text.startsWith(`Hi ${VICTIM},`)).toBe(true);
+  });
+});
+
+describe('review B1: a public booking never fills or changes the record of an existing client', () => {
+  const VICTIM = 'Zainab Haddad';
+  const ATTACKER = 'mallory@evil.test';
+  const NAME_RE = /Zainab|Haddad/i;
+  const recordOf = async (phone: string) =>
+    (
+      await pg.query(`SELECT name, email FROM "Client" WHERE phone = $1 AND "businessId" = $2`, [
+        normalizePhone(phone)!,
+        a.businessId,
+      ])
+    ).rows[0] as { name: string; email: string | null };
+
+  // The victim: a phone-only record created at the front desk, with an earlier appointment.
+  async function phoneOnlyVictim() {
+    const phone = newPhone();
+    const earlier = await bookAtFrontDesk(a.cookie, body(0, SLOT, { phone, name: VICTIM }));
+    expect(earlier.status).toBe(201);
+    expect(await recordOf(phone)).toEqual({ name: VICTIM, email: null });
+    return { phone, earlierId: earlier.body!.appointment.id as string };
+  }
+
+  it('scenario B: record name/email unchanged; the victim earlier appointment mails nobody (no attacker mail)', async () => {
+    const { phone, earlierId } = await phoneOnlyVictim();
+    const evil = await bookPublicly(a.slug, body(1, SLOT2, { phone, name: 'x', email: ATTACKER }));
+    expect(evil.status).toBe(201);
+    expect(await recordOf(phone)).toEqual({ name: VICTIM, email: null });
+    expect((await row(evil.body!.appointment.id)).contactEmail).toBe(ATTACKER);
+    await runReminders(deps());
+    // Only the attacker's own booking is mailed, to the attacker, greeted with the typed name.
+    expect(tos()).toEqual([ATTACKER]);
+    expect(fake.calls[0]!.text.startsWith('Hi x,')).toBe(true);
+    expect(fake.calls[0]!.text).not.toMatch(NAME_RE);
+    expect((await jobs(earlierId)).every((j) => j.channel !== 'EMAIL' || j.status !== 'SENT')).toBe(true);
+    // Later reminders of the victim's earlier appointment still go nowhere near the attacker.
+    fake.reset();
+    const due = new Date(Date.parse(SLOT) - 24 * 3_600_000 + 60_000);
+    vi.setSystemTime(due);
+    await runReminders(deps(due));
+    expect(tos().includes(ATTACKER)).toBe(false);
+  });
+
+  it.each(['en', 'ar'])(
+    'scenario A (%s): attacker also joins the waitlist with the same phone+email; the offer has no victim name',
+    async (locale) => {
+      await prisma.business.update({ where: { id: a.businessId }, data: { locale } });
+      try {
+        const { phone } = await phoneOnlyVictim();
+        const evil = await bookPublicly(a.slug, body(1, SLOT2, { phone, name: 'x', email: ATTACKER }));
+        expect(evil.status).toBe(201);
+        const holder = await bookPublicly(a.slug, body(2, at('09:00'), { name: 'Casey', email: 'casey@x.test' }));
+        const joined = await joinWaitlist(
+          a.slug,
+          joinBody(scn.serviceId, { client: { name: 'x', phone, email: ATTACKER } }),
+        );
+        expect([200, 201]).toContain(joined.status);
+        expect(await recordOf(phone)).toEqual({ name: VICTIM, email: null });
+        fake.reset();
+        expect((await staffCancel(a.cookie, holder.body!.appointment.id)).status).toBe(200);
+        const mail = fake.calls.find((c) => c.to === ATTACKER)!;
+        expect(mail).toBeTruthy();
+        expect(mail.text).not.toMatch(NAME_RE);
+        expect(mail.html).not.toMatch(NAME_RE);
+        expect(mail.subject).not.toMatch(NAME_RE);
+        const hello = locale === 'ar' ? 'مرحبا،' : 'Hello,';
+        expect(mail.text.startsWith(hello)).toBe(true);
+        expect(mail.html).toContain(hello);
+      } finally {
+        await prisma.business.update({ where: { id: a.businessId }, data: { locale: 'en' } });
+      }
+    },
+  );
+
+  it('a brand-new phone: the booking creates the record with the typed name and email', async () => {
+    const phone = newPhone();
+    const r = await bookPublicly(a.slug, body(0, SLOT, { phone, name: 'Newcomer', email: OLD }));
+    expect(r.status).toBe(201);
+    expect(await recordOf(phone)).toEqual({ name: 'Newcomer', email: OLD });
+  });
+
+  it('a returning phone-only client booking publicly: record stays empty, mail and promise use the appointment address', async () => {
+    const { phone } = await phoneOnlyVictim();
+    const res = await bookPublicly(a.slug, body(1, SLOT2, { phone, name: VICTIM, email: NEW }));
+    expect(res.status).toBe(201);
+    expect(res.body!.reminders).toEqual({ h24: true, h2: true, email: true });
+    expect(await recordOf(phone)).toEqual({ name: VICTIM, email: null });
+    await runReminders(deps());
+    expect(tos()).toEqual([NEW]);
+    expect(fake.calls[0]!.text.startsWith(`Hi ${VICTIM},`)).toBe(true); // the name she typed
+  });
+
+  it('front desk still sets/replaces the record email and name', async () => {
+    const { phone } = await phoneOnlyVictim();
+    const fd = await bookAtFrontDesk(
+      a.cookie,
+      body(1, SLOT2, { phone, name: 'Zainab H.', email: OLD }),
+    );
+    expect(fd.status).toBe(201);
+    expect(await recordOf(phone)).toEqual({ name: 'Zainab H.', email: OLD });
   });
 });
 
