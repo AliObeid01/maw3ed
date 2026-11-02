@@ -6,8 +6,8 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 ## Entities
 | Entity | Key fields | Belongs to | Constraints / notes |
 |---|---|---|---|
-| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, address | — | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; deposits are off until `depositEnabled` |
-| User | email, passwordHash, name, emailVerifiedAt | — | email unique (lowercased); can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
+| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, address | none | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; deposits are off until `depositEnabled` |
+| User | email, passwordHash (nullable), name, emailVerifiedAt | none | email unique (lowercased); can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
 | EmailToken | userId, kind (VERIFY, RESET), tokenHash, expiresAt, usedAt | User | tokenHash unique (only sha256 is stored); single use; VERIFY 24 h, RESET 1 h; at most 5 live unused tokens per user and kind (oldest deleted); a successful use deletes all the user's unused tokens of that kind; cleanup purges used or expired rows |
 | Session | tokenHash, userId, businessId, expiresAt, lastSeenAt | User, Business | tokenHash unique; 30-day sliding expiry |
 | Membership | role (OWNER, STAFF) | User, Business | unique (userId, businessId) |
@@ -21,13 +21,12 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 | Appointment | startAt, endAt, blockedUntil, status, source (PUBLIC, FRONT_DESK, WAITLIST), idempotencyKey, contactEmail (F16, nullable: where THIS booking's emails go; NULL = use Client.email), contactName (F16, nullable: the name typed for THIS booking, the only name mails to a non-record address use); both nulled when the client is anonymised, confirmedAt, cancelledAt, cancelledVia (LINK, STAFF, SYSTEM), holdExpiresAt (PENDING_PAYMENT only), outcomeMarkedById, outcomeMarkedAt | Business, Client, StaffMember, Service | **exclusion constraint** on (staffId, [startAt, blockedUntil)) while BOOKED, CONFIRMED or PENDING_PAYMENT; status also ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL; unique (businessId, idempotencyKey) |
 | ReminderJob | kind (BOOKING, H24, H2), channel (EMAIL, WHATSAPP), dueAt, status (PENDING, SENDING, SENT, SKIPPED, FAILED), attempts, nextAttemptAt, lockedAt, sentAt, sentById, providerMessageId, lastError | Appointment (+ businessId) | unique (appointmentId, kind, channel); partial index (status, dueAt) where PENDING |
 | WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED), contactEmail, claimingOfferId, claimingAt | Business, Client, Service, optional StaffMember | `contactEmail` is where offers go, is never copied onto the Client and is set to NULL when the client is anonymised; `claimingOfferId` / `claimingAt` are the atomic reservation held while one offer is being booked (a lease, released on failure) |
-| WaitlistOffer | entryId, staffId, startAt, endAt, expiresAt, status (OPEN, CLAIMED, EXPIRED, SUPERSEDED), claimedAppointmentId, freedFromAppointmentId, batch | Business | unique (entryId, freedFromAppointmentId): one open offer per entry per freed slot |
+| WaitlistOffer | entryId, staffId, startAt, endAt, expiresAt, status (OPEN, CLAIMED, EXPIRED, SUPERSEDED), claimedAppointmentId, freedFromAppointmentId, batch, emailedAt | Business | unique (entryId, freedFromAppointmentId): one open offer per entry per freed slot |
 | PilotBaseline | fromDate, toDate, appointments, noShows, lateCancels | Business | unique (businessId); entered by the owner from their own book |
 | Payment | purpose (DEPOSIT, PLAN), appointmentId?, provider, externalId, amount, currency, status (PENDING, PAID, FAILED, EXPIRED) | Business, optional Appointment | unique (provider, externalId); indexes (businessId, status), (businessId, appointmentId) |
 | RateLimitBucket | key, windowStart, count | — (no tenant) | PK (key, windowStart); index (windowStart); keys are hashed or HMAC-ed emails, IPs and phones, never raw, written by one atomic upsert, purged by `/api/jobs/cleanup` |
 
-Email sends for waitlist offers and invites are logged in `ReminderJob`-like fashion via a small `EmailLog` view, or by counting
-`WaitlistOffer`/`Invite` sends, so the daily budget (NFR-10) covers every email. Decide in P2.4; prefer the simplest query that counts all sends.
+There is no email log table. The daily email budget (NFR-10) is the count of `ReminderJob` rows with status SENT since UTC midnight plus the `WaitlistOffer` rows created since then. Invite, verification and password-reset emails are not counted (they are rare and rate limited).
 
 ## ERD
 ```mermaid
@@ -73,6 +72,10 @@ erDiagram
   Business {
     string id PK
     string slug UK
+    string name
+    string category "optional"
+    string address "optional"
+    string currency
     string timezone
     string locale
     enum plan "FREE or PRO"
@@ -89,7 +92,9 @@ erDiagram
   User {
     string id PK
     string email UK
-    string passwordHash
+    string passwordHash "nullable"
+    string name
+    timestamptz emailVerifiedAt "NULL = unverified"
     timestamptz createdAt
   }
   Session {
@@ -161,7 +166,9 @@ erDiagram
   Client {
     string id PK
     string businessId FK
+    string name
     string phone "E164, unique per business"
+    string email "optional"
     int attended
     int noShows
     int lateCancels
@@ -177,6 +184,7 @@ erDiagram
     timestamptz blockedUntil
     enum status
     enum source
+    enum cancelledVia "LINK, STAFF or SYSTEM; optional"
     string idempotencyKey "unique per business"
     string contactEmail "F16 optional, personal data, nulled on anonymisation"
     string contactName "F16 optional, personal data, nulled on anonymisation"
@@ -205,7 +213,10 @@ erDiagram
     string clientId FK
     string serviceId FK
     string staffId FK "optional"
+    timestamptz fromDate
+    timestamptz toDate
     enum status
+    string contactEmail "optional, where offers go, nulled on anonymisation"
     string claimingOfferId "reservation"
     timestamptz claimingAt "reservation lease"
     timestamptz createdAt
@@ -219,6 +230,7 @@ erDiagram
     string claimedAppointmentId FK "optional"
     enum status
     timestamptz expiresAt
+    timestamptz emailedAt
     int batch
   }
   PilotBaseline {
@@ -237,6 +249,7 @@ erDiagram
     string provider
     string externalId "unique with provider"
     decimal amount
+    string currency
     timestamptz createdAt
   }
   RateLimitBucket {

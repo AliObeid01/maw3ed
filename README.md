@@ -15,7 +15,7 @@ Live: https://maw3edlb.com
 - Signed confirm and cancel links (late cancel after the cutoff is recorded separately).
 - Waitlist: join for a service and date range; a cancellation offers the freed slot by email in batches of 3, first claim wins.
 - Dashboard: Today, Reminders due, Mark outcome, Clients and per-client history, front-desk booking, Setup (services, staff, hours, time off, settings, booking link with QR).
-- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and change password in Settings > Account; team access: the owner removes a departed member (their sessions for that business end in the same transaction), lists and revokes pending invites, and anyone can sign out their other devices.
+- Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and an Account page (`/app/account`, every role) with change password and sign out of other devices; team access: the owner removes a departed member (their sessions for that business end in the same transaction), lists and revokes pending invites, and anyone can sign out their other devices.
 - Pilot report: baseline entry, weekly no-show rate versus baseline with raw counts, CSV export.
 - Deposits (test mode): optional deposit for clients with past no-shows, 15 minute slot hold, pay page.
 - Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and a `/pricing` page.
@@ -84,7 +84,8 @@ Prerequisites: Node 22 (the repo pins it in `.nvmrc` and `engines`), pnpm 11 (`p
    - `RESEND_API_KEY`, `EMAIL_FROM`: Resend credentials and sender; only needed with `EMAIL_PROVIDER=resend`.
    - `EMAIL_PROVIDER`: `fake` locally (records emails, sends nothing) or `resend`.
    - `PAYMENT_PROVIDER`: `fake` (the only provider implemented for real use).
-   - `SENTRY_DSN`: optional error reporting.
+   - `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`: optional error reporting (inert unless set in a Vercel Production deployment).
+   - `CSP_MODE`: optional Content-Security-Policy kill switch (`enforce` default, `report-only`, `off`).
    - Generate a secret: `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
 6. Apply the migrations: `pnpm db:migrate` (development) or `pnpm db:deploy`.
 7. Seed demo data (opt-in, local database only): `ALLOW_SEED=1 pnpm db:seed` on macOS, or in PowerShell `$env:ALLOW_SEED=1; pnpm db:seed`. It creates "Studio Nour" and a second business, and prints a password once unless `SEED_USER_PASSWORD` is set.
@@ -188,6 +189,9 @@ A short list; the full log with reasoning is in [docs/ARCHITECTURE.md](docs/ARCH
 - [docs/PILOT_PLAYBOOK.md](docs/PILOT_PLAYBOOK.md): how to onboard a pilot business.
 - [docs/HUMAN_TASKS.md](docs/HUMAN_TASKS.md): account setup and production checklist.
 - [docs/ARABIC_REVIEW.md](docs/ARABIC_REVIEW.md): notes for the native Arabic review.
+- [docs/DESIGN_QA.md](docs/DESIGN_QA.md), [docs/DESIGN_QA_ROUND2.md](docs/DESIGN_QA_ROUND2.md): design QA reports.
+- [docs/SCOPE_REVIEW.md](docs/SCOPE_REVIEW.md): scope document, including the five must-work-on-stage items.
+- [docs/SHIP_CHECK.md](docs/SHIP_CHECK.md): final ship-check evidence (2 Nov 2026).
 - [CLAUDE.md](CLAUDE.md): working rules for the AI assistant that builds this repo.
 
 ## Status and limitations
@@ -197,5 +201,7 @@ A short list; the full log with reasoning is in [docs/ARCHITECTURE.md](docs/ARCH
 - The Free plan allows one bookable staff member; Pro is a test-mode upgrade with no real billing.
 - Email goes through Resend's free plan, about 100 emails per day. The job log warns at 80 and booking confirmations are skipped at 95 so reminders keep priority.
 - WhatsApp messages are sent by a person from their own phone, not by the server.
-- No email verification at signup yet.
+- Email verification is soft: a new account works at once, but inviting staff and listing in the directory need a confirmed address.
+- Sentry stack traces stay minified until the owner adds the three build variables (`docs/HUMAN_TASKS.md`).
+- Final ship-check evidence (pipeline, production checks, definition of done) is in [docs/SHIP_CHECK.md](docs/SHIP_CHECK.md).
 - The pilot is small: with a few dozen appointments one no-show moves the rate by several points, so the report claims a direction, not significance.

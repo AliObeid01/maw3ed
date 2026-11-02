@@ -12,7 +12,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P0.2 BE** ESLint + Prettier; `eslint-plugin-i18next` `no-literal-string` on `src/app/**` + `src/components/**` (NFR-12); `import/no-restricted-paths` so only `src/server/repositories` imports Prisma.
 - [x] **P0.3 QA** Vitest config (`unit` and `integration` projects; integration uses `DATABASE_URL_TEST`); Playwright config (Pixel 5 + Desktop Chrome, `webServer`).
 - [x] **P0.4 BE** `docker-compose.yml` (postgres:16) + `pnpm` scripts from CLAUDE.md.
-- [x] **P0.5 BE** `.github/workflows/ci.yml` (PR: postgres service → install → migrate deploy → lint → typecheck → unit → int → build → openapi:check → i18n keys) and `deploy.yml` (main: same → `prisma migrate deploy` on prod → `vercel deploy --prod`); `reminders-backup.yml` (cron `*/5` → curl the job routes).
+- [x] **P0.5 BE** `.github/workflows/ci.yml` (PR: postgres service → install → migrate deploy → lint → typecheck → unit → int → build → openapi:check → i18n keys) (a separate `deploy.yml` was planned but never created: Vercel's own Git deploy of `main` runs `scripts/vercel-build.mjs`, which applies `prisma migrate deploy` on production builds); `reminders-backup.yml` (cron `*/5` → curl the job routes).
 - [x] **P0.6 FE** Tailwind v4 `@theme` tokens, `bg-hero`, Outfit + IBM Plex Sans Arabic via `next/font`, shadcn/ui init restyled to tokens, `Logo.tsx` from the sidebar board SVG.
 - [x] **P0.7 FE** next-intl (no URL prefix; locale resolver), `messages/en.json` + `ar.json`, `scripts/i18n/check-keys.mjs`, root layout sets `lang`/`dir`.
 - [x] **P0.8 FE** `pnpm design:extract` script alias; run `snapshot-boards.mjs` once Playwright is installed → `design/boards/*.png`.
@@ -68,6 +68,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **P4.2 QA** NFR-09 seeded load test (10 staff, 14 days) as a non-blocking CI job.
 - [x] **P4.3 BE** README (setup, architecture, key decisions from `docs/ARCHITECTURE.md`), ERD in `docs/DATA_MODEL.md`, committed `openapi.json`, `docs/REQUIREMENTS.md` statuses.
 - [ ] **P4.4 H** Run `ship-check`; record the 3-min demo + 60-s backup video (Thu 12 Nov); final DoD tick.
+  - [x] Machine-checkable part (pipeline, production read-only checks, DoD evidence, requirements pass): ship-check run 2 Nov 2026: results in docs/SHIP_CHECK.md; OPEN for the owner: record the 3-min demo and 60-s backup video (12 Nov), final tick
 - [x] **P4.5 FE** Public home page at `/` (today it is only the logo and tagline): hero with the value line, how it works in three steps (client books, reminders go out, no-shows drop), "Find a business" button to `/directory`, "Set up your business" to `/signup`, "Sign in" to `/login`; phone-first, en/ar, language toggle. Built after D2 so the directory link works. (Added 30 Oct.)
 
 ---
@@ -88,7 +89,7 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - **F12 FE: measured, not worth it (not landed).** Upper bound of what could leave the client: `AppShell` 0.68 KB gzip, `StepRail` 1.1 KB gzip (own code, minified) against 324.6 KB (`/app`) and 298.2 KB (`/b/[slug]`) first-load JS gzip, i.e. 0.2% and 0.4% even if the whole file moved. Both are also imported by client parents (`AppFrame` holds `usePathname`, session and summary state; `BookingFlow` owns the step state), so they stay in the client bundle unless those parents are restructured, which is far larger than the gain. Revisit only if the dashboard shell is rebuilt around server layouts.
 
 ## Deployment and operations (done 30 Oct)
-- [x] **O1** Production on Vercel at `https://maw3edlb.com` (`www` redirects to the bare domain), Node 22, region Frankfurt, Neon production branch with all 7 migrations applied by the production build, health check green.
+- [x] **O1** Production on Vercel at `https://maw3edlb.com` (`www` redirects to the bare domain), Node 22, region Frankfurt, Neon production branch with every migration applied by the production build (7 when this line was written, 12 on 2 Nov 2026), health check green.
 - [x] **O2** Resend sending domain `mail.maw3edlb.com` verified; real emails arrive in the inbox.
 - [x] **O3** cron-job.org: reminders and waitlist-expiry every 5 min, cleanup daily; `CRON_SECRET` rotated after an accidental exposure; failure notifications on. GitHub Actions backup runs.
 - [x] **O4 H** Real phone test of the booking, confirmation email, confirm and cancel links.
@@ -167,3 +168,4 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **F58 FE** `utcIsoToLocal` and `startOfDayLocal` used `toFormat("HH:mm")`, which follows Luxon's default locale. Done: both go through `clockOf` in `src/lib/time/clock.ts`; unit test with an Arabic default locale.
 - [x] **F59 QA** The booking e2e "Free cancellation until (Asia/Tokyo)" could flake near the business timezone's midnight. Done: the mock and the spec take the day from ONE helper (`businessToday` / `firstBookableDay(tz)` in `tests/e2e/helpers/publicMock.ts`, from `FIXED_NOW`); run 15 times under three `E2E_NOW` values (00:05, 12:00, 23:55 Tokyo).
 - [x] **F60 QA** F16 review gap: integration test that really sends the waitlist OFFER email in the attack story (victim record has a name and no email; attacker books with the victim phone and joins the waitlist with the same phone and email): exactly one offer mail to the attacker, no victim name in html, text or subject, generic greeting, en and ar; fails if `deliverOffer` greets with the record name.
+- [ ] **F61 QA** (found by the 2 Nov ship-check, test hygiene, no product impact) `tests/integration/cleanup.test.ts` reads `CRON_SECRET` from the process environment, which `tests/integration/helpers/env.ts` does not set (unlike `LINK_SECRET`). On a checkout without `.env` the full integration run shows 2 failures in that file (401 instead of 400 and 200); with `CRON_SECRET` exported, as CI does, all 7 pass. Fix: default `CRON_SECRET` in `helpers/env.ts` or set it inside the test. Not fixed in the docs-only ship-check PR.
