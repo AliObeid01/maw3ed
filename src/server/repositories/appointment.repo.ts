@@ -1,3 +1,4 @@
+import { DELETED_CLIENT_NAME, TOMBSTONE_PHONE_PREFIX } from '@/server/domain/clientFlags';
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
@@ -30,6 +31,8 @@ export interface NewBooking {
   client: { name: string; phone: string; email?: string | undefined };
   /** F16: the address typed for THIS booking (normalised). Stored on the appointment, never on the record. */
   contactEmail?: string | undefined;
+  /** F16 review: the name typed for THIS booking, the only name a mail to a non-record address may use. */
+  contactName?: string | undefined;
   /** True only for a session-authenticated front-desk booking: see clientRepo.upsertByPhone. */
   overwriteContact: boolean;
   /** Empty for a deposit hold: reminders (and the booking email) are created when the deposit is paid. */
@@ -105,6 +108,16 @@ export const appointmentRepo = {
         data.client,
         data.overwriteContact,
       );
+      // In-flight anonymisation: if the client was anonymised between the upsert and this insert, the
+      // appointment points at the tombstone and must not keep an address (NFR-04).
+      const current = await tx.client.findFirst({
+        where: { id: client.id, businessId },
+        select: { name: true, phone: true },
+      });
+      const tombstoned =
+        !current ||
+        current.name === DELETED_CLIENT_NAME ||
+        current.phone.startsWith(TOMBSTONE_PHONE_PREFIX);
       const appointment = await tx.appointment.create({
         data: {
           businessId,
@@ -118,7 +131,8 @@ export const appointmentRepo = {
           holdExpiresAt: data.deposit?.holdExpiresAt ?? null,
           source: data.source,
           idempotencyKey: data.idempotencyKey ?? null,
-          contactEmail: data.contactEmail ?? null,
+          contactEmail: tombstoned ? null : (data.contactEmail ?? null),
+          contactName: tombstoned ? null : (data.contactName ?? null),
         },
         select: { id: true },
       });

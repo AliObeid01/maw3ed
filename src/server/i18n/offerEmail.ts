@@ -13,7 +13,8 @@ export interface OfferEmailContext {
   locale: string;
   timezone: string;
   businessName: string;
-  clientName: string;
+  /** null = greet generically (the offer goes to an address that is not the record's email). */
+  clientName: string | null;
   serviceName: string;
   staffName: string;
   startAt: Date;
@@ -28,10 +29,11 @@ export interface OfferEmailContext {
 export function renderOfferEmail(c: OfferEmailContext): RenderedEmail {
   const m = getEmailMessages(c.locale);
   const copy = m.offer;
+  const greetingTemplate = c.clientName === null ? m.greetingGeneric : m.greeting;
   const f = formatLocal(c.startAt, c.timezone, c.locale);
   const until = formatLocal(c.expiresAt, c.timezone, c.locale).time;
   const v: Record<string, string> = {
-    name: oneLine(c.clientName),
+    name: oneLine(c.clientName ?? ''),
     business: oneLine(c.businessName),
     service: oneLine(c.serviceName),
     staff: oneLine(c.staffName),
@@ -50,7 +52,7 @@ export function renderOfferEmail(c: OfferEmailContext): RenderedEmail {
     [m.labels.business, v.business!],
   ];
   const text = [
-    interpolate(m.greeting, v),
+    interpolate(greetingTemplate, v),
     '',
     copy.heading,
     interpolate(copy.intro, v),
@@ -71,7 +73,7 @@ export function renderOfferEmail(c: OfferEmailContext): RenderedEmail {
     preheader: interpolate(copy.intro, v),
     title: copy.heading,
     bodyHtml: [
-      `<p style="${emailStyles.p}">${interpolateHtml(m.greeting, v, rtl)}</p>`,
+      `<p style="${emailStyles.p}">${interpolateHtml(greetingTemplate, v, rtl)}</p>`,
       `<p style="${emailStyles.p}">${interpolateHtml(copy.intro, v, rtl)}</p>`,
       emailDetails(details, rtl),
       `<p style="${emailStyles.p}"><strong>${interpolateHtml(copy.expires, v, rtl)}</strong></p>`,

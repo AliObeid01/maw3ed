@@ -42,6 +42,7 @@ const sendContextSelect = {
       startAt: true,
       endAt: true,
       contactEmail: true,
+      contactName: true,
       client: { select: { name: true, email: true } },
       service: { select: { name: true } },
       staff: { select: { displayName: true } },

@@ -1,4 +1,4 @@
-import { effectiveEmail } from '@/server/domain/contactEmail';
+import { effectiveEmail, mailGreetingName } from '@/server/domain/contactEmail';
 import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
 import { buildIcs } from '@/server/domain/ics';
 import { sendDecision } from '@/server/domain/reminderWindows';
@@ -193,7 +193,14 @@ export async function runReminders(
       locale: c.business.locale,
       timezone: c.business.timezone,
       businessName: c.business.name,
-      clientName: a.client.name,
+      // The name typed for THIS booking; the record name only if the recipient is the record email
+      // (see mailGreetingName). Anyone else is greeted generically.
+      clientName: mailGreetingName({
+        contactName: a.contactName,
+        recipient: effectiveEmail(a.contactEmail, a.client.email),
+        recordEmail: a.client.email,
+        recordName: a.client.name,
+      }),
       serviceName: a.service.name,
       staffName: a.staff.displayName,
       startAt: a.startAt,

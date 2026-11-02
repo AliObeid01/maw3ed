@@ -31,7 +31,7 @@ const insertAppointment = (id: string, status: string, start: string, end: strin
 const snapshot = async () =>
   (
     await exec(
-      `SELECT to_jsonb(a) - 'contactEmail' AS a FROM "Appointment" a ORDER BY id`,
+      `SELECT to_jsonb(a) - 'contactEmail' - 'contactName' AS a FROM "Appointment" a ORDER BY id`,
     )
   ).rows.map((r) => r.a);
 const jobs = async () => (await exec(`SELECT * FROM "ReminderJob" ORDER BY id`)).rows;
@@ -104,7 +104,7 @@ describe('F16 contactEmail migration on a populated database', () => {
 
   it('before: no contactEmail column', async () => {
     const cols = await exec(
-      `SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'Appointment' AND column_name = 'contactEmail'`,
+      `SELECT 1 FROM information_schema.columns WHERE table_schema = $1 AND table_name = 'Appointment' AND column_name IN ('contactEmail', 'contactName')`,
       [SCHEMA],
     );
     expect(cols.rowCount).toBe(0);
@@ -134,6 +134,15 @@ describe('F16 contactEmail migration on a populated database', () => {
     ).rows[0];
     expect(col).toEqual({ is_nullable: 'YES', column_default: null, data_type: 'text' });
     expect((await exec(`SELECT 1 FROM "Appointment" WHERE "contactEmail" IS NOT NULL`)).rowCount).toBe(0);
+    const nameCol = (
+      await exec(
+        `SELECT is_nullable, column_default, data_type FROM information_schema.columns
+         WHERE table_schema = $1 AND table_name = 'Appointment' AND column_name = 'contactName'`,
+        [SCHEMA],
+      )
+    ).rows[0];
+    expect(nameCol).toEqual({ is_nullable: 'YES', column_default: null, data_type: 'text' });
+    expect((await exec(`SELECT 1 FROM "Appointment" WHERE "contactName" IS NOT NULL`)).rowCount).toBe(0);
   });
 
   it('appointment_no_overlap is byte-for-byte the same and still rejects an overlap (23P01)', async () => {
@@ -156,13 +165,16 @@ describe('F16 contactEmail migration on a populated database', () => {
 
   it('the column works for new rows and can be nulled', async () => {
     await exec(
-      `INSERT INTO "Appointment" (id, "businessId", "clientId", "staffId", "serviceId", "startAt", "endAt", "blockedUntil", "contactEmail", "updatedAt")
-       VALUES ('n1', 'b1', 'c1', 'st1', 'sv1', '2026-12-05T10:00:00Z', '2026-12-05T10:30:00Z', '2026-12-05T10:30:00Z', 'rana.new@gmail.test', now())`,
+      `INSERT INTO "Appointment" (id, "businessId", "clientId", "staffId", "serviceId", "startAt", "endAt", "blockedUntil", "contactEmail", "contactName", "updatedAt")
+       VALUES ('n1', 'b1', 'c1', 'st1', 'sv1', '2026-12-05T10:00:00Z', '2026-12-05T10:30:00Z', '2026-12-05T10:30:00Z', 'rana.new@gmail.test', 'Rana', now())`,
     );
     expect(
       (await exec(`SELECT "contactEmail" FROM "Appointment" WHERE id = 'n1'`)).rows[0].contactEmail,
     ).toBe('rana.new@gmail.test');
-    await exec(`UPDATE "Appointment" SET "contactEmail" = NULL WHERE id = 'n1'`);
-    expect((await exec(`SELECT 1 FROM "Appointment" WHERE "contactEmail" IS NOT NULL`)).rowCount).toBe(0);
+    await exec(`UPDATE "Appointment" SET "contactEmail" = NULL, "contactName" = NULL WHERE id = 'n1'`);
+    expect(
+      (await exec(`SELECT 1 FROM "Appointment" WHERE "contactEmail" IS NOT NULL OR "contactName" IS NOT NULL`))
+        .rowCount,
+    ).toBe(0);
   });
 });

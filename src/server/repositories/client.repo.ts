@@ -163,6 +163,15 @@ export const clientRepo = {
       // F16: the per-appointment contact email is personal data too. Every appointment of this client
       // (past and future, any status) loses it, after the last sweep so nothing is left behind.
       await tx.appointment.updateMany({
+        where: {
+          businessId,
+          clientId: id,
+          OR: [{ contactEmail: { not: null } }, { contactName: { not: null } }],
+        },
+        data: { contactEmail: null, contactName: null },
+      });
+      // Same for the address a waitlist entry was joined with (any status, nullable column).
+      await tx.waitlistEntry.updateMany({
         where: { businessId, clientId: id, contactEmail: { not: null } },
         data: { contactEmail: null },
       });

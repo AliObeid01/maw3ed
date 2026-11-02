@@ -386,6 +386,9 @@ async function bookInner(
         client: { name: input.client.name, phone, email: input.client.email },
         // F16: the address for THIS booking. The client record keeps its own fill-only-if-empty rule.
         contactEmail,
+        // The name typed for THIS booking (not for a waitlist claim: there the name is the record's, and
+        // mail to the entry's address is greeted by `mailGreetingName`).
+        contactName: input.source === 'WAITLIST' ? undefined : input.client.name.trim() || undefined,
         // Only an authenticated front-desk booking may change an existing client's contact details.
         overwriteContact: input.source === 'FRONT_DESK',
         reminders,
