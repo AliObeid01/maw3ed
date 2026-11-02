@@ -1,6 +1,7 @@
 import { DateTime } from 'luxon';
 import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { MAX_SLOT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
+import { greetingName } from '@/server/domain/contactEmail';
 import { normalizePhone } from '@/server/domain/phone';
 import {
   leaveExpiryFor,
@@ -186,7 +187,9 @@ async function deliverOffer(
     locale: offer.business.locale,
     timezone: offer.business.timezone,
     businessName: offer.business.name,
-    clientName: offer.entry.client.name,
+    // The record name goes only to the record email: an entry joined with someone else's phone and another
+    // address gets a generic greeting (otherwise the offer email would reveal the record's name).
+    clientName: greetingName(email, offer.entry.client.email, offer.entry.client.name),
     serviceName: offer.entry.service.name,
     staffName: offer.staff.displayName,
     startAt: offer.startAt,
@@ -470,6 +473,9 @@ export const offersService = {
               phone: o.entry.client.phone,
               email: o.entry.client.email ?? undefined,
             },
+            // F16: the confirmation and reminders go to the address the entry was joined with (the one
+            // its offer email went to), not to whatever the client record holds. The record is untouched.
+            contactEmail: o.entry.contactEmail ?? undefined,
             source: 'WAITLIST',
             idempotencyKey: offerBookingKey(o.id),
           },

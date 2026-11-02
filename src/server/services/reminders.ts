@@ -1,3 +1,4 @@
+import { effectiveEmail, mailGreetingName } from '@/server/domain/contactEmail';
 import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
 import { buildIcs } from '@/server/domain/ics';
 import { sendDecision } from '@/server/domain/reminderWindows';
@@ -86,7 +87,7 @@ function planFor(job: ClaimedJob, c: SendContext, now: Date, sentToday: number):
   } else if (sendDecision(job.kind, a.startAt, now, true) === 'SKIP') {
     return { send: false, reason: 'window' };
   }
-  if (!a.client.email) return { send: false, reason: 'no_email' };
+  if (!effectiveEmail(a.contactEmail, a.client.email)) return { send: false, reason: 'no_email' };
   return { send: true };
 }
 
@@ -192,7 +193,14 @@ export async function runReminders(
       locale: c.business.locale,
       timezone: c.business.timezone,
       businessName: c.business.name,
-      clientName: a.client.name,
+      // The name typed for THIS booking; the record name only if the recipient is the record email
+      // (see mailGreetingName). Anyone else is greeted generically.
+      clientName: mailGreetingName({
+        contactName: a.contactName,
+        recipient: effectiveEmail(a.contactEmail, a.client.email),
+        recordEmail: a.client.email,
+        recordName: a.client.name,
+      }),
       serviceName: a.service.name,
       staffName: a.staff.displayName,
       startAt: a.startAt,
@@ -221,7 +229,7 @@ export async function runReminders(
     let providerMessageId: string | null;
     try {
       const result = await provider.send({
-        to: a.client.email!,
+        to: effectiveEmail(a.contactEmail, a.client.email)!,
         subject: rendered.subject,
         text: rendered.text,
         html: rendered.html,

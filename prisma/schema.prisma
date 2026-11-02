@@ -334,6 +334,10 @@ model Appointment {
   status            AppointmentStatus @default(BOOKED)
   source            AppointmentSource @default(PUBLIC)
   idempotencyKey    String?
+  // F16: where THIS booking's emails go. NULL = fall back to Client.email. Nulled when the client is anonymised.
+  contactEmail      String?
+  // F16 review: the name typed for THIS booking; the only name an email to a non-record address may use.
+  contactName       String?
   confirmedAt       DateTime?         @db.Timestamptz(3)
   // PENDING_PAYMENT only: when the deposit hold lapses (15 min). The partial index lives in a migration.
   holdExpiresAt     DateTime?         @db.Timestamptz(3)

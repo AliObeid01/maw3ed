@@ -1,3 +1,4 @@
+import { effectiveEmail } from '@/server/domain/contactEmail';
 import type { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
 
@@ -40,6 +41,8 @@ const sendContextSelect = {
       status: true,
       startAt: true,
       endAt: true,
+      contactEmail: true,
+      contactName: true,
       client: { select: { name: true, email: true } },
       service: { select: { name: true } },
       staff: { select: { displayName: true } },
@@ -98,6 +101,7 @@ export const reminderJobRepo = {
       where: { id: appointmentId, businessId },
       select: {
         status: true,
+        contactEmail: true,
         client: { select: { email: true } },
         reminderJobs: {
           where: { channel: 'EMAIL', kind: { in: ['H24', 'H2'] } },
@@ -108,7 +112,7 @@ export const reminderJobRepo = {
     if (!a) return null;
     return {
       jobs: a.reminderJobs,
-      hasEmail: !!a.client.email?.trim(),
+      hasEmail: effectiveEmail(a.contactEmail, a.client.email) !== null,
       cancelled: a.status === 'CANCELLED' || a.status === 'LATE_CANCEL',
     };
   },

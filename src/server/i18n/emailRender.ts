@@ -20,6 +20,12 @@ export interface EmailContext {
   cancelUrl: string;
 }
 
+/**
+ * The email variant: `clientName: null` greets generically. The record name must only reach the holder of
+ * the record email (see `greetingName` in domain/contactEmail.ts).
+ */
+export type ReminderEmailContext = Omit<EmailContext, 'clientName'> & { clientName: string | null };
+
 export interface RenderedEmail {
   subject: string;
   text: string;
@@ -64,10 +70,10 @@ export function oneLine(value: string): string {
 
 const KIND_KEY = { BOOKING: 'booking', H24: 'h24', H2: 'h2' } as const;
 
-function vars(c: EmailContext): Record<string, string> {
+function vars(c: ReminderEmailContext): Record<string, string> {
   const f = formatLocal(c.startAt, c.timezone, c.locale);
   return {
-    name: oneLine(c.clientName),
+    name: oneLine(c.clientName ?? ''),
     business: oneLine(c.businessName),
     service: oneLine(c.serviceName),
     staff: oneLine(c.staffName),
@@ -93,13 +99,14 @@ export function interpolateHtml(template: string, v: Record<string, string>, rtl
 }
 
 /** Subject, plain text and simple HTML for a booking confirmation or a 24 h / 2 h reminder. Pure. */
-export function renderReminderEmail(c: EmailContext): RenderedEmail {
+export function renderReminderEmail(c: ReminderEmailContext): RenderedEmail {
   const m = getEmailMessages(c.locale);
   const copy = m[KIND_KEY[c.kind]];
   const v = vars(c);
   const subject = oneLine(interpolate(copy.subject, v));
   const intro = interpolate(copy.intro, v);
-  const greeting = interpolate(m.greeting, v);
+  const greetingTemplate = c.clientName === null ? m.greetingGeneric : m.greeting;
+  const greeting = interpolate(greetingTemplate, v);
   const footer = interpolate(m.footer, v);
   const rtl = isRtl(c.locale);
   const f = formatLocal(c.startAt, c.timezone, c.locale);
@@ -135,7 +142,7 @@ export function renderReminderEmail(c: EmailContext): RenderedEmail {
     preheader: intro,
     title: copy.heading,
     bodyHtml: [
-      `<p style="${emailStyles.p}">${interpolateHtml(m.greeting, v, rtl)}</p>`,
+      `<p style="${emailStyles.p}">${interpolateHtml(greetingTemplate, v, rtl)}</p>`,
       `<p style="${emailStyles.p}">${interpolateHtml(copy.intro, v, rtl)}</p>`,
       emailDetails(details, rtl),
     ].join('\n'),

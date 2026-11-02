@@ -966,6 +966,7 @@
   "email": {
     "fallback": "الزر لا يعمل؟ انسخ هذا الرابط إلى متصفحك:",
     "greeting": "مرحبًا {name}،",
+    "greetingGeneric": "مرحبا،",
     "labels": {
       "service": "الخدمة",
       "staff": "مع",

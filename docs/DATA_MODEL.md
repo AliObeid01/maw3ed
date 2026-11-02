@@ -18,9 +18,9 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 | WorkingHours | weekday (0–6), startLocal, endLocal (`HH:mm`) | StaffMember | several rows per day; CHECK end > start |
 | TimeOff | startAt, endAt, reason enum (VACATION, SICK, OTHER) | StaffMember | UTC instants; enum, not free text |
 | Client | name, phone (E.164), email, attended, noShows, lateCancels | Business | unique (businessId, phone); counters updated in the outcome transaction |
-| Appointment | startAt, endAt, blockedUntil, status, source (PUBLIC, FRONT_DESK, WAITLIST), idempotencyKey, confirmedAt, cancelledAt, cancelledVia (LINK, STAFF, SYSTEM), holdExpiresAt (PENDING_PAYMENT only), outcomeMarkedById, outcomeMarkedAt | Business, Client, StaffMember, Service | **exclusion constraint** on (staffId, [startAt, blockedUntil)) while BOOKED, CONFIRMED or PENDING_PAYMENT; status also ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL; unique (businessId, idempotencyKey) |
+| Appointment | startAt, endAt, blockedUntil, status, source (PUBLIC, FRONT_DESK, WAITLIST), idempotencyKey, contactEmail (F16, nullable: where THIS booking's emails go; NULL = use Client.email), contactName (F16, nullable: the name typed for THIS booking, the only name mails to a non-record address use); both nulled when the client is anonymised, confirmedAt, cancelledAt, cancelledVia (LINK, STAFF, SYSTEM), holdExpiresAt (PENDING_PAYMENT only), outcomeMarkedById, outcomeMarkedAt | Business, Client, StaffMember, Service | **exclusion constraint** on (staffId, [startAt, blockedUntil)) while BOOKED, CONFIRMED or PENDING_PAYMENT; status also ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL; unique (businessId, idempotencyKey) |
 | ReminderJob | kind (BOOKING, H24, H2), channel (EMAIL, WHATSAPP), dueAt, status (PENDING, SENDING, SENT, SKIPPED, FAILED), attempts, nextAttemptAt, lockedAt, sentAt, sentById, providerMessageId, lastError | Appointment (+ businessId) | unique (appointmentId, kind, channel); partial index (status, dueAt) where PENDING |
-| WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED), contactEmail, claimingOfferId, claimingAt | Business, Client, Service, optional StaffMember | `contactEmail` is where offers go and is never copied onto the Client; `claimingOfferId` / `claimingAt` are the atomic reservation held while one offer is being booked (a lease, released on failure) |
+| WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED), contactEmail, claimingOfferId, claimingAt | Business, Client, Service, optional StaffMember | `contactEmail` is where offers go, is never copied onto the Client and is set to NULL when the client is anonymised; `claimingOfferId` / `claimingAt` are the atomic reservation held while one offer is being booked (a lease, released on failure) |
 | WaitlistOffer | entryId, staffId, startAt, endAt, expiresAt, status (OPEN, CLAIMED, EXPIRED, SUPERSEDED), claimedAppointmentId, freedFromAppointmentId, batch | Business | unique (entryId, freedFromAppointmentId): one open offer per entry per freed slot |
 | PilotBaseline | fromDate, toDate, appointments, noShows, lateCancels | Business | unique (businessId); entered by the owner from their own book |
 | Payment | purpose (DEPOSIT, PLAN), appointmentId?, provider, externalId, amount, currency, status (PENDING, PAID, FAILED, EXPIRED) | Business, optional Appointment | unique (provider, externalId); indexes (businessId, status), (businessId, appointmentId) |
@@ -178,6 +178,8 @@ erDiagram
     enum status
     enum source
     string idempotencyKey "unique per business"
+    string contactEmail "F16 optional, personal data, nulled on anonymisation"
+    string contactName "F16 optional, personal data, nulled on anonymisation"
     timestamptz holdExpiresAt "PENDING_PAYMENT only"
     timestamptz confirmedAt
     timestamptz cancelledAt
