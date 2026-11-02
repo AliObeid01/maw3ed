@@ -360,9 +360,7 @@
         "hasFutureAppointments": "{name} has upcoming appointments. Move or cancel them before deactivating."
       },
       "invites": {
-        "title": "Receptionist logins",
-        "body": "Invite someone to run the calendar. They join as Staff.",
-        "cta": "Invite receptionist"
+        "body": "Invite someone to run the calendar. They join as Staff."
       },
       "invite": {
         "title": "Invite receptionist",
@@ -1163,6 +1161,7 @@
       "dayAvailable": "{date}, {count, plural, one {# time} other {# times}} available",
       "dayFull": "{date}, no free times",
       "noTimesDay": "No free times on this day. Try another day.",
+      "noTimesOn": "No free times on {day}",
       "noTimesAtAll": "{days, plural, one {No free times right now. Please check back soon.} other {No free times in the next # days. Please check back soon.}}",
       "slotsFailed": "We couldn't load the free times.",
       "timezoneNote": "Times are shown in {zone} time (UTC{offset}), where the business is.",
@@ -1252,7 +1251,8 @@
     },
     "waitlist": {
       "body": "Join the waitlist and we'll email you if a spot opens.",
-      "action": "Join the waitlist"
+      "action": "Join the waitlist",
+      "notYourTime": "Not the day or time you want? Join the waitlist"
     }
   },
   "link": {

@@ -34,7 +34,7 @@ import {
   type JoinField,
   type JoinFieldError,
 } from '@/lib/waitlist/errors';
-import { addDays, defaultRange, followStart, MAX_SPAN_DAYS, todayIn } from '@/lib/waitlist/range';
+import { addDays, defaultRange, followStart, MAX_SPAN_DAYS, prefillRange, todayIn } from '@/lib/waitlist/range';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 
 const mainClass =
@@ -54,7 +54,7 @@ const FIELD_IDS: Record<JoinField, string> = {
   email: 'wl-email',
 };
 
-/** Board 1.7 at /b/[slug]/waitlist. `?service=&staff=` prefill the form (from the booking flow's empty or "just taken" views). */
+/** Board 1.7 at /b/[slug]/waitlist. `?service=&staff=&from=` prefill the form (from the booking flow's empty or "just taken" views). */
 export function JoinWaitlist({ slug }: { slug: string }) {
   const categoryLabel = useCategoryLabel();
   const t = useTranslations('waitlist');
@@ -104,7 +104,13 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   }, [searchText, services, data]);
   const serviceId = pickedService ?? prefill.serviceId;
   const staffId = pickedStaff === undefined ? (pickedService ? undefined : prefill.staffId) : (pickedStaff ?? undefined);
-  const range = pickedRange ?? (data ? defaultRange(now, data.business.timezone, data.business.bookingWindowDays) : undefined);
+  // `?from=` (the day chosen in the booking flow) starts the range when it is a real day inside the booking window.
+  const range =
+    pickedRange ??
+    (data
+      ? (prefillRange(new URLSearchParams(searchText).get('from'), now, data.business.timezone, data.business.bookingWindowDays) ??
+        defaultRange(now, data.business.timezone, data.business.bookingWindowDays))
+      : undefined);
   const setRange = (updater: (r: { from: string; to: string }) => { from: string; to: string }) =>
     setPickedRange(updater(range!));
 

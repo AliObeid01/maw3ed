@@ -130,6 +130,9 @@ export function TimeStep(props: TimeStepProps) {
   const refDate = props.day ? new Date(`${props.day}T12:00:00Z`) : now;
   const showZoneNote = !loading && timezonesDiffer(refDate, timezone, deviceZone);
   const offset = DateTime.fromJSDate(refDate, { zone: timezone }).toFormat('Z');
+  // The waitlist link asks for the day on screen (`from`, validated by the waitlist page); the other two waitlist
+  // buttons (no times at all, slot just taken) keep the plain link.
+  const dayWaitlistHref = props.waitlistHref ? withFrom(props.waitlistHref, props.day) : undefined;
 
   return (
     <section className="flex min-w-0 flex-[999_1_320px] flex-col gap-4.5">
@@ -177,6 +180,14 @@ export function TimeStep(props: TimeStepProps) {
                   onSelect={props.onPickSlot}
                   labelId={labelId}
                 />
+              ) : dayWaitlistHref ? (
+                <div className="flex flex-col items-start gap-3 rounded-[20px] bg-canvas p-4">
+                  <p className="m-0 text-[15px] font-medium">{t('time.noTimesOn', { day: f.ymd(props.day) })}</p>
+                  <p className="m-0 text-sm text-muted">{t('waitlist.body')}</p>
+                  <ButtonLink href={dayWaitlistHref} variant="secondary" className="max-sm:w-full">
+                    {t('waitlist.action')}
+                  </ButtonLink>
+                </div>
               ) : (
                 <p className="m-0 text-[15px] text-muted">{t('time.noTimesDay')}</p>
               )}
@@ -184,6 +195,13 @@ export function TimeStep(props: TimeStepProps) {
           ) : (
             <p className="m-0 text-[15px] text-muted">{t('time.pickDay')}</p>
           )}
+          {/* Quiet and last: never above the times and never competing with Continue. The empty-day block above
+              already holds the one waitlist link, so it is not repeated there. */}
+          {dayWaitlistHref && daySlots.length > 0 ? (
+            <ButtonLink href={dayWaitlistHref} variant="ghost" className="h-auto min-h-11 self-start py-2.5 text-start whitespace-normal">
+              {t('waitlist.notYourTime')}
+            </ButtonLink>
+          ) : null}
           {showZoneNote ? (
             <Callout icon={<Globe />}>
               {t('time.timezoneNote', {
@@ -214,4 +232,10 @@ export function TimeSkeleton() {
       </div>
     </div>
   );
+}
+
+/** `href` with `from=<day>` added when a day is chosen. `day` is a local `yyyy-MM-dd` from the strip. */
+function withFrom(href: string, day: string | undefined): string {
+  if (!day) return href;
+  return `${href}${href.includes('?') ? '&' : '?'}from=${encodeURIComponent(day)}`;
 }

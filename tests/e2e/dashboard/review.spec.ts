@@ -128,7 +128,7 @@ test.describe('staff: invites and partial saves', () => {
   test('inviting an existing member shows the already-a-member message', async ({ page }) => {
     await mockSetupApi(page);
     await page.goto('/app/staff');
-    await page.getByRole('button', { name: 'Invite receptionist' }).click();
+    await page.getByRole('button', { name: 'Invite someone' }).click();
     await page.getByLabel('Email').fill('Lina@Example.com');
     await page.getByRole('button', { name: 'Send invite' }).click();
     await expect(page.getByRole('dialog').getByRole('alert')).toContainText(
@@ -208,7 +208,7 @@ test.describe('staff: invites and partial saves', () => {
       },
     });
     await page.goto('/app/staff');
-    await page.getByRole('button', { name: 'Invite receptionist' }).click();
+    await page.getByRole('button', { name: 'Invite someone' }).click();
     await page.getByLabel('Email').fill('new@example.com');
     await page.getByRole('button', { name: 'Send invite' }).click();
     await page.getByRole('button', { name: 'Copy invite link' }).click();

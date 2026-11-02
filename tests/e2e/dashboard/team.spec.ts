@@ -171,6 +171,37 @@ test.describe('Staff > Team access', () => {
   });
 });
 
+test.describe('F64: one invite control on the Staff screen', () => {
+  test('exactly one invite button, visible while collapsed, with the purpose line; it opens the sheet', async ({ page }) => {
+    await mockSetupApi(page, { state: state() });
+    await page.goto('/app/staff');
+    await expect(page.getByRole('region', { name: 'Receptionist logins' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Invite (someone|receptionist)$/ })).toHaveCount(1);
+    const section = page.getByRole('region', { name: 'Team access' });
+    await expect(section).toContainText('Invite someone to run the calendar. They join as Staff.');
+    const invite = section.getByRole('button', { name: 'Invite someone' });
+    await expect(invite).toBeVisible(); // no need to expand the list first
+    expect((await invite.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await invite.click();
+    await expect(page.getByRole('dialog').getByLabel('Email')).toBeVisible();
+  });
+
+  test('the setup checklist invite step leads to the Team access card and its button', async ({ page }) => {
+    const s = state();
+    s.invites = [];
+    s.staff = s.staff.filter((m) => m.role !== 'STAFF');
+    s.business.setup = { hasServices: true, hasBookableStaff: true, hasHours: true };
+    await mockSetupApi(page, { state: s });
+    await page.goto('/app/setup');
+    const step = page.getByRole('link', { name: /Invite your receptionist/ });
+    await expect(step).toHaveAttribute('href', '/app/staff#team-access');
+    await step.click();
+    await expect(page).toHaveURL(/\/app\/staff#team-access$/);
+    const section = page.getByRole('region', { name: 'Team access' });
+    await expect(section.getByRole('button', { name: 'Invite someone' })).toBeInViewport();
+  });
+});
+
 test.describe('Account page: sign out other devices', () => {
   test('asks first, then reports how many devices were signed out', async ({ page }) => {
     const { calls } = await mockSetupApi(page, { state: state() });

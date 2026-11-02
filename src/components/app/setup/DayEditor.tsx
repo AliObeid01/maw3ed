@@ -211,7 +211,9 @@ function DayEditorBody({
         ) : null}
       </fieldset>
 
-      <div className="flex gap-2.5 pt-1">
+      {/* A grid, not a flex row: `block` buttons are w-full and shrink-0, so in a flex row each one claimed the
+          whole sheet width and Apply ran past the edge (the F62 bug). Two equal columns can never overflow. */}
+      <div className="grid grid-cols-2 gap-2.5 pt-1">
         <Button variant="secondary" size="lg" block onClick={onClose}>
           {t('cancel')}
         </Button>

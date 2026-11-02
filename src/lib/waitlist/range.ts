@@ -63,3 +63,23 @@ export function followStart(range: DateRange, nextFrom: string): DateRange {
   if (isDay(range.to) && range.to >= nextFrom) return { ...range, from: nextFrom };
   return { from: nextFrom, to: nextFrom };
 }
+
+/**
+ * The `?from=YYYY-MM-DD` the booking flow passes when someone asks for the waitlist on a chosen day. Anything that
+ * is not a real date, is before today, or is past the last bookable day (today + window - 1) in the business
+ * timezone is ignored (returns undefined, so the default range shows). The range runs from that day for the usual
+ * 14 days, clipped to the window like `defaultRange`.
+ */
+export function prefillRange(
+  from: string | null | undefined,
+  now: Date,
+  timezone: string,
+  windowDays: number = DEFAULT_SPAN_DAYS,
+): DateRange | undefined {
+  if (!from || !isDay(from)) return undefined;
+  const today = todayIn(now, timezone);
+  const lastDay = addDays(today, Math.max(1, Math.floor(windowDays)) - 1);
+  if (from < today || from > lastDay) return undefined;
+  const to = addDays(from, DEFAULT_SPAN_DAYS - 1);
+  return { from, to: to > lastDay ? lastDay : to };
+}
