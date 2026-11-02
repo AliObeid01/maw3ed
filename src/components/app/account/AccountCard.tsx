@@ -15,9 +15,9 @@ import { PASSWORD_MAX, PASSWORD_MIN } from '@/lib/auth/password';
 
 type Errors = { current?: string; next?: string };
 
-/** Settings > Account: change the password. This device stays signed in, every other session is ended. */
+/** Account page: change the password. This device stays signed in, every other session is ended. */
 export function AccountCard() {
-  const t = useTranslations('app.settings.account');
+  const t = useTranslations('app.account');
   const toast = useToast();
   const uid = useId();
   const formRef = useRef<HTMLFormElement>(null);
@@ -105,7 +105,7 @@ export function AccountCard() {
       padding="none"
       as="section"
       aria-labelledby={`${uid}-account`}
-      className="mt-5 flex flex-col gap-4 p-[22px] lg:max-w-[calc(50%-10px)]"
+      className="flex flex-col gap-4 p-[22px]"
     >
       <div className="flex flex-col gap-1">
         <h2 id={`${uid}-account`} className="m-0 text-lg font-semibold">

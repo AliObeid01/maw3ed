@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- response bodies are untyped JSON */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { Client } from 'pg';
+import { POST as changePassword } from '@/app/api/auth/change-password/route';
 import { POST as login } from '@/app/api/auth/login/route';
 import { POST as signOutOthers } from '@/app/api/auth/sign-out-others/route';
 import { POST as createInvite } from '@/app/api/invites/route';
@@ -561,5 +562,59 @@ describe('POST /api/auth/sign-out-others', () => {
       headers: { origin: 'https://evil.example' },
     });
     expect(res.status).toBe(403);
+  });
+});
+
+// F35: the Account page works for every role. STAFF change their own password and end their other sessions.
+describe('F35 STAFF account actions', () => {
+  const NEW_PASSWORD = 'a-brand-new-passphrase';
+  const change = (cookie: string | undefined, body: unknown) =>
+    call(changePassword, '/api/auth/change-password', { body, cookie });
+  const loginAs = (email: string, password: string) =>
+    call(login, '/api/auth/login', { body: { email, password } });
+
+  it('STAFF change their own password: other sessions end, this one stays, the new password works', async () => {
+    const owner = await signup();
+    const staff = await addStaff(owner, 'karim@example.test');
+    const second = await loginAs(staff.email, PASSWORD);
+    expect((await meWith(second.cookie as string)).status).toBe(200);
+
+    const res = await change(staff.cookie, { currentPassword: PASSWORD, newPassword: NEW_PASSWORD });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ ok: true });
+    expect((await meWith(staff.cookie)).status).toBe(200);
+    expect((await meWith(second.cookie as string)).status).toBe(401);
+    expect((await loginAs(staff.email, PASSWORD)).status).toBe(401);
+    expect((await loginAs(staff.email, NEW_PASSWORD)).status).toBe(200);
+    // The owner is untouched.
+    expect((await meWith(owner.cookie)).status).toBe(200);
+    expect((await loginAs(owner.body.email, PASSWORD)).status).toBe(200);
+  });
+
+  it('a wrong current password is a 400 on that field for STAFF, and signed out is a 401', async () => {
+    const owner = await signup();
+    const staff = await addStaff(owner, 'karim@example.test');
+    const wrong = await change(staff.cookie, { currentPassword: 'not-my-password', newPassword: NEW_PASSWORD });
+    expect(wrong.status).toBe(400);
+    expect(wrong.body!.error.fields).toHaveProperty('currentPassword');
+    expect((await loginAs(staff.email, PASSWORD)).status).toBe(200);
+    expect(
+      (await change(undefined, { currentPassword: PASSWORD, newPassword: NEW_PASSWORD })).status,
+    ).toBe(401);
+  });
+
+  it('STAFF sign out their other devices and keep this one', async () => {
+    const owner = await signup();
+    const staff = await addStaff(owner, 'karim@example.test');
+    const second = await loginAs(staff.email, PASSWORD);
+    const res = await call(signOutOthers, '/api/auth/sign-out-others', {
+      method: 'POST',
+      cookie: staff.cookie,
+    });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ removed: 1 });
+    expect((await meWith(staff.cookie)).status).toBe(200);
+    expect((await meWith(second.cookie as string)).status).toBe(401);
+    expect((await meWith(owner.cookie)).status).toBe(200);
   });
 });

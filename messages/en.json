@@ -77,7 +77,9 @@
       "badge": {
         "reminders": "{count, plural, =0 {No reminders due} one {# reminder due} other {# reminders due}}",
         "outcomes": "{count, plural, =0 {No outcomes to mark} one {# outcome to mark} other {# outcomes to mark}}"
-      }
+      },
+      "account": "Account",
+      "accountNav": "Account"
     },
     "tabs": {
       "label": "Main tabs",
@@ -106,7 +108,8 @@
       "share": "Booking link",
       "book": "New booking",
       "appointment": "Appointment",
-      "client": "Client"
+      "client": "Client",
+      "account": "Account"
     },
     "frame": {
       "account": "Account",
@@ -492,35 +495,43 @@
           "amount": "Enter an amount from {min} to {max} with at most two decimals.",
           "check": "Some details need another look. Check the fields and try again."
         }
+      }
+    },
+    "account": {
+      "title": "Account",
+      "body": "Change your password. Other devices are signed out; this one stays signed in.",
+      "current": "Current password",
+      "new": "New password",
+      "submit": "Change password",
+      "saved": "Password changed. Other devices were signed out.",
+      "errors": {
+        "currentRequired": "Enter your current password.",
+        "currentWrong": "That is not your current password.",
+        "newRequired": "Enter a new password.",
+        "newShort": "Use at least {min} characters.",
+        "newLong": "Use at most {max} characters.",
+        "rateLimited": "Too many attempts. Wait a few minutes and try again.",
+        "generic": "Something went wrong. Please try again.",
+        "network": "We can't reach the server. Check your connection and try again."
       },
-      "account": {
-        "title": "Account",
-        "body": "Change your password. Other devices are signed out; this one stays signed in.",
-        "current": "Current password",
-        "new": "New password",
-        "submit": "Change password",
-        "saved": "Password changed. Other devices were signed out.",
-        "errors": {
-          "currentRequired": "Enter your current password.",
-          "currentWrong": "That is not your current password.",
-          "newRequired": "Enter a new password.",
-          "newShort": "Use at least {min} characters.",
-          "newLong": "Use at most {max} characters.",
-          "rateLimited": "Too many attempts. Wait a few minutes and try again.",
-          "generic": "Something went wrong. Please try again.",
-          "network": "We can't reach the server. Check your connection and try again."
-        },
-        "others": {
-          "title": "Other devices",
-          "body": "Signs you out everywhere else, in every business you belong to. This device stays signed in.",
-          "cta": "Sign out other devices",
-          "confirmTitle": "Sign out other devices?",
-          "confirmBody": "Every other browser or phone signed in to your account will be signed out. This device stays signed in.",
-          "confirm": "Sign out other devices",
-          "cancel": "Cancel",
-          "close": "Close",
-          "done": "{count, plural, =0 {No other devices were signed in.} one {# other device was signed out.} other {# other devices were signed out.}}"
-        }
+      "others": {
+        "title": "Other devices",
+        "body": "Signs you out everywhere else, in every business you belong to. This device stays signed in.",
+        "cta": "Sign out other devices",
+        "confirmTitle": "Sign out other devices?",
+        "confirmBody": "Every other browser or phone signed in to your account will be signed out. This device stays signed in.",
+        "confirm": "Sign out other devices",
+        "cancel": "Cancel",
+        "close": "Close",
+        "done": "{count, plural, =0 {No other devices were signed in.} one {# other device was signed out.} other {# other devices were signed out.}}"
+      },
+      "profile": {
+        "title": "Your sign-in",
+        "name": "Name",
+        "email": "Email",
+        "role": "Role",
+        "verified": "Confirmed",
+        "unverified": "Not confirmed yet"
       }
     },
     "share": {

@@ -7,6 +7,8 @@ import { sessionCookieName } from './cookies';
 export interface CurrentSession {
   userId: string;
   userName: string;
+  /** The signed-in address, shown on the Account page. */
+  email: string;
   /** Soft verification: false shows the dashboard banner and disables inviting and listing. */
   emailVerified: boolean;
   businessId: string;
