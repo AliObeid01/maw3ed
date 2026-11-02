@@ -160,6 +160,12 @@ export const clientRepo = {
       });
       // Sweep again after the tombstone: anything that became visible while we worked is cancelled too.
       await cancelFuture();
+      // F16: the per-appointment contact email is personal data too. Every appointment of this client
+      // (past and future, any status) loses it, after the last sweep so nothing is left behind.
+      await tx.appointment.updateMany({
+        where: { businessId, clientId: id, contactEmail: { not: null } },
+        data: { contactEmail: null },
+      });
       return { freed };
     }),
 
@@ -212,8 +218,8 @@ export const clientRepo = {
    *   knows a victim's phone number could redirect that client's reminder emails to themselves.
    * - `overwriteContact = true` (session-authenticated front-desk booking): a provided, different
    *   name/email replaces the stored one. Nothing is ever wiped by an omitted value.
-   * Long-term fix: a verified, per-appointment contact email (reminders go to the address the booker
-   * proved they own) instead of one mutable email per client.
+   * F16: this record rule is deliberately unchanged. The address typed for a booking is stored on the
+   * APPOINTMENT (Appointment.contactEmail) and is what that booking's emails go to.
    */
   async upsertByPhone(
     businessId: string,

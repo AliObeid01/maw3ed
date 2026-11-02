@@ -3,6 +3,7 @@ import {
   sameBookingRequest,
   type PlannedReminders,
 } from '@/server/domain/bookingPlan';
+import { normaliseContactEmail } from '@/server/domain/contactEmail';
 import { localDayOf } from '@/server/domain/dateRange';
 import { normalizePhone } from '@/server/domain/phone';
 import { pickStaff } from '@/server/domain/slots';
@@ -38,6 +39,11 @@ export interface BookInput {
   client: { name: string; phone: string; email?: string | undefined };
   source: 'PUBLIC' | 'FRONT_DESK' | 'WAITLIST';
   idempotencyKey?: string | undefined;
+  /**
+   * F16: where THIS booking's emails go, when it differs from `client.email` (a waitlist claim: the entry's
+   * own contact address). Default: the email typed with the booking. Stored on the appointment only.
+   */
+  contactEmail?: string | undefined;
   /**
    * Front-desk walk-ins: skip the business's minimum notice. The booking window, working hours, time off
    * and the exclusion constraint still apply. Only the session-authenticated front-desk path sets this.
@@ -279,6 +285,7 @@ async function bookInner(
   if (cfg.secret.length < 32 || !/^https?:\/\//.test(cfg.appUrl)) throw misconfiguredError();
   const phone = normalizePhone(input.client.phone);
   if (!phone) throw AppError.validation({ 'client.phone': 'Enter a valid phone number.' });
+  const contactEmail = normaliseContactEmail(input.contactEmail ?? input.client.email);
   const now = deps.now();
   const specific = input.staffId !== 'anyone' ? input.staffId : undefined;
   const key = input.idempotencyKey;
@@ -377,6 +384,8 @@ async function bookInner(
         source: input.source,
         idempotencyKey: key,
         client: { name: input.client.name, phone, email: input.client.email },
+        // F16: the address for THIS booking. The client record keeps its own fill-only-if-empty rule.
+        contactEmail,
         // Only an authenticated front-desk booking may change an existing client's contact details.
         overwriteContact: input.source === 'FRONT_DESK',
         reminders,

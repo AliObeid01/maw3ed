@@ -60,6 +60,7 @@ describe('NFR-04 privacy: no free-text personal data', () => {
         'status',
         'source',
         'idempotencyKey',
+        'contactEmail', // F16: the email typed for THIS booking (NFR-04 allows email); nulled on anonymisation
         'confirmedAt',
         'cancelledAt',
         'cancelledVia',

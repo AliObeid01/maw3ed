@@ -28,6 +28,8 @@ export interface NewBooking {
   source: 'PUBLIC' | 'FRONT_DESK' | 'WAITLIST';
   idempotencyKey?: string | undefined;
   client: { name: string; phone: string; email?: string | undefined };
+  /** F16: the address typed for THIS booking (normalised). Stored on the appointment, never on the record. */
+  contactEmail?: string | undefined;
   /** True only for a session-authenticated front-desk booking: see clientRepo.upsertByPhone. */
   overwriteContact: boolean;
   /** Empty for a deposit hold: reminders (and the booking email) are created when the deposit is paid. */
@@ -116,6 +118,7 @@ export const appointmentRepo = {
           holdExpiresAt: data.deposit?.holdExpiresAt ?? null,
           source: data.source,
           idempotencyKey: data.idempotencyKey ?? null,
+          contactEmail: data.contactEmail ?? null,
         },
         select: { id: true },
       });

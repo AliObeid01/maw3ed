@@ -469,6 +469,9 @@ export const offersService = {
               phone: o.entry.client.phone,
               email: o.entry.client.email ?? undefined,
             },
+            // F16: the confirmation and reminders go to the address the entry was joined with (the one
+            // its offer email went to), not to whatever the client record holds. The record is untouched.
+            contactEmail: o.entry.contactEmail ?? undefined,
             source: 'WAITLIST',
             idempotencyKey: offerBookingKey(o.id),
           },
