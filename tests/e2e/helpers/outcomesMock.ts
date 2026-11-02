@@ -16,6 +16,7 @@ import {
   BASELINE_DEFINITION,
   RATE_DEFINITION,
 } from '../../../src/server/domain/pilotMetrics';
+import { effectiveEmail } from '../../../src/server/domain/contactEmail';
 import { planOutcome } from '../../../src/server/domain/outcomes';
 
 /**
@@ -72,6 +73,8 @@ export type MockAppt = {
   staffId: string;
   clientId: string;
   cancelledVia?: 'LINK' | 'STAFF' | 'SYSTEM' | null;
+  /** F16: the address typed for this booking (the mock mirrors the server's effectiveEmail with the client email). */
+  contactEmail?: string | null;
 };
 
 export const SERVICES = {
@@ -207,7 +210,10 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
 
   const apptItem = (a: MockAppt) => {
     const c = byClient(a.clientId)!;
+    const reminderEmail = effectiveEmail(a.contactEmail, c.email);
     return {
+      reminderEmail,
+      reminderEmailDiffers: reminderEmail !== null && reminderEmail.toLowerCase() !== (c.email ?? '').toLowerCase(),
       id: a.id,
       startAt: a.startAt,
       endAt: a.endAt,

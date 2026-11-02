@@ -2,7 +2,7 @@
 
 import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Check, CircleAlert, MessageCircle, PhoneOff } from 'lucide-react';
-import { useReducer, useRef, type MouseEvent, type ReactNode } from 'react';
+import { useReducer, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { HeaderActions } from '@/components/app/HeaderActions';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
@@ -77,8 +77,8 @@ function useRowText(item: ReminderItem, timezone: string) {
 
 /**
  * Board 4.2 "done" state: the WhatsApp action stays in place as a disabled button that carries who sent it and when
- * (business timezone, 24-hour). The live region announces the change to screen readers; the visible text is the
- * button's accessible name.
+ * (business timezone, 24-hour). The change is announced by the ONE persistent live region of the view (a region that mounts together with
+ * its content is often not announced); the visible text is the button's accessible name.
  */
 function SentButton({
   view,
@@ -103,7 +103,7 @@ function SentButton({
       ? t.rich('sentByYou', { ...tags, name })
       : t.rich('sentByNoTime', { ...tags, name });
   return (
-    <div role="status" className="flex">
+    <div className="flex">
       <button
         type="button"
         disabled
@@ -226,6 +226,12 @@ export function RemindersView() {
   const { refresh: refreshSummary, setWhatsappDue } = useSummary();
   const [marks, dispatch] = useReducer(marksReducer, {});
   const busy = useRef(new Set<string>());
+  const f = useBookingFormat(timezone);
+  // F56: ONE live region that is always mounted; its text changes when a row flips to sent.
+  const [announcement, setAnnouncement] = useState('');
+  const plain = { who: (c: string) => c, clock: (c: string) => c };
+  const announce = (item: ReminderItem, text: string) =>
+    setAnnouncement(t('announce', { name: item.client.name, text }));
 
   const res = useResource((signal) => getWhatsappDue(signal), 'due');
   usePolling(res.reload);
@@ -240,6 +246,13 @@ export function RemindersView() {
       const first = alreadySentFrom(error);
       if (first) {
         dispatch({ id: item.id, event: { type: 'conflict', by: first.sentBy, at: first.sentAt } });
+        const who = first.sentBy?.name ?? t('someone');
+        announce(
+          item,
+          first.sentAt
+            ? t.markup('sentBy', { ...plain, name: who, time: f.time(first.sentAt) })
+            : t.markup('sentByNoTime', { ...plain, name: who }),
+        );
       } else {
         errorMessage(error); // a 401 sends the user to sign in
         dispatch({ id: item.id, event: { type: 'fail' } });
@@ -258,6 +271,7 @@ export function RemindersView() {
       return;
     }
     dispatch({ id: item.id, event: { type: 'tap' } });
+    announce(item, t.markup('sentByYou', { ...plain, name: userName }));
     setWhatsappDue(Math.max(0, pendingCount(res.data?.items ?? [], marks) - 1));
     void record(item);
   };
@@ -286,6 +300,9 @@ export function RemindersView() {
   return (
     <>
       <HeaderActions>{counter}</HeaderActions>
+      <div role="status" aria-live="polite" aria-atomic="true" data-testid="reminder-announcer" className="sr-only">
+        {announcement}
+      </div>
       <p className="m-0 max-w-[760px] text-[15px] leading-normal text-muted">{t('intro')}</p>
       {res.error && !res.data ? (
         <LoadError error={res.error} onRetry={res.reload} />

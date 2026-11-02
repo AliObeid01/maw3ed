@@ -242,6 +242,11 @@ export function AppointmentView({ id }: { id: string }) {
       : ts(toneLabelKey[tone === 'waitlist' ? 'booked' : tone]);
   const cancellable =
     (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') && now.getTime() < Date.parse(appt.startAt);
+  // Only for a booking that can still be reminded, and only once the server sent the field (older cache: hidden).
+  const remindable =
+    (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') &&
+    appt.reminderEmail !== undefined &&
+    !isDeletedClient(appt.client.phone);
   const wa = whatsappChatUrl(appt.client.phone);
   const tel = telUrl(appt.client.phone);
   const deleted = isDeletedClient(appt.client.phone);
@@ -377,6 +382,28 @@ export function AppointmentView({ id }: { id: string }) {
               </a>
             ) : null}
           </div>
+          {remindable ? (
+            <p
+              data-testid="reminders-go-to"
+              className="m-0 flex w-full flex-col gap-0.5 border-t border-line pt-3 text-sm leading-normal text-muted"
+            >
+              {appt.reminderEmail ? (
+                <>
+                  <span>
+                    {t('reminders.goTo')}{' '}
+                    <Bidi dir="ltr" className="font-medium break-all text-ink">
+                      {appt.reminderEmail}
+                    </Bidi>
+                  </span>
+                  {appt.reminderEmailDiffers ? (
+                    <span className="text-[13px]">{t('reminders.differs')}</span>
+                  ) : null}
+                </>
+              ) : (
+                <span>{t('reminders.none')}</span>
+              )}
+            </p>
+          ) : null}
         </Card>
 
         {cancellable ? (

@@ -526,10 +526,9 @@ test.describe('the booking window', () => {
       await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
       await pickFirstTime(page);
 
-      // The mock's first free day: tomorrow or later, never a Sunday, 09:00 business time.
-      let start = clockNow().setZone(timezone).startOf('day').plus({ days: 1 });
-      while (start.weekday === 7) start = start.plus({ days: 1 });
-      start = start.set({ hour: 9 });
+      // The mock's first free day (the SAME helper the mock uses): tomorrow or later in the business zone,
+      // never a Sunday, 09:00 business time. F59: no second, independent day computation here.
+      const start = DateTime.fromISO(firstBookableDay(timezone), { zone: timezone }).set({ hour: 9 });
       const cutoff = start.minus({ minutes: cancelCutoffMin }).setLocale('en');
       const when = `${cutoff.toFormat('ccc, LLL d')}, ${cutoff.toFormat('HH:mm')}`;
       // F37: shown on phones in the sticky summary bar and at lg in the side card, exactly once at any width.

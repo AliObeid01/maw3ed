@@ -229,3 +229,58 @@ test('RTL: Arabic appointment page, back chevron mirrored, phone left-to-right',
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test('Reminders go to: the address for this booking, with a hint when it differs from the record', async ({ page }) => {
+  await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: 'maya.record@example.test' }],
+    appointments: [appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya.booking@example.test' })],
+  });
+  await page.goto('/app/appointments/apone');
+  const line = page.getByTestId('reminders-go-to');
+  await expect(line).toContainText('Reminders go to maya.booking@example.test');
+  await expect(line).toContainText("Different from the client's record email");
+  // The address is its own left-to-right isolate.
+  await expect(line.locator('bdi')).toHaveAttribute('dir', 'ltr');
+});
+
+test('Reminders go to: the record email as the fallback shows no hint', async ({ page }) => {
+  await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: 'maya.record@example.test' }],
+    appointments: [appt('apone', 'clmaya', 180, 30)],
+  });
+  await page.goto('/app/appointments/apone');
+  const line = page.getByTestId('reminders-go-to');
+  await expect(line).toContainText('Reminders go to maya.record@example.test');
+  await expect(line).not.toContainText('Different from');
+});
+
+test('Reminders go to: no email says so and keeps WhatsApp available', async ({ page }) => {
+  await mockOutcomesApi(page, setup({}, 180, 30));
+  await page.goto('/app/appointments/apone');
+  await expect(page.getByTestId('reminders-go-to')).toHaveText(
+    'No email on this booking, so no reminder emails are sent. WhatsApp reminders are still available.',
+  );
+});
+
+test('Reminders go to in Arabic: rtl, the address stays left-to-right and the page does not scroll sideways', async ({
+  page,
+  context,
+}) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+  await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: 'maya.record@example.test' }],
+    appointments: [appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya.booking.long.address@example.test' })],
+  });
+  await page.goto('/app/appointments/apone');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  const line = page.getByTestId('reminders-go-to');
+  await expect(line).toContainText('التذكيرات تُرسل إلى');
+  await expect(line).toContainText('يختلف عن البريد المسجّل للعميل');
+  const address = line.locator('bdi');
+  await expect(address).toHaveAttribute('dir', 'ltr');
+  await expect(address).toHaveText('maya.booking.long.address@example.test');
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});

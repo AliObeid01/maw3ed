@@ -28,7 +28,15 @@ import {
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
 import { seedClient } from './helpers/outcomes';
-import { joinBody, joinWaitlist, offerClaim, seedEntry, staffCancel, tokenFromEmail } from './helpers/waitlist';
+import {
+  joinBody,
+  joinWaitlist,
+  offerClaim,
+  runExpiry,
+  seedEntry,
+  staffCancel,
+  tokenFromEmail,
+} from './helpers/waitlist';
 
 /**
  * F16: the email of an appointment is the one typed for THAT booking (Appointment.contactEmail); the client
@@ -548,6 +556,55 @@ describe('review: the record name never reaches a recipient who is not the recor
     expect(mail.html).not.toMatch(NAME_RE);
     expect(mail.text.startsWith('Hello,')).toBe(true);
   });
+
+  // F60: the attack story end to end, through the real public routes, with a REAL offer email in the outbox.
+  it.each(['en', 'ar'] as const)(
+    'F60 (%s): booking then joining the waitlist with the victim phone and an attacker address sends an offer with NO victim name',
+    async (locale) => {
+      await prisma.business.update({ where: { id: a.businessId }, data: { locale } });
+      try {
+        const phone = newPhone();
+        // The victim's record has a name and NO email.
+        await prisma.client.create({
+          data: { businessId: a.businessId, name: VICTIM, phone: normalizePhone(phone)!, email: null },
+        });
+        // The attacker books publicly with the victim's phone, name 'x' and his own email: the record stays untouched.
+        const attack = await bookPublicly(a.slug, body(1, SLOT2, { phone, name: 'x', email: ATTACKER }));
+        expect(attack.status).toBe(201);
+        expect(await clientEmail(phone)).toBeNull();
+        // ... then joins the waitlist with the same phone and email.
+        const joined = await joinWaitlist(
+          a.slug,
+          joinBody(scn.serviceId, {
+            staffId: null,
+            fromDate: '2026-11-04',
+            toDate: '2026-11-04',
+            client: { name: 'x', phone, email: ATTACKER },
+          }),
+        );
+        expect(joined.status).toBe(201);
+        expect(await clientEmail(phone)).toBeNull();
+
+        // A slot is freed: the offer delivery runs (inline on cancel, and the cron sweep after it).
+        const holder = await bookPublicly(a.slug, body(0, SLOT, { name: 'Casey', email: 'casey@x.test' }));
+        fake.reset();
+        expect((await staffCancel(a.cookie, holder.body!.appointment.id)).status).toBe(200);
+        await runExpiry();
+
+        // Exactly one offer email, to the attacker's address (so the assertions below are about a real mail).
+        const offers = fake.calls.filter((c) => /\/o\/[A-Za-z0-9_.-]+/.test(c.text));
+        expect(offers).toHaveLength(1);
+        const mail = offers[0]!;
+        expect(mail.to).toBe(ATTACKER);
+        const hello = locale === 'ar' ? 'مرحبا،' : 'Hello,';
+        for (const part of [mail.text, mail.html, mail.subject]) expect(part).not.toMatch(NAME_RE);
+        expect(mail.text.startsWith(hello)).toBe(true);
+        expect(mail.html).toContain(hello);
+      } finally {
+        await prisma.business.update({ where: { id: a.businessId }, data: { locale: 'en' } });
+      }
+    },
+  );
 
   it('waitlist offer email to the record email keeps the name', async () => {
     const holder = await bookPublicly(a.slug, body(0, SLOT, { name: 'Casey', email: 'casey@x.test' }));

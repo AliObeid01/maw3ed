@@ -1848,6 +1848,17 @@
                   "repeatNoShow",
                   "lateCancels"
                 ]
+              },
+              "reminderEmail": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Staff only. The address reminder emails for this booking go to (the booking address, else the client record address; null when neither is a plausible address). Never in a public response, link, email, log or export."
+              },
+              "reminderEmailDiffers": {
+                "type": "boolean",
+                "description": "True when reminderEmail is set and is not the client record's email."
               }
             },
             "required": [
@@ -1858,7 +1869,9 @@
               "service",
               "staff",
               "source",
-              "client"
+              "client",
+              "reminderEmail",
+              "reminderEmailDiffers"
             ]
           }
         },

@@ -63,6 +63,16 @@ export const appointmentRepo = {
   findById: (businessId: string, id: string) =>
     db.appointment.findFirst({ where: { id, businessId }, select: detailSelect }),
 
+  /**
+   * Staff-only: the two stored addresses `effectiveEmail` chooses from. Kept out of `detailSelect` so no
+   * list / booking / public shape can pick them up by accident (NFR-04).
+   */
+  reminderSources: (businessId: string, id: string) =>
+    db.appointment.findFirst({
+      where: { id, businessId },
+      select: { contactEmail: true, client: { select: { email: true } } },
+    }),
+
   findByIdempotencyKey: (businessId: string, key: string) =>
     db.appointment.findFirst({ where: { businessId, idempotencyKey: key }, select: detailSelect }),
 

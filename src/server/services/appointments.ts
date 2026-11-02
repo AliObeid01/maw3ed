@@ -1,4 +1,5 @@
 import { isRepeatNoShow } from '@/server/domain/clientFlags';
+import { effectiveEmail } from '@/server/domain/contactEmail';
 import { MAX_APPOINTMENT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
@@ -26,6 +27,21 @@ const toItem = (a: Row) => ({
   },
   staff: a.staff,
 });
+
+/**
+ * "Reminders go to ..." (staff screen only). The SAME `effectiveEmail` the reminder runner uses, so the
+ * line can never promise an address the runner would skip. Never logged, never in a public shape.
+ */
+async function withReminderEmail(ctx: SessionContext, row: Row) {
+  const src = await appointmentRepo.reminderSources(ctx.businessId, row.id);
+  const recordEmail = src?.client.email?.trim().toLowerCase() || null;
+  const reminderEmail = effectiveEmail(src?.contactEmail, src?.client.email);
+  return {
+    ...toItem(row),
+    reminderEmail,
+    reminderEmailDiffers: reminderEmail !== null && reminderEmail.toLowerCase() !== recordEmail,
+  };
+}
 
 export const appointmentsService = {
   async list(
@@ -58,7 +74,7 @@ export const appointmentsService = {
     requireRole(ctx, 'OWNER', 'STAFF');
     const row = await appointmentRepo.findById(ctx.businessId, id);
     if (!row) throw AppError.notFound();
-    return { appointment: toItem(row) };
+    return { appointment: await withReminderEmail(ctx, row) };
   },
 
   /** Front-desk booking: same engine as the public page; the business comes from the session. */
@@ -125,6 +141,6 @@ export const appointmentsService = {
     }
     const row = await appointmentRepo.findById(ctx.businessId, id);
     if (!row) throw AppError.notFound();
-    return { appointment: toItem(row) };
+    return { appointment: await withReminderEmail(ctx, row) };
   },
 };

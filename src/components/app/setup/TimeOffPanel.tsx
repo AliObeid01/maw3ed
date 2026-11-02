@@ -18,7 +18,7 @@ import {
 } from '@/lib/api/setup';
 import { errorKey } from '@/lib/setup/errors';
 import { formatClock } from '@/lib/time/clock';
-import { allDayLastDay, isAllDay, localToUtcIso } from '@/lib/setup/time';
+import { allDayLastDay, isAllDay, resolveLocalToUtc, type LocalResolution } from '@/lib/setup/time';
 import { useAppSession } from '../SessionContext';
 import { useErrorMessage } from '../states';
 
@@ -89,11 +89,16 @@ export function TimeOffPanel({
     event.preventDefault();
     if (pending) return;
     setBanner(undefined);
-    const startAt = from ? localToUtcIso(from, timezone) : null;
-    const endAt = to ? localToUtcIso(to, timezone) : null;
+    const start: LocalResolution | null = from ? resolveLocalToUtc(from, timezone) : null;
+    const end: LocalResolution | null = to ? resolveLocalToUtc(to, timezone) : null;
+    const startAt = start?.ok ? start.iso : null;
+    const endAt = end?.ok ? end.iso : null;
     const next: Partial<Record<FieldKey, string>> = {};
-    if (!startAt) next.from = t('errors.required');
-    if (!endAt) next.to = t('errors.required');
+    // A time skipped by the spring-forward change is named, not silently moved an hour.
+    const missing = (r: LocalResolution | null) =>
+      r && !r.ok && r.reason === 'nonexistent' ? t('errors.nonexistent') : t('errors.required');
+    if (!startAt) next.from = missing(start);
+    if (!endAt) next.to = missing(end);
     if (startAt && endAt && new Date(endAt) <= new Date(startAt))
       next.to = t('errors.endBeforeStart');
     setErrors(next);

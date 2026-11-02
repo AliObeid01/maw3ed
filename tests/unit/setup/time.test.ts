@@ -1,12 +1,33 @@
-import { describe, expect, it } from 'vitest';
+import { DateTime, Settings } from 'luxon';
+import { afterEach, describe, expect, it } from 'vitest';
 import {
   allDayLastDay,
   isAllDay,
   localToUtcIso,
+  resolveLocalToUtc,
   startOfDayLocal,
   utcIsoToLocal,
   utcOffsetLabel,
 } from '@/lib/setup/time';
+
+/** The REAL Beirut spring-forward days: the first date whose offset is larger than the day before. */
+function springForwardDay(year: number, timezone: string): string {
+  let prev = DateTime.fromObject({ year, month: 1, day: 1 }, { zone: timezone });
+  for (let i = 0; i < 366; i++) {
+    const next = prev.plus({ days: 1 });
+    if (next.offset > prev.offset) return next.toISODate()!;
+    prev = next;
+  }
+  throw new Error('no spring-forward day');
+}
+const SPRING_2026 = springForwardDay(2026, 'Asia/Beirut');
+const SPRING_2027 = springForwardDay(2027, 'Asia/Beirut');
+
+describe('real transition dates', () => {
+  it('are 29 Mar 2026 and 28 Mar 2027', () => {
+    expect([SPRING_2026, SPRING_2027]).toEqual(['2026-03-29', '2027-03-28']);
+  });
+});
 
 describe('localToUtcIso / utcIsoToLocal (business timezone)', () => {
   it('uses UTC+2 in Beirut winter and UTC+3 after the March change', () => {
@@ -19,10 +40,24 @@ describe('localToUtcIso / utcIsoToLocal (business timezone)', () => {
     expect(localToUtcIso('2026-10-26T12:00', 'Asia/Beirut')).toBe('2026-10-26T10:00:00Z');
   });
 
-  it('shifts a wall-clock time that does not exist (spring-forward gap) forward, never throws', () => {
-    // Beirut jumps 00:00 -> 01:00 on 2026-03-29, so 00:30 does not exist.
-    const iso = localToUtcIso('2026-03-29T00:30', 'Asia/Beirut');
-    expect(iso).toBe('2026-03-28T22:30:00Z');
+  it('rejects a wall-clock time that does not exist (spring-forward gap) instead of shifting it', () => {
+    // Beirut jumps 00:00 -> 01:00 on 2026-03-29 and on 2027-03-28 (computed from the zone rules, not guessed).
+    for (const day of [SPRING_2026, SPRING_2027]) {
+      expect(localToUtcIso(`${day}T00:30`, 'Asia/Beirut')).toBeNull();
+      expect(resolveLocalToUtc(`${day}T00:30`, 'Asia/Beirut')).toEqual({ ok: false, reason: 'nonexistent' });
+      // Just after the gap and the end of the day are real times.
+      expect(resolveLocalToUtc(`${day}T01:00`, 'Asia/Beirut').ok).toBe(true);
+      expect(resolveLocalToUtc(`${day}T23:59`, 'Asia/Beirut').ok).toBe(true);
+    }
+    expect(resolveLocalToUtc('2026-02-30T10:00', 'Asia/Beirut')).toEqual({ ok: false, reason: 'invalid' });
+  });
+
+  it('accepts the repeated fall-back hour and picks its FIRST occurrence (the earlier, UTC+3 one)', () => {
+    // Beirut falls back at 00:00 -> 23:00 the evening before: 23:00-23:59 on 2026-10-24 happens twice.
+    const iso = localToUtcIso('2026-10-24T23:30', 'Asia/Beirut');
+    expect(iso).toBe('2026-10-24T20:30:00Z');
+    // Luxon alone would pick the LATER occurrence (21:30Z); we document and use the first.
+    expect(DateTime.fromISO(iso!, { zone: 'utc' }).setZone('Asia/Beirut').offset).toBe(180);
   });
 
   it('handles another zone on its own DST day', () => {
@@ -98,5 +133,20 @@ describe('startOfDayLocal / utcOffsetLabel', () => {
     expect(utcOffsetLabel('Asia/Beirut', new Date('2026-07-10T12:00:00Z'))).toBe('UTC+3');
     expect(utcOffsetLabel('Asia/Kolkata', new Date('2026-07-10T12:00:00Z'))).toBe('UTC+5:30');
     expect(utcOffsetLabel('America/New_York', new Date('2026-01-10T12:00:00Z'))).toBe('UTC-5');
+  });
+});
+
+describe('F58: independent of the Luxon default locale', () => {
+  const before = Settings.defaultLocale;
+  afterEach(() => {
+    Settings.defaultLocale = before;
+  });
+
+  it('utcIsoToLocal and startOfDayLocal keep Latin digits under an Arabic default locale', () => {
+    Settings.defaultLocale = 'ar-EG';
+    expect(utcIsoToLocal('2026-01-10T22:30:00Z', 'Asia/Beirut')).toBe('2026-01-11T00:30');
+    expect(startOfDayLocal(new Date('2026-01-10T22:30:00Z'), 'Asia/Beirut')).toBe('2026-01-11T00:00');
+    expect(startOfDayLocal(new Date('2026-01-10T22:30:00Z'), 'Asia/Beirut', 1)).toBe('2026-01-12T00:00');
+    expect(localToUtcIso('2026-01-11T00:30', 'Asia/Beirut')).toBe('2026-01-10T22:30:00Z');
   });
 });

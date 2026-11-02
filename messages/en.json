@@ -440,6 +440,7 @@
         "errors": {
           "required": "Pick a date and time.",
           "endBeforeStart": "The end must be after the start.",
+          "nonexistent": "That time does not exist on this day because the clocks change. Pick another time.",
           "checkDates": "Check the dates and try again."
         }
       }
@@ -593,6 +594,7 @@
       "sendAria": "Send the reminder to {name} on WhatsApp",
       "sentBy": "Sent by <who>{name}</who>, <clock>{time}</clock>",
       "sentByYou": "Sent by <who>{name}</who>, just now",
+      "announce": "{name}: {text}",
       "sentByNoTime": "Sent by <who>{name}</who>",
       "someone": "a teammate",
       "noPhone": "No valid phone",
@@ -687,6 +689,11 @@
       "confirmedByClient": "Confirmed by client",
       "clientLabel": "Client",
       "clientHistoryAria": "See the history of {name}",
+      "reminders": {
+        "goTo": "Reminders go to",
+        "none": "No email on this booking, so no reminder emails are sent. WhatsApp reminders are still available.",
+        "differs": "Different from the client's record email"
+      },
       "noShowCount": "{count, plural, one {# no-show} other {# no-shows}}",
       "lateCancelCount": "{count, plural, one {# late cancel} other {# late cancels}}",
       "cancel": "Cancel for client",
