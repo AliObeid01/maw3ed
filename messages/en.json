@@ -531,6 +531,7 @@
         "close": "Close",
         "done": "{count, plural, =0 {No other devices were signed in.} one {# other device was signed out.} other {# other devices were signed out.}}"
       },
+      "signOut": "Sign out",
       "profile": {
         "title": "Your sign-in",
         "name": "Name",

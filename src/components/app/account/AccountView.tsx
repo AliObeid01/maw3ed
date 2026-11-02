@@ -52,7 +52,7 @@ export function AccountView() {
 
       <Button variant="secondary" size="lg" block loading={signingOut} onClick={signOut}>
         <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
-        {tf('signOut')}
+        {t('signOut')}
       </Button>
     </div>
   );
