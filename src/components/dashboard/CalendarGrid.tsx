@@ -8,6 +8,7 @@ import type { TodayAppointment } from '@/lib/api/dashboard';
 import { apptTone, isActive } from '@/lib/dashboard/agenda';
 import { calendarRange, hourMarks, layoutColumn, ROW_PX } from '@/lib/dashboard/calendar';
 import { initials } from '@/lib/dashboard/phone';
+import { clockOf } from '@/lib/time/clock';
 import { cn } from '@/lib/cn';
 import { blockTint, toneLabelKey } from './apptStyles';
 
@@ -72,7 +73,7 @@ export function CalendarGrid({
               className="absolute text-xs text-muted tabular-nums"
               style={{ top: i * 2 * ROW_PX + 4 }}
             >
-              <bdi dir="ltr">{`${hour}:00`}</bdi>
+              <bdi dir="ltr">{clockOf(hour)}</bdi>
             </span>
           ))}
         </div>

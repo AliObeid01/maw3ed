@@ -17,6 +17,7 @@ import {
   type TimeOffReason,
 } from '@/lib/api/setup';
 import { errorKey } from '@/lib/setup/errors';
+import { formatClock } from '@/lib/time/clock';
 import { allDayLastDay, isAllDay, localToUtcIso } from '@/lib/setup/time';
 import { useAppSession } from '../SessionContext';
 import { useErrorMessage } from '../states';
@@ -60,14 +61,7 @@ export function TimeOffPanel({
       month: 'short',
       timeZone: timezone,
     });
-  const time = (iso: string) =>
-    format.dateTime(new Date(iso), {
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-      timeZone: timezone,
-      numberingSystem: 'latn',
-    });
+  const time = (iso: string) => formatClock(iso, timezone);
 
   const describe = (item: TimeOff) => {
     if (isAllDay(item.startAt, item.endAt, timezone)) {

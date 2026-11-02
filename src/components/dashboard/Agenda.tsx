@@ -9,6 +9,7 @@ import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Chip } from '@/components/ui/Chip';
 import type { TodayAppointment } from '@/lib/api/dashboard';
 import { apptTone, groupAgenda } from '@/lib/dashboard/agenda';
+import { clockOf } from '@/lib/time/clock';
 import { cn } from '@/lib/cn';
 import { chipTone, toneLabelKey } from './apptStyles';
 
@@ -90,7 +91,7 @@ export function Agenda({
               id={headingId}
               className="m-0 text-[13px] font-semibold tracking-[0.08em] text-muted uppercase tabular-nums"
             >
-              <bdi dir="ltr">{f.time(first.startAt).replace(/:\d\d$/, ':00')}</bdi>
+              <bdi dir="ltr">{clockOf(group.hour)}</bdi>
             </h3>
             <ul className="m-0 flex list-none flex-col gap-2 p-0">
               {group.items.map((appt) => {
