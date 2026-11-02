@@ -171,10 +171,10 @@ test.describe('Staff > Team access', () => {
   });
 });
 
-test.describe('Settings > Account: sign out other devices', () => {
+test.describe('Account page: sign out other devices', () => {
   test('asks first, then reports how many devices were signed out', async ({ page }) => {
     const { calls } = await mockSetupApi(page, { state: state() });
-    await page.goto('/app/settings');
+    await page.goto('/app/account');
     const card = page.getByRole('region', { name: 'Account' });
     await expect(card.getByText(/Signs you out everywhere else/)).toBeVisible();
     const open = card.getByRole('button', { name: 'Sign out other devices' });

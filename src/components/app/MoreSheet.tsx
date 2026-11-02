@@ -43,6 +43,12 @@ export function MoreSheet({
             badges={badges}
             onNavigate={close}
           />
+          <NavLink
+            id="account"
+            active={activeId === 'account'}
+            href={hrefs.account}
+            onNavigate={close}
+          />
         </ul>
         {hideBusiness ? null : (
           <BusinessSection activeId={activeId} hrefs={hrefs} onNavigate={close} />

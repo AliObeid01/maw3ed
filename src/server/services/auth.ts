@@ -197,6 +197,7 @@ export const authService = {
     return {
       userId: user.id,
       userName: user.name,
+      email: user.email,
       emailVerified: user.emailVerifiedAt !== null,
       businessId: business.id,
       businessName: business.name,

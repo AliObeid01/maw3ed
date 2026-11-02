@@ -11,7 +11,7 @@ test.beforeEach(async ({ page }) => {
 
 type Sent = { currentPassword: string; newPassword: string };
 
-test.describe('Settings > Account: change password', () => {
+test.describe('Account page: change password', () => {
   test('validates, shows a wrong current password on its field, then succeeds', async ({ page }) => {
     const sent: Sent[] = [];
     await mockSetupApi(page, {
@@ -37,7 +37,7 @@ test.describe('Settings > Account: change password', () => {
         return true;
       },
     });
-    await page.goto('/app/settings');
+    await page.goto('/app/account');
     const card = page.getByRole('region', { name: 'Account' });
     await expect(card).toBeVisible();
     await expect(card.locator('input[name=currentPassword]')).toHaveAttribute(
@@ -90,7 +90,7 @@ test.describe('Settings > Account: change password', () => {
         return true;
       },
     });
-    await page.goto('/app/settings');
+    await page.goto('/app/account');
     const card = page.getByRole('region', { name: 'Account' });
     await card.locator('input[name=currentPassword]').fill('whatever-it-is');
     await card.locator('input[name=newPassword]').fill('a-brand-new-passphrase');
@@ -101,7 +101,7 @@ test.describe('Settings > Account: change password', () => {
   test('Arabic: the Account card is right-to-left with Arabic copy', async ({ page, context }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
     await mockSetupApi(page);
-    await page.goto('/app/settings');
+    await page.goto('/app/account');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     const card = page.getByRole('region', { name: 'الحساب' });
     await expect(card).toBeVisible();

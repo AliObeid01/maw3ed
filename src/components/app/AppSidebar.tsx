@@ -158,7 +158,14 @@ export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, cl
         {t('newBooking')}
       </ButtonLink>
 
-      <LanguageToggle className="mt-auto w-full" />
+      <div className="mt-auto flex flex-col gap-3">
+        <nav aria-label={t('accountNav')}>
+          <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+            <NavLink id="account" active={activeId === 'account'} href={hrefs.account} />
+          </ul>
+        </nav>
+        <LanguageToggle className="w-full" />
+      </div>
     </aside>
   );
 }

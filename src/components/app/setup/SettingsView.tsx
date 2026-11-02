@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { PlanCard } from '@/components/billing/PlanCard';
-import { AccountCard } from './AccountCard';
 import { DepositSettings } from './DepositSettings';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
@@ -389,10 +388,5 @@ function SettingsInner() {
   if (business.error && !business.data)
     return <LoadError error={business.error} onRetry={business.reload} />;
   if (!business.data) return <SettingsSkeleton />;
-  return (
-    <>
-      <SettingsForm business={business.data} onSaved={business.setData} />
-      <AccountCard />
-    </>
-  );
+  return <SettingsForm business={business.data} onSaved={business.setData} />;
 }

@@ -2,6 +2,7 @@ import {
   BarChart3,
   CalendarDays,
   CircleCheck,
+  CircleUser,
   Clock,
   Link2,
   ListChecks,
@@ -24,7 +25,8 @@ export type NavId =
   | 'staff'
   | 'hours'
   | 'settings'
-  | 'share';
+  | 'share'
+  | 'account';
 
 /** Pages the shell knows about; `book` has no nav item but is a valid active page (New booking). */
 export type ActiveId = NavId | 'book';
@@ -35,7 +37,7 @@ export const businessNav: NavId[] = ['setup', 'services', 'staff', 'hours', 'set
 export type TabId = 'today' | 'reminders' | 'outcomes' | 'clients';
 export const tabNav: TabId[] = ['today', 'reminders', 'outcomes', 'clients'];
 /** Everything that lives in the More sheet. */
-export const moreNav: NavId[] = ['pilot', ...businessNav];
+export const moreNav: NavId[] = ['pilot', 'account', ...businessNav];
 
 export const navIcons: Record<NavId, LucideIcon> = {
   today: CalendarDays,
@@ -49,6 +51,7 @@ export const navIcons: Record<NavId, LucideIcon> = {
   hours: Clock,
   settings: SlidersHorizontal,
   share: Link2,
+  account: CircleUser,
 };
 
 export const defaultHrefs: Record<ActiveId, string> = {
@@ -63,6 +66,7 @@ export const defaultHrefs: Record<ActiveId, string> = {
   hours: '/app/hours',
   settings: '/app/settings',
   share: '/app/share',
+  account: '/app/account',
   book: '/app/book',
 };
 

@@ -1,21 +1,20 @@
 'use client';
 
 import { LogOut } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
-import { ToastProvider, useToast } from '@/components/ui/Toast';
-import { logout } from '@/lib/api/auth';
+import { ToastProvider } from '@/components/ui/Toast';
 import { greetingFor } from '@/lib/dashboard/agenda';
-import { errorKey } from '@/lib/setup/errors';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
 import { defaultHrefs, type ActiveId } from './nav';
+import { useSignOut } from './useSignOut';
 
 /** Which nav entry is active for a pathname (longest matching href wins; unknown pages fall back to Today). */
 export function activeIdFor(pathname: string): ActiveId {
@@ -55,27 +54,6 @@ function AccountButton({ session }: { session: AppSession }) {
       </Sheet>
     </>
   );
-}
-
-function useSignOut() {
-  const router = useRouter();
-  const t = useTranslations('app.frame');
-  const toast = useToast();
-  const [signingOut, setSigningOut] = useState(false);
-  const signOut = async () => {
-    if (signingOut) return;
-    setSigningOut(true);
-    try {
-      await logout();
-      router.replace('/login');
-    } catch (error) {
-      // An expired session is already signed out: go to the sign-in page either way.
-      if (errorKey(error) === 'unauthorized') router.replace('/login');
-      else toast.show(t('signOutFailed'), 'error');
-      setSigningOut(false);
-    }
-  };
-  return { signOut, signingOut };
 }
 
 function Frame({ session, children }: { session: AppSession; children: ReactNode }) {

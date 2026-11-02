@@ -21,7 +21,8 @@ Open:
 - [x] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
 - [ ] Neon usage check (storage and compute hours on the free plan).
 - [ ] Optional: DMARC TXT record (`_dmarc`).
-- [x] Sentry error monitoring: DONE 1 Nov 2026 (EU project, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` as Production-only Vercel variables, test event confirmed with `POST /api/jobs/sentry-test`, alert emails on, Sentry data scrubber and IP storage settings enabled). Still optional: mark the two test issues Resolved; the tunnel (PLAN F41) and source maps (F39).
+- [x] Sentry error monitoring: DONE 1 Nov 2026 (EU project, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` as Production-only Vercel variables, test event confirmed with `POST /api/jobs/sentry-test`, alert emails on, Sentry data scrubber and IP storage settings enabled). Still optional: mark the two test issues Resolved; the tunnel (PLAN F41). Readable stack traces (F39, code merged, inert until you add three variables): see "Readable Sentry stack traces" below and the open line right under this list.
+- [ ] Sentry readable stack traces (F39, optional, about 10 minutes): add the three Production-only build variables in Vercel, redeploy and check one test issue. Steps: "Readable Sentry stack traces" below. Until then Sentry shows minified frames (nothing else is affected).
 - [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
 - [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
 
@@ -31,7 +32,7 @@ Open:
 | 2 | **Vercel**: import the GitHub repo; set env vars (below) for Production and Preview; create a token. | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` (GitHub secrets) | P0.5 |
 | 3 | **Resend**: create an account, add and **verify a sending domain** (SPF + DKIM DNS records; DMARC recommended). Without a verified domain Resend only delivers to your own address. | `RESEND_API_KEY`, `EMAIL_FROM` (e.g. `Maw3ed <reminders@yourdomain>`) | P2.4 |
 | 4 | **cron-job.org**: two jobs every 5 min, `POST https://<prod>/api/jobs/reminders` and `/api/jobs/waitlist-expiry`, header `x-cron-secret: <CRON_SECRET>`. Add a third job, **daily** (for example 03:00): `POST https://<prod>/api/jobs/cleanup` with the same header. It purges expired sessions, old invites and rate-limit buckets; the backup GitHub workflow also calls it daily at 03:00 UTC. Turn on failure notifications. | `CRON_SECRET` (also a GitHub secret for the backup workflow) | P2.17 |
-| 5 | **Sentry** (optional): see "Sentry setup" below. | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` (`SENTRY_AUTH_TOKEN` only with F39) | O5 |
+| 5 | **Sentry** (optional): see "Sentry setup" below. | `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` (plus `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` for readable stack traces, F39) | O5 |
 | 6 | **Whish Money** (optional): request merchant test credentials and API docs from the accelerator or Whish onboarding. Until then the FakePaymentProvider is used. | `WHISH_*` | P3.9 |
 | 7 | **Pilots**: recruit 3–5 businesses and collect their 14-day baselines (`docs/PILOT_PLAYBOOK.md`). | baselines | P2.17 |
 | 8 | **GitHub**: protect `main` (require the CI check, require a PR). | — | P0.5 |
@@ -56,7 +57,22 @@ The app already contains the Sentry code; it does nothing until a DSN exists in 
 7. Sentry, Project Settings, Security & Privacy: switch **Prevent Storing of IP Addresses** ON and **Data Scrubber** ON (keep "Use Default Scrubbers" ON). The app removes personal data on a best-effort basis before sending (emails, phone numbers, link tokens, database error values); free-text names cannot be detected automatically, so error messages are built without client data and a rare residual risk remains. Keep these Sentry scrubbing options on as the second layer, and look at the first few real issues to confirm nothing personal appears.
 8. Resolve the test issue in Sentry so it does not stay open.
 
-Not done on purpose (follow-up F39): readable stack traces. Source map upload needs `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` as Production-only build variables; until then Sentry shows minified frames.
+## Readable Sentry stack traces (F39, optional, about 10 minutes)
+
+The build code is merged and **inert**: it uploads source maps only when all three variables below exist AND the build is a Vercel Production build. Until then Sentry shows minified frames and nothing else changes. Do these steps in order; never paste the token into chat, a ticket, git or a screenshot.
+
+1. Sentry (the EU site, `de.sentry.io`), your organisation: **Settings, Developer Settings, Organization Tokens, Create New Token**. Name it `maw3ed-vercel-sourcemaps`. An organisation token has a fixed scope: **`org:ci`** (create releases and upload source maps). There is nothing to tick, and you must NOT use a personal or internal-integration token with more rights. Sentry shows the token **once**: copy it straight into your private note (password manager). It is a SECRET.
+2. Find the two slugs: the organisation slug is in the Sentry URL (`de.sentry.io/organizations/<org-slug>/`, for example `maw3ed-01`); the project slug is in Settings, Projects (the project name in lower case, for example `maw3ed`). Slugs are not secret.
+3. Vercel, Project, Settings, Environment Variables: add **three variables for the Production environment only** (untick Preview and Development), all available at **build time**:
+   - `SENTRY_AUTH_TOKEN` = the token. Tick **Sensitive** so it can never be read back.
+   Note: because it is a Production variable, the token is also present in the running app's environment. "Sensitive" hides it in the Vercel dashboard but does not remove it from the runtime. Nothing in `src` reads it, it is never logged or sent anywhere, and you can revoke it in Sentry at any time (step 7). Keep the rule: never paste the token in chat, a ticket, git or a screenshot.
+   - `SENTRY_ORG` = the organisation slug.
+   - `SENTRY_PROJECT` = the project slug.
+   Set all three or none: with only one or two, the build prints a warning (names only) and uploads nothing.
+4. Redeploy Production (Deployments, the latest one, Redeploy; untick "Use existing Build Cache" the first time).
+5. Check the build log: there must be no line starting "Warning: Sentry source map upload failed". A failed upload (wrong token, wrong slug) **never fails the deployment**; it only warns, and traces stay minified.
+6. Verify: send the protected test request from "Sentry setup" step 5 (`POST /api/jobs/sentry-test` with the `x-cron-secret` header). Within a minute the new issue must show original file names and lines (for example `src/app/api/jobs/sentry-test/route.ts`), not `chunks/0ab12...js:1:48213`. The source map files are deleted from the deployment after upload: opening `https://<your domain>/_next/static/chunks/<any file>.js.map` must return 404.
+7. To stop: delete the three variables and redeploy (the build is inert again). To revoke the token: Sentry, Settings, Developer Settings, Organization Tokens, the token's **Revoke** button; then delete `SENTRY_AUTH_TOKEN` in Vercel. Rotate it the same way if it was ever exposed.
 
 ## Security headers check and the CSP kill switch (F7)
 
