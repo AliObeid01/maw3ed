@@ -30,9 +30,8 @@ export function CalendarGrid({
   timezone: string;
   onOpen: (appt: TodayAppointment) => void;
 }) {
-  const t = useTranslations('app.today');
   const ts = useTranslations('ui.status');
-  const tDash = useTranslations('app.dashboard');
+  const t = useTranslations('app');
   const f = useBookingFormat(timezone);
   const range = calendarRange(appointments, timezone);
   const marks = hourMarks(range);
@@ -44,7 +43,7 @@ export function CalendarGrid({
   return (
     <div
       role="group"
-      aria-label={t('calendarLabel')}
+      aria-label={t('today.calendarLabel')}
       className="overflow-x-auto rounded-card border border-line bg-surface"
     >
       <div
@@ -98,12 +97,14 @@ export function CalendarGrid({
                 const start = f.time(appt.startAt);
                 const end = f.time(appt.endAt);
                 const status = ts(toneLabelKey[tone]);
+                const noShowLabel = t('dashboard.noShows', { count: appt.client.noShows });
+                const noShowText = appt.client.repeatNoShow ? noShowLabel : null;
                 const details = [
                   appt.client.name,
                   timeRangeText(start, end),
                   appt.service.name,
                   status,
-                  appt.client.repeatNoShow ? tDash('noShows', { count: appt.client.noShows }) : null,
+                  noShowText,
                 ]
                   .filter(Boolean)
                   .join(' · ');
@@ -146,7 +147,7 @@ export function CalendarGrid({
                           {/* What the one-line block cannot show is still in the accessible name. */}
                           <span className="sr-only">
                             {appt.service.name} · {status}
-                            {appt.client.repeatNoShow ? <> · {tDash('noShows', { count: appt.client.noShows })}</> : null}
+                            {noShowText ? <> · {noShowText}</> : null}
                           </span>
                         </>
                       ) : (

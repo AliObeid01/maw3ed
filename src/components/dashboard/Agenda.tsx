@@ -84,7 +84,6 @@ export function Agenda({
     <div className="flex flex-col gap-4">
       {groups.map((group) => {
         const headingId = `${baseId}-${group.key}`;
-        const first = group.items[0]!;
         return (
           <section key={group.key} aria-labelledby={headingId} className="flex flex-col gap-2">
             <h3
