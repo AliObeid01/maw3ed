@@ -1041,6 +1041,40 @@ describe('token scopes', () => {
   });
 });
 
+describe('pay view: business address and service total (F51)', () => {
+  it("shows this business's address and the service price next to the deposit, never another business's", async () => {
+    await pg.query(`UPDATE "Business" SET address=$1 WHERE id=$2`, ['1 Hamra Street, Beirut', a.businessId]);
+    await pg.query(`UPDATE "Business" SET address=$1 WHERE id=$2`, ['99 Other Road', b.businessId]);
+    const hold = await holdSlot();
+    const price = Number(
+      (await pg.query('SELECT price FROM "Service" WHERE id=$1', [scn.serviceId])).rows[0].price,
+    );
+    const view = await payGet(tokenOf(hold));
+    expect(view.status).toBe(200);
+    expect(view.body!.business).toEqual({
+      name: 'Alpha Salon',
+      slug: a.slug,
+      timezone: expect.any(String),
+      locale: expect.any(String),
+      address: '1 Hamra Street, Beirut',
+    });
+    expect(view.body!.appointment.service.price).toBe(price);
+    expect(view.body!.deposit.amount).toBe(5); // the deposit stays its own number
+    expect(JSON.stringify(view.body)).not.toContain('99 Other Road');
+    // The paid screen carries the same facts.
+    const paid = await payPost(tokenOf(hold));
+    expect(paid.body!.business.address).toBe('1 Hamra Street, Beirut');
+    expect(paid.body!.appointment.service.price).toBe(price);
+  });
+
+  it('omits the address when the business has none', async () => {
+    await pg.query(`UPDATE "Business" SET address=NULL WHERE id=$1`, [a.businessId]);
+    const hold = await holdSlot();
+    const view = await payGet(tokenOf(hold));
+    expect(view.body!.business).not.toHaveProperty('address');
+  });
+});
+
 describe('status audit: a hold is not a booking', () => {
   it('is not in the outcomes queue, cannot take an outcome, and does not move counters or reports', async () => {
     const client = await seedClient(prisma, a.businessId, { noShows: 0 });

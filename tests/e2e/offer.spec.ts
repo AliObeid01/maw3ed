@@ -1,7 +1,7 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './helpers/test';
 import { freezeClock, ORIGIN } from './helpers/clock';
-import { TZ } from './helpers/publicMock';
+import { IDS, TZ } from './helpers/publicMock';
 import { mockOfferApi, type OfferMock } from './helpers/waitlistMock';
 
 // Self-contained: every /api/offers call is answered by page.route.
@@ -229,4 +229,58 @@ test('Arabic: RTL, translated expiry text, times and money isolated as LTR', asy
   await expect(page.locator('bdi', { hasText: 'Haircut' }).first()).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test.describe('join the waitlist again (F49)', () => {
+  const rejoin = (page: Page) => page.getByRole('link', { name: 'Join the waitlist again' });
+  const cases = [
+    { status: 'EXPIRED', heading: 'This offer has expired' },
+    { status: 'TAKEN', heading: 'Someone else got this slot' },
+    { status: 'HOLD_LAPSED', heading: 'Your deposit time ran out' },
+    { status: 'UNAVAILABLE', heading: "This offer can't be claimed" },
+  ] as const;
+  for (const c of cases) {
+    test(`${c.status}: a secondary link goes to the waitlist pre-filled with the service`, async ({ page }) => {
+      await open(page, { status: c.status, canClaim: false });
+      await expect(page.getByRole('heading', { name: c.heading })).toBeVisible();
+      await expect(rejoin(page)).toHaveAttribute('href', `/b/studio-nour/waitlist?service=${IDS.haircut}`);
+      await expect(page.getByRole('link', { name: 'See free times' })).toHaveAttribute('href', '/b/studio-nour');
+      expect((await rejoin(page).boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    });
+  }
+
+  test('a request for one staff member also pre-fills the staff', async ({ page }) => {
+    await open(page, { status: 'TAKEN', canClaim: false, entryStaffId: IDS.karim });
+    await expect(rejoin(page)).toHaveAttribute(
+      'href',
+      `/b/studio-nour/waitlist?service=${IDS.haircut}&staff=${IDS.karim}`,
+    );
+  });
+
+  test('ALREADY_BOOKED has no rejoin link (the client holds a booking)', async ({ page }) => {
+    await open(page, { status: 'ALREADY_BOOKED', canClaim: false });
+    await expect(page.getByRole('heading', { name: 'You already have a booking' })).toBeVisible();
+    await expect(rejoin(page)).toHaveCount(0);
+  });
+
+  test('a claim that loses shows the rejoin link too', async ({ page }) => {
+    await open(page, { claim: 'taken' });
+    await book(page).click();
+    await expect(rejoin(page)).toHaveAttribute('href', `/b/studio-nour/waitlist?service=${IDS.haircut}`);
+  });
+
+  test('following it opens the waitlist form with the service already chosen', async ({ page }) => {
+    await open(page, { status: 'EXPIRED', canClaim: false });
+    await rejoin(page).click();
+    await expect(page).toHaveURL(new RegExp(`/b/studio-nour/waitlist\\?service=${IDS.haircut}`));
+  });
+
+  test('Arabic: the link is translated, RTL, no overflow', async ({ page, context }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+    await open(page, { status: 'EXPIRED', canClaim: false });
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByRole('link', { name: 'الانضمام إلى قائمة الانتظار مرة أخرى' })).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
 });
