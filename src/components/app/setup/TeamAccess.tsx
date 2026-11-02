@@ -43,7 +43,6 @@ export function TeamAccess({
   onInvite: () => void;
 }) {
   const t = useTranslations('team');
-  const purpose = useTranslations('app.staff')('invites.body');
   const format = useFormatter();
   const toast = useToast();
   const errorText = useErrorMessage();
@@ -144,12 +143,13 @@ export function TeamAccess({
               </button>
             )}
           </h2>
-          <p className="m-0 text-[13px] text-muted">{purpose}</p>
+          <p className="m-0 text-[13px] text-muted">{t('purpose')}</p>
           <p className="m-0 text-[13px] text-muted">{summary}</p>
         </div>
         {/* The one invite button: always visible, also while the member list is collapsed on a phone. */}
         <div className="flex flex-col items-start gap-1.5">
           <Button
+            id="team-access-invite"
             variant="secondary"
             disabled={inviteDisabled}
             aria-describedby={inviteDisabled ? `${uid}-gate` : undefined}

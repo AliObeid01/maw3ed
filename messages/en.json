@@ -359,9 +359,6 @@
         "fieldInvalid": "Please check this value.",
         "hasFutureAppointments": "{name} has upcoming appointments. Move or cancel them before deactivating."
       },
-      "invites": {
-        "body": "Invite someone to run the calendar. They join as Staff."
-      },
       "invite": {
         "title": "Invite receptionist",
         "description": "They get an email with a link to create their login.",
@@ -882,7 +879,8 @@
       "lastOwner": "A business must keep at least one owner.",
       "self": "You cannot remove your own access."
     },
-    "remainingNote": "{name} is hidden from your booking page. {count, plural, one {# upcoming appointment remains} other {# upcoming appointments remain}} on their calendar: move or cancel them from Today, or make them bookable again in the staff list above."
+    "remainingNote": "{name} is hidden from your booking page. {count, plural, one {# upcoming appointment remains} other {# upcoming appointments remain}} on their calendar: move or cancel them from Today, or make them bookable again in the staff list above.",
+    "purpose": "Invite someone to run the calendar. They join as Staff."
   },
   "auth": {
     "tabs": {

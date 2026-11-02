@@ -3,7 +3,7 @@
 import { MetaLine } from '@/components/ui/Bidi';
 import { Plus, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -118,6 +118,15 @@ function StaffInner() {
 
   const list = staff.data;
   const serviceList = services.data;
+  const ready = Boolean(list && serviceList);
+
+  // The setup step links to /app/staff#team-access. The card only exists once the lists have loaded, so the browser's
+  // own hash scroll finds nothing: scroll to it here and put keyboard focus on its invite button (only with the hash).
+  useEffect(() => {
+    if (!ready || window.location.hash !== '#team-access') return;
+    document.getElementById('team-access')?.scrollIntoView({ block: 'start' });
+    document.getElementById('team-access-invite')?.focus({ preventScroll: true });
+  }, [ready]);
 
   if (staff.error && !list) return <LoadError error={staff.error} onRetry={staff.reload} />;
   if (services.error && !serviceList)

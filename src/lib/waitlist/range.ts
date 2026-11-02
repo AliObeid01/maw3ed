@@ -78,7 +78,9 @@ export function prefillRange(
 ): DateRange | undefined {
   if (!from || !isDay(from)) return undefined;
   const today = todayIn(now, timezone);
-  const lastDay = addDays(today, Math.max(1, Math.floor(windowDays)) - 1);
+  // A window that is not a finite number of at least 1 (NaN, 0, negative) falls back to the default length.
+  const windowLen = Number.isFinite(windowDays) && windowDays >= 1 ? Math.floor(windowDays) : DEFAULT_SPAN_DAYS;
+  const lastDay = addDays(today, windowLen - 1);
   if (from < today || from > lastDay) return undefined;
   const to = addDays(from, DEFAULT_SPAN_DAYS - 1);
   return { from, to: to > lastDay ? lastDay : to };

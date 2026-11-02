@@ -17,8 +17,8 @@ const SIZES = [
   { name: '1440', width: 1440, height: 900 },
 ] as const;
 const LOCALES = [
-  { code: 'en', monday: /Edit Monday/, add: 'Add hours' },
-  { code: 'ar', monday: /الاثنين/, add: 'إضافة ساعات' },
+  { code: 'en', monday: /Edit Monday/, add: 'Add hours', apply: 'Apply' },
+  { code: 'ar', monday: /الاثنين/, add: 'إضافة ساعات', apply: 'تطبيق' },
 ] as const;
 
 for (const locale of LOCALES) {
@@ -44,12 +44,11 @@ for (const locale of LOCALES) {
 
         await expectNoHorizontalOverflow(dialog, 'hours sheet');
         // Cancel and Apply are both fully inside the sheet and tappable (>= 44 px).
-        const buttons = dialog.locator('button:visible');
-        const last = await buttons.nth((await buttons.count()) - 1).boundingBox();
+        const apply = await dialog.getByRole('button', { name: locale.apply, exact: true }).boundingBox();
         const box = await dialog.boundingBox();
-        expect(last!.x + last!.width).toBeLessThanOrEqual(box!.x + box!.width + 1);
-        expect(last!.x).toBeGreaterThanOrEqual(box!.x - 1);
-        expect(last!.height).toBeGreaterThanOrEqual(44);
+        expect(apply!.x + apply!.width).toBeLessThanOrEqual(box!.x + box!.width + 1);
+        expect(apply!.x).toBeGreaterThanOrEqual(box!.x - 1);
+        expect(apply!.height).toBeGreaterThanOrEqual(44);
         await expectNoPageOverflow(page);
       });
 

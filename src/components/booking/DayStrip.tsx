@@ -87,7 +87,7 @@ export function DayStrip({
                 // A chosen full day is outlined, not filled: it is selected but has nothing to book.
                 checked && count === 0 && 'border-brand bg-canvas text-ink',
                 !checked && count > 0 && 'border-line bg-surface text-ink hover:border-brand',
-                !checked && count === 0 && 'border-line bg-canvas text-subtle hover:border-brand',
+                !checked && count === 0 && 'border-dashed border-line bg-canvas text-muted hover:border-brand',
               )}
             >
               <span aria-hidden="true" className="text-xs font-medium">

@@ -202,6 +202,41 @@ test.describe('F64: one invite control on the Staff screen', () => {
   });
 });
 
+test.describe('F64: #team-access scrolls to the card after the lists load', () => {
+  test('a long staff list: the setup step lands with Team access in view and focus on Invite', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 640 });
+    const s = state();
+    s.invites = [];
+    s.business.setup = { hasServices: true, hasBookableStaff: true, hasHours: true };
+    for (let i = 0; i < 12; i++) {
+      s.staff.push({ id: `x${i}`, displayName: `Extra ${i}`, bookable: true, active: true, role: null, serviceIds: ['s1'] });
+    }
+    await mockSetupApi(page, { state: s });
+    await page.goto('/app/setup');
+    await page.getByRole('link', { name: /Invite your receptionist/ }).click();
+    const invite = page.getByRole('region', { name: 'Team access' }).getByRole('button', { name: 'Invite someone' });
+    await expect(invite).toBeInViewport();
+    await expect(invite).toBeFocused();
+  });
+
+  test('a hard load with the hash scrolls too; an ordinary visit does not steal focus or scroll', async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 640 });
+    const s = state();
+    for (let i = 0; i < 12; i++) {
+      s.staff.push({ id: `y${i}`, displayName: `Extra ${i}`, bookable: true, active: true, role: null, serviceIds: ['s1'] });
+    }
+    await mockSetupApi(page, { state: s });
+    await page.goto('/app/staff#team-access');
+    const invite = page.getByRole('region', { name: 'Team access' }).getByRole('button', { name: 'Invite someone' });
+    await expect(invite).toBeInViewport();
+    await expect(invite).toBeFocused();
+    await page.goto('/app/staff');
+    await expect(page.getByRole('region', { name: 'Team access' })).toBeAttached();
+    await expect(page.getByRole('button', { name: 'Invite someone' })).not.toBeFocused();
+    expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  });
+});
+
 test.describe('Account page: sign out other devices', () => {
   test('asks first, then reports how many devices were signed out', async ({ page }) => {
     const { calls } = await mockSetupApi(page, { state: state() });
