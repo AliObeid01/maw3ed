@@ -112,7 +112,7 @@ test('the slot-just-taken view links to the waitlist', async ({ page }) => {
   await page.goto(`/b/${SLUG}`);
   await page.getByRole('button', { name: /Haircut/ }).click();
   await page.getByRole('button', { name: /Anyone available/ }).click();
-  await page.getByRole('radio', { name: '9:00', exact: true }).first().click();
+  await page.getByRole('radio', { name: '09:00', exact: true }).first().click();
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Full name').fill('Maya');
   await page.getByLabel('Mobile number').fill('71 234 567');

@@ -1,6 +1,17 @@
 import { expect, test } from '../helpers/test';
-import { defaultAppointments, mockDashboardApi, todayLocal } from '../helpers/dashboardMock';
+import {
+  appt,
+  at,
+  defaultAppointments,
+  LEA,
+  MAYA,
+  mockDashboardApi,
+  NADINE,
+  RAMI,
+  todayLocal,
+} from '../helpers/dashboardMock';
 import { setRole } from '../helpers/mockApi';
+import { IDS } from '../helpers/publicMock';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
 test.skip(!!process.env.BASE_URL, 'needs the fake-session dev server');
@@ -181,6 +192,52 @@ test.describe('desktop: calendar grid', () => {
     await expect(grid.getByRole('button', { name: /Nadine Aoun/ })).toContainText('2 no-shows');
     // No staff filter chips on desktop.
     await expect(page.getByRole('group', { name: 'Filter by team member' })).toHaveCount(0);
+  });
+
+  test('short appointments stay readable and never cover each other (15-minute granularity)', async ({ page }) => {
+    const lina = IDS.lina;
+    await mockDashboardApi(page, {
+      appointments: [
+        // Four 15-minute visits back to back: 22 px each by time, drawn at the readable minimum.
+        appt('q1', at(12, 0), 15, IDS.beard, lina, NADINE),
+        appt('q2', at(12, 15), 15, IDS.beard, lina, LEA),
+        appt('q3', at(12, 30), 15, IDS.beard, lina, RAMI),
+        appt('q4', at(12, 45), 15, IDS.beard, lina, MAYA),
+        // A real overlap in another column.
+        appt('q5', at(14, 0), 60, IDS.haircut, IDS.karim, LEA),
+        appt('q6', at(14, 30), 30, IDS.haircut, IDS.karim, RAMI),
+        // A late one, so the column has to grow to hold its minimum height.
+        appt('q7', at(18, 45), 15, IDS.beard, IDS.jad, MAYA),
+      ],
+    });
+    await page.goto('/app');
+    const grid = page.getByRole('group', { name: 'Day calendar' });
+    for (const column of ['Lina', 'Karim', 'Jad']) {
+      const buttons = grid.getByRole('list', { name: column }).getByRole('button');
+      await expect(buttons.first()).toBeVisible();
+      const boxes = await buttons.evaluateAll((els) => els.map((el) => el.getBoundingClientRect().toJSON()));
+      for (const b of boxes) expect(b.height).toBeGreaterThanOrEqual(30); // about 32 px visible
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i]!;
+          const c = boxes[j]!;
+          const overlapsX = a.left < c.right - 0.5 && c.left < a.right - 0.5;
+          const overlapsY = a.top < c.bottom - 0.5 && c.top < a.bottom - 0.5;
+          expect(overlapsX && overlapsY, `${column}: block ${i} covers block ${j}`).toBe(false);
+        }
+    }
+    // One line: client name and time; the full details are in the tooltip and the accessible name.
+    const first = grid.getByRole('button', { name: /Nadine Aoun/ });
+    await expect(first).toContainText('12:00');
+    await expect(first).toHaveAttribute('title', /Nadine Aoun · .*12:00 – 12:15.* · Beard trim/);
+    await first.focus();
+    await expect(first).toBeFocused();
+    const outline = await first.evaluate((el) => getComputedStyle(el).outlineStyle);
+    expect(outline).not.toBe('none');
+    // The late block is inside its column (the column grew), not clipped by the grid.
+    const late = (await grid.getByRole('button', { name: /Maya Haddad.*18:45/ }).boundingBox())!;
+    const column = (await grid.getByRole('list', { name: 'Jad' }).boundingBox())!;
+    expect(late.y + late.height).toBeLessThanOrEqual(column.y + column.height + 0.5);
   });
 
   test('a block opens the same appointment sheet', async ({ page }) => {

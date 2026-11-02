@@ -104,7 +104,7 @@ test('Walk-in now picks the earliest free slot from now', async ({ page }) => {
     .map((s) => s.startAt)
     .filter((s) => Date.parse(s) >= now)
     .sort()[0]!;
-  const expected = DateTime.fromISO(earliest).setZone(TZ).toFormat('H:mm');
+  const expected = DateTime.fromISO(earliest).setZone(TZ).toFormat('HH:mm');
   const checked = times(page).getByRole('radio', { checked: true });
   await expect(checked).toHaveCount(1);
   await expect(checked).toHaveText(expected);

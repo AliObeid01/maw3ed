@@ -14,7 +14,7 @@ async function pickService(page: Page, name: string) {
 }
 
 async function pickFirstTime(page: Page) {
-  const slot = page.getByRole('radio', { name: '9:00', exact: true }).first();
+  const slot = page.getByRole('radio', { name: '09:00', exact: true }).first();
   await expect(slot).toBeVisible();
   await slot.click();
   await expect(slot).toBeChecked();
@@ -101,7 +101,7 @@ test.describe('happy path', () => {
   }) => {
     const { slotRequests } = await mockPublicApi(page);
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
     expect(slotRequests).toHaveLength(1);
     const q = new URLSearchParams(slotRequests[0]);
     expect(q.get('staffId')).toBeNull(); // "anyone" sends no staffId
@@ -197,7 +197,7 @@ test.describe('the details step never stands on a missing time', () => {
     await expect(page.getByRole('heading', { name: 'Pick a day and time' })).toBeVisible();
     await expect(page.getByText('That time is no longer available. Please pick another.')).toBeVisible();
     // The other times of that day are offered.
-    await expect(page.getByRole('radio', { name: '9:30', exact: true })).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:30', exact: true })).toBeVisible();
   });
 
   test('while the times load the button shows its loading state and sends nothing', async ({ page }) => {
@@ -228,12 +228,12 @@ test.describe('slot just taken (board 1.6)', () => {
     await expect(takenAlert(page)).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Pick another time' })).toBeVisible();
     // The old time is struck out and disabled; the closest free time is already selected.
-    await expect(page.getByRole('radio', { name: '9:00', exact: true })).toBeDisabled();
-    await expect(page.getByRole('radio', { checked: true })).toHaveAccessibleName('9:30');
+    await expect(page.getByRole('radio', { name: '09:00', exact: true })).toBeDisabled();
+    await expect(page.getByRole('radio', { checked: true })).toHaveAccessibleName('09:30');
     // Fresh slots come from the 409 payload: no further slots request.
     expect(slotRequests).toHaveLength(1);
 
-    await page.getByRole('button', { name: 'Book 9:30 instead' }).click();
+    await page.getByRole('button', { name: 'Book 09:30 instead' }).click();
     await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
 
     expect(calls).toHaveLength(2);
@@ -265,9 +265,9 @@ test.describe('slot just taken (board 1.6)', () => {
     await reachDetails(page, { script: ['taken', 'taken'] });
     await fillDetails(page);
     await confirm(page).click();
-    await expect(takenAlert(page)).toContainText('9:00 was just taken');
-    await page.getByRole('button', { name: 'Book 9:30 instead' }).click();
-    await expect(takenAlert(page)).toContainText('9:30 was just taken');
+    await expect(takenAlert(page)).toContainText('09:00 was just taken');
+    await page.getByRole('button', { name: 'Book 09:30 instead' }).click();
+    await expect(takenAlert(page)).toContainText('09:30 was just taken');
     await expect(page.getByRole('heading', { name: 'Pick another time' })).toBeFocused();
     await expect(page.getByRole('radio', { checked: true })).toHaveAccessibleName('10:30');
   });
@@ -290,7 +290,7 @@ test.describe('"Book instead" failures are visible and retryable', () => {
       await confirm(page).click();
       await expect(takenAlert(page)).toBeVisible();
 
-      await page.getByRole('button', { name: 'Book 9:30 instead' }).click();
+      await page.getByRole('button', { name: 'Book 09:30 instead' }).click();
       const banner = page.getByRole('alert').filter({ hasText: c.text });
       await expect(banner).toBeVisible();
       await expect(banner).toBeFocused();
@@ -474,7 +474,7 @@ test.describe('the booking window', () => {
   }) => {
     const mock = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 3 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
     await expect(page.getByRole('alert').filter({ hasText: "We couldn't load the free times." })).toHaveCount(0);
     // 7 days was rejected, 3 days worked; the business was read once at load and once to refresh the window.
     const today = clockNow().setZone('Asia/Beirut').startOf('day');
@@ -491,7 +491,7 @@ test.describe('the booking window', () => {
   }) => {
     const mock = await mockPublicApi(page, { bookingWindowDays: 7, windowDays: 2, refreshedBookingWindowDays: 2 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
     const today = clockNow().setZone('Asia/Beirut').startOf('day');
     expect(mock.slotRequests.map((s) => new URLSearchParams(s).get('to'))).toEqual([
       today.plus({ days: 6 }).toISODate(),
@@ -526,12 +526,12 @@ test.describe('the booking window', () => {
       await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
       await pickFirstTime(page);
 
-      // The mock's first free day: tomorrow or later, never a Sunday, 9:00 business time.
+      // The mock's first free day: tomorrow or later, never a Sunday, 09:00 business time.
       let start = clockNow().setZone(timezone).startOf('day').plus({ days: 1 });
       while (start.weekday === 7) start = start.plus({ days: 1 });
       start = start.set({ hour: 9 });
       const cutoff = start.minus({ minutes: cancelCutoffMin }).setLocale('en');
-      const when = `${cutoff.toFormat('ccc, LLL d')}, ${cutoff.toFormat('H:mm')}`;
+      const when = `${cutoff.toFormat('ccc, LLL d')}, ${cutoff.toFormat('HH:mm')}`;
       // F37: shown on phones in the sticky summary bar and at lg in the side card, exactly once at any width.
       const line = page.getByText(`Free cancellation until ${when}.`).locator('visible=true');
       await expect(line).toBeVisible();
@@ -549,7 +549,7 @@ test.describe('the booking window', () => {
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
     const bar = page.locator('.sticky-summary-bar');
     const continueButton = page.getByRole('button', { name: 'Continue' }).locator('visible=true');
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
     await expect(page.getByText(/^Free cancellation until /).locator('visible=true')).toHaveCount(0);
     // Before a time is picked the note's line is already reserved: neither the bar nor the button moves later.
     const barBefore = (await bar.boundingBox())!;
@@ -603,7 +603,7 @@ test.describe('the booking window', () => {
     await mockPublicApi(page, { bookingWindowDays: 14, cancelCutoffMin: 120 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    const slot = page.getByRole('radio', { name: /9:00/ }).first();
+    const slot = page.getByRole('radio', { name: /09:00/ }).first();
     await expect(slot).toBeVisible();
     await slot.click();
     const note = page.getByText(/^إلغاء مجاني حتى/).locator('visible=true');
@@ -619,13 +619,13 @@ test.describe('the booking window', () => {
     await mockPublicApi(page, { bookingWindowDays: 14 });
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
     await pickFirstTime(page);
-    // 9:00 in Beirut in November is +02:00: the instant is unambiguous even on the repeated hour of a fall-back night.
+    // 09:00 in Beirut in November is +02:00: the instant is unambiguous even on the repeated hour of a fall-back night.
     await expect(page).toHaveURL(/time=09%3A00%2B02%3A00/);
     const urlTime = new URL(page.url()).searchParams.get('time');
     const urlDay = new URL(page.url()).searchParams.get('day');
-    // Reload on the time step: the SAME slot (same day, 9:00) is still the checked one.
+    // Reload on the time step: the SAME slot (same day, 09:00) is still the checked one.
     await page.reload();
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).locator('visible=true')).toBeChecked();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).locator('visible=true')).toBeChecked();
     await page.getByRole('button', { name: 'Continue' }).click();
     await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
     await page.reload();
@@ -638,11 +638,11 @@ test.describe('the booking window', () => {
   test('coming back to the tab refetches the times', async ({ page }) => {
     const { slotRequests } = await mockPublicApi(page);
     await page.goto(`${BOOK}?service=${IDS.haircut}&staff=anyone`);
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
     expect(slotRequests).toHaveLength(1);
     await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
     await expect.poll(() => slotRequests.length).toBe(2);
-    await expect(page.getByRole('radio', { name: '9:00', exact: true }).first()).toBeVisible();
+    await expect(page.getByRole('radio', { name: '09:00', exact: true }).first()).toBeVisible();
   });
 });
 
