@@ -26,3 +26,5 @@ if (shouldMigrate(process.env)) {
 // Build caches can skip the install postinstall hook, and src/generated is gitignored, so generate explicitly.
 run(['exec', 'prisma', 'generate']);
 run(['exec', 'next', 'build']);
+// F39: no source map and no sourceMappingURL comment may stay in the deployment (even after a failed upload).
+run(['exec', 'node', 'scripts/clean-sourcemaps.mjs']);

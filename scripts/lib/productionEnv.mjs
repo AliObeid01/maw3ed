@@ -1,5 +1,7 @@
 // Pure checks for a production build. Returns short problem strings; NEVER includes values.
 // `errors` block the build; `warnings` are printed but do not.
+import { resolveSourcemapUpload } from './sourcemapUpload.mjs';
+
 const REQUIRED = [
   'DATABASE_URL',
   'DIRECT_URL',
@@ -80,6 +82,8 @@ export function checkProductionEnv(env) {
   const clientDsn = present(env.NEXT_PUBLIC_SENTRY_DSN);
   if (!serverDsn && !clientDsn) warnings.push('Sentry is not configured (SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN are unset): errors are logged but not reported. Optional.');
   else if (serverDsn !== clientDsn) warnings.push(`Sentry is half configured: set both SENTRY_DSN and NEXT_PUBLIC_SENTRY_DSN (${serverDsn ? 'browser' : 'server'} errors will not be reported).`);
+  // Source map upload (F39) is all-or-nothing and never required: a partial set only warns (names, never values).
+  for (const w of resolveSourcemapUpload(env).warnings) warnings.push(w);
   for (const name of FORBIDDEN) if (present(env[name])) errors.push(`${name} must not be set in production`);
   return { errors, warnings };
 }

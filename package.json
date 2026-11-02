@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/clean-sourcemaps.mjs",
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint .",

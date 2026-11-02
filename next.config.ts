@@ -1,6 +1,7 @@
 import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs/config';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { sourcemapBuildOptions } from './scripts/lib/sourcemapUpload.mjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -88,13 +89,15 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Errors only (docs/ARCHITECTURE.md, Error monitoring). Build-time: no source map upload, no release, no telemetry,
-// no tunnel, and the SDK's tracing, replay and debug-logging code is tree-shaken out of the bundles.
+// Errors only (docs/ARCHITECTURE.md, Error monitoring). Build-time: no release, no telemetry, no tunnel, and the SDK's
+// tracing, replay and debug-logging code is tree-shaken out of the bundles.
+// Source maps (F39): INERT unless SENTRY_AUTH_TOKEN, SENTRY_ORG and SENTRY_PROJECT are all set and VERCEL_ENV is
+// production at build time (scripts/lib/sourcemapUpload.mjs). When active they are uploaded and deleted from the
+// deployment, a failed upload only warns, and scripts/clean-sourcemaps.mjs removes anything that is left.
 const withSentry = withSentryConfig(withNextIntl(nextConfig), {
   silent: true,
   telemetry: false,
-  sourcemaps: { disable: true },
-  release: { create: false, finalize: false },
+  ...sourcemapBuildOptions(process.env),
   bundleSizeOptimizations: {
     excludeDebugStatements: true,
     excludeTracing: true,
