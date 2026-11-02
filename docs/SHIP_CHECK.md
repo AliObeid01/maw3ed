@@ -101,9 +101,15 @@ All 19 models are in the ERD and the entity table with matching relations. Colum
 ## 7. OPEN for the owner
 
 1. Record the 3-minute demo video and the 60-second backup video (due Thu 12 Nov). Then tick P4.4 in `docs/PLAN.md`.
-2. Native Arabic review of the 36 rows in `docs/ARABIC_REVIEW.md`.
-3. Manual two-inbox real-email check of the waitlist journey (F26, `docs/HUMAN_TASKS.md`).
-4. O5: Neon usage check (storage and compute hours), GitHub Actions minutes check, optional DMARC record.
-5. Optional: add the three Sentry build variables for readable stack traces (F39).
-6. Decide whether to schedule F61 (a one-line test fix) and the deferred F25, F29 to F32 before real money or real volume.
-7. Decide on the F15 note that is still open in the tracker (the design hook flags the Arial email font; the owner has not ruled on an ignore rule).
+2. Optional: add the three Sentry build variables for readable stack traces (F39, steps in `docs/HUMAN_TASKS.md`).
+3. Re-check the GitHub Actions usage bar on Thu 5 Nov (see "Done by the owner" below for the 2 Nov reading).
+4. Deferred until real money or real volume: F25, F29 to F32 (see section 6).
+
+### Done by the owner (confirmed 2 Nov, after the ship-check ran; the earlier list of this section was stale)
+- Neon usage check: 9.35 of 100 compute hours and 0.09 of 1 GB storage used (Free plan).
+- GitHub Actions usage check: 4.82 of 12.00 USD included compute used this month, billable usage 0 USD.
+- DMARC TXT record `_dmarc` added in Vercel DNS (`v=DMARC1; p=none;`).
+- Manual two-inbox real-email waitlist check on production (F26).
+- Native Arabic review: the owner reported it done and asked for it to be removed from the list.
+- The F15 design-hook warnings (Arial email font, border accent on the rounded card) were ruled on: leave them, known and accepted.
+- F61 (integration tests default `CRON_SECRET`) was fixed in this PR.

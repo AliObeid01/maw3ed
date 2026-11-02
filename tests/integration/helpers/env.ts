@@ -16,6 +16,9 @@ process.env.EMAIL_PROVIDER = 'fake';
 process.env.APP_URL = 'http://localhost:3000';
 if ((process.env.LINK_SECRET ?? '').length < 32)
   process.env.LINK_SECRET = 'integration-test-link-secret-0123456789abcdef';
+// The cron routes read CRON_SECRET; give bare checkouts (no .env, no CI variables) the same kind of default (F61).
+if ((process.env.CRON_SECRET ?? '').length < 32)
+  process.env.CRON_SECRET = 'integration-test-cron-secret-0123456789abcdef';
 // Route-level per-IP limits are off by default (many tests fire hundreds of requests from one fake
 // address). tests/integration/rateLimit.routes.test.ts switches them on. The login guard is always on.
 process.env.RATE_LIMIT_DISABLED = '1';
