@@ -155,9 +155,9 @@ If the core slips, drop in this order: P3.9 deposit → P3.8 pricing → P3.6 CS
 - [x] **F46 FE** Reminders screen shows "sent by ..." as a text row; the PRD and board describe a disabled button state with the sender and time.
 - [x] **F47 FE** One time formatter across screens (today "8:00" and "08:00" styles are mixed).
 - [x] **F48 FE** Setup checklist says "5 of 6 done" while 7 steps are listed (the optional Publish step is not labelled optional and its numbering is unclear).
-- [ ] **F49 FE** Expired waitlist offer page offers no way to rejoin the waitlist.
-- [ ] **F50 FE** `/directory` empty state has no link for a business owner to list their business.
-- [ ] **F51 BE/FE** Pay page lacks the business address and a Total row from board 5.2 (neither is in the pay contract today; needs a contract change).
+- [x] **F49 FE** Expired waitlist offer page offers no way to rejoin the waitlist. Done: secondary "Join the waitlist again" link (pre-filled `?service=&staff=`) on EXPIRED, TAKEN, HOLD_LAPSED and UNAVAILABLE (staff removal looks the same as leaving, and its copy already invites joining again); not on ALREADY_BOOKED. Offer view gains `rejoin { serviceId, staffId }`. No link when the token itself is expired (410: nothing is known about the business).
+- [x] **F50 FE** `/directory` empty state has no link for a business owner to list their business.
+- [x] **F51 BE/FE** Pay page lacks the business address and a Total row from board 5.2 (neither is in the pay contract today; needs a contract change). Done: `business.address` and `appointment.service.price` added to the pay view. Board 5.2 "Total" is the service price, shown as "Service total" apart from "Deposit now".
 - [x] **F52 FE** Desktop Today calendar: blocks for short or late appointments are 20 to 25 px tall (placed by time, 44 px per 30 minutes); find a layout that keeps them readable and tappable without overlapping the next appointment.
 - [x] **F53 FE** Native date and datetime inputs on hours and pilot screens show the US `mm/dd/yyyy` format and 12-hour time regardless of locale.
-- [ ] **F54 FE** Home page hero is about half empty at 1440 px (no product preview or illustration).
+- [x] **F54 FE** Home page hero is about half empty at 1440 px (no product preview or illustration).

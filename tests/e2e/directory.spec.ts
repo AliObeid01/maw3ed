@@ -1,4 +1,5 @@
 import { type Page } from '@playwright/test';
+import { ORIGIN } from './helpers/clock';
 import { expect, test } from './helpers/test';
 
 // Self-contained: /api/public/directory is answered by page.route.
@@ -127,6 +128,30 @@ test.describe('public directory', () => {
     await mockDirectory(page, { all: [] });
     await page.goto('/directory');
     await expect(page.getByRole('heading', { name: 'No businesses listed yet' })).toBeVisible();
+    const own = page.getByRole('link', { name: 'Own a business? List yours' });
+    await expect(own).toHaveAttribute('href', '/signup');
+    await expect(page.getByText('switch your listing on from Share')).toBeVisible();
+    expect((await own.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('a non-empty list ends with a lighter "List yours" link', async ({ page }) => {
+    await mockDirectory(page);
+    await page.goto('/directory');
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    const cta = page.getByTestId('directory-owner-cta');
+    await expect(cta).toContainText('Own a business?');
+    await expect(cta.getByRole('link', { name: 'List yours' })).toHaveAttribute('href', '/signup');
+    expect((await cta.getByRole('link').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  });
+
+  test('Arabic: the owner link is translated, RTL, with no overflow', async ({ page, context }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+    await mockDirectory(page, { all: [] });
+    await page.goto('/directory');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByRole('link', { name: 'تملك نشاطًا تجاريًا؟ أضف نشاطك' })).toHaveAttribute('href', '/signup');
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 
   test('shows an error state and recovers on retry', async ({ page }) => {

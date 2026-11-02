@@ -14,7 +14,7 @@ export const payViewSchema = z.object({
     startAt: z.string(),
     endAt: z.string(),
     status: z.string(),
-    service: z.object({ id: z.string(), name: z.string(), durationMin: z.number() }),
+    service: z.object({ id: z.string(), name: z.string(), durationMin: z.number(), price: z.number() }),
     staff: z.object({ id: z.string(), displayName: z.string() }),
   }),
   business: z.object({
@@ -22,6 +22,7 @@ export const payViewSchema = z.object({
     slug: z.string(),
     timezone: z.string(),
     locale: z.string(),
+    address: z.string().optional(),
   }),
   deposit: z.object({ amount: z.number(), currency: z.string() }),
   holdExpiresAt: z.string().nullable(),

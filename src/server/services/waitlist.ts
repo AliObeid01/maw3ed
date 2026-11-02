@@ -379,6 +379,7 @@ export const offersService = {
         staff: o.staff,
       },
       business: o.business,
+      rejoin: { serviceId: o.entry.serviceId, staffId: o.entry.staffId },
       canClaim,
     };
   },

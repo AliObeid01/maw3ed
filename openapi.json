@@ -3480,6 +3480,26 @@
               "locale"
             ]
           },
+          "rejoin": {
+            "type": "object",
+            "properties": {
+              "serviceId": {
+                "type": "string"
+              },
+              "staffId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The staff member the client asked for; null = anyone."
+              }
+            },
+            "required": [
+              "serviceId",
+              "staffId"
+            ],
+            "description": "What the \"join the waitlist again\" link pre-fills (service and staff of the waitlist request). Nothing about the client."
+          },
           "canClaim": {
             "type": "boolean"
           }
@@ -3487,6 +3507,7 @@
         "required": [
           "offer",
           "business",
+          "rejoin",
           "canClaim"
         ]
       },
@@ -3893,12 +3914,17 @@
                   },
                   "durationMin": {
                     "type": "integer"
+                  },
+                  "price": {
+                    "type": "number",
+                    "description": "The full price of the service (the board Total). Not the deposit."
                   }
                 },
                 "required": [
                   "id",
                   "name",
-                  "durationMin"
+                  "durationMin",
+                  "price"
                 ]
               },
               "staff": {
@@ -3940,6 +3966,10 @@
               },
               "locale": {
                 "type": "string"
+              },
+              "address": {
+                "type": "string",
+                "description": "The public address of the business, as on its booking page. Omitted when none."
               }
             },
             "required": [
