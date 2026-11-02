@@ -1,3 +1,5 @@
+// Must stay the FIRST import: it configures zod before any schema is built (see the file for why).
+import '@/lib/security/zodJitless';
 import { initClientSentry } from '@/lib/observability/clientInit';
 
 /**

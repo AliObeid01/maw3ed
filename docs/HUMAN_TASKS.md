@@ -58,6 +58,15 @@ The app already contains the Sentry code; it does nothing until a DSN exists in 
 
 Not done on purpose (follow-up F39): readable stack traces. Source map upload needs `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` and `SENTRY_PROJECT` as Production-only build variables; until then Sentry shows minified frames.
 
+## Security headers check and the CSP kill switch (F7)
+
+After every deploy that touches headers (and once after the first one):
+1. `node scripts/check-security-headers.mjs` (default `https://maw3edlb.com`; pass another base URL as the argument, `--no-hsts` for plain http). It checks `/`, `/login`, `/signup`, `/pricing`, `/directory` and `/api/health`, prints PASS/FAIL per header per URL, and exits non-zero on any failure. It sends no cookies or credentials.
+2. Open https://securityheaders.com and scan `https://maw3edlb.com`. Expect an A or better (it may mention `style-src 'unsafe-inline'`: deliberate, see ARCHITECTURE).
+3. Click through the site once (home, directory, a booking page, login) with the browser console open: there must be no "Content Security Policy" or "Refused to" messages.
+
+If a page is blank or broken because of the policy (Vercel, Project Settings, Environment Variables, Production): add `CSP_MODE` with value `report-only` (the browser only logs violations and the page works again) or `off` (no CSP header at all; the other security headers stay). `enforce`, an empty value, or removing the variable restores the policy; any unknown value also enforces. The proxy reads `CSP_MODE` on every request, so no rebuild is needed, but Vercel applies variable changes only to NEW deployments: after changing it, open Deployments and Redeploy the latest one (the build cache can stay on). Then tell the developer what the console said.
+
 ## Environment variables
 ```
 DATABASE_URL=            # Neon pooled
@@ -72,6 +81,7 @@ EMAIL_FROM=
 EMAIL_PROVIDER=resend    # or "fake" locally
 PAYMENT_PROVIDER=fake    # or "whish"
 SENTRY_DSN=
+CSP_MODE=                # optional: enforce (default) | report-only | off
 ```
 Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
 
