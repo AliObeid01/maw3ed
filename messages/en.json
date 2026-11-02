@@ -7,6 +7,11 @@
     }
   },
   "ui": {
+    "fields": {
+      "date": "{label}, date",
+      "hours": "{label}, hours",
+      "minutes": "{label}, minutes"
+    },
     "status": {
       "booked": "Booked",
       "confirmed": "Confirmed",
@@ -233,7 +238,8 @@
       "title": "Set up {name}",
       "subtitle": "About 10 minutes, all from your phone or here.",
       "progressLabel": "Setup progress",
-      "progress": "{done} of {total} done",
+      "progress": "{done} of {total} required steps done",
+      "optional": "Optional",
       "nextHint": "Next step · about {minutes} min",
       "done": "(done)",
       "steps": {
@@ -269,7 +275,7 @@
         },
         "publish": {
           "title": "List in the directory",
-          "hint": "Optional: let new clients find you",
+          "hint": "Let new clients find you",
           "doneHint": "Listed in the directory"
         }
       }
@@ -584,9 +590,9 @@
       },
       "send": "Send on WhatsApp",
       "sendAria": "Send the reminder to {name} on WhatsApp",
-      "sentBy": "Sent by {name}, {time}",
-      "sentByYou": "Sent by {name}, just now",
-      "sentByNoTime": "Sent by {name}",
+      "sentBy": "Sent by <who>{name}</who>, <clock>{time}</clock>",
+      "sentByYou": "Sent by <who>{name}</who>, just now",
+      "sentByNoTime": "Sent by <who>{name}</who>",
       "someone": "a teammate",
       "noPhone": "No valid phone",
       "callInstead": "Call instead",
@@ -1431,6 +1437,7 @@
     "loading": "Loading your offer",
     "eyebrow": "From your waitlist",
     "title": "A spot just opened up",
+    "rejoin": "Join the waitlist again",
     "when": "{date} · {range}",
     "detail": "{service} with {staff} · {price}",
     "expiresAt": "Offer expires at {time}",
@@ -1595,6 +1602,12 @@
       "body": "Check your connection and try again.",
       "retry": "Try again"
     },
+    "ownerCta": {
+      "link": "Own a business? List yours",
+      "hint": "Sign up free. Once you are in, you can switch your listing on from Share.",
+      "own": "Own a business?",
+      "listYours": "List yours"
+    },
     "owner": {
       "title": "List my business",
       "body": "Show your business in the public directory so new clients can find you. Your booking link works either way.",
@@ -1624,6 +1637,16 @@
     "setUp": "Set up your business",
     "haveAccount": "Already have an account?",
     "signIn": "Sign in",
+    "preview": {
+      "label": "Example",
+      "confirmed": "Booking confirmed",
+      "service": "Sample service · 30 min",
+      "when": "Tomorrow · 10:30",
+      "reminder": "Reminder 24 hours before",
+      "freedTitle": "A spot just opened up",
+      "freedBody": "Tomorrow · 14:00",
+      "freedAction": "Book this slot"
+    },
     "how": {
       "title": "How it works",
       "step": "Step {number}",
@@ -1645,6 +1668,7 @@
     "pageTitle": "Pay your deposit",
     "loading": "Loading your booking",
     "intro": "A small deposit confirms this booking. Your time is held for you until the countdown ends.",
+    "total": "Service total",
     "amount": "Deposit now",
     "testMode": "TEST MODE. No real payment is taken and no card details are asked for.",
     "pay": "Pay deposit (test)",

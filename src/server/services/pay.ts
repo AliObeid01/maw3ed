@@ -90,10 +90,16 @@ function view(
       startAt: row.startAt,
       endAt: row.endAt,
       status: row.status,
-      service: row.service,
+      service: { ...row.service, price: Number(row.service.price.toString()) },
       staff: row.staff,
     },
-    business: row.business,
+    business: {
+      name: row.business.name,
+      slug: row.business.slug,
+      timezone: row.business.timezone,
+      locale: row.business.locale,
+      ...(row.business.address ? { address: row.business.address } : {}),
+    },
     deposit: {
       amount: deposit ? Number(deposit.amount.toString()) : 0,
       currency: deposit?.currency ?? 'USD',

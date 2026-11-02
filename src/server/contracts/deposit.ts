@@ -19,7 +19,12 @@ export const PayViewDto = registry.register(
       startAt: z.string().datetime(),
       endAt: z.string().datetime(),
       status: z.string(),
-      service: z.object({ id: z.string(), name: z.string(), durationMin: z.number().int() }),
+      service: z.object({
+        id: z.string(),
+        name: z.string(),
+        durationMin: z.number().int(),
+        price: z.number().describe('The full price of the service (the board Total). Not the deposit.'),
+      }),
       staff: z.object({ id: z.string(), displayName: z.string() }),
     }),
     business: z.object({
@@ -27,6 +32,10 @@ export const PayViewDto = registry.register(
       slug: z.string(),
       timezone: z.string(),
       locale: z.string(),
+      address: z
+        .string()
+        .optional()
+        .describe('The public address of the business, as on its booking page. Omitted when none.'),
     }),
     deposit: z.object({ amount: z.number(), currency: z.string() }),
     holdExpiresAt: z.string().datetime().nullable(),

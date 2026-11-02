@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSyncExternalStore } from 'react';
@@ -118,7 +118,9 @@ function Checklist({
       </section>
 
       <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-3.5 p-0">
-        {steps.map((step, index) => {
+        {steps.map((step) => {
+          // Required steps are numbered 1 to 6; the optional step carries a label instead of a number.
+          const number = step.optional ? null : steps.filter((s) => !s.optional).indexOf(step) + 1;
           const hint = step.done
             ? t(`steps.${step.id}.doneHint`, { count: extras.serviceCount })
             : step.current
@@ -145,7 +147,7 @@ function Checklist({
                     !step.done && !step.current && 'bg-divider text-muted',
                   )}
                 >
-                  {step.done ? <Check size={18} strokeWidth={3} /> : index + 1}
+                  {step.done ? <Check size={18} strokeWidth={3} /> : (number ?? <Sparkles size={18} />)}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col gap-[3px]">
                   <span
@@ -156,6 +158,11 @@ function Checklist({
                   >
                     {t(`steps.${step.id}.title`)}
                     {step.done ? <span className="sr-only"> {t('done')}</span> : null}
+                    {step.optional ? (
+                      <span className="ms-2 inline-block rounded-pill bg-divider px-2.5 py-0.5 align-middle text-xs font-semibold text-muted no-underline">
+                        {t('optional')}
+                      </span>
+                    ) : null}
                   </span>
                   <span className="text-sm text-muted">{hint}</span>
                 </span>

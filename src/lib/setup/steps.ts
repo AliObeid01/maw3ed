@@ -5,9 +5,9 @@ export const SETUP_STEP_IDS = [
   'services',
   'staff',
   'hours',
-  'publish',
   'share',
   'invite',
+  'publish',
 ] as const;
 export type SetupStepId = (typeof SETUP_STEP_IDS)[number];
 
@@ -27,7 +27,7 @@ export type SetupSignals = {
 };
 
 /**
- * The seven owner steps (publish is optional) in board order. "Business details" is always done (signup collects name, link and
+ * The seven owner steps: the six required ones in board order, then the optional directory step last. "Business details" is always done (signup collects name, link and
  * timezone). The first unfinished step is the current one (highlighted with a "next step" hint).
  */
 export function deriveSetupSteps({ flags, shareSeen, hasReceptionist, listed = false }: SetupSignals): {

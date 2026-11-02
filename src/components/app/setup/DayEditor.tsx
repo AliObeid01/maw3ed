@@ -2,8 +2,9 @@
 
 import { Plus, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
-import { useId, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { TimeField } from '@/components/ui/DateTimeFields';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 import {
@@ -30,9 +31,6 @@ export function useWeekdayName() {
   };
 }
 
-const timeInput =
-  'h-[52px] w-full min-w-0 rounded-input border bg-surface px-3 text-base text-ink transition-colors duration-200 ease-out [&::-webkit-calendar-picker-indicator]:hidden';
-
 function IntervalRow({
   interval,
   invalid,
@@ -45,39 +43,22 @@ function IntervalRow({
   onRemove: () => void;
 }) {
   const t = useTranslations('app.hours.editor');
-  const startId = useId();
-  const endId = useId();
-  const border = invalid ? 'border-danger' : 'border-line';
   return (
     <li className="flex items-end gap-2">
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <label htmlFor={startId} className="text-sm font-medium">
-          {t('opens')}
-        </label>
-        <input
-          id={startId}
-          type="time"
-          dir="ltr"
-          value={interval.start}
-          aria-invalid={invalid || undefined}
-          onChange={(e) => onChange({ ...interval, start: e.target.value })}
-          className={cn(timeInput, border, 'text-start')}
-        />
-      </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <label htmlFor={endId} className="text-sm font-medium">
-          {t('closes')}
-        </label>
-        <input
-          id={endId}
-          type="time"
-          dir="ltr"
-          value={endToInput(interval.end)}
-          aria-invalid={invalid || undefined}
-          onChange={(e) => onChange({ ...interval, end: endFromInput(e.target.value) })}
-          className={cn(timeInput, border, 'text-start')}
-        />
-      </div>
+      <TimeField
+        className="min-w-0 flex-1"
+        label={t('opens')}
+        value={interval.start}
+        invalid={invalid}
+        onChange={(start) => onChange({ ...interval, start })}
+      />
+      <TimeField
+        className="min-w-0 flex-1"
+        label={t('closes')}
+        value={endToInput(interval.end)}
+        invalid={invalid}
+        onChange={(end) => onChange({ ...interval, end: endFromInput(end) })}
+      />
       <button
         type="button"
         aria-label={t('remove')}

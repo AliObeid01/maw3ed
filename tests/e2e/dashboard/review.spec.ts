@@ -237,7 +237,9 @@ test.describe('hours', () => {
     });
     await page.goto('/app/hours');
     await page.getByRole('button', { name: /Edit Monday, 09:00 to 13:00/ }).click();
-    await page.getByRole('dialog').getByLabel('Closes').first().fill('12:30');
+    const closes = page.getByRole('dialog').getByRole('group', { name: 'Closes' }).first();
+    await closes.getByRole('combobox').nth(0).selectOption('12');
+    await closes.getByRole('combobox').nth(1).selectOption('30');
     await page.getByRole('dialog').getByRole('button', { name: 'Apply' }).click();
     await page.getByRole('button', { name: 'Save hours' }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'Some hours overlap' })).toBeVisible();
@@ -281,8 +283,9 @@ test.describe('hours', () => {
     await expect(page.getByText(/all day/)).toBeVisible();
 
     await page.getByRole('button', { name: 'Remove time off' }).click();
-    await page.getByLabel('From', { exact: true }).fill('2036-08-10T09:00');
-    await page.getByLabel('To', { exact: true }).fill('2036-08-10T12:00');
+    await page.getByLabel('From, date').fill('2036-08-10');
+    await page.getByLabel('To, date').fill('2036-08-10');
+    await page.getByRole('group', { name: 'To', exact: true }).getByRole('combobox').first().selectOption('12');
     await page.getByRole('button', { name: 'Add time off' }).click();
     await expect(page.getByText(/09:00 – 12:00/)).toBeVisible();
 

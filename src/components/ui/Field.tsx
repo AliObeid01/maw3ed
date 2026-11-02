@@ -2,10 +2,10 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
-const control =
+export const control =
   'h-[52px] w-full rounded-input border bg-surface px-3.5 text-base text-ink placeholder:text-subtle transition-colors duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60';
 
-function borderFor(error?: string) {
+export function borderFor(error?: string) {
   return error ? 'border-danger' : 'border-line';
 }
 

@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import type { Slot } from '@/lib/api/booking';
+import { formatClock } from '@/lib/time/clock';
 
 /** Days shown in the day strip (one slots request covers them all). */
 export const DAY_WINDOW = 14;
@@ -19,7 +20,7 @@ export function localDay(startAt: string, timezone: string): string {
 
 /** Local `HH:mm` of an instant in the business timezone. */
 export function localTime(startAt: string, timezone: string): string {
-  return DateTime.fromISO(startAt, { zone: 'utc' }).setZone(timezone).toFormat('HH:mm');
+  return formatClock(startAt, timezone);
 }
 
 /** Slots grouped by their local day in the business timezone, each day sorted by start time. */
@@ -70,7 +71,7 @@ export function partitionByDayPart(
  */
 export function slotTime(startAt: string, timezone: string): string {
   const at = DateTime.fromISO(startAt, { zone: 'utc' }).setZone(timezone);
-  return `${at.toFormat('HH:mm')}${at.toFormat('ZZ')}`;
+  return `${formatClock(startAt, timezone)}${at.toFormat('ZZ')}`;
 }
 
 /** Does a slot match a time token (`HH:mm` matches any slot at that wall-clock time, `HH:mm+hh:mm` only that instant)? */

@@ -57,7 +57,7 @@ function Countdown({
   );
 }
 
-function BusinessHeader({ name }: { name: string }) {
+function BusinessHeader({ name, address }: { name: string; address?: string | undefined }) {
   return (
     <div className="border-b border-divider bg-surface">
       <div className="mx-auto flex max-w-[1120px] items-center gap-3 px-4 py-3 md:px-8">
@@ -67,9 +67,16 @@ function BusinessHeader({ name }: { name: string }) {
         >
           {monogram(name)}
         </span>
-        <p className="m-0 min-w-0 truncate text-[17px] font-semibold">
-          <bdi>{name}</bdi>
-        </p>
+        <div className="flex min-w-0 flex-col">
+          <p className="m-0 truncate text-[17px] font-semibold">
+            <bdi>{name}</bdi>
+          </p>
+          {address ? (
+            <p data-testid="business-address" className="m-0 truncate text-sm text-muted">
+              <bdi>{address}</bdi>
+            </p>
+          ) : null}
+        </div>
       </div>
     </div>
   );
@@ -256,7 +263,7 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
     const reminderCopy = tr('promise', { kind: reminderPromiseKind(shown.reminders) });
     return (
       <>
-        <BusinessHeader name={shown.business.name} />
+        <BusinessHeader name={shown.business.name} address={shown.business.address} />
         <main className={cn(mainClass, 'lg:justify-center')}>
           <Card className="flex w-full flex-col gap-4 lg:max-w-[560px]">
             <span
@@ -293,7 +300,7 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
   const paying = outcome.kind === 'paying';
   return (
     <>
-      <BusinessHeader name={view.business.name} />
+      <BusinessHeader name={view.business.name} address={view.business.address} />
       <main className={mainClass}>
         <aside className={heroClass}>
           <h1 className="m-0 text-[26px] leading-tight font-semibold tracking-[-0.01em] md:text-[30px]">
@@ -318,6 +325,10 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
               <dd className="m-0 min-w-0 font-medium">{service}</dd>
               <dt className="text-muted">{t('whenLabel')}</dt>
               <dd className="m-0 min-w-0 font-medium">{when}</dd>
+              <dt className="text-muted">{t('total')}</dt>
+              <dd data-testid="service-total" dir="ltr" className="m-0 min-w-0 text-start font-medium tabular-nums">
+                {f.money(a.service.price)}
+              </dd>
             </dl>
             <div className="h-px bg-divider" aria-hidden="true" />
             <div className="flex items-center justify-between gap-3">

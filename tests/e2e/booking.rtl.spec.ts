@@ -56,7 +56,7 @@ test('books end to end in Arabic, right to left, without horizontal scroll', asy
   await anyone.click();
 
   await expect(page.getByRole('heading', { name: 'اختر اليوم والوقت' })).toBeVisible();
-  const slot = page.getByRole('radio', { name: '9:00', exact: true }).first();
+  const slot = page.getByRole('radio', { name: '09:00', exact: true }).first();
   await expect(slot).toBeVisible();
   await slot.click();
   await expect(slot).toBeChecked();

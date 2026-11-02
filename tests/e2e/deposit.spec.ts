@@ -29,10 +29,10 @@ async function mockDeposit(page: Page) {
       startAt,
       endAt,
       status: state === 'PAID' ? 'BOOKED' : 'PENDING_PAYMENT',
-      service: { id: service.id, name: service.name, durationMin: 30 },
+      service: { id: service.id, name: service.name, durationMin: 30, price: service.price },
       staff,
     },
-    business: { name: 'Studio Nour', slug: SLUG, timezone: 'Asia/Beirut', locale: 'en' },
+    business: { name: 'Studio Nour', slug: SLUG, timezone: 'Asia/Beirut', locale: 'en', address: 'Hamra, Beirut' },
     deposit: { amount: 5, currency: 'USD' },
     holdExpiresAt: new Date(nowMs() + 15 * 60_000).toISOString(),
     now: nowDate().toISOString(),
@@ -73,7 +73,7 @@ test.describe('deposit journey', () => {
     await page.goto(BOOK);
     await page.getByRole('button', { name: /Haircut/ }).click();
     await page.getByRole('button', { name: /Anyone available/ }).click();
-    const slot = page.getByRole('radio', { name: '9:00', exact: true }).first();
+    const slot = page.getByRole('radio', { name: '09:00', exact: true }).first();
     await expect(slot).toBeVisible();
     await slot.click();
     await page.getByRole('button', { name: 'Continue' }).click();
@@ -102,6 +102,33 @@ test.describe('deposit journey', () => {
     // The POST carries an empty body: whether it was paid is the server's call, never the page's.
     const posts = calls.filter((c) => c.method === 'POST');
     expect(posts).toEqual([{ method: 'POST', body: {} }]);
+  });
+
+  test('the pay page shows the business address and, apart from the deposit, the service total (board 5.2)', async ({
+    page,
+  }) => {
+    await mockDeposit(page);
+    await page.goto(`/pay/${PAY_TOKEN}`);
+    await expect(page.getByTestId('business-address')).toHaveText('Hamra, Beirut');
+    await expect(page.getByTestId('service-total')).toHaveText('$15');
+    await expect(page.getByText('Service total')).toBeVisible();
+    await expect(page.getByText('Deposit now')).toBeVisible();
+    await expect(page.getByText('$5', { exact: true })).toBeVisible(); // the deposit, a different number
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  test('Arabic: address and total show in RTL without overflow', async ({ page, context }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+    await mockDeposit(page);
+    await page.goto(`/pay/${PAY_TOKEN}`);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.getByTestId('business-address')).toHaveText('Hamra, Beirut');
+    await expect(page.getByText('إجمالي سعر الخدمة')).toBeVisible();
+    await expect(page.getByText('العربون الآن')).toBeVisible();
+    await expect(page.getByTestId('service-total')).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
   });
 
   test('an expired hold shows a friendly state with a way back', async ({ page }) => {

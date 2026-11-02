@@ -64,6 +64,31 @@ function BusinessCard({ business }: { business: DirectoryBusiness }) {
   );
 }
 
+/** For business owners who land here: sign up to be listed (listing itself is switched on later, from Share). */
+function OwnerLink({ variant }: { variant: 'empty' | 'list' }) {
+  const t = useTranslations('directory.ownerCta');
+  if (variant === 'empty')
+    return (
+      <div className="mt-2 flex flex-col items-center gap-2" data-testid="directory-owner-cta">
+        <ButtonLink href="/signup" variant="secondary">
+          {t('link')}
+        </ButtonLink>
+        <p className="m-0 max-w-sm text-[13px] text-muted">{t('hint')}</p>
+      </div>
+    );
+  return (
+    <p
+      className="m-0 flex flex-wrap items-center justify-center gap-x-1 text-center text-sm text-muted"
+      data-testid="directory-owner-cta"
+    >
+      {t('own')}
+      <ButtonLink href="/signup" variant="ghost" size="row" className="font-semibold text-brand">
+        {t('listYours')}
+      </ButtonLink>
+    </p>
+  );
+}
+
 function ListSkeleton() {
   return (
     <div
@@ -212,7 +237,9 @@ export function DirectoryView() {
               <Button variant="secondary" onClick={() => setText('')}>
                 {t('empty.clear')}
               </Button>
-            ) : null}
+            ) : (
+              <OwnerLink variant="empty" />
+            )}
           </Card>
         ) : (
           <>
@@ -238,6 +265,7 @@ export function DirectoryView() {
                 </Button>
               </div>
             ) : null}
+            <OwnerLink variant="list" />
           </>
         )}
       </div>

@@ -33,8 +33,8 @@ describe('useBookingFormat day/time use the business timezone', () => {
   it('formats in Asia/Beirut while the process runs in New York', () => {
     expect(new Date('2026-11-04T07:00:00Z').getTimezoneOffset()).toBe(300);
     // 07:00 UTC = 09:00 in Beirut (UTC+2) but 02:00 in New York.
-    expect(render('2026-11-04T07:00:00Z', 'Asia/Beirut')).toBe('Wed, Nov 4|9:00');
+    expect(render('2026-11-04T07:00:00Z', 'Asia/Beirut')).toBe('Wed, Nov 4|09:00');
     // 23:30 UTC on 4 Nov is already 5 Nov in Beirut.
-    expect(render('2026-11-04T23:30:00Z', 'Asia/Beirut')).toBe('Thu, Nov 5|1:30');
+    expect(render('2026-11-04T23:30:00Z', 'Asia/Beirut')).toBe('Thu, Nov 5|01:30');
   });
 });

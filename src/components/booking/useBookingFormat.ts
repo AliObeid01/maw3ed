@@ -1,8 +1,8 @@
 'use client';
 
-import { DateTime } from 'luxon';
 import { useFormatter } from 'next-intl';
 import { timeRangeText } from '@/components/ui/Bidi';
+import { formatClock } from '@/lib/time/clock';
 import { useAppFormat } from '@/lib/useAppFormat';
 
 const LATIN = { numberingSystem: 'latn' } as const;
@@ -19,14 +19,14 @@ export function useBookingFormat(timezone: string) {
   const { money, duration } = useAppFormat();
   const zoned = { ...LATIN, timeZone: timezone } as const;
   const utc = { ...LATIN, timeZone: 'UTC' } as const;
-  const time = (iso: string) => DateTime.fromISO(iso, { zone: 'utc' }).setZone(timezone).toFormat('H:mm');
+  const time = (iso: string) => formatClock(iso, timezone);
 
   return {
     money,
     duration,
-    /** "9:00 – 9:30" as one left-to-right unit for ICU arguments. */
+    /** "09:00 – 09:30" as one left-to-right unit for ICU arguments. */
     range: (startIso: string, endIso: string) => timeRangeText(time(startIso), time(endIso)),
-    /** "9:00" / "10:30": 24-hour, Latin digits in both languages (Luxon, so it never depends on the ICU locale). */
+    /** "09:00" / "10:30": zero-padded 24-hour, Latin digits in both languages (`formatClock`, the one shared formatter). */
     time,
     /** "Thu 29 Oct" */
     day: (iso: string) =>
