@@ -70,6 +70,7 @@ const offerSelect = {
       id: true,
       status: true,
       serviceId: true,
+      staffId: true,
       contactEmail: true,
       client: { select: { id: true, name: true, phone: true, email: true } },
       service: { select: { id: true, name: true, durationMin: true, price: true } },

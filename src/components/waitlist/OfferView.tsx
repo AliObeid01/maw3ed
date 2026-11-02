@@ -81,12 +81,26 @@ function Invalid() {
   );
 }
 
+/** The waitlist page reads and validates `service` and `staff` itself (unknown ids are ignored). */
+export function rejoinHref(slug: string, rejoin: Offer['rejoin']): string {
+  const q = new URLSearchParams({ service: rejoin.serviceId });
+  if (rejoin.staffId) q.set('staff', rejoin.staffId);
+  return `/b/${encodeURIComponent(slug)}/waitlist?${q}`;
+}
+
+/**
+ * Terminal states. Besides "see free times", every state except alreadyBooked (the client holds a booking, nothing
+ * to rejoin) offers "Join the waitlist again", pre-filled with the request's service and staff. unavailable is
+ * included on purpose: staff removal looks the same as leaving, and its copy already invites joining again.
+ */
 function Ended({
   kind,
   slug,
+  rejoin,
 }: {
   kind: 'expired' | 'taken' | 'unavailable' | 'alreadyBooked' | 'holdLapsed';
   slug?: string;
+  rejoin?: Offer['rejoin'];
 }) {
   const t = useTranslations('offer');
   return (
@@ -98,9 +112,16 @@ function Ended({
       body={t(`${kind}.body`)}
       action={
         slug ? (
-          <ButtonLink href={`/b/${encodeURIComponent(slug)}`} size="lg" block>
-            {t(`${kind}.action`)}
-          </ButtonLink>
+          <div className="flex w-full flex-col gap-2.5">
+            <ButtonLink href={`/b/${encodeURIComponent(slug)}`} size="lg" block>
+              {t(`${kind}.action`)}
+            </ButtonLink>
+            {rejoin && kind !== 'alreadyBooked' ? (
+              <ButtonLink href={rejoinHref(slug, rejoin)} variant="secondary" size="lg" block>
+                {t('rejoin')}
+              </ButtonLink>
+            ) : null}
+          </div>
         ) : undefined
       }
     />
@@ -177,15 +198,15 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
   }
 
   if (outcome.kind === 'ended') {
-    return outcome.as === 'invalid' ? <Invalid /> : <Ended kind={outcome.as} slug={business.slug} />;
+    return outcome.as === 'invalid' ? <Invalid /> : <Ended kind={outcome.as} slug={business.slug} rejoin={view.rejoin} />;
   }
   const booked = outcome.kind === 'booked' ? outcome.result : undefined;
   if (!booked) {
-    if (screen === 'taken') return <Ended kind="taken" slug={business.slug} />;
-    if (screen === 'expired') return <Ended kind="expired" slug={business.slug} />;
-    if (screen === 'unavailable') return <Ended kind="unavailable" slug={business.slug} />;
-    if (screen === 'alreadyBooked') return <Ended kind="alreadyBooked" slug={business.slug} />;
-    if (screen === 'holdLapsed') return <Ended kind="holdLapsed" slug={business.slug} />;
+    if (screen === 'taken') return <Ended kind="taken" slug={business.slug} rejoin={view.rejoin} />;
+    if (screen === 'expired') return <Ended kind="expired" slug={business.slug} rejoin={view.rejoin} />;
+    if (screen === 'unavailable') return <Ended kind="unavailable" slug={business.slug} rejoin={view.rejoin} />;
+    if (screen === 'alreadyBooked') return <Ended kind="alreadyBooked" slug={business.slug} rejoin={view.rejoin} />;
+    if (screen === 'holdLapsed') return <Ended kind="holdLapsed" slug={business.slug} rejoin={view.rejoin} />;
   }
 
   const slot = booked?.appointment ?? offer;

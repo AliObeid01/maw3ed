@@ -79,6 +79,14 @@ export const OfferViewDto = registry.register(
       timezone: z.string(),
       locale: z.string(),
     }),
+    rejoin: z
+      .object({
+        serviceId: z.string(),
+        staffId: z.string().nullable().describe('The staff member the client asked for; null = anyone.'),
+      })
+      .describe(
+        'What the "join the waitlist again" link pre-fills (service and staff of the waitlist request). Nothing about the client.',
+      ),
     canClaim: z.boolean(),
   }),
 );

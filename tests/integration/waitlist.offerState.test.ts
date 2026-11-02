@@ -107,6 +107,49 @@ const appointments = async () =>
   (await pg.query(`SELECT count(*)::int AS n FROM "Appointment" WHERE status <> 'CANCELLED'`))
     .rows[0].n as number;
 
+describe('offer view: what the rejoin link pre-fills (F49)', () => {
+  it('exposes the request service and staff preference (anyone = null) and nothing about the client', async () => {
+    const any = await entryWithOffers(a, scn);
+    const view = await offerGet(any.offers[0]!.token);
+    expect(view.status).toBe(200);
+    expect(view.body!.rejoin).toEqual({ serviceId: scn.serviceId, staffId: null });
+    expect(view.body!.business.slug).toBe(a.slug);
+    const raw = JSON.stringify(view.body);
+    expect(raw).not.toMatch(/phone|email|@example\.test|Waiter/);
+
+    const picky = await seedEntry(prisma, a.businessId, scn.serviceId, {
+      createdAt: NOW,
+      staffId: scn.staffIds[0]!,
+    });
+    const appt = await freed(a, scn, picky.clientId, SLOT_2);
+    const expiresAt = new Date(NOW.getTime() + 30 * MIN);
+    const offer = await prisma.waitlistOffer.create({
+      data: {
+        businessId: a.businessId,
+        entryId: picky.entryId,
+        staffId: scn.staffIds[0]!,
+        startAt: appt.startAt,
+        endAt: appt.endAt,
+        expiresAt,
+        freedFromAppointmentId: appt.id,
+        batch: 1,
+      },
+    });
+    const view2 = await offerGet(offerToken(offer.id, expiresAt));
+    expect(view2.body!.rejoin).toEqual({ serviceId: scn.serviceId, staffId: scn.staffIds[0]! });
+  });
+
+  it("an offer link only ever shows its own business: tenant B's data never appears in A's view", async () => {
+    const o = await entryWithOffers(a, scn);
+    await entryWithOffers(b, bScn);
+    const view = await offerGet(o.offers[0]!.token);
+    expect(view.body!.business.slug).toBe(a.slug);
+    expect(view.body!.rejoin.serviceId).toBe(scn.serviceId);
+    expect(view.body!.rejoin.serviceId).not.toBe(bScn.serviceId);
+    expect(JSON.stringify(view.body)).not.toContain(b.slug);
+  });
+});
+
 describe('offer link states (F26-2)', () => {
   it('(d) the client left the waitlist, then opens the old link: UNAVAILABLE, claim is WAITLIST_INACTIVE (never TAKEN)', async () => {
     const o = await entryWithOffers(a, scn);
@@ -182,7 +225,8 @@ describe('offer link states (F26-2)', () => {
     const o = await entryWithOffers(a, scn, [SLOT_1, SLOT_2]);
     await offerClaim(o.offers[0]!.token);
     const body = (await offerGet(o.offers[1]!.token)).body!;
-    expect(Object.keys(body).sort()).toEqual(['business', 'canClaim', 'offer']);
+    expect(Object.keys(body).sort()).toEqual(['business', 'canClaim', 'offer', 'rejoin']);
+    expect(Object.keys(body.rejoin).sort()).toEqual(['serviceId', 'staffId']);
     expect(Object.keys(body.offer).sort()).toEqual(
       ['endAt', 'expiresAt', 'id', 'service', 'staff', 'startAt', 'status'].sort(),
     );

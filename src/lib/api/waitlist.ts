@@ -61,6 +61,7 @@ export const offerViewSchema = z.object({
     timezone: z.string(),
     locale: z.string(),
   }),
+  rejoin: z.object({ serviceId: z.string(), staffId: z.string().nullable() }),
   canClaim: z.boolean(),
 });
 export type OfferView = z.infer<typeof offerViewSchema>;

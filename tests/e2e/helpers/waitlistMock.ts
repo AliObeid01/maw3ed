@@ -103,7 +103,9 @@ export async function mockJoinWaitlist(page: Page, options: JoinOptions = {}) {
 
 export type OfferMock = {
   /** Offer status in the GET. */
-  status?: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN' | 'HOLD_LAPSED';
+  status?: 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'TAKEN' | 'HOLD_LAPSED' | 'UNAVAILABLE' | 'ALREADY_BOOKED';
+  /** The staff member the waitlist request asked for (null = anyone). Default null. */
+  entryStaffId?: string | null;
   canClaim?: boolean;
   /** Minutes until expiry (negative = already past). Default 28. */
   expiresInMin?: number;
@@ -157,6 +159,7 @@ export async function mockOfferApi(page: Page, mock: OfferMock = {}) {
           staff: { id: IDS.karim, displayName: 'Karim' },
         },
         business: { name: 'Studio Nour', slug: SLUG, timezone: TZ, locale: 'en' },
+        rejoin: { serviceId: IDS.haircut, staffId: mock.entryStaffId ?? null },
         canClaim: mock.canClaim ?? (mock.status ?? 'OPEN') === 'OPEN',
         }),
       });

@@ -238,9 +238,9 @@ export const appointmentRepo = {
         cancelledVia: true,
         serviceId: true,
         staffId: true,
-        service: { select: { id: true, name: true, durationMin: true } },
+        service: { select: { id: true, name: true, durationMin: true, price: true } },
         staff: { select: { id: true, displayName: true } },
-        business: { select: { name: true, slug: true, timezone: true, locale: true } },
+        business: { select: { name: true, slug: true, timezone: true, locale: true, address: true } },
         payments: {
           where: { businessId, purpose: 'DEPOSIT' },
           orderBy: { createdAt: 'desc' },
