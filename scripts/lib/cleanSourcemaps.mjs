@@ -1,69 +1,82 @@
 // Last line of defence for F39: whatever the Sentry plugin did or did not do (failed upload, partial delete), the
 // deployment must never serve a source map or a comment pointing at one. Removes every `*.map` under
 // `.next/static` (public) and `.next/server`, and strips `sourceMappingURL` comments from the public assets.
-// Best effort and silent about values: it never throws.
-import fs from 'node:fs';
+// Best effort: it never throws (every file operation is guarded; unreadable files are counted and skipped).
+// `fsApi` is injectable for tests.
+import nodeFs from 'node:fs';
 import path from 'node:path';
 
 const COMMENT_JS = /(?:\r?\n)?\/\/[#@]\s*sourceMappingURL=[^\r\n]*\s*$/;
 const COMMENT_CSS = /(?:\r?\n)?\/\*[#@]\s*sourceMappingURL=[^*]*\*\/\s*$/;
 const ASSET = /\.(?:js|mjs|cjs|css)$/;
 
-function* walk(dir) {
+function* walk(dir, fsApi) {
   let entries;
   try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
+    entries = fsApi.readdirSync(dir, { withFileTypes: true });
   } catch {
     return;
   }
   for (const entry of entries) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) yield* walk(full);
+    if (entry.isDirectory()) yield* walk(full, fsApi);
     else if (entry.isFile()) yield full;
   }
 }
 
-/** @returns {{ deleted: number, stripped: number }} */
-export function cleanSourceMaps(distDir = '.next') {
+/** @returns {{ deleted: number, stripped: number, skipped: number }} skipped = files that could not be handled. */
+export function cleanSourceMaps(distDir = '.next', fsApi = nodeFs) {
   let deleted = 0;
   let stripped = 0;
-  for (const file of walk(path.join(distDir, 'server'))) {
-    if (file.endsWith('.map')) {
+  let skipped = 0;
+  try {
+    for (const file of walk(path.join(distDir, 'server'), fsApi)) {
+      if (!file.endsWith('.map')) continue;
       try {
-        fs.rmSync(file, { force: true });
+        fsApi.rmSync(file, { force: true });
         deleted++;
       } catch {
-        /* keep going */
+        skipped++;
       }
     }
-  }
-  for (const file of walk(path.join(distDir, 'static'))) {
-    try {
-      if (file.endsWith('.map')) {
-        fs.rmSync(file, { force: true });
-        deleted++;
-      } else if (ASSET.test(file)) {
-        const text = fs.readFileSync(file, 'utf8');
-        if (!text.includes('sourceMappingURL=')) continue;
-        const next = text.replace(COMMENT_JS, '').replace(COMMENT_CSS, '');
-        if (next !== text) {
-          fs.writeFileSync(file, next);
-          stripped++;
+    for (const file of walk(path.join(distDir, 'static'), fsApi)) {
+      try {
+        if (file.endsWith('.map')) {
+          fsApi.rmSync(file, { force: true });
+          deleted++;
+        } else if (ASSET.test(file)) {
+          const text = fsApi.readFileSync(file, 'utf8');
+          if (!text.includes('sourceMappingURL=')) continue;
+          const next = text.replace(COMMENT_JS, '').replace(COMMENT_CSS, '');
+          if (next !== text) {
+            fsApi.writeFileSync(file, next);
+            stripped++;
+          }
         }
+      } catch {
+        skipped++;
       }
-    } catch {
-      /* keep going */
     }
+  } catch {
+    skipped++;
   }
-  return { deleted, stripped };
+  return { deleted, stripped, skipped };
 }
 
-/** Files that would still expose a map: a `*.map`, or a `sourceMappingURL=` in a public asset. For verification. */
-export function findPublicSourceMapLeaks(distDir = '.next') {
+/** Public files that would still expose a map: a `*.map`, or `sourceMappingURL=` in an asset. Never throws. */
+export function findPublicSourceMapLeaks(distDir = '.next', fsApi = nodeFs) {
   const leaks = [];
-  for (const file of walk(path.join(distDir, 'static'))) {
-    if (file.endsWith('.map')) leaks.push(file);
-    else if (ASSET.test(file) && fs.readFileSync(file, 'utf8').includes('sourceMappingURL=')) leaks.push(file);
+  try {
+    for (const file of walk(path.join(distDir, 'static'), fsApi)) {
+      try {
+        if (file.endsWith('.map')) leaks.push(file);
+        else if (ASSET.test(file) && fsApi.readFileSync(file, 'utf8').includes('sourceMappingURL=')) leaks.push(file);
+      } catch {
+        /* unreadable: skip */
+      }
+    }
+  } catch {
+    /* nothing to report */
   }
   return leaks;
 }

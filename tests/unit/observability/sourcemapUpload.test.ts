@@ -224,7 +224,7 @@ describe('cleanSourceMaps: nothing public is left', () => {
     w('server/chunks/s.js', 'x');
     expect(findPublicSourceMapLeaks(dir).length).toBe(4);
 
-    expect(cleanSourceMaps(dir)).toEqual({ deleted: 3, stripped: 2 });
+    expect(cleanSourceMaps(dir)).toEqual({ deleted: 3, stripped: 2, skipped: 0 });
     expect(findPublicSourceMapLeaks(dir)).toEqual([]);
     expect(fs.readFileSync(path.join(dir, 'static/chunks/a.js'), 'utf8')).toBe('console.log(1);');
     expect(fs.readFileSync(path.join(dir, 'static/chunks/clean.js'), 'utf8')).toContain('debugId=abc');
@@ -234,6 +234,6 @@ describe('cleanSourceMaps: nothing public is left', () => {
 
   it('is a no-op on a missing folder', () => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'maw3ed-maps-'));
-    expect(cleanSourceMaps(path.join(dir, 'nope'))).toEqual({ deleted: 0, stripped: 0 });
+    expect(cleanSourceMaps(path.join(dir, 'nope'))).toEqual({ deleted: 0, stripped: 0, skipped: 0 });
   });
 });

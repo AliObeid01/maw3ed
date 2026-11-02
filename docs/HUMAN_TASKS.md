@@ -65,6 +65,7 @@ The build code is merged and **inert**: it uploads source maps only when all thr
 2. Find the two slugs: the organisation slug is in the Sentry URL (`de.sentry.io/organizations/<org-slug>/`, for example `maw3ed-01`); the project slug is in Settings, Projects (the project name in lower case, for example `maw3ed`). Slugs are not secret.
 3. Vercel, Project, Settings, Environment Variables: add **three variables for the Production environment only** (untick Preview and Development), all available at **build time**:
    - `SENTRY_AUTH_TOKEN` = the token. Tick **Sensitive** so it can never be read back.
+   Note: because it is a Production variable, the token is also present in the running app's environment. "Sensitive" hides it in the Vercel dashboard but does not remove it from the runtime. Nothing in `src` reads it, it is never logged or sent anywhere, and you can revoke it in Sentry at any time (step 7). Keep the rule: never paste the token in chat, a ticket, git or a screenshot.
    - `SENTRY_ORG` = the organisation slug.
    - `SENTRY_PROJECT` = the project slug.
    Set all three or none: with only one or two, the build prints a warning (names only) and uploads nothing.

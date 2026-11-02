@@ -2,10 +2,19 @@
 // Production deploys: verify the environment, apply database migrations, then build.
 // Preview and development builds NEVER run migrations, so they cannot touch the production database.
 import { spawnSync } from 'node:child_process';
+import { buildTimeoutMessage, buildTimeoutMinutes } from './lib/buildTimeout.mjs';
 import { checkProductionEnv, shouldMigrate } from './lib/productionEnv.mjs';
 
-const run = (args) => {
-  const r = spawnSync('pnpm', args, { stdio: 'inherit', shell: process.platform === 'win32' });
+const run = (args, timeoutMinutes) => {
+  const r = spawnSync('pnpm', args, {
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    ...(timeoutMinutes ? { timeout: timeoutMinutes * 60_000, killSignal: 'SIGKILL' } : {}),
+  });
+  if (r.error?.code === 'ETIMEDOUT') {
+    console.error(buildTimeoutMessage(timeoutMinutes));
+    process.exit(1);
+  }
   if (r.error) console.error(`Could not start pnpm (${r.error.code ?? 'unknown error'})`);
   if (r.status !== 0) process.exit(r.status ?? 1);
 };
@@ -25,6 +34,7 @@ if (shouldMigrate(process.env)) {
 }
 // Build caches can skip the install postinstall hook, and src/generated is gitignored, so generate explicitly.
 run(['exec', 'prisma', 'generate']);
-run(['exec', 'next', 'build']);
+// Bounded: a stalled Sentry source map upload inside the build must not hang until Vercel's own limit.
+run(['exec', 'next', 'build'], buildTimeoutMinutes(process.env));
 // F39: no source map and no sourceMappingURL comment may stay in the deployment (even after a failed upload).
 run(['exec', 'node', 'scripts/clean-sourcemaps.mjs']);
