@@ -6,7 +6,8 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Input, Select } from '@/components/ui/Field';
+import { DateTimeField } from '@/components/ui/DateTimeFields';
+import { Select } from '@/components/ui/Field';
 import { useToast } from '@/components/ui/Toast';
 import {
   TIME_OFF_REASONS,
@@ -40,8 +41,12 @@ export function TimeOffPanel({
   const { timezone } = useAppSession();
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
+  const [fromDate, setFromDate] = useState('');
+  const [fromTime, setFromTime] = useState('09:00');
+  const [toDate, setToDate] = useState('');
+  const [toTime, setToTime] = useState('17:00');
+  const from = fromDate ? `${fromDate}T${fromTime}` : '';
+  const to = toDate ? `${toDate}T${toTime}` : '';
   const [reason, setReason] = useState<TimeOffReason>('VACATION');
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [banner, setBanner] = useState<string>();
@@ -106,8 +111,8 @@ export function TimeOffPanel({
     try {
       const created = await createTimeOff(staffId, { startAt, endAt, reason });
       onChange((current) => [...current, created]);
-      setFrom('');
-      setTo('');
+      setFromDate('');
+      setToDate('');
       toast.show(t('added'));
     } catch (error) {
       setBanner(errorKey(error) === 'validation' ? t('errors.checkDates') : errorText(error));
@@ -177,25 +182,23 @@ export function TimeOffPanel({
             </Callout>
           </div>
         ) : null}
-        <Input
+        <DateTimeField
           label={t('from')}
           name="from"
-          type="datetime-local"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          date={fromDate}
+          time={fromTime}
+          onDateChange={setFromDate}
+          onTimeChange={setFromTime}
           error={errors.from}
-          dir="ltr"
-          className="text-start"
         />
-        <Input
+        <DateTimeField
           label={t('to')}
           name="to"
-          type="datetime-local"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
+          date={toDate}
+          time={toTime}
+          onDateChange={setToDate}
+          onTimeChange={setToTime}
           error={errors.to}
-          dir="ltr"
-          className="text-start"
           hint={t('timezoneHint', { timezone: timezone.replace(/_/g, ' ') })}
         />
         <Select

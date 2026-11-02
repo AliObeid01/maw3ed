@@ -30,8 +30,15 @@ test('lists due reminders with chips, the sent one and the no-phone one', async 
   await expect(nadine.getByText('2 h', { exact: true })).toBeVisible();
   await expect(row(page, 'Maya Haddad').getByText('24 h', { exact: true })).toBeVisible();
   await expect(nadine.getByRole('link', { name: /Send the reminder to Nadine Aoun/ })).toBeVisible();
-  await expect(row(page, 'Rami Haddad')).toContainText('Sent by Rana, 9:14');
+  await expect(row(page, 'Rami Haddad')).toContainText('Sent by Rana, 09:14');
   await expect(row(page, 'Rami Haddad').getByRole('link')).toHaveCount(0);
+  // Board 4.2: the done state is a DISABLED button that carries the sender and the time (business timezone, 24 h).
+  const sent = row(page, 'Rami Haddad').getByRole('button', { name: 'Sent by Rana, 09:14' });
+  await expect(sent).toBeDisabled();
+  await expect(sent).toHaveAttribute('aria-disabled', 'true');
+  expect((await sent.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  // It sits in a polite live region so the change is announced when a reminder flips to sent.
+  await expect(row(page, 'Rami Haddad').getByRole('status')).toContainText('Sent by Rana, 09:14');
   const lea = row(page, 'Lea Saab');
   await expect(lea).toContainText('No valid phone');
   await expect(lea.getByRole('link', { name: 'Call instead' })).toHaveAttribute('href', 'tel:+9613512774');
@@ -50,6 +57,7 @@ test('Send opens WhatsApp in a new tab (noopener), records it, and updates the c
   await link.click();
   expect((await popup).url()).toMatch(/^https:\/\/wa\.me\/96176418902/);
   await expect(row(page, 'Nadine Aoun')).toContainText('Sent by Lina');
+  await expect(row(page, 'Nadine Aoun').getByRole('button', { name: /^Sent by Lina/ })).toBeDisabled();
   await expect(page.getByRole('status').filter({ hasText: '2 to send' })).toBeVisible();
   await expect(badge(page, 2)).toBeVisible();
   expect(calls.filter((c) => c.path === '/api/reminders/rm1/mark-sent' && c.method === 'POST')).toHaveLength(1);
@@ -79,8 +87,9 @@ test('409 ALREADY_SENT shows who sent it first, without an error', async ({ page
   await mockDashboardApi(page, { markSentScript: ['conflict'] });
   await page.goto('/app/reminders');
   await row(page, 'Nadine Aoun').getByRole('link', { name: /Send the reminder/ }).click();
-  await expect(row(page, 'Nadine Aoun')).toContainText('Sent by Rana, 9:14');
+  await expect(row(page, 'Nadine Aoun')).toContainText('Sent by Rana, 09:14');
   await expect(row(page, 'Nadine Aoun').getByRole('link', { name: /Send the reminder/ })).toHaveCount(0);
+  await expect(row(page, 'Nadine Aoun').getByRole('button', { name: 'Sent by Rana, 09:14' })).toBeDisabled();
   await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0);
 });
 
@@ -158,6 +167,10 @@ test.describe('layouts', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByText('أرسل عبر واتساب').first()).toBeVisible();
     await expect(page.locator('bdi[dir="ltr"]', { hasText: '+961 76 418 902' })).toBeVisible();
+    // The done state keeps the time as its own left-to-right run with Latin digits.
+    const sent = page.getByRole('button', { name: /^أرسله Rana/ });
+    await expect(sent).toBeDisabled();
+    await expect(sent.locator('bdi[dir="ltr"]', { hasText: '09:14' })).toBeVisible();
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );

@@ -7,6 +7,11 @@
     }
   },
   "ui": {
+    "fields": {
+      "date": "{label}، التاريخ",
+      "hours": "{label}، الساعة",
+      "minutes": "{label}، الدقائق"
+    },
     "status": {
       "booked": "محجوز",
       "confirmed": "مؤكد",
@@ -230,7 +235,8 @@
       "title": "إعداد {name}",
       "subtitle": "حوالي 10 دقائق، من هاتفك أو من هنا.",
       "progressLabel": "تقدم الإعداد",
-      "progress": "أُنجز {done} من {total}",
+      "progress": "أُنجزت {done} من {total} خطوات مطلوبة",
+      "optional": "اختياري",
       "nextHint": "الخطوة التالية · حوالي {minutes} دقيقة",
       "done": "(تم)",
       "steps": {
@@ -266,7 +272,7 @@
         },
         "publish": {
           "title": "الإدراج في الدليل",
-          "hint": "اختياري: ليجدك عملاء جدد",
+          "hint": "ليجدك عملاء جدد",
           "doneHint": "مُدرج في الدليل"
         }
       }
@@ -573,9 +579,9 @@
       },
       "send": "أرسل عبر واتساب",
       "sendAria": "أرسل التذكير إلى {name} عبر واتساب",
-      "sentBy": "أرسله {name}، {time}",
-      "sentByYou": "أرسله {name} الآن",
-      "sentByNoTime": "أرسله {name}",
+      "sentBy": "أرسله <who>{name}</who>، <clock>{time}</clock>",
+      "sentByYou": "أرسله <who>{name}</who> الآن",
+      "sentByNoTime": "أرسله <who>{name}</who>",
       "someone": "زميل",
       "noPhone": "لا رقم صالح",
       "callInstead": "اتصل بدلًا من ذلك",

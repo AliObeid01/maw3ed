@@ -2,7 +2,7 @@
 
 import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Check, CircleAlert, MessageCircle, PhoneOff } from 'lucide-react';
-import { useReducer, useRef, type MouseEvent } from 'react';
+import { useReducer, useRef, type MouseEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { HeaderActions } from '@/components/app/HeaderActions';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
@@ -11,7 +11,7 @@ import { EmptyState, LoadError, useErrorMessage } from '@/components/app/states'
 import { useSummary } from '@/components/app/SummaryContext';
 import { usePolling } from '@/components/app/usePolling';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
-import { Button } from '@/components/ui/Button';
+import { Button, buttonClasses } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { StatusChip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -75,7 +75,12 @@ function useRowText(item: ReminderItem, timezone: string) {
   };
 }
 
-function SentLine({
+/**
+ * Board 4.2 "done" state: the WhatsApp action stays in place as a disabled button that carries who sent it and when
+ * (business timezone, 24-hour). The live region announces the change to screen readers; the visible text is the
+ * button's accessible name.
+ */
+function SentButton({
   view,
   timezone,
   userName,
@@ -88,17 +93,33 @@ function SentLine({
   const f = useBookingFormat(timezone);
   const name = view.kind === 'sending' ? userName : (view.by?.name ?? t('someone'));
   const at = view.kind === 'sending' ? null : view.at;
+  const tags = {
+    who: (chunks: ReactNode) => <Bidi>{chunks}</Bidi>,
+    clock: (chunks: ReactNode) => <Bidi dir="ltr">{chunks}</Bidi>,
+  };
+  const label = at
+    ? t.rich('sentBy', { ...tags, name, time: f.time(at) })
+    : view.kind === 'sending'
+      ? t.rich('sentByYou', { ...tags, name })
+      : t.rich('sentByNoTime', { ...tags, name });
   return (
-    <span className="flex items-center justify-center gap-1.5 text-sm text-muted">
-      <Check size={16} strokeWidth={2.5} aria-hidden="true" className="shrink-0 text-success" />
-      <span>
-        {at
-          ? t('sentBy', { name, time: f.time(at) })
-          : view.kind === 'sending'
-            ? t('sentByYou', { name })
-            : t('sentByNoTime', { name })}
-      </span>
-    </span>
+    <div role="status" className="flex">
+      <button
+        type="button"
+        disabled
+        aria-disabled="true"
+        className={buttonClasses({
+          variant: 'secondary',
+          size: 'row',
+          block: true,
+          className:
+            'border-dashed bg-surface text-muted hover:bg-surface disabled:cursor-default disabled:opacity-100 aria-disabled:cursor-default aria-disabled:opacity-100',
+        })}
+      >
+        <Check size={16} strokeWidth={2.5} aria-hidden="true" className="shrink-0 text-success" />
+        <span className="min-w-0 truncate text-sm">{label}</span>
+      </button>
+    </div>
   );
 }
 
@@ -135,7 +156,7 @@ function ActionCell({
       );
     case 'sending':
     case 'sent':
-      return <SentLine view={view} timezone={timezone} userName={userName} />;
+      return <SentButton view={view} timezone={timezone} userName={userName} />;
     case 'retry':
       return (
         <div role="alert" className="flex flex-col gap-2">
