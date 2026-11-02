@@ -102,6 +102,20 @@ describe('proxy: Content-Security-Policy', () => {
     }
   });
 
+  it('treats an empty public DSN as absent and falls back to the server one; both empty gives no host', () => {
+    try {
+      env.NEXT_PUBLIC_SENTRY_DSN = '';
+      env.SENTRY_DSN = 'https://abc@o2.ingest.de.sentry.io/1';
+      expect(run('https://maw3ed.example/').headers.get('content-security-policy')).toContain(
+        "connect-src 'self' https://o2.ingest.de.sentry.io;",
+      );
+      env.SENTRY_DSN = '';
+      expect(run('https://maw3ed.example/').headers.get('content-security-policy')).toContain("connect-src 'self';");
+    } finally {
+      restore();
+    }
+  });
+
   it('CSP_MODE=report-only sends the report-only header, off sends none, invalid enforces', () => {
     try {
       env.CSP_MODE = 'report-only';

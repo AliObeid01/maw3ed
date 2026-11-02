@@ -32,6 +32,15 @@ test('home and login send a CSP with a fresh nonce per load plus the static head
   expect(new Set(seen).size).toBe(seen.length);
 });
 
+test('token routes keep no-referrer and no-store; the rest use strict-origin-when-cross-origin (real Next)', async ({ request }) => {
+  for (const path of ['/l/x', '/o/x', '/pay/x', '/invite/x', '/verify-email/x', '/reset-password/x']) {
+    const headers = (await request.get(path)).headers();
+    expect(headers['referrer-policy'], path).toBe('no-referrer');
+    expect(headers['cache-control'], path).toContain('no-store');
+  }
+  expect((await request.get('/')).headers()['referrer-policy']).toBe('strict-origin-when-cross-origin');
+});
+
 test('the API is not given the page policy', async ({ request }) => {
   const response = await request.get('/api/health');
   expect(response.headers()['content-security-policy']).toBe("default-src 'none'; frame-ancestors 'none'");

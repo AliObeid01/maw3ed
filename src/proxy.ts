@@ -23,7 +23,9 @@ export function proxy(request: NextRequest) {
     const nonce = generateNonce();
     const csp = buildCsp({
       nonce,
-      sentryHost: sentryHostFromDsn(process.env.NEXT_PUBLIC_SENTRY_DSN ?? process.env.SENTRY_DSN),
+      // `||` not `??`: an empty variable (.env.example ships `NEXT_PUBLIC_SENTRY_DSN=`) counts as absent.
+      // NEXT_PUBLIC_ values are inlined at BUILD time, so changing the DSN needs a redeploy (rebuild).
+      sentryHost: sentryHostFromDsn(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN),
       isProd: process.env.NODE_ENV === 'production',
     });
     const header = mode === 'report-only' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
@@ -34,6 +36,7 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
+  // The `?lang=` redirect is bodyless, so it intentionally carries no CSP (the static headers from next.config.ts still apply).
   const url = request.nextUrl.clone();
   url.searchParams.delete('lang');
   const response = NextResponse.redirect(url);

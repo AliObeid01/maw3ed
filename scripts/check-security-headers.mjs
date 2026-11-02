@@ -12,6 +12,8 @@ const flags = new Set(args.filter((a) => a.startsWith('--')));
 const base = (args.find((a) => !a.startsWith('--')) ?? 'https://maw3edlb.com').replace(/\/+$/, '');
 const PAGES = ['/', '/login', '/signup', '/pricing', '/directory'];
 const API = ['/api/health'];
+// Token routes (a made-up token renders the "invalid link" page with HTTP 200): no-referrer + no-store.
+const TOKENS = ['/l/x', '/o/x', '/pay/x', '/invite/x'];
 // HSTS comes from Vercel on https; skip it for plain http (local) or with --no-hsts.
 const checkHsts = !flags.has('--no-hsts') && base.startsWith('https://');
 
@@ -38,6 +40,9 @@ function pageChecks(h) {
     ["CSP script-src has no 'unsafe-inline' / 'unsafe-eval'", script !== '' && !/'unsafe-(inline|eval)'/.test(script)],
     ...REQUIRED.map((d) => [`CSP has ${d}`, csp.split(';').map((s) => s.trim()).includes(d)]),
     ['CSP has no wildcard source', !/(^|\s)\*(\s|;|$)/.test(csp)],
+    ...(base.startsWith('https://')
+      ? [['CSP has upgrade-insecure-requests', csp.split(';').map((s) => s.trim()).includes('upgrade-insecure-requests')]]
+      : []),
     ...commonChecks(h),
   ];
 }
@@ -75,14 +80,21 @@ const report = (path, rows) => {
   }
 };
 
-for (const path of [...PAGES, ...API]) {
+for (const path of [...PAGES, ...TOKENS, ...API]) {
   try {
     const { headers, status } = await nonceOf(base + path);
-    if (status >= 500) {
-      report(path, [[`responds (HTTP ${status})`, false]]);
+    if (status !== 200) {
+      report(path, [[`expected HTTP 200 but got ${status}${headers.get('location') ? ` (redirect to ${headers.get('location')})` : ''}; headers not checked`, false]]);
       continue;
     }
-    report(path, path.startsWith('/api/') ? apiChecks(headers) : pageChecks(headers));
+    const rows = path.startsWith('/api/') ? apiChecks(headers) : pageChecks(headers);
+    if (TOKENS.includes(path)) {
+      rows.push(
+        ['Referrer-Policy: no-referrer (token route)', headers.get('referrer-policy') === 'no-referrer'],
+        ['Cache-Control present and no-store (token route)', (headers.get('cache-control') ?? '').includes('no-store')],
+      );
+    }
+    report(path, rows);
   } catch (e) {
     report(path, [[`request failed: ${e instanceof Error ? e.message : e}`, false]]);
   }

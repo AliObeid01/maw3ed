@@ -67,6 +67,14 @@ After every deploy that touches headers (and once after the first one):
 
 If a page is blank or broken because of the policy (Vercel, Project Settings, Environment Variables, Production): add `CSP_MODE` with value `report-only` (the browser only logs violations and the page works again) or `off` (no CSP header at all; the other security headers stay). `enforce`, an empty value, or removing the variable restores the policy; any unknown value also enforces. The proxy reads `CSP_MODE` on every request, so no rebuild is needed, but Vercel applies variable changes only to NEW deployments: after changing it, open Deployments and Redeploy the latest one (the build cache can stay on). Then tell the developer what the console said.
 
+Vercel PREVIEW deployments will not show the Vercel toolbar / comment widget: its scripts are blocked by the CSP (expected). A preview can set `CSP_MODE=report-only` if you need the widget.
+
+Post-deploy manual checklist (after the PR that adds or changes headers):
+1. `node scripts/check-security-headers.mjs https://maw3edlb.com` (also covers `/l/x`, `/o/x`, `/pay/x`, `/invite/x`: no-referrer and no-store; any non-200 is a FAIL).
+2. Open `/`, a booking page, `/login` and a confirm link in Chrome or Firefox, in iPhone Safari, and in the Instagram and WhatsApp in-app browsers. Check the page hydrates (the language toggle works), a booking submits, and the console shows no CSP errors.
+
+Rollback, in order: (a) Vercel, Production variables: set `CSP_MODE=report-only`, then Redeploy; (b) if still broken set `CSP_MODE=off` and Redeploy; (c) if the static headers (not the CSP) are the cause, revert the F7 pull request.
+
 ## Environment variables
 ```
 DATABASE_URL=            # Neon pooled
