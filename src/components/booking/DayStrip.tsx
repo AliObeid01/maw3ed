@@ -12,7 +12,8 @@ import { useBookingFormat } from './useBookingFormat';
 
 /**
  * The next days inside the booking window as a radio group of date pills (board 1.3), seven per page.
- * Days without free times are disabled. Arrow keys move between days that have times.
+ * Days without free times are dimmed but stay selectable (F63): choosing one shows its "no free times" state with the
+ * waitlist link, so a client who wants a full day can ask for it. Their label says so. Arrow keys visit every day.
  */
 export function DayStrip({
   days,
@@ -34,8 +35,8 @@ export function DayStrip({
   const selectedIndex = selected ? days.indexOf(selected) : -1;
   const [page, setPage] = useState(Math.max(0, Math.floor(selectedIndex / STRIP_PAGE)));
   const visible = days.slice(page * STRIP_PAGE, (page + 1) * STRIP_PAGE);
-  const enabled = visible.filter((d) => (byDay[d]?.length ?? 0) > 0);
-  const tabStop = visible.includes(selected ?? '') ? selected : enabled[0];
+  const firstWithTimes = visible.find((d) => (byDay[d]?.length ?? 0) > 0);
+  const tabStop = visible.includes(selected ?? '') ? selected : (firstWithTimes ?? visible[0]);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -60,7 +61,7 @@ export function DayStrip({
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        onKeyDown={(e) => radioGroupKeyDown(e, (i) => onSelect(enabled[i]!))}
+        onKeyDown={(e) => radioGroupKeyDown(e, (i) => onSelect(visible[i]!))}
         className="grid grid-cols-7 gap-0.5 md:gap-2"
       >
         {visible.map((day) => {
@@ -77,15 +78,16 @@ export function DayStrip({
                   ? t('dayAvailable', { date: f.ymd(day), count })
                   : t('dayFull', { date: f.ymd(day) })
               }
-              disabled={count === 0}
+              title={count === 0 ? t('dayFull', { date: f.ymd(day) }) : undefined}
               tabIndex={day === tabStop ? 0 : -1}
               onClick={() => onSelect(day)}
               className={cn(
                 'flex h-[68px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-input border transition-colors duration-200 ease-out',
-                checked
-                  ? 'border-brand bg-brand text-white'
-                  : 'border-line bg-surface text-ink hover:border-brand',
-                count === 0 && 'cursor-not-allowed bg-canvas text-subtle hover:border-line',
+                checked && count > 0 && 'border-brand bg-brand text-white',
+                // A chosen full day is outlined, not filled: it is selected but has nothing to book.
+                checked && count === 0 && 'border-brand bg-canvas text-ink',
+                !checked && count > 0 && 'border-line bg-surface text-ink hover:border-brand',
+                !checked && count === 0 && 'border-dashed border-line bg-canvas text-muted hover:border-brand',
               )}
             >
               <span aria-hidden="true" className="text-xs font-medium">

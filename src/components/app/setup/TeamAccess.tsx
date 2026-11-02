@@ -32,12 +32,14 @@ export function TeamAccess({
   team,
   desktop,
   inviteDisabled,
+  gateReason,
   onInvite,
 }: {
   team: Resource<Team>;
   desktop: boolean;
-  /** The owner has not confirmed their email yet (the card above explains why). */
+  /** The owner has not confirmed their email yet: the button is off and `gateReason` says why. */
   inviteDisabled: boolean;
+  gateReason: string;
   onInvite: () => void;
 }) {
   const t = useTranslations('team');
@@ -111,7 +113,14 @@ export function TeamAccess({
     : t('loading');
 
   return (
-    <Card as="section" size="sm" padding="compact" aria-labelledby={`${uid}-title`}>
+    <Card
+      as="section"
+      id="team-access"
+      size="sm"
+      padding="compact"
+      aria-labelledby={`${uid}-title`}
+      className="scroll-mt-24"
+    >
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
           <h2 id={`${uid}-title`} className="m-0 text-base font-semibold">
@@ -134,14 +143,27 @@ export function TeamAccess({
               </button>
             )}
           </h2>
+          <p className="m-0 text-[13px] text-muted">{t('purpose')}</p>
           <p className="m-0 text-[13px] text-muted">{summary}</p>
         </div>
-        {open ? (
-          <Button variant="secondary" disabled={inviteDisabled} onClick={onInvite}>
+        {/* The one invite button: always visible, also while the member list is collapsed on a phone. */}
+        <div className="flex flex-col items-start gap-1.5">
+          <Button
+            id="team-access-invite"
+            variant="secondary"
+            disabled={inviteDisabled}
+            aria-describedby={inviteDisabled ? `${uid}-gate` : undefined}
+            onClick={onInvite}
+          >
             <MailPlus size={18} aria-hidden="true" />
             {t('invite')}
           </Button>
-        ) : null}
+          {inviteDisabled ? (
+            <p id={`${uid}-gate`} className="m-0 max-w-[220px] text-[13px] text-muted">
+              {gateReason}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div id={`${uid}-body`} hidden={!open}>

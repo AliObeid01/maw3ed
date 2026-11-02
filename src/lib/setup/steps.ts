@@ -70,7 +70,7 @@ export const stepHrefs: Record<SetupStepId, string> = {
   hours: '/app/hours',
   publish: '/app/share#directory',
   share: '/app/share',
-  invite: '/app/staff',
+  invite: '/app/staff#team-access',
 };
 
 /** Per business, so a second owner on the same browser does not inherit the tick. */

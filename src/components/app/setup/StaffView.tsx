@@ -1,11 +1,10 @@
 'use client';
 
 import { MetaLine } from '@/components/ui/Bidi';
-import { MailPlus, Plus, User } from 'lucide-react';
+import { Plus, User } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
@@ -119,6 +118,15 @@ function StaffInner() {
 
   const list = staff.data;
   const serviceList = services.data;
+  const ready = Boolean(list && serviceList);
+
+  // The setup step links to /app/staff#team-access. The card only exists once the lists have loaded, so the browser's
+  // own hash scroll finds nothing: scroll to it here and put keyboard focus on its invite button (only with the hash).
+  useEffect(() => {
+    if (!ready || window.location.hash !== '#team-access') return;
+    document.getElementById('team-access')?.scrollIntoView({ block: 'start' });
+    document.getElementById('team-access-invite')?.focus({ preventScroll: true });
+  }, [ready]);
 
   if (staff.error && !list) return <LoadError error={staff.error} onRetry={staff.reload} />;
   if (services.error && !serviceList)
@@ -179,37 +187,11 @@ function StaffInner() {
             </ul>
           )}
 
-          <Card as="section" size="sm" padding="compact" aria-labelledby="receptionist-title">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex min-w-0 flex-[1_1_180px] flex-col gap-0.5">
-                <h2 id="receptionist-title" className="m-0 text-base font-semibold">
-                  {t('invites.title')}
-                </h2>
-                <p className="m-0 text-[13px] text-muted">{t('invites.body')}</p>
-              </div>
-              <div className="flex flex-col items-start gap-1.5">
-                <Button
-                  variant="secondary"
-                  disabled={!emailVerified}
-                  aria-describedby={emailVerified ? undefined : 'invite-gate-reason'}
-                  onClick={() => setInviteOpen(true)}
-                >
-                  <MailPlus size={18} aria-hidden="true" />
-                  {t('invites.cta')}
-                </Button>
-                {emailVerified ? null : (
-                  <p id="invite-gate-reason" className="m-0 max-w-[220px] text-[13px] text-muted">
-                    {gateReason}
-                  </p>
-                )}
-              </div>
-            </div>
-          </Card>
-
           <TeamAccess
             team={team}
             desktop={desktop}
             inviteDisabled={!emailVerified}
+            gateReason={gateReason}
             onInvite={() => setInviteOpen(true)}
           />
         </div>

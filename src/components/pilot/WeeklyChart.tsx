@@ -129,7 +129,7 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
         <summary className="flex min-h-11 cursor-pointer items-center px-3.5 text-sm font-medium text-brand">
           {t('showTable')}
         </summary>
-        <div className="overflow-x-auto px-3.5 pb-3">
+        <div data-allow-overflow className="overflow-x-auto px-3.5 pb-3">
           <table className="w-full min-w-[300px] border-collapse text-start text-sm">
             <caption className="sr-only">{t('caption')}</caption>
             <thead>

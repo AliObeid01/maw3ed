@@ -48,7 +48,7 @@ test.describe('unverified email banner', () => {
     expect(sends).toBe(1);
 
     // The invite control is disabled and says why.
-    await expect(page.getByRole('button', { name: 'Invite receptionist' })).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Invite someone' })).toBeDisabled();
     await expect(page.getByText('Confirm your email address to invite staff.')).toBeVisible();
 
   });
@@ -92,7 +92,7 @@ test.describe('unverified email banner', () => {
     await setRole(page, 'OWNER', DASHBOARD);
     await mockSetupApi(page, { state: stateWithStaff() });
     await page.goto('/app/staff');
-    await expect(page.getByRole('button', { name: 'Invite receptionist' })).toBeEnabled();
+    await expect(page.getByRole('button', { name: 'Invite someone' })).toBeEnabled();
     await expect(page.getByRole('region', { name: 'Email confirmation' })).toHaveCount(0);
   });
 

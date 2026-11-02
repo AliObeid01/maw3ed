@@ -287,7 +287,7 @@ test.describe('3.6 staff', () => {
       },
     });
     await page.goto('/app/staff');
-    await page.getByRole('button', { name: 'Invite receptionist' }).click();
+    await page.getByRole('button', { name: 'Invite someone' }).click();
     await page.getByLabel('Email').fill('not-an-email');
     await page.getByRole('button', { name: 'Send invite' }).click();
     await expect(page.getByText('Enter a valid email address.')).toBeVisible();
@@ -322,7 +322,7 @@ test.describe('3.6 staff', () => {
       },
     });
     await page.goto('/app/staff');
-    await page.getByRole('button', { name: 'Invite receptionist' }).click();
+    await page.getByRole('button', { name: 'Invite someone' }).click();
     await page.getByLabel('Email').fill('dev@example.com');
     await page.getByRole('button', { name: 'Send invite' }).click();
     await expect(page.getByText('http://localhost/invite/abc')).toBeVisible();

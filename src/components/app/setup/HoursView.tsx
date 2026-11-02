@@ -38,6 +38,7 @@ function StaffSwitcher({
     <div
       role="radiogroup"
       aria-label={t('whose')}
+      data-allow-overflow
       onKeyDown={(e) => radioGroupKeyDown(e, (i) => onSelect(staff[i]!.id))}
       className={cn(
         'flex max-w-full gap-1 overflow-x-auto rounded-pill bg-divider p-1 [scrollbar-width:none]',

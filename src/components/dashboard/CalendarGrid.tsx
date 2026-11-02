@@ -44,6 +44,7 @@ export function CalendarGrid({
     <div
       role="group"
       aria-label={t('today.calendarLabel')}
+      data-allow-overflow
       className="overflow-x-auto rounded-card border border-line bg-surface"
     >
       <div
