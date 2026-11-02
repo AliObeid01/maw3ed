@@ -33,6 +33,15 @@ export function calendarRange(
   return { startHour: Math.floor(start / 60), endHour: Math.max(Math.ceil(end / 60), Math.floor(start / 60) + 1) };
 }
 
+/**
+ * Shortest a block is drawn, in px (the wrapper leaves 2 px above and below, so about 32 px is visible). A 15 minute
+ * appointment is only 22 px by time; this keeps its client and time readable. Blocks that would then collide are
+ * placed side by side by `layoutColumn`.
+ */
+export const MIN_BLOCK_PX = 36;
+/** Below this the block has room for one line only (client name + time). */
+export const ONE_LINE_PX = 52;
+
 /** Pixel box of a block inside the staff column: time offset and duration scale linearly (44 px per 30 min). */
 export function blockBox(
   appt: Pick<TodayAppointment, 'startAt' | 'endAt'>,
@@ -42,9 +51,56 @@ export function blockBox(
   const offsetMin = minutesOfDay(appt.startAt, timezone) - startHour * 60;
   const durationMin = (Date.parse(appt.endAt) - Date.parse(appt.startAt)) / 60_000;
   const top = (offsetMin / ROW_MIN) * ROW_PX;
-  const height = Math.max((durationMin / ROW_MIN) * ROW_PX, 24);
-  // Under 30 minutes the block is shorter than a row: one line only. From 30 minutes it has room for two.
-  return { top, height, compact: durationMin < ROW_MIN };
+  const height = Math.max((durationMin / ROW_MIN) * ROW_PX, MIN_BLOCK_PX);
+  return { top, height, compact: height < ONE_LINE_PX };
+}
+
+export type PlacedBlock<T> = {
+  item: T;
+  top: number;
+  height: number;
+  compact: boolean;
+  /** 0-based lane inside the cluster of blocks that collide on screen. */
+  lane: number;
+  /** How many lanes that cluster has (1 when the block stands alone). */
+  lanes: number;
+};
+
+/**
+ * Places one person's blocks. Blocks whose drawn boxes (not just their times) collide share the column side by side
+ * instead of covering each other: two real overlaps, or two short appointments back to back whose minimum height
+ * reaches into the next one. Lanes are assigned greedily, which is optimal for intervals; every block of a cluster
+ * gets the cluster's lane count so they all have the same width.
+ */
+export function layoutColumn<T extends Pick<TodayAppointment, 'startAt' | 'endAt'>>(
+  items: T[],
+  timezone: string,
+  startHour: number,
+): PlacedBlock<T>[] {
+  const boxes = items
+    .map((item) => ({ item, ...blockBox(item, timezone, startHour) }))
+    .sort((x, y) => x.top - y.top || y.height - x.height);
+  const placed: PlacedBlock<T>[] = [];
+  let cluster: PlacedBlock<T>[] = [];
+  let laneEnds: number[] = [];
+  let clusterEnd = -Infinity;
+  const flush = () => {
+    for (const block of cluster) block.lanes = laneEnds.length;
+    placed.push(...cluster);
+    cluster = [];
+    laneEnds = [];
+    clusterEnd = -Infinity;
+  };
+  for (const box of boxes) {
+    if (box.top >= clusterEnd) flush();
+    let lane = laneEnds.findIndex((end) => end <= box.top);
+    if (lane === -1) lane = laneEnds.length;
+    laneEnds[lane] = box.top + box.height;
+    clusterEnd = Math.max(clusterEnd, box.top + box.height);
+    cluster.push({ ...box, lane, lanes: 1 });
+  }
+  flush();
+  return placed;
 }
 
 /** Grid rows (1-based, after a 48 px header row) that a block starts on and spans, rounded out to whole 30-min rows. */

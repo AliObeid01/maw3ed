@@ -7,6 +7,11 @@
     }
   },
   "ui": {
+    "fields": {
+      "date": "{label}, date",
+      "hours": "{label}, hours",
+      "minutes": "{label}, minutes"
+    },
     "status": {
       "booked": "Booked",
       "confirmed": "Confirmed",
@@ -230,7 +235,8 @@
       "title": "Set up {name}",
       "subtitle": "About 10 minutes, all from your phone or here.",
       "progressLabel": "Setup progress",
-      "progress": "{done} of {total} done",
+      "progress": "{done} of {total} required steps done",
+      "optional": "Optional",
       "nextHint": "Next step · about {minutes} min",
       "done": "(done)",
       "steps": {
@@ -266,7 +272,7 @@
         },
         "publish": {
           "title": "List in the directory",
-          "hint": "Optional: let new clients find you",
+          "hint": "Let new clients find you",
           "doneHint": "Listed in the directory"
         }
       }
@@ -573,9 +579,9 @@
       },
       "send": "Send on WhatsApp",
       "sendAria": "Send the reminder to {name} on WhatsApp",
-      "sentBy": "Sent by {name}, {time}",
-      "sentByYou": "Sent by {name}, just now",
-      "sentByNoTime": "Sent by {name}",
+      "sentBy": "Sent by <who>{name}</who>, <clock>{time}</clock>",
+      "sentByYou": "Sent by <who>{name}</who>, just now",
+      "sentByNoTime": "Sent by <who>{name}</who>",
       "someone": "a teammate",
       "noPhone": "No valid phone",
       "callInstead": "Call instead",

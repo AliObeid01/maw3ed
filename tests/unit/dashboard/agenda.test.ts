@@ -8,7 +8,14 @@ import {
   shiftDay,
   todayIn,
 } from '@/lib/dashboard/agenda';
-import { blockBox, blockRows, calendarRange, hourMarks } from '@/lib/dashboard/calendar';
+import {
+  blockBox,
+  blockRows,
+  calendarRange,
+  hourMarks,
+  layoutColumn,
+  MIN_BLOCK_PX,
+} from '@/lib/dashboard/calendar';
 
 const TZ = 'Asia/Beirut';
 
@@ -147,8 +154,65 @@ describe('calendar layout', () => {
     const b = appt('b', '2026-10-29T08:15:00Z', 20); // 10:15, 20 min
     const box = blockBox(b, TZ, 9);
     expect(box.top).toBeCloseTo(110); // 75 min after 09:00
-    expect(box.height).toBeCloseTo(29.33, 1);
+    // 20 minutes is 29 px by time: drawn at the readable minimum, one line.
+    expect(box.height).toBe(MIN_BLOCK_PX);
     expect(box.compact).toBe(true);
+  });
+
+  it('never draws a block shorter than the readable minimum, and 30 minutes keeps its 44 px', () => {
+    expect(blockBox(appt('a', '2026-10-29T07:00:00Z', 15), TZ, 9).height).toBe(MIN_BLOCK_PX);
+    expect(blockBox(appt('b', '2026-10-29T07:00:00Z', 30), TZ, 9)).toMatchObject({ height: 44, compact: true });
+    expect(blockBox(appt('c', '2026-10-29T07:00:00Z', 45), TZ, 9)).toMatchObject({ height: 66, compact: false });
+  });
+
+  describe('layoutColumn at 15-minute granularity', () => {
+    const at = (hh: number, mm: number) =>
+      new Date(Date.UTC(2026, 9, 29, hh - 2, mm)).toISOString(); // Beirut is UTC+2 that day
+    const col = (...list: Array<[string, number, number, number]>) =>
+      layoutColumn(
+        list.map(([id, h, m, dur]) => appt(id, at(h, m), dur)),
+        TZ,
+        9,
+      );
+    const overlap = (a: { top: number; height: number; lane: number; lanes: number }, b: typeof a) => {
+      const sameSpace = a.lane === b.lane || a.lanes !== b.lanes;
+      return sameSpace && a.top < b.top + b.height && b.top < a.top + a.height;
+    };
+    const anyOverlap = (blocks: ReturnType<typeof col>) =>
+      blocks.some((x, i) => blocks.slice(i + 1).some((y) => overlap(x, y)));
+
+    it('leaves blocks that fit alone in a full-width lane', () => {
+      const blocks = col(['a', 9, 0, 30], ['b', 9, 30, 30], ['c', 10, 0, 45]);
+      expect(blocks.map((b) => [b.lane, b.lanes])).toEqual([[0, 1], [0, 1], [0, 1]]);
+    });
+
+    it('puts back-to-back 15 minute appointments side by side because the minimum height would cover the next one', () => {
+      const blocks = col(['a', 9, 0, 15], ['b', 9, 15, 15], ['c', 9, 30, 15], ['d', 9, 45, 15]);
+      expect(anyOverlap(blocks)).toBe(false);
+      expect(blocks.every((b) => b.height >= MIN_BLOCK_PX)).toBe(true);
+      expect(blocks.map((b) => b.lane)).toEqual([0, 1, 0, 1]);
+      expect(blocks.every((b) => b.lanes === 2)).toBe(true);
+    });
+
+    it('stacks a 15 minute appointment that has 30 minutes of room after it', () => {
+      const blocks = col(['a', 9, 0, 15], ['b', 9, 30, 15]);
+      expect(blocks.map((b) => b.lanes)).toEqual([1, 1]);
+    });
+
+    it('splits truly overlapping appointments into lanes, and three-way overlaps into three', () => {
+      const two = col(['a', 9, 0, 60], ['b', 9, 30, 60]);
+      expect(two.map((b) => [b.lane, b.lanes])).toEqual([[0, 2], [1, 2]]);
+      const three = col(['a', 9, 0, 90], ['b', 9, 15, 60], ['c', 9, 30, 30]);
+      expect(three.every((b) => b.lanes === 3)).toBe(true);
+      expect(new Set(three.map((b) => b.lane)).size).toBe(3);
+      expect(anyOverlap(three)).toBe(false);
+    });
+
+    it('reuses a freed lane and keeps unrelated clusters at full width', () => {
+      const blocks = col(['a', 9, 0, 60], ['b', 9, 15, 15], ['c', 9, 45, 15], ['d', 11, 0, 30]);
+      expect(anyOverlap(blocks)).toBe(false);
+      expect(blocks.find((b) => b.item.id === 'd')).toMatchObject({ lane: 0, lanes: 1 });
+    });
   });
 
   it('rounds grid rows out to whole 30-minute rows', () => {

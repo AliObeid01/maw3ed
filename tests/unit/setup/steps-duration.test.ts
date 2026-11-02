@@ -25,9 +25,9 @@ describe('deriveSetupSteps', () => {
       'services',
       'staff',
       'hours',
-      'publish',
       'share',
       'invite',
+      'publish',
     ]);
     expect(doneCount).toBe(1);
     expect(percent).toBe(17);

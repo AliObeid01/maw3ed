@@ -73,7 +73,7 @@ let loser: Person;
 // ---- page helpers ------------------------------------------------------------------------------------------
 
 /** Book through the real public page: service -> person -> day and time -> details (4 screens). */
-async function bookViaUi(page: Page, b: Business, who: Person, dayIso: DateTime, time = '9:00') {
+async function bookViaUi(page: Page, b: Business, who: Person, dayIso: DateTime, time = '09:00') {
   await page.goto(`/b/${b.slug}`);
   await expect(page.getByRole('heading', { name: 'Choose a service' })).toBeVisible();
   await page.getByRole('button', { name: new RegExp(SERVICE) }).click();
@@ -336,7 +336,7 @@ test('3. W1 and W2 tap "Book this slot" at the same moment: exactly one booking,
     }
     await expect(
       p1.getByText(
-        `Offer expires at ${DateTime.fromJSDate((await offersOf(aAppointmentId))[0].expiresAt, { zone: TZ }).toFormat('H:mm')}`,
+        `Offer expires at ${DateTime.fromJSDate((await offersOf(aAppointmentId))[0].expiresAt, { zone: TZ }).toFormat('HH:mm')}`,
       ),
     ).toBeVisible();
     expect(
@@ -435,7 +435,7 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
   await page.waitForURL(/\/app/);
   await expect(page.getByRole('heading', { name: 'Waitlist activity' })).toBeVisible();
   // The activity card names the winner and the slot.
-  await expect(page.getByText(`${first(winner)} took 9:00 with ${biz.staffName}`)).toBeVisible();
+  await expect(page.getByText(`${first(winner)} took 09:00 with ${biz.staffName}`)).toBeVisible();
 
   // F45: the tile counts refills made ON the viewed day, so today (when the claim happened) reads 1 ...
   await expect(page.getByText('Refilled from waitlist today').locator('..')).toContainText('1');

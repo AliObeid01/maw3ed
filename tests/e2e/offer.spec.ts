@@ -17,9 +17,9 @@ test('shows the slot in the business timezone with an expiry time; GET alone nev
   const { calls, start, expiresAt } = await open(page);
   await expect(page.getByRole('heading', { name: 'A spot just opened up' })).toBeVisible();
   await expect(page.getByText(/.?Haircut.? with .?Karim.? · .?\$15/)).toBeVisible(); // bidi isolates surround the name and price
-  const startLocal = start.setZone(TZ).toFormat('H:mm');
+  const startLocal = start.setZone(TZ).toFormat('HH:mm');
   await expect(page.getByText(new RegExp(`${startLocal} – `))).toBeVisible();
-  const expires = expiresAt.setZone(TZ).toFormat('H:mm');
+  const expires = expiresAt.setZone(TZ).toFormat('HH:mm');
   await expect(page.getByText(`Offer expires at ${expires}`)).toBeVisible();
   await expect(page.getByText(/\d+ minutes? left/)).toBeVisible();
   expect(calls.map((c) => c.method)).toEqual(['GET']);

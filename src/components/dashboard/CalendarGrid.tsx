@@ -2,11 +2,13 @@
 
 import { useTranslations } from 'next-intl';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
+import { timeRangeText } from '@/components/ui/Bidi';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import type { TodayAppointment } from '@/lib/api/dashboard';
 import { apptTone, isActive } from '@/lib/dashboard/agenda';
-import { blockBox, calendarRange, hourMarks, ROW_PX } from '@/lib/dashboard/calendar';
+import { calendarRange, hourMarks, layoutColumn, ROW_PX } from '@/lib/dashboard/calendar';
 import { initials } from '@/lib/dashboard/phone';
+import { clockOf } from '@/lib/time/clock';
 import { cn } from '@/lib/cn';
 import { blockTint, toneLabelKey } from './apptStyles';
 
@@ -28,8 +30,8 @@ export function CalendarGrid({
   timezone: string;
   onOpen: (appt: TodayAppointment) => void;
 }) {
-  const t = useTranslations('app.today');
   const ts = useTranslations('ui.status');
+  const t = useTranslations('app');
   const f = useBookingFormat(timezone);
   const range = calendarRange(appointments, timezone);
   const marks = hourMarks(range);
@@ -41,7 +43,7 @@ export function CalendarGrid({
   return (
     <div
       role="group"
-      aria-label={t('calendarLabel')}
+      aria-label={t('today.calendarLabel')}
       className="overflow-x-auto rounded-card border border-line bg-surface"
     >
       <div
@@ -70,65 +72,108 @@ export function CalendarGrid({
               className="absolute text-xs text-muted tabular-nums"
               style={{ top: i * 2 * ROW_PX + 4 }}
             >
-              <bdi dir="ltr">{`${hour}:00`}</bdi>
+              <bdi dir="ltr">{clockOf(hour)}</bdi>
             </span>
           ))}
         </div>
-        {staff.map((s) => (
-          <div
-            key={s.id}
-            role="list"
-            aria-label={s.displayName}
-            className="relative"
-            style={{ height, backgroundImage: lines }}
-          >
-            {active
-              .filter((a) => a.staff.id === s.id)
-              .map((appt) => {
-                const box = blockBox(appt, timezone, range.startHour);
+        {staff.map((s) => {
+          const blocks = layoutColumn(
+            active.filter((a) => a.staff.id === s.id),
+            timezone,
+            range.startHour,
+          );
+          // A short block at the very end of the day is drawn at its minimum height: let the column grow to hold it.
+          const columnHeight = Math.max(height, ...blocks.map((b) => b.top + b.height));
+          return (
+            <div
+              key={s.id}
+              role="list"
+              aria-label={s.displayName}
+              className="relative"
+              style={{ height: columnHeight, backgroundImage: lines }}
+            >
+              {blocks.map(({ item: appt, top, height: blockHeight, compact, lane, lanes }) => {
                 const tone = apptTone(appt);
+                const start = f.time(appt.startAt);
+                const end = f.time(appt.endAt);
+                const status = ts(toneLabelKey[tone]);
+                const noShowLabel = t('dashboard.noShows', { count: appt.client.noShows });
+                const noShowText = appt.client.repeatNoShow ? noShowLabel : null;
+                const details = [
+                  appt.client.name,
+                  timeRangeText(start, end),
+                  appt.service.name,
+                  status,
+                  noShowText,
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
                 return (
                   <div
                     key={appt.id}
                     role="listitem"
-                    className="absolute inset-x-0 py-[2px]"
-                    style={{ top: box.top, height: box.height }}
+                    className="absolute py-[2px] focus-within:z-10"
+                    style={{
+                      top,
+                      height: blockHeight,
+                      width: `${100 / lanes}%`,
+                      insetInlineStart: `${(lane / lanes) * 100}%`,
+                    }}
                   >
                     <button
                       type="button"
+                      title={details}
                       onClick={() => onOpen(appt)}
                       className={cn(
-                        'flex size-full overflow-hidden text-start transition-[filter] duration-200 ease-out hover:brightness-95',
+                        'flex size-full overflow-hidden text-start transition-[filter] duration-200 ease-out hover:brightness-95 focus-visible:outline-offset-[-2px]',
                         blockTint[tone],
-                        box.compact
+                        compact
                           ? 'items-center gap-1.5 rounded-[10px] px-2.5'
                           : cn(
                               'flex-col rounded-xl px-2.5',
-                              box.height < 60 ? 'justify-center gap-0 py-0.5 leading-4' : 'gap-0.5 py-2',
+                              blockHeight < 60 ? 'justify-center gap-0 py-0.5 leading-4' : 'gap-0.5 py-2',
                             ),
                       )}
                     >
-                      <span className="flex min-w-0 items-center gap-1.5">
-                        <span className="min-w-0 truncate text-[13px] font-semibold">
-                          {appt.client.name}
-                        </span>
-                        {appt.client.repeatNoShow && box.height < 60 ? (
-                          <NoShowBadge count={appt.client.noShows} className="ms-auto shrink-0" />
-                        ) : null}
-                      </span>
-                      <span className="truncate text-xs">
-                        <bdi dir="ltr">{f.time(appt.startAt)}</bdi> · {appt.service.name}
-                        {box.compact || box.height < 60 ? null : <> · {ts(toneLabelKey[tone])}</>}
-                      </span>
-                      {appt.client.repeatNoShow && box.height >= 60 ? (
-                        <NoShowBadge count={appt.client.noShows} className="self-start" />
-                      ) : null}
+                      {compact ? (
+                        <>
+                          {appt.client.repeatNoShow ? (
+                            <span aria-hidden="true" className="size-1.5 shrink-0 rounded-pill bg-danger" />
+                          ) : null}
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold">{appt.client.name}</span>
+                          <span className="shrink-0 text-xs tabular-nums">
+                            <bdi dir="ltr">{start}</bdi>
+                          </span>
+                          {/* What the one-line block cannot show is still in the accessible name. */}
+                          <span className="sr-only">
+                            {appt.service.name} · {status}
+                            {noShowText ? <> · {noShowText}</> : null}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="min-w-0 truncate text-[13px] font-semibold">{appt.client.name}</span>
+                            {appt.client.repeatNoShow && blockHeight < 60 ? (
+                              <NoShowBadge count={appt.client.noShows} className="ms-auto shrink-0" />
+                            ) : null}
+                          </span>
+                          <span className="truncate text-xs">
+                            <bdi dir="ltr">{start}</bdi> · {appt.service.name}
+                            {blockHeight < 60 ? null : <> · {status}</>}
+                          </span>
+                          {appt.client.repeatNoShow && blockHeight >= 60 ? (
+                            <NoShowBadge count={appt.client.noShows} className="self-start" />
+                          ) : null}
+                        </>
+                      )}
                     </button>
                   </div>
                 );
               })}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

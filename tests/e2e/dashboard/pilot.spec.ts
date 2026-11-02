@@ -173,6 +173,11 @@ test('a valid baseline is saved with numbers, confirmed with a toast, and the co
   const to = ymd(today().minus({ days: 7 }));
   await f.getByLabel('From').fill(from);
   await f.getByLabel('To').fill(to);
+  // The native date input is locale-bound (mm/dd/yyyy in a US browser): the chosen days are also written out in the app's format.
+  const written = (d: string) =>
+    new Intl.DateTimeFormat('en', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${d}T12:00:00Z`));
+  await expect(f.getByText(written(from), { exact: true })).toBeVisible();
+  await expect(f.getByText(written(to), { exact: true })).toBeVisible();
   await f.getByLabel('Held or missed').fill('78');
   await f.getByLabel('No-shows').fill('14');
   await f.getByLabel('Late cancels').fill('3');

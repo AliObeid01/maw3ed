@@ -6,17 +6,17 @@ import { render } from './helpers';
 
 describe('bidi helpers', () => {
   it('keeps a time range as one left-to-right unit in start-to-end order', () => {
-    const text = timeRangeText('9:00', '9:30');
-    expect(text).toBe('⁦9:00 – 9:30⁩');
+    const text = timeRangeText('09:00', '09:30');
+    expect(text).toBe('⁦09:00 – 09:30⁩');
     expect(ltr('$15')).toBe('⁦$15⁩');
     expect(isolate('Karim')).toBe('⁨Karim⁩');
   });
 
   it('renders TimeRange as an ltr bdi', () => {
-    const out = render(createElement(TimeRange, { start: '9:00', end: '9:30' }));
+    const out = render(createElement(TimeRange, { start: '09:00', end: '09:30' }));
     expect(out).toContain('<bdi dir="ltr"');
-    expect(out).toContain('9:00 – 9:30');
-    expect(render(createElement(TimeRange, { start: '9:00' }))).not.toContain('–');
+    expect(out).toContain('09:00 – 09:30');
+    expect(render(createElement(TimeRange, { start: '09:00' }))).not.toContain('–');
   });
 
   it('builds a meta line from separate items with a separator only between them', () => {

@@ -1,3 +1,4 @@
+import { formatClock, formatLocalStamp } from '@/lib/time/clock';
 import { toCsv } from '@/server/domain/csv';
 import { localDayOf, MAX_EXPORT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
 import {
@@ -187,16 +188,16 @@ export const pilotService = {
       ],
       rows.map((r) => [
         local(r.startAt).toISODate(),
-        local(r.startAt).toFormat('HH:mm'),
-        local(r.endAt).toFormat('HH:mm'),
+        formatClock(r.startAt, business.timezone),
+        formatClock(r.endAt, business.timezone),
         r.service.name,
         r.staff.displayName,
         r.client.name,
         r.client.phone,
         r.status,
         r.source,
-        r.confirmedAt ? local(r.confirmedAt).toFormat('yyyy-MM-dd HH:mm') : '',
-        r.outcomeMarkedAt ? local(r.outcomeMarkedAt).toFormat('yyyy-MM-dd HH:mm') : '',
+        r.confirmedAt ? formatLocalStamp(r.confirmedAt, business.timezone) : '',
+        r.outcomeMarkedAt ? formatLocalStamp(r.outcomeMarkedAt, business.timezone) : '',
       ]),
     );
     ctx.logger.info({ businessId: ctx.businessId, rows: rows.length }, 'pilot csv exported');

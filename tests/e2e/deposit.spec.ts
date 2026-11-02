@@ -73,7 +73,7 @@ test.describe('deposit journey', () => {
     await page.goto(BOOK);
     await page.getByRole('button', { name: /Haircut/ }).click();
     await page.getByRole('button', { name: /Anyone available/ }).click();
-    const slot = page.getByRole('radio', { name: '9:00', exact: true }).first();
+    const slot = page.getByRole('radio', { name: '09:00', exact: true }).first();
     await expect(slot).toBeVisible();
     await slot.click();
     await page.getByRole('button', { name: 'Continue' }).click();

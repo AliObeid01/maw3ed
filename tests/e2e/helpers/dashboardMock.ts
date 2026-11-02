@@ -86,12 +86,12 @@ export function at(hour: number, minute = 0, dayOffset = 0): string {
 }
 export const todayLocal = () => clockNow().setZone(TZ).toISODate()!;
 
-const MAYA = { id: 'cl-maya', name: 'Maya Haddad', phone: '+96170555218', noShows: 2 };
-const NADINE = { id: 'cl-nadine', name: 'Nadine Aoun', phone: '+96176418902', noShows: 2 };
-const LEA = { id: 'cl-lea', name: 'Lea Saab', phone: '+9613512774', noShows: 0 };
-const RAMI = { id: 'cl-rami', name: 'Rami Haddad', phone: '+9613640918', noShows: 0 };
+export const MAYA = { id: 'cl-maya', name: 'Maya Haddad', phone: '+96170555218', noShows: 2 };
+export const NADINE = { id: 'cl-nadine', name: 'Nadine Aoun', phone: '+96176418902', noShows: 2 };
+export const LEA = { id: 'cl-lea', name: 'Lea Saab', phone: '+9613512774', noShows: 0 };
+export const RAMI = { id: 'cl-rami', name: 'Rami Haddad', phone: '+9613640918', noShows: 0 };
 
-function appt(
+export function appt(
   id: string,
   startAt: string,
   durationMin: number,

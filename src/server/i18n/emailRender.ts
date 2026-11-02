@@ -1,4 +1,5 @@
 import { DateTime } from 'luxon';
+import { formatClock } from '@/lib/time/clock';
 import { emailDetails, emailStyles, renderEmailLayout } from './emailLayout';
 import { getEmailMessages, isRtl } from './messages';
 
@@ -46,7 +47,7 @@ export function formatLocal(startAt: Date, timezone: string, locale: string) {
     numberingSystem: 'latn',
   });
   const date = dt.toFormat('cccc d LLLL yyyy');
-  const time = dt.toFormat('HH:mm');
+  const time = formatClock(startAt, timezone);
   return { date, time, when: `${date}, ${time}` };
 }
 
