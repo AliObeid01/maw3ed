@@ -103,18 +103,40 @@ function ActivityLine({ item, timezone }: { item: WaitlistActivity; timezone: st
   );
 }
 
-/** Latest waitlist offers/claims. Its own request, so a failure here never hides the day. */
-export function WaitlistActivityCard({ timezone }: { timezone: string }) {
+/**
+ * Latest waitlist offers/claims. Its own request, so a failure here never hides the day. On Today it carries a
+ * "View waitlist" link to the Waitlist screen (`showLink`); the screen itself reuses the card without it.
+ */
+export function WaitlistActivityCard({
+  timezone,
+  limit = 5,
+  showLink = true,
+}: {
+  timezone: string;
+  limit?: number;
+  showLink?: boolean;
+}) {
   const t = useTranslations('app.today.waitlist');
   const te = useTranslations('app.errors');
   const retryLabel = te('retry');
-  const res = useResource((signal) => getWaitlistActivity(5, signal), 'waitlist');
+  const res = useResource((signal) => getWaitlistActivity(limit, signal), `waitlist-${limit}`);
   usePolling(res.reload);
   return (
     <Card as="section" size="sm" padding="compact" aria-labelledby="waitlist-activity" className="flex flex-col gap-2.5">
-      <h2 id="waitlist-activity" className="m-0 text-base font-semibold">
-        {t('title')}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="waitlist-activity" className="m-0 text-base font-semibold">
+          {t('title')}
+        </h2>
+        {showLink ? (
+          <Link
+            href="/app/waitlist"
+            className="-my-1.5 inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-brand no-underline hover:underline"
+          >
+            {t('viewAll')}
+            <ChevronRight size={16} aria-hidden="true" className="rtl:-scale-x-100" />
+          </Link>
+        ) : null}
+      </div>
       {res.data ? (
         res.data.length === 0 ? (
           <p className="m-0 text-sm text-muted">{t('empty')}</p>

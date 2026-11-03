@@ -3538,15 +3538,17 @@
                 "client": {
                   "type": "object",
                   "properties": {
-                    "name": {
-                      "type": "string"
+                    "firstName": {
+                      "type": "string",
+                      "description": "First word of the client name."
                     },
                     "phone": {
-                      "type": "string"
+                      "type": "string",
+                      "description": "Masked, always `•••• ••• ddd` (last 3 digits). The full number never leaves the server."
                     }
                   },
                   "required": [
-                    "name",
+                    "firstName",
                     "phone"
                   ]
                 },
@@ -3581,7 +3583,8 @@
                   "required": [
                     "id",
                     "displayName"
-                  ]
+                  ],
+                  "description": "null = any staff member."
                 },
                 "fromDate": {
                   "type": "string",
@@ -3590,14 +3593,6 @@
                 "toDate": {
                   "type": "string",
                   "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-                },
-                "status": {
-                  "type": "string",
-                  "enum": [
-                    "OPEN",
-                    "FULFILLED",
-                    "CANCELLED"
-                  ]
                 },
                 "createdAt": {
                   "type": "string",
@@ -3611,14 +3606,18 @@
                 "staff",
                 "fromDate",
                 "toDate",
-                "status",
                 "createdAt"
               ]
             }
+          },
+          "total": {
+            "type": "integer",
+            "description": "All OPEN entries, also when `limit` cuts the list."
           }
         },
         "required": [
-          "entries"
+          "entries",
+          "total"
         ]
       },
       "WaitlistActivity": {
@@ -8243,7 +8242,8 @@
     },
     "/api/waitlist": {
       "get": {
-        "summary": "Waitlist entries (OWNER or STAFF)",
+        "summary": "People waiting (OWNER or STAFF)",
+        "description": "OPEN entries only, oldest first (the order offers are sent). First name and a masked phone only: the email and the full phone are never returned.",
         "tags": [
           "waitlist"
         ],
@@ -8255,23 +8255,10 @@
         "parameters": [
           {
             "schema": {
-              "type": "string",
-              "enum": [
-                "OPEN",
-                "all"
-              ],
-              "default": "OPEN"
-            },
-            "required": false,
-            "name": "status",
-            "in": "query"
-          },
-          {
-            "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 100,
-              "default": 50
+              "default": 100
             },
             "required": false,
             "name": "limit",
@@ -8280,7 +8267,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Entries, newest first",
+            "description": "Entries, oldest first",
             "content": {
               "application/json": {
                 "schema": {

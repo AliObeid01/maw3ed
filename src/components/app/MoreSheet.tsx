@@ -19,7 +19,7 @@ type Props = {
   hideBusiness?: boolean;
 };
 
-/** Pilot report, the Business section and sign out. */
+/** Waitlist, pilot report, the Business section and sign out. */
 export function MoreSheet({
   open,
   onOpenChange,
@@ -36,6 +36,12 @@ export function MoreSheet({
     <Sheet open={open} onOpenChange={onOpenChange} title={t('title')} closeLabel={t('close')}>
       <nav aria-label={t('title')}>
         <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+          <NavLink
+            id="waitlist"
+            active={activeId === 'waitlist'}
+            href={hrefs.waitlist}
+            onNavigate={close}
+          />
           <NavLink
             id="pilot"
             active={activeId === 'pilot'}
