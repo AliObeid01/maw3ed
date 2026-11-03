@@ -130,27 +130,22 @@ export function SlugField({
           className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-start text-base text-ink outline-none placeholder:text-subtle"
         />
       </div>
-      {/* One line for the address preview and the availability status: no space is reserved while the field is
-          empty and idle, and once something is typed the line is already there, so nothing jumps. The preview
-          changes on every keystroke, so it stays OUT of the live region; only the status text is announced
-          (polite), and "checking" only if it is slow. */}
-      <div
-        className={cn(
-          'flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px]',
-          (value || status !== 'idle') && 'min-h-[19px]',
-        )}
-      >
-        {value ? (
-          <p className="m-0 text-muted">
-            {/* U+2066/U+2069 isolate the LTR address inside an RTL sentence. */}
-            {t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })}
-          </p>
-        ) : null}
-        <div id={statusId} aria-live="polite">
+      {/* Two reserved lines from the first render, so typing never moves anything below (the Create account button
+          stays put): the address preview on the first (it truncates with an ellipsis instead of wrapping into extra
+          height) and the availability status on its own line. The preview changes on every keystroke, so it stays
+          OUT of the live region; only the status text is announced (polite), and "checking" only if it is slow. */}
+      <div className="flex flex-col gap-0.5 text-[13px] leading-[19px]">
+        <p className="m-0 h-[19px] min-w-0 truncate text-start text-muted">
+          {value ? (
+            // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
+            t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })
+          ) : null}
+        </p>
+        <div id={statusId} aria-live="polite" className="h-[19px] min-w-0">
           {text && !error ? (
             <span
               className={cn(
-                'flex items-center gap-1.5 font-medium',
+                'flex min-w-0 items-center gap-1.5 font-medium',
                 bad ? 'text-danger' : status === 'available' ? 'text-success' : 'text-muted',
               )}
             >
@@ -158,14 +153,14 @@ export function SlugField({
                 <Loader2
                   size={14}
                   aria-hidden="true"
-                  className="animate-spin motion-reduce:animate-none"
+                  className="shrink-0 animate-spin motion-reduce:animate-none"
                 />
               ) : status === 'available' ? (
-                <Check size={14} aria-hidden="true" />
+                <Check size={14} aria-hidden="true" className="shrink-0" />
               ) : bad ? (
-                <X size={14} aria-hidden="true" />
+                <X size={14} aria-hidden="true" className="shrink-0" />
               ) : null}
-              {text}
+              <span className="min-w-0 truncate">{text}</span>
             </span>
           ) : null}
         </div>

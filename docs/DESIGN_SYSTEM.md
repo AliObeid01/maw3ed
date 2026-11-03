@@ -14,7 +14,7 @@ The full component recipes, tokens and responsive rules are in the `maw3ed-desig
   line `#D3DCEE` · divider / Soft Blue Gray `#E9EFF8` · brand / Royal Blue `#254EDB` (hover `#1D3FB8`) · Electric `#2864F5` (selected day, focus ring, accent button) ·
   Cyan `#43C4F0` (info chips, initials tiles, logo check; navy text only) · Turquoise `#21CDB3` (the one highlight tile "Refilled from waitlist"; navy text only) · Mint `#20D2AC` (service icons) ·
   success `#17795A` · warning `#9A5800` · danger `#C21F3A` · gold `#E8B86D` only as the thin underline under the wordmark in the Logo and emails.
-  Cyan and Turquoise are never a text colour on white and never carry white text. `--color-accent` is a legacy name that now resolves to Cyan.
+  Cyan and Turquoise are never a text colour on white and never carry white text. The old `--color-accent` alias is gone: use `bg-cyan` (`--color-cyan`), never `accent`. `--color-subtle` (#657799) is 4.5:1 on white and only for placeholders, disabled text and struck-out taken slots on white.
 - **Shape** rounded-rectangle buttons (12 px, `rounded-btn`), chips 8 px (`rounded-chip`), inputs 12 px (52 px tall), cards 14 to 16 px, hairline borders, neutral shadows only. `rounded-pill` is kept for the Switch, avatars, dots and count badges.
 - **Signature** a FLAT Deep Navy hero band (`bg-hero`) with a 4 px Royal Blue bottom edge. No gradients, radial glows, blurred blobs, gradient text, coloured glow shadows or frosted glass anywhere.
 

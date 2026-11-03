@@ -7,6 +7,15 @@ const root = path.resolve(import.meta.dirname, '../../..');
 const css = fs.readFileSync(path.join(root, 'src/app/globals.css'), 'utf8');
 const token = (name: string) => new RegExp(`--color-${name}:\\s*(#[0-9a-fA-F]{6})`).exec(css)?.[1]?.toLowerCase();
 
+// Read every source file once; the three scans below share it (a cold walk is slow on CI).
+const walk = (d: string): string[] =>
+  fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+    e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
+  );
+const sources = walk(path.join(root, 'src'))
+  .filter((f) => /\.tsx?$/.test(f))
+  .map((f) => [f, fs.readFileSync(f, 'utf8')] as const);
+
 describe('palette v2 (blue, approved 3 Nov 2026)', () => {
   it.each([
     ['ink', '#0b1938'],
@@ -30,6 +39,37 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     ['gold', '#e8b86d'],
   ])('--color-%s is %s', (name, value) => {
     expect(token(name)).toBe(value);
+  });
+
+  it('--color-subtle reaches 4.5:1 on white (placeholders, struck-out taken slots) and stays lighter than muted', () => {
+    const lum = (h: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const s = parseInt(h.slice(i, i + 2), 16) / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const ratio = (a: string, b: string) => {
+      const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+      return (hi! + 0.05) / (lo! + 0.05);
+    };
+    expect(ratio(token('subtle')!, '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(lum(token('subtle')!)).toBeGreaterThan(lum(token('muted')!));
+  });
+
+  it('has no legacy --color-accent alias and no accent colour utilities (use cyan)', () => {
+    expect(css).not.toMatch(/--color-accent\b/);
+    const offenders = sources
+      .filter(([, code]) => /\b(bg|text|border|ring|fill|stroke)-accent\b|var\(--color-accent\)/.test(code))
+      .map(([f]) => f);
+    expect(offenders).toEqual([]);
+  });
+
+  it('uses no large or coloured box shadows (neutral, small elevation only)', () => {
+    const offenders = sources
+      .filter(([, code]) => /rgba?\(\s*(11[ ,_]25|37[ ,_]78)|shadow-\[0_(1[0-9]|[2-9][0-9])px/.test(code))
+      .map(([f]) => f);
+    expect(offenders).toEqual([]);
   });
 
   it('keeps the old teal and warm greys out of the theme', () => {
@@ -63,13 +103,9 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
   });
 
   it('never uses cyan or turquoise as a text colour or under white text in components', () => {
-    const walk = (d: string): string[] =>
-      fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
-      );
-    const offenders = walk(path.join(root, 'src'))
-      .filter((f) => /\.tsx?$/.test(f))
-      .filter((f) => /text-(cyan|turquoise|mint)\b|bg-(cyan|turquoise)\b[^'"`]*text-white|text-white[^'"`]*\bbg-(cyan|turquoise)\b/.test(fs.readFileSync(f, 'utf8')));
+    const offenders = sources
+      .filter(([, code]) => /text-(cyan|turquoise|mint)\b|bg-(cyan|turquoise)\b[^'"`]*text-white|text-white[^'"`]*\bbg-(cyan|turquoise)\b/.test(code))
+      .map(([f]) => f);
     expect(offenders).toEqual([]);
   });
 });

@@ -47,7 +47,7 @@ export function Segmented<T extends string | number>({
               className={cn(
                 'h-11 rounded-nav border-0 text-[15px] transition-colors duration-200 ease-out disabled:opacity-60',
                 checked
-                  ? 'bg-surface font-semibold text-ink shadow-[0_2px_6px_rgb(11_25_56/0.1)]'
+                  ? 'bg-surface font-semibold text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]'
                   : 'bg-transparent text-muted hover:text-ink',
               )}
             >

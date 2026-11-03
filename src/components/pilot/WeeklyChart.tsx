@@ -50,6 +50,7 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
         ) : null}
         {chart.hasGaps ? (
           <li className="flex items-center gap-2">
+            {/* Functional hatch pattern, not a decorative gradient: marks weeks with no data. */}
             <span
               aria-hidden="true"
               className="inline-block h-2.5 w-3 rounded-t-[3px] border border-dashed border-muted bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(91_107_140/0.4)_3px_4px)]"
@@ -88,6 +89,7 @@ export function WeeklyChart({ report, timezone }: { report: PilotReport; timezon
                     ) : null}
                     {w.noData ? (
                       // No marked outcomes that week: a hatched stub, never a 0% bar.
+                      // Functional hatch pattern, not a decorative gradient.
                       <span
                         data-testid="no-data-week"
                         className="h-2 w-full max-w-9 rounded-t-md border border-dashed border-muted bg-[repeating-linear-gradient(135deg,transparent_0_3px,rgb(91_107_140/0.4)_3px_4px)]"

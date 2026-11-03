@@ -128,7 +128,7 @@ export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, cl
       <div className="flex items-center gap-2.5 rounded-2xl bg-canvas p-2.5">
         <span
           aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-nav bg-accent text-sm font-bold text-ink"
+          className="flex size-9 shrink-0 items-center justify-center rounded-nav bg-cyan text-sm font-bold text-ink"
         >
           {monogram(business.name)}
         </span>

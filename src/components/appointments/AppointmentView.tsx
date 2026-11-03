@@ -307,7 +307,7 @@ export function AppointmentView({ id }: { id: string }) {
               source: t(`source.${sourceKey}`),
             })}
           </span>
-          <span className="inline-flex min-h-8 items-center self-start rounded-chip bg-accent px-3 py-1.5 text-[13px] font-medium text-ink">
+          <span className="inline-flex min-h-8 items-center self-start rounded-chip bg-cyan px-3 py-1.5 text-[13px] font-medium text-ink">
             {statusText}
           </span>
         </section>

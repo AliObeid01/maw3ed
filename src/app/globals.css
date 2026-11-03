@@ -7,8 +7,9 @@
   --color-surface: #ffffff;
   --color-ink: #0b1938; /* Deep Navy */
   --color-muted: #56668a;
-  /* Placeholders and disabled text ONLY (3:1). Never use for real copy. */
-  --color-subtle: #7686a6;
+  /* Placeholders, disabled text and struck-out taken slots ONLY: 4.5:1 on white (contrast.mjs enforces it), still
+     lighter than muted. Never use for real copy, and never on canvas or divider fills (it falls below 4.5 there). */
+  --color-subtle: #657799;
   --color-line: #d3dcee;
   --color-divider: #e9eff8; /* Soft Blue Gray */
   --color-row: #edf1f8;
@@ -25,9 +26,6 @@
   --color-turquoise: #21cdb3; /* one highlight tile; navy text only */
   --color-mint: #20d2ac; /* service and category icons */
   --color-gold: #e8b86d; /* ONLY the thin underline under the Maw3ed wordmark in the Logo */
-
-  /* Legacy name kept so every call site follows: now Cyan (navy text), not gold. */
-  --color-accent: #43c4f0;
 
   --color-success: #17795a;
   --color-success-soft: #ddf5ec;

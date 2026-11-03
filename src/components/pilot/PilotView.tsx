@@ -48,7 +48,7 @@ function ChangeChip({ change }: { change: ChangeView }) {
           num: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
         });
   return (
-    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-chip bg-accent px-3 py-1 text-sm font-semibold text-ink">
+    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-chip bg-cyan px-3 py-1 text-sm font-semibold text-ink">
       <Icon size={16} aria-hidden="true" className="shrink-0" />
       <span>{text}</span>
     </span>
@@ -84,7 +84,7 @@ function RateBar({
       </div>
       <div className="h-2.5 overflow-hidden rounded-pill bg-white/15" aria-hidden="true">
         <div
-          className={cn('h-full rounded-pill transition-[width] duration-200 ease-out', light ? 'bg-white/60' : 'bg-accent')}
+          className={cn('h-full rounded-pill transition-[width] duration-200 ease-out', light ? 'bg-white/60' : 'bg-cyan')}
           style={{ width: `${width}%` }}
         />
       </div>

@@ -198,7 +198,7 @@ function AcceptCard({
       <div className="flex items-center gap-3.5 rounded-card-sm bg-canvas p-3.5">
         <span
           aria-hidden="true"
-          className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-bold text-ink"
+          className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-cyan text-lg font-bold text-ink"
         >
           {monogram(invite.businessName)}
         </span>
