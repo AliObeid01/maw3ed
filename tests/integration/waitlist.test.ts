@@ -258,7 +258,7 @@ describe('POST /api/public/{slug}/waitlist', () => {
 });
 
 describe('staff-side waitlist APIs', () => {
-  it('GET /api/waitlist lists newest first, OPEN by default, scoped to the business', async () => {
+  it('GET /api/waitlist lists OPEN entries oldest first, scoped to the business (the screen shape is in waitlist.screen.test.ts)', async () => {
     const e1 = await seedEntry(prisma, a.businessId, aScn.serviceId, {
       name: 'Old Entry',
       createdAt: new Date('2026-10-01T00:00:00Z'),
@@ -272,27 +272,16 @@ describe('staff-side waitlist APIs', () => {
       name: 'Other Biz',
       createdAt: new Date('2026-10-03T00:00:00Z'),
     });
-    await prisma.waitlistEntry.update({ where: { id: e1.entryId }, data: { status: 'CANCELLED' } });
     const open = await list(a.cookie);
     expect(open.status).toBe(200);
-    expect(open.body!.entries.map((e: any) => e.id)).toEqual([e2.entryId]);
-    expect(open.body!.entries[0]).toMatchObject({
-      client: { name: 'New Entry', phone: expect.stringMatching(/^\+961/) },
-      service: { id: aScn.serviceId, name: expect.any(String) },
-      staff: { id: aScn.staffIds[0], displayName: expect.any(String) },
-      fromDate: '2026-11-03',
-      toDate: '2026-11-10',
-      status: 'OPEN',
-      createdAt: '2026-10-02T00:00:00.000Z',
-    });
-    const all = await list(a.cookie, { status: 'all', limit: '10' });
-    expect(all.body!.entries.map((e: any) => e.id)).toEqual([e2.entryId, e1.entryId]);
-    expect(all.body!.entries[1].staff).toBeNull();
+    expect(open.body!.entries.map((e: any) => e.id)).toEqual([e1.entryId, e2.entryId]);
+    await prisma.waitlistEntry.update({ where: { id: e1.entryId }, data: { status: 'CANCELLED' } });
+    expect((await list(a.cookie)).body!.entries.map((e: any) => e.id)).toEqual([e2.entryId]);
     expect((await list(b.cookie)).body!.entries).toHaveLength(1);
   });
 
   it('400 for bad query; 401 without a session', async () => {
-    expect((await list(a.cookie, { status: 'bogus' })).status).toBe(400);
+    expect((await list(a.cookie, { status: 'all' })).status).toBe(400);
     expect((await list(a.cookie, { limit: '0' })).status).toBe(400);
     expect((await list(a.cookie, { extra: '1' })).status).toBe(400);
     expect((await activity(a.cookie, { limit: '999' })).status).toBe(400);

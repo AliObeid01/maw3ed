@@ -4,6 +4,7 @@ import {
   CircleCheck,
   CircleUser,
   Clock,
+  Hourglass,
   Link2,
   ListChecks,
   MessageCircle,
@@ -19,6 +20,7 @@ export type NavId =
   | 'reminders'
   | 'outcomes'
   | 'clients'
+  | 'waitlist'
   | 'pilot'
   | 'setup'
   | 'services'
@@ -31,19 +33,20 @@ export type NavId =
 /** Pages the shell knows about; `book` has no nav item but is a valid active page (New booking). */
 export type ActiveId = NavId | 'book';
 
-export const mainNav: NavId[] = ['today', 'reminders', 'outcomes', 'clients', 'pilot'];
+export const mainNav: NavId[] = ['today', 'reminders', 'outcomes', 'clients', 'waitlist', 'pilot'];
 export const businessNav: NavId[] = ['setup', 'services', 'staff', 'hours', 'settings', 'share'];
 /** Bottom tab bar (the fifth tab is More). */
 export type TabId = 'today' | 'reminders' | 'outcomes' | 'clients';
 export const tabNav: TabId[] = ['today', 'reminders', 'outcomes', 'clients'];
 /** Everything that lives in the More sheet. */
-export const moreNav: NavId[] = ['pilot', 'account', ...businessNav];
+export const moreNav: NavId[] = ['waitlist', 'pilot', 'account', ...businessNav];
 
 export const navIcons: Record<NavId, LucideIcon> = {
   today: CalendarDays,
   reminders: MessageCircle,
   outcomes: CircleCheck,
   clients: Users,
+  waitlist: Hourglass,
   pilot: BarChart3,
   setup: ListChecks,
   services: Tag,
@@ -59,6 +62,7 @@ export const defaultHrefs: Record<ActiveId, string> = {
   reminders: '/app/reminders',
   outcomes: '/app/outcomes',
   clients: '/app/clients',
+  waitlist: '/app/waitlist',
   pilot: '/app/pilot',
   setup: '/app/setup',
   services: '/app/services',

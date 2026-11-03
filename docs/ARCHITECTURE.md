@@ -98,6 +98,7 @@ first claim wins and others get 409) → the offer is CLAIMED, the entry FULFILL
 offers the next batch until the slot is inside the minimum notice, and first sweeps lapsed deposit holds (each frees a slot and offers it at once).
 A claim first takes an atomic reservation on the entry (`claimingOfferId` / `claimingAt`, 60 s lease) so one entry cannot book two slots at the same instant;
 a claim that needs a deposit leaves the entry reserved while its hold is live (see the key decisions).
+Staff side (F65): `/app/waitlist` shows `GET /api/waitlist` (OPEN entries only, oldest first = the order of `openCandidates`, capped at 100 plus a real `total`) and removes with `DELETE /api/waitlist/{id}`. The endpoint is the privacy boundary: `client` is `{ firstName, phone }` where the phone is masked on the server by `maskPhone` (`domain/waitlistPrivacy.ts`, always `•••• ••• ddd`), and no email or full number is ever selected into the response.
 
 ### Signed links
 `token = base64url(payload) + "." + base64url(HMAC-SHA256(LINK_SECRET, payload))`, payload `{ a: appointmentId | o: offerId, act: 'view'|'confirm'|'cancel'|'claim'|'pay', exp }`.

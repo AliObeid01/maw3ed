@@ -10,6 +10,7 @@ import {
 } from '@/server/domain/tokens';
 import { offerViewStatus } from '@/server/domain/offerState';
 import { summarizeActivity } from '@/server/domain/waitlistActivity';
+import { firstNameOf, maskPhone } from '@/server/domain/waitlistPrivacy';
 import { matchEntries, offerExpiryFor, OFFER_BATCH_SIZE } from '@/server/domain/waitlistMatch';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
 import { AppError, safeError } from '@/server/http/errors';
@@ -634,22 +635,23 @@ export async function runWaitlistExpiry(
 // ---- staff side ----------------------------------------------------------------------------------
 
 export const waitlistStaffService = {
-  async list(ctx: SessionContext, q: { status: 'OPEN' | 'all'; limit: number }) {
-    const rows = await waitlistRepo.listEntries(ctx.businessId, {
-      openOnly: q.status === 'OPEN',
-      limit: q.limit,
-    });
+  /**
+   * The waitlist screen (F65): OPEN entries oldest first (the order offers are sent). Only the first name and a
+   * masked phone leave the server; the email and the full phone never do (NFR-04).
+   */
+  async list(ctx: SessionContext, q: { limit: number }) {
+    const { rows, total } = await waitlistRepo.listOpenEntries(ctx.businessId, q.limit);
     return {
       entries: rows.map((e) => ({
         id: e.id,
-        client: { name: e.client.name, phone: e.client.phone },
+        client: { firstName: firstNameOf(e.client.name), phone: maskPhone(e.client.phone) },
         service: e.service,
         staff: e.staff,
         fromDate: toLocalDate(e.fromDate),
         toDate: toLocalDate(e.toDate),
-        status: e.status,
         createdAt: e.createdAt,
       })),
+      total,
     };
   },
 

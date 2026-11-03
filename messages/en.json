@@ -84,7 +84,8 @@
         "outcomes": "{count, plural, =0 {No outcomes to mark} one {# outcome to mark} other {# outcomes to mark}}"
       },
       "account": "Account",
-      "accountNav": "Account"
+      "accountNav": "Account",
+      "waitlist": "Waitlist"
     },
     "tabs": {
       "label": "Main tabs",
@@ -114,7 +115,8 @@
       "book": "New booking",
       "appointment": "Appointment",
       "client": "Client",
-      "account": "Account"
+      "account": "Account",
+      "waitlist": "Waitlist"
     },
     "frame": {
       "account": "Account",
@@ -209,7 +211,8 @@
           "claimed": "{name} took {time} with {staff}",
           "offered": "{day} {time} sent to {count, plural, one {# person} other {# people}}",
           "expired": "{day} {time} offer expired"
-        }
+        },
+        "viewAll": "View waitlist"
       },
       "sheet": {
         "title": "Appointment",
@@ -838,6 +841,29 @@
         }
       },
       "exportClamped": "Exports the latest {count} days, the most the server allows."
+    },
+    "waitlist": {
+      "intro": "Everyone waiting for a slot, oldest first. This is the order offers are sent when a time frees up.",
+      "listTitle": "Waiting now",
+      "summary": "{count, plural, =0 {Nobody is waiting} one {# person waiting} other {# people waiting}}",
+      "capNote": "Showing the first {shown} of {total}, in the order offers are sent.",
+      "listLabel": "People on the waitlist",
+      "loading": "Loading the waitlist",
+      "anyone": "Anyone",
+      "dates": "{from} to {to}",
+      "joined": "Joined {date}",
+      "remove": "Remove",
+      "removeAria": "Remove {name} from the waitlist",
+      "confirm": {
+        "title": "Remove {name}?",
+        "body": "Remove {name} from the waitlist? They will not receive offers any more. They can join again from your booking page.",
+        "confirm": "Remove"
+      },
+      "removed": "{name} removed from the waitlist",
+      "stale": "Could not refresh. Showing the last list.",
+      "emptyTitle": "Nobody is waiting",
+      "emptyBody": "When a day is full, clients can join the waitlist from your booking page. They will appear here.",
+      "close": "Close"
     }
   },
   "team": {

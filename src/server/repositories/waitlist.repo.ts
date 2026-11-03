@@ -173,13 +173,19 @@ export const waitlistRepo = {
 
   // ---- staff side ---------------------------------------------------------------------------------
 
-  listEntries: (businessId: string, q: { openOnly: boolean; limit: number }) =>
-    db.waitlistEntry.findMany({
-      where: { businessId, ...(q.openOnly ? { status: 'OPEN' as const } : {}) },
-      orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-      take: q.limit,
-      select: entrySelect,
-    }),
+  /** OPEN entries in the order offers are sent (oldest first, like `openCandidates`), plus the real count. */
+  listOpenEntries: async (businessId: string, limit: number) => {
+    const [rows, total] = await Promise.all([
+      db.waitlistEntry.findMany({
+        where: { businessId, status: 'OPEN' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        take: limit,
+        select: entrySelect,
+      }),
+      db.waitlistEntry.count({ where: { businessId, status: 'OPEN' } }),
+    ]);
+    return { rows, total };
+  },
 
   /** OPEN -> CANCELLED (and its open offers stop being claimable), in one transaction. */
   cancelEntry: (

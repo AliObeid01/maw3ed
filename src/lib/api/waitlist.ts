@@ -92,3 +92,33 @@ export const leaveResultSchema = z.object({ removed: z.boolean() });
 /** One-click removal from the waitlist (signed `leave` token). Idempotent. */
 export const leaveWaitlist = (token: string) =>
   request(`/api/offers/${seg(token)}/leave`, leaveResultSchema, { method: 'POST', body: {} });
+
+// ---- Staff side (the Waitlist screen, F65) -------------------------------------------------------
+//   GET    /api/waitlist        OPEN entries oldest first; first name + masked phone only, never an email
+//   DELETE /api/waitlist/{id}   204 removed (idempotent), 404 gone or not this business
+
+export const waitlistEntrySchema = z.object({
+  id: z.string(),
+  client: z.object({ firstName: z.string(), phone: z.string() }),
+  service: z.object({ id: z.string(), name: z.string() }),
+  staff: z.object({ id: z.string(), displayName: z.string() }).nullable(),
+  fromDate: z.string(),
+  toDate: z.string(),
+  createdAt: z.string(),
+});
+export type WaitlistEntry = z.infer<typeof waitlistEntrySchema>;
+
+export const waitlistListSchema = z.object({
+  entries: z.array(waitlistEntrySchema),
+  total: z.number().int(),
+});
+export type WaitlistList = z.infer<typeof waitlistListSchema>;
+
+/** The most rows the screen asks for (the API's own maximum). */
+export const WAITLIST_PAGE_SIZE = 100;
+
+export const getWaitlistEntries = (signal?: AbortSignal) =>
+  request(`/api/waitlist?limit=${WAITLIST_PAGE_SIZE}`, waitlistListSchema, { signal });
+
+export const removeWaitlistEntry = (id: string) =>
+  request(`/api/waitlist/${seg(id)}`, z.unknown(), { method: 'DELETE' });

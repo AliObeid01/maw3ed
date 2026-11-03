@@ -592,9 +592,9 @@ test('6. the "remove me from the waitlist" link from an offer email: press once,
     )[0].status,
   ).toBe('CANCELLED');
   // The owner's list no longer shows W7.
-  const open = await api('/api/waitlist?status=OPEN', { cookie: biz.cookie });
+  const open = await api('/api/waitlist', { cookie: biz.cookie });
   expect(open.status).toBe(200);
-  expect(open.body.entries.map((e: any) => e.client.name)).not.toContain(W7.name);
+  expect(open.body.entries.map((e: any) => e.client.firstName)).not.toContain(W7.name.split(' ')[0]);
 
   // Second press (reload the same link, press again): same friendly answer, no error.
   await page.goto(leavePath);

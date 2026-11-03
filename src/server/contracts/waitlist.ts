@@ -95,8 +95,7 @@ export const OfferViewDto = registry.register(
 
 export const WaitlistListQuery = z
   .object({
-    status: z.enum(['OPEN', 'all']).default('OPEN'),
-    limit: z.coerce.number().int().min(1).max(100).default(50),
+    limit: z.coerce.number().int().min(1).max(100).default(100),
   })
   .strict();
 
@@ -110,15 +109,25 @@ export const WaitlistListDto = registry.register(
     entries: z.array(
       z.object({
         id: z.string(),
-        client: z.object({ name: z.string(), phone: z.string() }),
+        client: z.object({
+          firstName: z.string().describe('First word of the client name.'),
+          phone: z
+            .string()
+            .describe(
+              'Masked, always `•••• ••• ddd` (last 3 digits). The full number never leaves the server.',
+            ),
+        }),
         service: z.object({ id: z.string(), name: z.string() }),
-        staff: z.object({ id: z.string(), displayName: z.string() }).nullable(),
+        staff: z
+          .object({ id: z.string(), displayName: z.string() })
+          .nullable()
+          .describe('null = any staff member.'),
         fromDate: localDate,
         toDate: localDate,
-        status: z.enum(['OPEN', 'FULFILLED', 'CANCELLED']),
         createdAt: iso,
       }),
     ),
+    total: z.number().int().describe('All OPEN entries, also when `limit` cuts the list.'),
   }),
 );
 
@@ -218,12 +227,14 @@ const session = [{ session: [] }];
 registry.registerPath({
   method: 'get',
   path: '/api/waitlist',
-  summary: 'Waitlist entries (OWNER or STAFF)',
+  summary: 'People waiting (OWNER or STAFF)',
+  description:
+    'OPEN entries only, oldest first (the order offers are sent). First name and a masked phone only: the email and the full phone are never returned.',
   tags: ['waitlist'],
   security: session,
   request: { query: WaitlistListQuery },
   responses: {
-    200: { description: 'Entries, newest first', content: json(WaitlistListDto) },
+    200: { description: 'Entries, oldest first', content: json(WaitlistListDto) },
     400: errorResponses[400],
     401: errorResponses[401],
   },
