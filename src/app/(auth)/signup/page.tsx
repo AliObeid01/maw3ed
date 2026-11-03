@@ -13,7 +13,7 @@ export default async function SignupPage() {
   const t = await getTranslations();
   return (
     <>
-      <AuthCard>
+      <AuthCard className="md:max-w-[640px]">
         <AuthTabs active="signup" />
         <AuthHeading title={t('auth.signup.title')} subtitle={t('auth.signup.subtitle')} />
         <SignupForm />

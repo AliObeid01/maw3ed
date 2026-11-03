@@ -11,10 +11,10 @@ export async function HeroPreview() {
   const t = await getTranslations('home');
   return (
     <div aria-hidden="true" className="relative hidden w-full max-w-[340px] justify-self-center lg:block" data-testid="hero-preview">
-      <div className="flex flex-col gap-3 rounded-[32px] border border-white/20 bg-white/10 p-3 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.5)]">
-        <div className="flex flex-col gap-4 rounded-[24px] bg-surface p-5 text-ink">
+      <div className="flex flex-col gap-3 rounded-card border border-white/20 bg-white/10 p-3 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.5)]">
+        <div className="flex flex-col gap-4 rounded-card bg-surface p-5 text-ink">
           <div className="flex items-center justify-between gap-2">
-            <span className="rounded-pill bg-canvas px-2.5 py-1 text-xs font-semibold text-muted">{t('preview.label')}</span>
+            <span className="rounded-chip bg-canvas px-2.5 py-1 text-xs font-semibold text-muted">{t('preview.label')}</span>
             <span className="flex size-8 items-center justify-center rounded-pill bg-success-soft text-success">
               <Check size={18} strokeWidth={3} />
             </span>
@@ -26,12 +26,12 @@ export async function HeroPreview() {
               <bdi>{t('preview.when')}</bdi>
             </p>
           </div>
-          <span className="inline-flex items-center gap-2 self-start rounded-pill bg-brand-soft px-3 py-1.5 text-[13px] font-semibold text-brand">
+          <span className="inline-flex items-center gap-2 self-start rounded-chip bg-brand-soft px-3 py-1.5 text-[13px] font-semibold text-brand">
             <BellRing size={15} />
             {t('preview.reminder')}
           </span>
         </div>
-        <div className="flex flex-col gap-3 rounded-[24px] bg-surface p-4 text-ink">
+        <div className="flex flex-col gap-3 rounded-card bg-surface p-4 text-ink">
           <div className="flex items-center gap-2 text-[13px] font-semibold text-brand">
             <Sparkles size={15} />
             {t('preview.freedTitle')}
@@ -39,7 +39,7 @@ export async function HeroPreview() {
           <p className="m-0 text-[15px] text-muted">
             <bdi>{t('preview.freedBody')}</bdi>
           </p>
-          <span className="flex h-11 items-center justify-center rounded-pill bg-accent text-[15px] font-semibold text-ink">
+          <span className="flex h-11 items-center justify-center rounded-btn bg-electric text-[15px] font-semibold text-white">
             {t('preview.freedAction')}
           </span>
         </div>

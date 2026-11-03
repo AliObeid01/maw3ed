@@ -17,7 +17,7 @@ const tones = {
 /** Info callout (radius 20, padding 16). The icon is decorative. */
 export function Callout({ icon, tone = 'brand', children, className }: CalloutProps) {
   return (
-    <div className={cn('flex items-start gap-2.5 rounded-[20px] p-4', tones[tone], className)}>
+    <div className={cn('flex items-start gap-2.5 rounded-card-sm p-4', tones[tone], className)}>
       {icon ? (
         <span aria-hidden="true" className="flex shrink-0 [&>svg]:size-5">
           {icon}

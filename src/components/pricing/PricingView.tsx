@@ -77,7 +77,7 @@ export function PricingView() {
 
           <section
             aria-labelledby="plan-pro"
-            className="flex flex-col gap-[18px] rounded-card border-2 border-brand bg-surface p-[23px] shadow-[0_18px_40px_rgb(23_76_79/0.16)] md:p-[27px]"
+            className="flex flex-col gap-[18px] rounded-card border-2 border-brand bg-surface p-[23px] shadow-[0_18px_40px_rgb(11_25_56/0.12)] md:p-[27px]"
           >
             <div className="flex flex-col gap-1">
               <div className="flex flex-wrap items-center gap-2.5">

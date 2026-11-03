@@ -19,8 +19,9 @@ export type MockWaitlistEntry = {
 
 export type WaitlistScreenOptions = {
   entries?: MockWaitlistEntry[];
-  /** What each DELETE attempt does, in order (default 'ok'). 'gone' = 404 like an entry removed elsewhere. */
-  deleteScript?: Array<'ok' | '500' | 'gone'>;
+  /** What each DELETE attempt does, in order (default 'ok'). 'gone' = 404 like an entry removed elsewhere, 'conflict' = 409 because the entry was just fulfilled or is mid-claim
+   * (it is no longer OPEN, so the next GET does not list it). */
+  deleteScript?: Array<'ok' | '500' | 'gone' | 'conflict'>;
   /** GET fails with this status until `recover()` is called. */
   failGet?: 500;
   /** Total reported by the API (when the list is capped). */
@@ -98,6 +99,12 @@ export async function mockWaitlistScreen(page: Page, options: WaitlistScreenOpti
         const step = script[attempt++] ?? 'ok';
         if (step === '500') {
           return json(route, 500, { error: { code: 'INTERNAL', message: 'boom', fields: {} } });
+        }
+        if (step === 'conflict') {
+          entries = entries.filter((e) => e.id !== id);
+          return json(route, 409, {
+            error: { code: 'CONFLICT', message: 'This entry was just fulfilled.', fields: {} },
+          });
         }
         if (step === 'gone' || !entries.some((e) => e.id === id)) {
           entries = entries.filter((e) => e.id !== id);

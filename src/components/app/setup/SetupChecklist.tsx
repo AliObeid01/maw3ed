@@ -54,7 +54,7 @@ const readShareSeen = (slug: string) => {
 function ChecklistSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-5">
-      <Skeleton className="h-[168px] rounded-[28px] md:h-[144px]" />
+      <Skeleton className="h-[168px] rounded-card md:h-[144px]" />
       <div className="grid gap-3.5 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 7 }, (_, i) => (
           <Skeleton key={i} className="h-[92px] rounded-card-sm" />
@@ -88,7 +88,7 @@ function Checklist({
 
   return (
     <>
-      <section className="flex flex-wrap items-center gap-x-6 gap-y-5 rounded-[28px] bg-hero p-5 text-white md:p-7">
+      <section className="flex flex-wrap items-center gap-x-6 gap-y-5 rounded-card bg-hero p-5 text-white md:p-7">
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-1.5">
           <span className="text-[15px] text-hero-subtle">{t('welcome', { name: userName })}</span>
           <h2 className="m-0 text-[26px] leading-tight font-semibold tracking-[-0.01em] md:text-3xl">
@@ -134,16 +134,16 @@ function Checklist({
                 className={cn(
                   'flex min-h-[92px] items-center gap-3.5 rounded-card-sm bg-surface text-ink no-underline transition-shadow duration-200 ease-out',
                   step.current
-                    ? 'border-2 border-brand p-[17px] shadow-[0_10px_24px_rgb(23_76_79/0.12)]'
-                    : 'border border-line p-[18px] hover:shadow-[0_4px_14px_rgb(37_45_45/0.06)]',
+                    ? 'border-2 border-brand p-[17px] shadow-[0_10px_24px_rgb(11_25_56/0.10)]'
+                    : 'border border-line p-[18px] hover:shadow-[0_4px_14px_rgb(11_25_56/0.06)]',
                 )}
               >
                 <span
                   aria-hidden="true"
                   className={cn(
                     'flex size-10 shrink-0 items-center justify-center rounded-pill text-base font-semibold',
-                    step.done && 'bg-accent text-ink',
-                    step.current && 'bg-brand text-white',
+                    step.done && 'bg-brand text-white',
+                    step.current && 'bg-ink text-white',
                     !step.done && !step.current && 'bg-divider text-muted',
                   )}
                 >
@@ -159,7 +159,7 @@ function Checklist({
                     {t(`steps.${step.id}.title`)}
                     {step.done ? <span className="sr-only"> {t('done')}</span> : null}
                     {step.optional ? (
-                      <span className="ms-2 inline-block rounded-pill bg-divider px-2.5 py-0.5 align-middle text-xs font-semibold text-muted no-underline">
+                      <span className="ms-2 inline-block rounded-chip bg-divider px-2.5 py-0.5 align-middle text-xs font-semibold text-muted no-underline">
                         {t('optional')}
                       </span>
                     ) : null}

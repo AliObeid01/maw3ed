@@ -41,7 +41,7 @@ function StaffSwitcher({
       data-allow-overflow
       onKeyDown={(e) => radioGroupKeyDown(e, (i) => onSelect(staff[i]!.id))}
       className={cn(
-        'flex max-w-full gap-1 overflow-x-auto rounded-pill bg-divider p-1 [scrollbar-width:none]',
+        'flex max-w-full gap-1 overflow-x-auto rounded-btn bg-divider p-1 [scrollbar-width:none]',
         className,
       )}
     >
@@ -56,7 +56,7 @@ function StaffSwitcher({
             tabIndex={checked ? 0 : -1}
             onClick={() => onSelect(member.id)}
             className={cn(
-              'min-h-11 shrink-0 rounded-pill px-4 text-[15px] transition-colors duration-200 ease-out',
+              'min-h-11 shrink-0 rounded-btn px-4 text-[15px] transition-colors duration-200 ease-out',
               checked ? 'bg-brand font-semibold text-white' : 'text-muted hover:text-ink',
             )}
           >

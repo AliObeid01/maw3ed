@@ -13,9 +13,9 @@ const labelKey: Record<Outcome, StatusKey> = {
   LATE_CANCEL: 'lateCancel',
 };
 
-// Board 4.4: Attended is the gold primary, No-show and Late cancel are white with a tinted outline.
+// Board 4.4: Attended is the blue primary, No-show and Late cancel are white with a tinted outline.
 const look: Record<Outcome, string> = {
-  ATTENDED: 'border-transparent bg-accent text-ink hover:brightness-95',
+  ATTENDED: 'border-transparent bg-brand text-white hover:bg-brand-hover',
   NO_SHOW: 'border-danger-line bg-surface text-danger hover:bg-danger-soft',
   LATE_CANCEL: 'border-warning-line bg-surface text-warning hover:bg-warning-soft',
 };

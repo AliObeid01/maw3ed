@@ -22,7 +22,7 @@ export function AccountView() {
   const { userName, email, emailVerified, role } = useAppSession();
   const { signOut, signingOut } = useSignOut();
   return (
-    <div className="flex max-w-xl flex-col gap-4">
+    <div className="flex max-w-xl flex-col gap-4 lg:grid lg:max-w-4xl lg:grid-cols-2 lg:items-start lg:gap-5">
       <Card padding="none" as="section" aria-labelledby={`${uid}-profile`} className="flex flex-col gap-4 p-[22px]">
         <h2 id={`${uid}-profile`} className="m-0 text-lg font-semibold">
           {t('profile.title')}
@@ -50,7 +50,7 @@ export function AccountView() {
 
       <AccountCard />
 
-      <Button variant="secondary" size="lg" block loading={signingOut} onClick={signOut}>
+      <Button variant="secondary" size="lg" block loading={signingOut} onClick={signOut} className="lg:col-span-2">
         <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
         {t('signOut')}
       </Button>

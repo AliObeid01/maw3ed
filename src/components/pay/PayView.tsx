@@ -83,7 +83,7 @@ function BusinessHeader({ name, address }: { name: string; address?: string | un
 }
 
 const heroClass =
-  'bg-hero flex flex-col gap-4 rounded-[28px] p-6 text-white md:p-7 lg:max-w-[400px] lg:flex-[1_1_300px]';
+  'bg-hero flex flex-col gap-4 rounded-card p-6 text-white md:p-7 lg:max-w-[400px] lg:flex-[1_1_300px]';
 
 /** mm:ss with Latin digits in both languages. */
 export function clockText(ms: number): string {
@@ -187,7 +187,7 @@ function PaySkeleton({ label }: { label: string }) {
       <span className="sr-only" role="status">
         {label}
       </span>
-      <Skeleton className="h-[220px] rounded-[28px] lg:max-w-[400px] lg:flex-1" />
+      <Skeleton className="h-[220px] rounded-card lg:max-w-[400px] lg:flex-1" />
       <Skeleton className="h-[320px] rounded-card lg:flex-[2]" />
     </main>
   );

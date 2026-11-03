@@ -854,6 +854,7 @@
       "joined": "Joined {date}",
       "remove": "Remove",
       "removeAria": "Remove {name} from the waitlist",
+      "unnamed": "this person",
       "confirm": {
         "title": "Remove {name}?",
         "body": "Remove {name} from the waitlist? They will not receive offers any more. They can join again from your booking page.",

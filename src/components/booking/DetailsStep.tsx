@@ -91,7 +91,7 @@ export function DetailsStep({
       {/* A preview only (the confirmation shows what the server really planned). A slot too close for any
           reminder shows no panel at all, rather than a note about reminders that will not come. */}
       {listed.length > 0 ? (
-        <div className="flex flex-col gap-2 rounded-[20px] bg-canvas p-4 text-sm">
+        <div className="flex flex-col gap-2 rounded-card-sm bg-canvas p-4 text-sm">
           {listed.map((r) => (
             <div key={r.label} className="flex flex-wrap justify-between gap-x-4 gap-y-1">
               <span className="text-muted">{r.label}</span>

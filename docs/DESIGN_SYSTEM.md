@@ -10,10 +10,18 @@ The full component recipes, tokens and responsive rules are in the `maw3ed-desig
 
 ## At a glance
 - **Font** Outfit (Latin) + IBM Plex Sans Arabic (RTL). Body 15 px; inputs 16 px.
-- **Palette** canvas `#F7F5F0` · surface `#FFFFFF` · ink `#252D2D` · muted `#626967` (board `#737C79` darkened for AA, see `scripts/design/contrast.mjs`) · line `#E3DED2` ·
-  brand teal `#174C4F` · accent gold `#E8B86D` · success `#2D6A4F` · warning `#9A5800` · danger `#C21F3A`.
-- **Shape** pill buttons (44–50 px), 14 px inputs (52 px tall), 18–24 px cards, hairline borders, almost no shadow.
-- **Signature** the teal hero band with gold and teal radial glows; gold monogram; gold "send" actions.
+- **Palette (v2 blue, shipped 3 Nov 2026)** canvas `#F3F5FA` · surface `#FFFFFF` · ink / Deep Navy `#0B1938` · muted `#56668A` (darkened from `#5B6B8C` so it also passes on brand-soft) ·
+  line `#D3DCEE` · divider / Soft Blue Gray `#E9EFF8` · brand / Royal Blue `#254EDB` (hover `#1D3FB8`) · Electric `#2864F5` (selected day, focus ring, accent button) ·
+  Cyan `#43C4F0` (info chips, initials tiles, logo check; navy text only) · Turquoise `#21CDB3` (the one highlight tile "Refilled from waitlist"; navy text only) · Mint `#20D2AC` (service icons) ·
+  success `#17795A` · warning `#9A5800` · danger `#C21F3A` · gold `#E8B86D` only as the thin underline under the wordmark in the Logo and emails.
+  Cyan and Turquoise are never a text colour on white and never carry white text. `--color-accent` is a legacy name that now resolves to Cyan.
+- **Shape** rounded-rectangle buttons (12 px, `rounded-btn`), chips 8 px (`rounded-chip`), inputs 12 px (52 px tall), cards 14 to 16 px, hairline borders, neutral shadows only. `rounded-pill` is kept for the Switch, avatars, dots and count badges.
+- **Signature** a FLAT Deep Navy hero band (`bg-hero`) with a 4 px Royal Blue bottom edge. No gradients, radial glows, blurred blobs, gradient text, coloured glow shadows or frosted glass anywhere.
+
+> **Palette change (3 Nov 2026).** The shipped palette is the v2 blue above. `maw3ed-design.html` and the boards in `design/screens` and `design/boards`
+> still show the ORIGINAL teal and gold design: use them as **layout references only** (hierarchy, spacing, copy), never for colour or corner radius.
+> The tokens live in `src/app/globals.css`; `tests/unit/ui/palette.test.ts` pins them and `node scripts/design/contrast.mjs` checks every text pair (AA).
+> F66 also moved the Plan box next to Deposits on Settings (lg+), put the Account page cards side by side (lg+) and made the Sign up card 640 px with a two-column form from md.
 
 ## Responsive strategy
 The boards are 1440 px desktop. We build **360 px first**:

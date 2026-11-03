@@ -45,7 +45,7 @@ export function VerifyBanner() {
   return (
     <section
       aria-label={t('label')}
-      className="mb-4 flex flex-wrap items-center gap-3 rounded-[20px] border border-warning-line bg-warning-soft p-4 text-warning-deep"
+      className="mb-4 flex flex-wrap items-center gap-3 rounded-card-sm border border-warning-line bg-warning-soft p-4 text-warning-deep"
     >
       <span aria-hidden="true" className="flex shrink-0">
         <MailWarning size={20} />

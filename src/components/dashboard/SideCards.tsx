@@ -52,7 +52,7 @@ export function DoThisFirst({ count }: { count: number }) {
       <span className="text-2xl leading-tight font-semibold">{t('title', { count })}</span>
       <Link
         href="/app/reminders"
-        className="inline-flex h-11 items-center self-start rounded-pill bg-accent px-[18px] text-[15px] font-semibold text-ink no-underline transition-[filter] duration-200 ease-out hover:brightness-95"
+        className="inline-flex h-11 items-center self-start rounded-btn bg-electric px-[18px] text-[15px] font-semibold text-white no-underline transition-colors duration-200 ease-out hover:bg-brand-hover"
       >
         {t('cta')}
       </Link>

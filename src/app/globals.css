@@ -1,58 +1,67 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-canvas: #f7f5f0;
+  /* Palette v2 (blue), approved 3 Nov 2026. Reference: the standalone maw3ed-palette-sample.html (design only).
+     Flat fills only: no gradients, glows or gradient text. Cyan and Turquoise are NEVER text on white and never carry white text. */
+  --color-canvas: #f3f5fa;
   --color-surface: #ffffff;
-  --color-ink: #252d2d;
-  /* Board value #737C79 is 3.9:1 on canvas and 3.5:1 on the divider chip; #626967 keeps the warm grey hue and passes AA (5.2 / 5.6 / 4.6:1). See scripts/design/contrast.mjs. */
-  --color-muted: #626967;
+  --color-ink: #0b1938; /* Deep Navy */
+  --color-muted: #56668a;
   /* Placeholders and disabled text ONLY (3:1). Never use for real copy. */
-  --color-subtle: #8a918e;
-  --color-line: #e3ded2;
-  --color-divider: #ece8df;
-  --color-row: #efece4;
+  --color-subtle: #7686a6;
+  --color-line: #d3dcee;
+  --color-divider: #e9eff8; /* Soft Blue Gray */
+  --color-row: #edf1f8;
 
-  --color-brand: #174c4f;
-  --color-brand-hover: #0f3638;
-  --color-brand-deep: #123f42;
-  --color-brand-soft: #e3edeb;
-  --color-brand-avatar: #dce9e7;
+  --color-brand: #254edb; /* Royal Blue */
+  --color-brand-hover: #1d3fb8;
+  --color-brand-deep: #16318f;
+  --color-brand-soft: #e2ebfc;
+  --color-brand-avatar: #dce6f8;
 
-  --color-accent: #e8b86d;
+  --color-navy: #0b1938;
+  --color-electric: #2864f5; /* selected day, focus ring */
+  --color-cyan: #43c4f0; /* small info chips, logo check; navy text only */
+  --color-turquoise: #21cdb3; /* one highlight tile; navy text only */
+  --color-mint: #20d2ac; /* service and category icons */
+  --color-gold: #e8b86d; /* ONLY the thin underline under the Maw3ed wordmark in the Logo */
 
-  --color-success: #2d6a4f;
-  --color-success-soft: #dfefe3;
-  --color-success-deep: #1b4332;
+  /* Legacy name kept so every call site follows: now Cyan (navy text), not gold. */
+  --color-accent: #43c4f0;
+
+  --color-success: #17795a;
+  --color-success-soft: #ddf5ec;
+  --color-success-deep: #0f5139;
 
   --color-warning: #9a5800;
-  --color-warning-soft: #fff0d6;
+  --color-warning-soft: #fff1d6;
   --color-warning-line: #f6d49a;
   --color-warning-deep: #6b3d00;
 
   --color-amber: #6b4a10;
-  --color-amber-soft: #f3e3c4;
+  --color-amber-soft: #f6e6c8;
 
   --color-danger: #c21f3a;
-  --color-danger-soft: #ffe1e4;
+  --color-danger-soft: #ffe4e8;
   --color-danger-line: #f5b3bd;
 
-  --color-hero-ink: #e4eeec;
-  --color-hero-muted: #d4dfdd; /* board #C9D6D4 is 4.1:1 at the teal glow */
-  --color-hero-subtle: #d0e0de; /* board #BCD2D0 is 3.9:1 at the teal glow */
+  --color-hero-ink: #e9eff8;
+  --color-hero-muted: #c9d6f2;
+  --color-hero-subtle: #b9c9ec;
 
-  --radius-input: 14px;
-  --radius-nav: 12px;
-  --radius-tile: 18px;
-  --radius-card: 24px;
-  --radius-card-sm: 22px;
-  --radius-pill: 999px;
+  --radius-input: 12px;
+  --radius-nav: 10px;
+  --radius-tile: 14px;
+  --radius-card: 16px;
+  --radius-card-sm: 14px;
+  --radius-btn: 12px;
+  --radius-chip: 8px;
+  --radius-pill: 999px; /* Switch, avatars, count badges and dots only */
 
   --animate-sheet-in: sheet-in 220ms ease-out;
   --animate-dialog-in: dialog-in 180ms ease-out;
   --animate-fade-in: fade-in 180ms ease-out;
   --animate-rise-in: rise-in 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  --animate-drift-1: drift-1 9s ease-in-out infinite;
-  --animate-drift-2: drift-2 11s ease-in-out infinite;
 
   @keyframes rise-in {
     from {
@@ -64,25 +73,15 @@
       transform: none;
     }
   }
-  @keyframes drift-1 {
-    50% {
-      transform: translate(120px, 80px) scale(1.2);
-    }
-  }
-  @keyframes drift-2 {
-    50% {
-      transform: translate(-120px, 70px) scale(1.15);
-    }
-  }
 
   --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
   --font-arabic: var(--font-plex-arabic), var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Flat navy with a 4 px Royal Blue bottom edge: no gradient, no glow. */
 @utility bg-hero {
-  background:
-    radial-gradient(circle at 85% -40%, rgb(232 184 109 / 0.24), transparent 50%),
-    radial-gradient(circle at 0% 140%, rgb(46 125 128 / 0.64), transparent 55%), #174c4f;
+  background-color: var(--color-navy);
+  border-bottom: 4px solid var(--color-brand);
 }
 
 @layer base {
@@ -100,7 +99,7 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-brand);
+    outline: 2px solid var(--color-electric);
     outline-offset: 2px;
   }
 

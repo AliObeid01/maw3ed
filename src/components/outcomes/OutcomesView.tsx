@@ -246,7 +246,7 @@ export function OutcomesView() {
       role="status"
       aria-live="polite"
       className={cn(
-        'rounded-pill px-3 py-1.5 text-sm font-semibold whitespace-nowrap',
+        'rounded-btn px-3 py-1.5 text-sm font-semibold whitespace-nowrap',
         left > 0 ? 'bg-warning-soft text-warning' : 'bg-success-soft text-success',
       )}
     >
@@ -292,7 +292,7 @@ export function OutcomesView() {
               action={
                 <Link
                   href="/app"
-                  className="inline-flex h-11 items-center rounded-pill border border-line bg-surface px-[18px] text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
+                  className="inline-flex h-11 items-center rounded-btn border border-line bg-surface px-[18px] text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
                 >
                   {t('backToToday')}
                 </Link>

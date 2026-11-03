@@ -71,7 +71,7 @@ function Skeletons() {
       aria-label={t('loading')}
       className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px]"
     >
-      <Skeleton className="h-[190px] rounded-[28px]" />
+      <Skeleton className="h-[190px] rounded-card" />
       <Skeleton className="h-[150px] rounded-card lg:col-start-2 lg:row-span-3 lg:row-start-1" />
       <Skeleton className="h-[90px] rounded-card-sm" />
     </div>
@@ -292,7 +292,7 @@ export function AppointmentView({ id }: { id: string }) {
       <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start lg:gap-x-5">
         <section
           aria-label={t('detailsLabel')}
-          className="bg-hero flex flex-col gap-2.5 rounded-[28px] p-5 text-white md:p-[26px]"
+          className="bg-hero flex flex-col gap-2.5 rounded-card p-5 text-white md:p-[26px]"
         >
           <span className="text-[13px] font-semibold tracking-[0.06em] text-hero-subtle uppercase">
             {eyebrow}
@@ -307,7 +307,7 @@ export function AppointmentView({ id }: { id: string }) {
               source: t(`source.${sourceKey}`),
             })}
           </span>
-          <span className="inline-flex min-h-8 items-center self-start rounded-pill bg-accent/20 px-3 py-1.5 text-[13px] font-medium text-[#F3D49A]">
+          <span className="inline-flex min-h-8 items-center self-start rounded-chip bg-accent px-3 py-1.5 text-[13px] font-medium text-ink">
             {statusText}
           </span>
         </section>

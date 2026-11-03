@@ -43,7 +43,7 @@ function DayNav({
         onClick={onToday}
         aria-current={isToday ? 'date' : undefined}
         disabled={isToday}
-        className="h-11 rounded-pill border border-line bg-surface px-4 text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-default disabled:opacity-100 disabled:font-semibold disabled:text-brand"
+        className="h-11 rounded-btn border border-line bg-surface px-4 text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-default disabled:opacity-100 disabled:font-semibold disabled:text-brand"
       >
         {t('today')}
       </button>
@@ -119,7 +119,7 @@ export function TodayView() {
             <StatTile
               value={stats!.refilledFromWaitlist}
               label={isToday ? t('stats.refilledToday') : t('stats.refilledDay')}
-              tone="amber"
+              tone="refill"
             />
           </div>
 

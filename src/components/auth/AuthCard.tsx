@@ -2,13 +2,13 @@ import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
 
-/** The 440 px white card of boards 3.1 to 3.3 (radius 28, soft lift). */
+/** The white auth card of boards 3.1 to 3.3 (440 px; the sign up page widens it at md and up), flat with a neutral lift. */
 export function AuthCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <Card
       as="section"
       className={cn(
-        'animate-rise-in flex w-full max-w-[440px] flex-col gap-[22px] rounded-[28px] p-5 shadow-[0_24px_60px_rgba(37,45,45,0.08)] motion-reduce:animate-none sm:p-6',
+        'animate-rise-in flex w-full max-w-[440px] flex-col gap-4 rounded-card p-5 shadow-[0_1px_2px_rgba(11,25,56,0.06),0_8px_24px_rgba(11,25,56,0.06)] motion-reduce:animate-none sm:p-6',
         className,
       )}
     >

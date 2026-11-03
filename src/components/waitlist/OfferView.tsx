@@ -217,7 +217,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
     price: ltr(f.money(slot.service.price)),
   });
   const tile = (
-    <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-canvas p-[18px]">
+    <div className="flex flex-wrap items-center gap-4 rounded-card-sm bg-canvas p-[18px]">
       <span
         aria-hidden="true"
         className="flex h-[72px] w-[68px] shrink-0 flex-col items-center justify-center rounded-tile border border-line bg-surface"
@@ -319,7 +319,7 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
             {/* The visible text is not live (it would be re-read every 30 s); the hidden region below speaks at 10, 5, 1 min and expiry. */}
             <div
               data-testid="expiry"
-              className="flex min-h-[58px] items-center gap-3 rounded-[20px] border border-warning-line bg-warning-soft p-4 text-[15px] text-warning-deep"
+              className="flex min-h-[58px] items-center gap-3 rounded-card-sm border border-warning-line bg-warning-soft p-4 text-[15px] text-warning-deep"
             >
               <Clock size={22} aria-hidden="true" className="shrink-0 text-warning" />
               <span>
@@ -376,7 +376,7 @@ function OfferSkeleton({ label }: { label: string }) {
       </p>
       <div className="bg-hero" aria-hidden="true">
         <div className="mx-auto flex max-w-[1240px] items-center gap-4 px-4 py-5 md:px-8 md:py-[26px]">
-          <Skeleton className="size-12 rounded-[14px] bg-white/20 md:size-16 md:rounded-[20px]" />
+          <Skeleton className="size-12 rounded-[14px] bg-white/20 md:size-16 md:rounded-tile" />
           <Skeleton className="h-7 w-48 bg-white/20" />
         </div>
       </div>

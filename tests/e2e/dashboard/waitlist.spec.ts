@@ -143,6 +143,37 @@ test('an entry that is already gone (404) refreshes the list quietly', async ({ 
   await expect.poll(() => mock.calls.filter((c) => c.method === 'GET').length).toBeGreaterThanOrEqual(2);
 });
 
+test('a 409 (just fulfilled or mid-claim) shows the error and resyncs the list instead of putting the row back', async ({
+  page,
+}) => {
+  await mockDashboardApi(page);
+  const mock = await mockWaitlistScreen(page, { deleteScript: ['conflict'] });
+  await page.goto('/app/waitlist');
+  await expect(rows(page)).toHaveCount(3);
+  await page.getByRole('button', { name: 'Remove Rami from the waitlist' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Remove', exact: true }).click();
+  // The existing error toast is shown, no success toast.
+  await expect(page.getByText('Something went wrong. Please try again.')).toBeVisible();
+  await expect(page.getByText('removed from the waitlist')).toHaveCount(0);
+  // The list was reloaded and the stale row is gone (the server no longer lists it).
+  await expect.poll(() => mock.calls.filter((c) => c.method === 'GET').length).toBeGreaterThanOrEqual(2);
+  await expect(rows(page)).toHaveCount(2);
+  await expect(rows(page).nth(0)).toContainText('Nadine');
+  await expect(page.getByRole('status').filter({ hasText: '2 people waiting' })).toBeVisible();
+});
+
+test('an entry without a first name shows a dash and a safe label', async ({ page }) => {
+  await mockDashboardApi(page);
+  await mockWaitlistScreen(page, { entries: [waitlistEntry('wl-x', '', '111'), waitlistEntry('wl-y', 'Rami', '918')] });
+  await page.goto('/app/waitlist');
+  await expect(rows(page)).toHaveCount(2);
+  await expect(rows(page).nth(0)).toContainText('–');
+  const remove = page.getByRole('button', { name: 'Remove this person from the waitlist' });
+  await expect(remove).toBeVisible();
+  await remove.click();
+  await expect(page.getByRole('dialog')).toContainText(/Remove .*this person.* from the waitlist\?/);
+});
+
 test('the last person removed leaves the empty state', async ({ page }) => {
   await mockDashboardApi(page);
   await mockWaitlistScreen(page, { entries: [waitlistEntry('only', 'Rami', '918')] });

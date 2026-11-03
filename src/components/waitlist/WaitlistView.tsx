@@ -22,6 +22,9 @@ import {
   type WaitlistList,
 } from '@/lib/api/waitlist';
 
+/** Shown in place of a first name that is somehow empty (an en dash). */
+const NO_NAME = '\u2013';
+
 /** Puts a removed row back where it was (oldest first, ties by id) when the server refused. */
 function reinsert(list: WaitlistList | undefined, entry: WaitlistEntry): WaitlistList {
   const base = list ?? { entries: [], total: 0 };
@@ -58,7 +61,8 @@ function Row({
 }) {
   const t = useTranslations('app.waitlist');
   const f = useBookingFormat(timezone);
-  const name = entry.client.firstName;
+  const given = entry.client.firstName.trim();
+  const name = given || NO_NAME;
   const dates =
     entry.fromDate === entry.toDate
       ? f.ymd(entry.fromDate)
@@ -93,7 +97,7 @@ function Row({
       <span className="text-sm text-muted">{t('joined', { date: f.day(entry.createdAt) })}</span>
       <Button
         variant="secondary"
-        aria-label={t('removeAria', { name })}
+        aria-label={t('removeAria', { name: given || t('unnamed') })}
         onClick={() => onRemove(entry)}
         className="self-end md:self-auto"
       >
@@ -144,9 +148,18 @@ export function WaitlistView() {
         : { entries: [], total: 0 },
     );
     removeWaitlistEntry(current.id)
-      .then(() => toast.show(t('removed', { name: isolate(current.client.firstName) })))
+      .then(() =>
+        toast.show(t('removed', { name: isolate(current.client.firstName.trim() || t('unnamed')) })),
+      )
       .catch((error: unknown) => {
         if (error instanceof ApiError && error.status === 404) {
+          res.reload();
+          return;
+        }
+        if (error instanceof ApiError && error.status === 409) {
+          // Fulfilled or mid-claim just now: the row is no longer removable, so do not put it back. Say so and
+          // resync with the server instead of leaving a stale row.
+          toast.show(errorText(error), 'error');
           res.reload();
           return;
         }
@@ -203,8 +216,8 @@ export function WaitlistView() {
       <ConfirmSheet
         open={open}
         onOpenChange={setOpen}
-        title={t('confirm.title', { name: isolate(target?.client.firstName ?? '') })}
-        description={t('confirm.body', { name: isolate(target?.client.firstName ?? '') })}
+        title={t('confirm.title', { name: isolate(target?.client.firstName.trim() || t('unnamed')) })}
+        description={t('confirm.body', { name: isolate(target?.client.firstName.trim() || t('unnamed')) })}
         confirmLabel={t('confirm.confirm')}
         cancelLabel={shared.cancel}
         closeLabel={t('close')}

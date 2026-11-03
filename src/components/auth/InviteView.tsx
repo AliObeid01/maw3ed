@@ -47,7 +47,6 @@ export function InviteView({ token }: { token: string }) {
 
   return (
     <>
-      <div data-auth-mirror hidden />
       {state.status === 'loading' ? <InviteSkeleton label={t('loading')} /> : null}
       {state.status === 'ready' ? (
         <AcceptCard
@@ -112,7 +111,7 @@ function InviteSkeleton({ label }: { label: string }) {
       <p role="status" className="sr-only">
         {label}
       </p>
-      <Skeleton className="h-20 rounded-[20px]" />
+      <Skeleton className="h-20 rounded-card-sm" />
       <div className="flex flex-col gap-2">
         <Skeleton className="h-7 w-3/4" />
         <Skeleton className="h-5 w-1/2" />
@@ -120,7 +119,7 @@ function InviteSkeleton({ label }: { label: string }) {
       <Skeleton className="h-[52px]" />
       <Skeleton className="h-[52px]" />
       <Skeleton className="h-[52px]" />
-      <Skeleton className="h-[54px] rounded-pill" />
+      <Skeleton className="h-[54px] rounded-btn" />
     </AuthCard>
   );
 }
@@ -196,7 +195,7 @@ function AcceptCard({
 
   return (
     <AuthCard className="gap-[18px] py-7">
-      <div className="flex items-center gap-3.5 rounded-[20px] bg-canvas p-3.5">
+      <div className="flex items-center gap-3.5 rounded-card-sm bg-canvas p-3.5">
         <span
           aria-hidden="true"
           className="flex size-[52px] shrink-0 items-center justify-center rounded-2xl bg-accent text-lg font-bold text-ink"
@@ -212,7 +211,7 @@ function AcceptCard({
             {invite.businessName}
           </span>
         </span>
-        <span className="rounded-pill bg-brand-soft px-2.5 py-[5px] text-xs font-semibold text-brand">
+        <span className="rounded-chip bg-brand-soft px-2.5 py-[5px] text-xs font-semibold text-brand">
           {roleLabel}
         </span>
       </div>

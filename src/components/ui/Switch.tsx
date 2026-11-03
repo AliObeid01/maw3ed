@@ -48,7 +48,7 @@ export function Switch({
         aria-hidden="true"
         className={cn(
           'flex h-8 w-full items-center rounded-pill p-[3px] transition-colors duration-200 ease-out',
-          checked ? 'justify-end bg-accent' : 'justify-start bg-[#d2ccbe]',
+          checked ? 'justify-end bg-brand' : 'justify-start bg-subtle',
         )}
       >
         <span className="size-[26px] rounded-pill bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.2)]" />

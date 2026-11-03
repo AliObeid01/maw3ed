@@ -15,7 +15,7 @@ export function CountBadge({ count, tone = 'danger', label, className }: CountBa
   return (
     <span
       className={cn(
-        'inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-pill px-1.5 text-xs leading-none font-bold tabular-nums',
+        'inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-btn px-1.5 text-xs leading-none font-bold tabular-nums',
         tone === 'danger' ? 'bg-danger text-white' : 'bg-warning-soft text-warning',
         className,
       )}
