@@ -107,7 +107,7 @@ function Checklist({
             className="h-2.5 flex-1 overflow-hidden rounded-pill bg-white/15"
           >
             <div
-              className="h-full rounded-pill bg-accent transition-[width] duration-300 ease-out"
+              className="h-full rounded-pill bg-cyan transition-[width] duration-300 ease-out"
               style={{ width: `${percent}%` }}
             />
           </div>
@@ -134,8 +134,8 @@ function Checklist({
                 className={cn(
                   'flex min-h-[92px] items-center gap-3.5 rounded-card-sm bg-surface text-ink no-underline transition-shadow duration-200 ease-out',
                   step.current
-                    ? 'border-2 border-brand p-[17px] shadow-[0_10px_24px_rgb(11_25_56/0.10)]'
-                    : 'border border-line p-[18px] hover:shadow-[0_4px_14px_rgb(11_25_56/0.06)]',
+                    ? 'border-2 border-brand p-[17px] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_4px_12px_rgb(0_0_0/0.08)]'
+                    : 'border border-line p-[18px] hover:shadow-[0_1px_2px_rgb(0_0_0/0.08)]',
                 )}
               >
                 <span

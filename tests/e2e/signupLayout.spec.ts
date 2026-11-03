@@ -105,23 +105,40 @@ test.describe('sign up layout', () => {
     await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible();
   });
 
-  test('no space is reserved under the link field until it has a value', async ({ page, baseURL }) => {
-    await open(page, { width: 1280, height: 720 }, baseURL!);
-    const slug = field(page, 'slug');
-    const name = field(page, 'businessName');
-    const slugBottom = async () => (await box(slug)).y + (await box(slug)).height;
-    const nameBottom = async () => (await box(name)).y + (await box(name)).height;
-    const owner = field(page, 'ownerName');
-    // Empty and idle: both columns end at the same line, so the next row starts one row gap below.
-    expect(Math.abs((await slugBottom()) - (await nameBottom()))).toBeLessThanOrEqual(1);
-    const idleGap = (await box(owner)).y - (await nameBottom());
-    expect(idleGap).toBeLessThanOrEqual(48);
-    await page.locator('[name=slug]').fill('studio-nour');
-    await expect(page.getByText('Available', { exact: true })).toBeVisible();
-    const y1 = (await box(owner)).y;
-    await page.waitForTimeout(700);
-    expect((await box(owner)).y, 'availability arriving does not move anything').toBe(y1);
-  });
+  for (const [label, viewport] of [
+    ['360x740', { width: 360, height: 740 }],
+    ['1280x720', { width: 1280, height: 720 }],
+  ] as const) {
+    test(`${label}: the link status line is reserved from the first render, so typing moves nothing`, async ({ page, baseURL }) => {
+      await open(page, viewport, baseURL!);
+      const button = page.getByRole('button', { name: 'Create account' });
+      const slug = page.locator('[name=slug]');
+      const card = page.locator('main section').first();
+      const snapshot = async () => ({
+        button: (await box(button)).y,
+        form: (await box(page.locator('form').first())).height,
+        card: (await box(card)).height,
+      });
+      const idle = await snapshot();
+      await slug.fill('studio-nour');
+      const typed = await snapshot();
+      await expect(page.getByText('Available', { exact: true })).toBeVisible();
+      const available = await snapshot();
+      await slug.fill('x');
+      await expect(page.getByText(/Use 3 to 40/)).toBeVisible();
+      const invalid = await snapshot();
+      // A long address must truncate, not wrap into extra height.
+      await slug.fill('a-very-long-booking-link-name-for-a-salon');
+      const long = await snapshot();
+      for (const [name, state] of Object.entries({ typed, available, invalid, long })) {
+        expect(Math.abs(state.button - idle.button), `button y after ${name}`).toBeLessThanOrEqual(1);
+        expect(Math.abs(state.form - idle.form), `form height after ${name}`).toBeLessThanOrEqual(1);
+        expect(Math.abs(state.card - idle.card), `card height after ${name}`).toBeLessThanOrEqual(1);
+      }
+      await expectNoPageOverflow(page);
+      if (viewport.width > 1000) await expect(button).toBeInViewport({ ratio: 1 });
+    });
+  }
 
   test('Arabic: two columns at md and one at 360, RTL, no overflow, button in view', async ({ page, baseURL }) => {
     await open(page, { width: 1280, height: 720 }, baseURL!, 'ar');

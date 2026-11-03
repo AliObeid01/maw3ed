@@ -73,7 +73,7 @@ function ChannelCard({
   onClick?: () => void;
 }) {
   const className =
-    'flex min-h-11 w-full flex-col gap-3 rounded-card-sm border border-line bg-surface p-5 text-start text-ink no-underline transition-shadow duration-200 ease-out hover:shadow-[0_4px_14px_rgb(11_25_56/0.06)]';
+    'flex min-h-11 w-full flex-col gap-3 rounded-card-sm border border-line bg-surface p-5 text-start text-ink no-underline transition-shadow duration-200 ease-out hover:shadow-[0_1px_2px_rgb(0_0_0/0.08)]';
   const content = (
     <>
       <span
@@ -216,7 +216,7 @@ function ShareBody({
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
-              className={cn('size-2.5 rounded-pill', ready ? 'bg-accent' : 'bg-white/60')}
+              className={cn('size-2.5 rounded-pill', ready ? 'bg-cyan' : 'bg-white/60')}
             />
             <span className="text-sm font-semibold text-hero-ink">
               {ready ? t('live') : t('notReady')}

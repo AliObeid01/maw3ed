@@ -223,7 +223,7 @@ export function StaffForm({
                   )}
                 >
                   {on ? (
-                    <Check size={16} strokeWidth={3} aria-hidden="true" className="text-accent" />
+                    <Check size={16} strokeWidth={3} aria-hidden="true" className="stroke-cyan" />
                   ) : null}
                   {service.name}
                 </button>

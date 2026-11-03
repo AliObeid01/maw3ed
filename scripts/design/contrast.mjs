@@ -76,25 +76,23 @@ for (const [name, bg] of Object.entries(heroStops)) {
   }
   pairs.push([`ink on cyan chip over ${name} (status chip)`, 'ink', 'cyan', 13, true]);
 }
-// Only for placeholders and disabled text, which WCAG exempts (disabled) or where we accept 3:1 (placeholder hint).
-const placeholderOnly = [
+// `subtle` is for placeholders and struck-out taken slots, always on white, and must reach 4.5:1 there. It must NOT be
+// used on canvas or divider fills (it is below 4.5 on them); those pairs are not listed on purpose.
+pairs.push(
   ['subtle on surface (input placeholder)', 'subtle', 'surface', 16],
-  ['subtle on canvas (disabled text)', 'subtle', 'canvas', 14],
-  ['subtle on divider (struck-out time slot)', 'subtle', 'divider', 15],
-];
+  ['subtle on surface (struck-out taken time slot)', 'subtle', 'surface', 15],
+);
 
 const isLarge = (px, bold) => px >= 24 || (bold && px >= 18.66);
 let failures = 0;
-const row = (label, fg, bg, px, bold, informational) => {
+const row = (label, fg, bg, px, bold) => {
   const r = ratio(hex(fg), hex(bg));
   const need = isLarge(px, bold) ? 3 : 4.5;
   const ok = r >= need;
-  if (!ok && !informational) failures++;
-  const mark = ok ? 'pass' : informational ? 'info' : 'FAIL';
+  if (!ok) failures++;
+  const mark = ok ? 'pass' : 'FAIL';
   console.log(`${mark.padEnd(4)}  ${r.toFixed(2).padStart(5)}:1  (need ${need})  ${label}`);
 };
-for (const p of pairs) row(...p, false);
-console.log('\nPlaceholder / disabled only (never use `text-subtle` for real copy):');
-for (const p of placeholderOnly) row(...p, false, true);
+for (const p of pairs) row(...p);
 console.log(`\n${failures} failing text pair${failures === 1 ? '' : 's'}`);
 process.exit(failures ? 1 : 0);

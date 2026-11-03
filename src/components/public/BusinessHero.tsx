@@ -19,7 +19,7 @@ export function BusinessHero({ name, meta, facts = [], className }: BusinessHero
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-4 px-4 py-5 md:px-8 md:py-[26px]">
         <div
           aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-accent text-lg font-bold text-ink md:size-16 md:rounded-tile md:text-[22px]"
+          className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-cyan text-lg font-bold text-ink md:size-16 md:rounded-tile md:text-[22px]"
         >
           {monogram(name)}
         </div>

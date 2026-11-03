@@ -63,7 +63,7 @@ function BusinessHeader({ name, address }: { name: string; address?: string | un
       <div className="mx-auto flex max-w-[1120px] items-center gap-3 px-4 py-3 md:px-8">
         <span
           aria-hidden="true"
-          className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-accent text-base font-bold text-ink"
+          className="flex size-11 shrink-0 items-center justify-center rounded-[14px] bg-cyan text-base font-bold text-ink"
         >
           {monogram(name)}
         </span>

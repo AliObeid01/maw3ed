@@ -36,6 +36,7 @@ export function CalendarGrid({
   const range = calendarRange(appointments, timezone);
   const marks = hourMarks(range);
   const height = marks.length * 2 * ROW_PX;
+  // Functional hatch pattern, not a decorative gradient: it draws the 1 px hour/half-hour row hairlines.
   const lines =
     'repeating-linear-gradient(to bottom, transparent 0, transparent 43px, var(--color-row) 43px, var(--color-row) 44px)';
   const active = appointments.filter(isActive);

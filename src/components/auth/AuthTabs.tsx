@@ -16,7 +16,7 @@ export function AuthTabs({ active }: { active: 'login' | 'signup' }) {
         className={cn(
           base,
           active === 'login'
-            ? 'bg-surface text-ink shadow-[0_2px_8px_rgba(11,25,56,0.12)]'
+            ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]'
             : 'text-muted hover:text-ink',
         )}
       >
@@ -28,7 +28,7 @@ export function AuthTabs({ active }: { active: 'login' | 'signup' }) {
         className={cn(
           base,
           active === 'signup'
-            ? 'bg-surface text-ink shadow-[0_2px_8px_rgba(11,25,56,0.12)]'
+            ? 'bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.08)]'
             : 'text-muted hover:text-ink',
         )}
       >

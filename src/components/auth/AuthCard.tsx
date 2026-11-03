@@ -8,7 +8,7 @@ export function AuthCard({ children, className }: { children: ReactNode; classNa
     <Card
       as="section"
       className={cn(
-        'animate-rise-in flex w-full max-w-[440px] flex-col gap-4 rounded-card p-5 shadow-[0_1px_2px_rgba(11,25,56,0.06),0_8px_24px_rgba(11,25,56,0.06)] motion-reduce:animate-none sm:p-6',
+        'animate-rise-in flex w-full max-w-[440px] flex-col gap-4 rounded-card p-5 shadow-[0_1px_2px_rgb(0_0_0/0.08),0_4px_12px_rgb(0_0_0/0.08)] motion-reduce:animate-none sm:p-6',
         className,
       )}
     >
