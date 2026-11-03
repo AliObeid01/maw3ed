@@ -44,7 +44,7 @@ const marksReducer = (state: Marks, action: { id: string; event: MarkEvent }): M
 });
 
 const sendClass =
-  'inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-pill bg-accent px-5 text-[15px] font-semibold text-ink no-underline transition-[filter] duration-200 ease-out hover:brightness-95';
+  'inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-btn bg-electric px-5 text-[15px] font-semibold text-white no-underline transition-colors duration-200 ease-out hover:bg-brand-hover';
 
 /** Everything for one reminder row that both layouts share. */
 function useRowText(item: ReminderItem, timezone: string) {
@@ -289,7 +289,7 @@ export function RemindersView() {
       role="status"
       aria-live="polite"
       className={cn(
-        'rounded-pill px-3 py-1.5 text-sm font-semibold whitespace-nowrap',
+        'rounded-btn px-3 py-1.5 text-sm font-semibold whitespace-nowrap',
         toSend > 0 ? 'bg-danger-soft text-danger' : 'bg-success-soft text-success',
       )}
     >

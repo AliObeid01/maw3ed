@@ -98,7 +98,7 @@ export function PlanCard() {
       as="section"
       padding="none"
       aria-labelledby="plan-card-title"
-      className="flex flex-col gap-4 p-[22px] lg:col-span-2"
+      className="flex flex-col gap-4 p-[22px] lg:self-start"
     >
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-[3px]">

@@ -54,7 +54,7 @@ export function SlotGrid({
               role="radio"
               aria-checked={false}
               disabled
-              className="h-11 min-w-[76px] rounded-pill border border-line bg-canvas px-4 text-[15px] text-subtle line-through"
+              className="h-11 min-w-[76px] rounded-btn border border-divider bg-divider px-4 text-[15px] text-subtle line-through"
             >
               <bdi dir="ltr" className="tabular-nums">
                 {time}
@@ -80,9 +80,9 @@ export function SlotGrid({
                   tabIndex={slot === tabStop ? 0 : -1}
                   onClick={() => onSelect(slot)}
                   className={cn(
-                    'h-11 rounded-pill border px-3 text-[15px] font-medium tabular-nums transition-colors duration-200 ease-out',
+                    'h-11 rounded-btn border px-3 text-[15px] font-medium tabular-nums transition-colors duration-200 ease-out',
                     checked
-                      ? 'border-brand bg-brand text-white'
+                      ? 'border-ink bg-ink text-white'
                       : 'border-line bg-surface text-ink hover:border-brand',
                   )}
                 >

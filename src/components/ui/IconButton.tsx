@@ -19,7 +19,7 @@ export function IconButton({
       type={type}
       aria-label={label}
       className={cn(
-        'inline-flex size-11 shrink-0 items-center justify-center rounded-pill border border-line bg-surface text-ink transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60',
+        'inline-flex size-11 shrink-0 items-center justify-center rounded-btn border border-line bg-surface text-ink transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60',
         className,
       )}
       {...props}

@@ -28,7 +28,7 @@ export function PasswordField({ className, ...props }: PasswordFieldProps) {
           type="button"
           aria-label={visible ? t('hide') : t('show')}
           onClick={() => setVisible((v) => !v)}
-          className="inline-flex size-11 items-center justify-center rounded-pill text-muted transition-colors duration-200 ease-out hover:text-ink"
+          className="inline-flex size-11 items-center justify-center rounded-btn text-muted transition-colors duration-200 ease-out hover:text-ink"
         >
           {visible ? <EyeOff size={20} aria-hidden="true" /> : <Eye size={20} aria-hidden="true" />}
         </button>
@@ -39,7 +39,7 @@ export function PasswordField({ className, ...props }: PasswordFieldProps) {
 
 const segmentTone = {
   weak: 'bg-danger',
-  fair: 'bg-accent',
+  fair: 'bg-warning',
   strong: 'bg-success',
 } as const;
 

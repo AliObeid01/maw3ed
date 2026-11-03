@@ -55,7 +55,7 @@ export default async function UiPreviewPage() {
         <StatTile value={12} label={t('stats.appointments')} />
         <StatTile value={8} label={t('stats.confirmed')} tone="brand" />
         <StatTile value={3} label={t('stats.noReply')} />
-        <StatTile value={1} label={t('stats.refilled')} tone="amber" />
+        <StatTile value={1} label={t('stats.refilled')} tone="refill" />
       </div>
 
       <div className="flex flex-col gap-3.5 md:max-w-[360px]">
@@ -67,7 +67,7 @@ export default async function UiPreviewPage() {
             {t('doFirst')}
           </span>
           <span className="text-2xl font-semibold">{t('remindersDue', { count: 4 })}</span>
-          <span className="inline-flex h-11 w-fit items-center rounded-pill bg-accent px-[18px] text-[15px] font-semibold text-ink">
+          <span className="inline-flex h-11 w-fit items-center rounded-btn bg-electric px-[18px] text-[15px] font-semibold text-white">
             {t('sendNow')}
           </span>
         </a>

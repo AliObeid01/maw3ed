@@ -83,11 +83,11 @@ export function DayStrip({
               onClick={() => onSelect(day)}
               className={cn(
                 'flex h-[68px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-input border transition-colors duration-200 ease-out',
-                checked && count > 0 && 'border-brand bg-brand text-white',
+                checked && count > 0 && 'border-electric bg-electric text-white',
                 // A chosen full day is outlined, not filled: it is selected but has nothing to book.
-                checked && count === 0 && 'border-brand bg-canvas text-ink',
+                checked && count === 0 && 'border-electric bg-divider text-ink',
                 !checked && count > 0 && 'border-line bg-surface text-ink hover:border-brand',
-                !checked && count === 0 && 'border-dashed border-line bg-canvas text-muted hover:border-brand',
+                !checked && count === 0 && 'border-dashed border-subtle bg-divider text-muted hover:border-electric',
               )}
             >
               <span aria-hidden="true" className="text-xs font-medium">

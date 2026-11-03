@@ -328,7 +328,7 @@ export function FrontDeskForm() {
 
   const chip = (active: boolean) =>
     cn(
-      'inline-flex min-h-11 items-center rounded-pill border px-4 text-[15px] transition-colors duration-200 ease-out',
+      'inline-flex min-h-11 items-center rounded-btn border px-4 text-[15px] transition-colors duration-200 ease-out',
       active ? 'border-brand bg-brand font-semibold text-white' : 'border-line bg-surface text-ink hover:border-brand',
     );
 

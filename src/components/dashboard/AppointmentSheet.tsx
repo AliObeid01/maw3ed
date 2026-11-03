@@ -124,7 +124,7 @@ export function AppointmentSheet({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('whatsappAria', { name })}
-                  className="inline-flex h-[46px] items-center justify-center gap-2 rounded-pill border border-line bg-surface px-5 text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
+                  className="inline-flex h-[46px] items-center justify-center gap-2 rounded-btn border border-line bg-surface px-5 text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
                 >
                   <MessageCircle size={18} aria-hidden="true" />
                   {t('whatsapp')}

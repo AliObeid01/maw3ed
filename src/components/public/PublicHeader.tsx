@@ -20,7 +20,7 @@ export type PublicHeaderProps = {
 };
 
 const linkClass =
-  'flex min-h-11 items-center rounded-pill px-3.5 text-[15px] font-medium text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas';
+  'flex min-h-11 items-center rounded-btn px-3.5 text-[15px] font-medium text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas';
 
 /** Board 01. Logo + links + language toggle + sign in; logo + menu sheet on phones. */
 export function PublicHeader({

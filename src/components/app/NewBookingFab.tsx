@@ -63,7 +63,7 @@ export function NewBookingFab({
       data-testid="new-booking-fab"
       data-hidden={typing || undefined}
       className={cn(
-        'fixed end-4 bottom-[calc(64px+env(safe-area-inset-bottom)+16px)] z-30 flex size-14 items-center justify-center rounded-pill bg-brand text-white shadow-[0_1px_3px_rgb(0_0_0/0.06),0_6px_16px_rgb(23_76_79/0.25)] transition-[background-color,transform,opacity] duration-200 ease-out hover:bg-brand-hover motion-reduce:transition-none lg:hidden',
+        'fixed end-4 bottom-[calc(64px+env(safe-area-inset-bottom)+16px)] z-30 flex size-14 items-center justify-center rounded-card bg-brand text-white shadow-[0_1px_3px_rgb(0_0_0/0.06),0_6px_16px_rgb(11_25_56/0.22)] transition-[background-color,transform,opacity] duration-200 ease-out hover:bg-brand-hover motion-reduce:transition-none lg:hidden',
         typing &&
           'pointer-events-none translate-y-24 opacity-0 focus-visible:pointer-events-auto focus-visible:translate-y-0 focus-visible:opacity-100',
         className,

@@ -145,12 +145,12 @@ describe('branded email layout (all kinds)', () => {
             expect(out.html).toContain(c);
           }
           expect(out.html).toContain('max-width:600px');
-          expect(out.html).toContain('border-radius:18px');
+          expect(out.html).toContain('border-radius:16px');
           expect(out.html).toContain('padding:14px 28px');
           expect(out.html).not.toMatch(/<img\b/i);
           expect(out.html).not.toMatch(/@import|<link\b|url\(|data:image/i);
           // The old neutral palette is gone.
-          expect(out.html).not.toMatch(/#f6f5f1|#0E7C66|#5a5a5a|#1b1b1b/i);
+          expect(out.html).not.toMatch(/#f6f5f1|#0E7C66|#5a5a5a|#1b1b1b|#174c4f|#f7f5f0/i);
         });
 
         it('keeps the CTA href exactly and shows the same URL as visible text', () => {

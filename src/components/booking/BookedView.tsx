@@ -92,7 +92,7 @@ export function BookedView({
             </div>
           </div>
           {hasEmail ? (
-            <p className="m-0 rounded-[20px] bg-brand-soft p-4 text-sm text-brand-deep">
+            <p className="m-0 rounded-card-sm bg-brand-soft p-4 text-sm text-brand-deep">
               {t('calendar')}
             </p>
           ) : null}

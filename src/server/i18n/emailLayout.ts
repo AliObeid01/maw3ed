@@ -9,12 +9,12 @@ import { emailFontStack, getEmailMessages, isRtl } from './messages';
  * not invert it. Pure.
  */
 export const EMAIL_COLORS = {
-  canvas: '#f7f5f0',
+  canvas: '#f3f5fa',
   card: '#ffffff',
-  line: '#e3ded2',
-  ink: '#252d2d',
-  muted: '#626967',
-  brand: '#174c4f',
+  line: '#d3dcee',
+  ink: '#0b1938',
+  muted: '#56668a',
+  brand: '#254edb',
   accent: '#e8b86d',
   onBrand: '#ffffff',
 } as const;
@@ -34,9 +34,9 @@ export interface EmailLayoutOptions {
   title: string;
   /** Trusted HTML shown between the title and the button; callers escape every dynamic value. */
   bodyHtml: string;
-  /** The single primary action: a teal button plus a visible copy-paste URL line. */
+  /** The single primary action: a blue button plus a visible copy-paste URL line. */
   cta: EmailLink;
-  /** Secondary actions as plain teal text links, in order. */
+  /** Secondary actions as plain blue text links, in order. */
   secondary?: EmailLink[];
   /** Trusted small muted notes under the actions (link expiry, calendar note, ignore note). */
   notesHtml?: string[];
@@ -98,8 +98,8 @@ export function renderEmailLayout(o: EmailLayoutOptions): string {
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;font-size:1px;line-height:1px">${e(o.preheader)}</div>`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.canvas}" style="background:${C.canvas}"><tr><td class="outer" align="center" style="padding:28px 12px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${dir}" style="max-width:600px;width:100%">`,
-    `<tr><td class="px" style="padding:0 8px 16px;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;letter-spacing:0.2px;color:${C.brand};text-align:start"><span style="border-bottom:3px solid ${C.accent};padding-bottom:2px">Maw3ed</span></td></tr>`,
-    `<tr><td style="background:${C.card};border:1px solid ${C.line};border-top:4px solid ${C.accent};border-radius:18px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" dir="${dir}" style="padding:28px 28px 20px;font-family:${font};text-align:start">`,
+    `<tr><td class="px" style="padding:0 8px 16px;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;letter-spacing:0.2px;color:${C.ink};text-align:start"><span style="border-bottom:3px solid ${C.accent};padding-bottom:2px">Maw3ed</span></td></tr>`,
+    `<tr><td style="background:${C.card};border:1px solid ${C.line};border-top:4px solid ${C.brand};border-radius:16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" dir="${dir}" style="padding:28px 28px 20px;font-family:${font};text-align:start">`,
     `<h1 style="margin:0 0 12px;font-size:22px;line-height:30px;font-weight:bold;color:${C.ink}">${e(o.title)}</h1>`,
     o.bodyHtml,
     button,

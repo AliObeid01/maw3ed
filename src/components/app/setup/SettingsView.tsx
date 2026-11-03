@@ -95,7 +95,8 @@ function SettingsSkeleton() {
     <div aria-hidden="true" className="grid gap-5 lg:grid-cols-2">
       <Skeleton className="h-[360px] rounded-card" />
       <Skeleton className="h-[360px] rounded-card" />
-      <Skeleton className="h-[110px] rounded-card" />
+      <Skeleton className="h-[220px] rounded-card" />
+      <Skeleton className="h-[220px] rounded-card" />
     </div>
   );
 }

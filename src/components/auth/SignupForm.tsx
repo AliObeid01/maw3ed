@@ -110,9 +110,15 @@ export function SignupForm() {
     }
   }
 
+  const bannerText = text.banner(banner);
   return (
-    <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
-      <FormBanner message={text.banner(banner)} />
+    <form ref={formRef} onSubmit={onSubmit} noValidate className="grid grid-cols-1 gap-3.5 md:grid-cols-2 md:gap-x-4 md:gap-y-3.5"
+    >
+      {bannerText ? (
+        <div className="md:col-span-2">
+          <FormBanner message={bannerText} />
+        </div>
+      ) : null}
 
       <Input
         label={t('businessName')}
@@ -226,7 +232,7 @@ export function SignupForm() {
         ) : null}
       </Select>
 
-      <Button type="submit" size="lg" block loading={pending} className="mt-1 h-[54px] text-base">
+      <Button type="submit" size="lg" block loading={pending} className="h-[54px] text-base md:col-span-2">
         {t('submit')}
       </Button>
     </form>

@@ -674,7 +674,7 @@ function FlowSkeleton({ label }: { label: string }) {
       </p>
       <div className="bg-hero" aria-hidden="true">
         <div className="mx-auto flex max-w-[1240px] items-center gap-4 px-4 py-5 md:px-8 md:py-[26px]">
-          <Skeleton className="size-12 rounded-[14px] bg-white/20 md:size-16 md:rounded-[20px]" />
+          <Skeleton className="size-12 rounded-[14px] bg-white/20 md:size-16 md:rounded-tile" />
           <div className="flex flex-col gap-2">
             <Skeleton className="h-7 w-48 bg-white/20" />
             <Skeleton className="h-5 w-64 bg-white/15" />

@@ -19,7 +19,7 @@ export function BusinessHero({ name, meta, facts = [], className }: BusinessHero
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-4 px-4 py-5 md:px-8 md:py-[26px]">
         <div
           aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-accent text-lg font-bold text-ink md:size-16 md:rounded-[20px] md:text-[22px]"
+          className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-accent text-lg font-bold text-ink md:size-16 md:rounded-tile md:text-[22px]"
         >
           {monogram(name)}
         </div>
@@ -30,7 +30,7 @@ export function BusinessHero({ name, meta, facts = [], className }: BusinessHero
         {facts.length > 0 ? (
           <ul className="flex flex-wrap gap-2">
             {facts.map((fact) => (
-              <li key={fact} className="rounded-pill bg-white/10 px-3.5 py-2 text-sm text-hero-ink">
+              <li key={fact} className="rounded-btn bg-white/10 px-3.5 py-2 text-sm text-hero-ink">
                 {fact}
               </li>
             ))}

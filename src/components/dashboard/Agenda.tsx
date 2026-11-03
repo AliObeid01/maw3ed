@@ -28,7 +28,7 @@ export function StaffFilter({
   if (staff.length < 2) return null;
   const chip = (active: boolean) =>
     cn(
-      'inline-flex h-11 shrink-0 items-center rounded-pill border px-4 text-[15px] transition-colors duration-200 ease-out',
+      'inline-flex h-11 shrink-0 items-center rounded-btn border px-4 text-[15px] transition-colors duration-200 ease-out',
       active
         ? 'border-brand bg-brand font-semibold text-white'
         : 'border-line bg-surface text-ink hover:border-brand',

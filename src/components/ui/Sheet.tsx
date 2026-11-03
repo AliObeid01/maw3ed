@@ -64,7 +64,7 @@ export function Sheet({
             </Dialog.Title>
             <Dialog.Close
               aria-label={closeLabel}
-              className="-me-2 ms-auto inline-flex size-11 shrink-0 items-center justify-center rounded-pill text-muted transition-colors duration-200 ease-out hover:bg-canvas"
+              className="-me-2 ms-auto inline-flex size-11 shrink-0 items-center justify-center rounded-btn text-muted transition-colors duration-200 ease-out hover:bg-canvas"
             >
               <X size={20} aria-hidden="true" />
             </Dialog.Close>

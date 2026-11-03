@@ -164,7 +164,7 @@ export function TimeOffPanel({
                 aria-busy={removingId === item.id || undefined}
                 disabled={removingId !== null}
                 onClick={() => remove(item)}
-                className="flex size-11 shrink-0 items-center justify-center rounded-pill text-warning-deep transition-colors duration-200 ease-out hover:bg-white/50 disabled:opacity-60"
+                className="flex size-11 shrink-0 items-center justify-center rounded-btn text-warning-deep transition-colors duration-200 ease-out hover:bg-white/50 disabled:opacity-60"
               >
                 <X size={18} strokeWidth={2.5} aria-hidden="true" />
               </button>
@@ -175,7 +175,7 @@ export function TimeOffPanel({
 
       <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-3.5">
         {banner ? (
-          <div role="alert" tabIndex={-1} data-form-banner className="rounded-[20px] outline-none">
+          <div role="alert" tabIndex={-1} data-form-banner className="rounded-card-sm outline-none">
             <Callout tone="danger" icon={<CircleAlert />}>
               {banner}
             </Callout>

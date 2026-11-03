@@ -182,9 +182,9 @@ test.describe('desktop: calendar grid', () => {
     // Confirmed is brand-soft, a waitlist booking amber, a plain booking grey.
     const bg = (name: RegExp) =>
       grid.getByRole('button', { name }).evaluate((el) => getComputedStyle(el).backgroundColor);
-    expect(await bg(/Nadine Aoun/)).toBe('rgb(227, 237, 235)');
-    expect(await bg(/Rami Haddad/)).toBe('rgb(243, 227, 196)');
-    expect(await bg(/Maya Haddad/)).toBe('rgb(236, 232, 223)');
+    expect(await bg(/Nadine Aoun/)).toBe('rgb(226, 235, 252)');
+    expect(await bg(/Rami Haddad/)).toBe('rgb(246, 230, 200)');
+    expect(await bg(/Maya Haddad/)).toBe('rgb(233, 239, 248)');
     // 44 px per 30 minutes: the 45 minute blow-dry is 66 px tall.
     const box = (await grid.getByRole('button', { name: /Lea Saab/ }).boundingBox())!;
     expect(box.height).toBeGreaterThan(60);

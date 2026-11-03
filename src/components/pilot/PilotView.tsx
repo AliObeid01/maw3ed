@@ -48,7 +48,7 @@ function ChangeChip({ change }: { change: ChangeView }) {
           num: (chunks) => <bdi dir="ltr">{chunks}</bdi>,
         });
   return (
-    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-pill bg-accent px-3 py-1 text-sm font-semibold text-ink">
+    <span className="inline-flex min-h-8 items-center gap-1.5 rounded-chip bg-accent px-3 py-1 text-sm font-semibold text-ink">
       <Icon size={16} aria-hidden="true" className="shrink-0" />
       <span>{text}</span>
     </span>
@@ -124,7 +124,7 @@ function Hero({
       {view.unmarked > 0 ? (
         <Link
           href="/app/outcomes"
-          className="inline-flex min-h-11 items-center self-start rounded-pill bg-white/15 px-4 py-2 text-sm font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/25"
+          className="inline-flex min-h-11 items-center self-start rounded-btn bg-white/15 px-4 py-2 text-sm font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/25"
         >
           {t('unmarked', { count: view.unmarked })}
         </Link>

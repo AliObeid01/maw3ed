@@ -26,7 +26,7 @@ export function LanguageToggle({ className }: { className?: string }) {
         startTransition(() => router.refresh());
       }}
       className={cn(
-        'inline-flex h-11 items-center justify-center rounded-pill border border-line bg-surface px-4 text-[15px] text-ink transition-colors duration-200 ease-out hover:bg-canvas disabled:opacity-60',
+        'inline-flex h-11 items-center justify-center rounded-btn border border-line bg-surface px-4 text-[15px] text-ink transition-colors duration-200 ease-out hover:bg-canvas disabled:opacity-60',
         className,
       )}
     >

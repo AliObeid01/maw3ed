@@ -8,7 +8,7 @@ export function NoShowBadge({ count, className }: { count: number; className?: s
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-pill border border-danger-line bg-surface px-[7px] py-px text-[11px] leading-snug font-semibold whitespace-nowrap text-danger',
+        'inline-flex items-center gap-1.5 rounded-chip border border-danger-line bg-surface px-[7px] py-px text-[11px] leading-snug font-semibold whitespace-nowrap text-danger',
         className,
       )}
     >

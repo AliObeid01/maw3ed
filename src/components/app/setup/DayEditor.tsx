@@ -63,7 +63,7 @@ function IntervalRow({
         type="button"
         aria-label={t('remove')}
         onClick={onRemove}
-        className="flex size-[52px] shrink-0 items-center justify-center rounded-pill text-muted transition-colors duration-200 ease-out hover:bg-canvas hover:text-danger"
+        className="flex size-[52px] shrink-0 items-center justify-center rounded-btn text-muted transition-colors duration-200 ease-out hover:bg-canvas hover:text-danger"
       >
         <X size={20} aria-hidden="true" />
       </button>
@@ -193,7 +193,7 @@ function DayEditorBody({
                 aria-pressed={on}
                 onClick={() => setCopyTo((c) => (on ? c.filter((x) => x !== d) : [...c, d]))}
                 className={cn(
-                  'min-h-11 rounded-pill px-4 text-[15px] transition-colors duration-200 ease-out',
+                  'min-h-11 rounded-btn px-4 text-[15px] transition-colors duration-200 ease-out',
                   on
                     ? 'bg-brand font-medium text-white'
                     : 'border border-line bg-surface text-ink hover:bg-canvas',

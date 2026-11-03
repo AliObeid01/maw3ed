@@ -56,8 +56,8 @@ export function StepRail({ steps, current, onBack, className }: StepRailProps) {
                 <span
                   className={cn(
                     'flex size-[30px] shrink-0 items-center justify-center rounded-pill text-sm font-semibold tabular-nums',
-                    state === StepState.Current && 'bg-brand text-white',
-                    state === StepState.Done && 'bg-accent text-ink',
+                    state === StepState.Current && 'bg-ink text-white',
+                    state === StepState.Done && 'bg-brand text-white',
                     state === StepState.Todo && 'bg-divider text-muted',
                   )}
                 >

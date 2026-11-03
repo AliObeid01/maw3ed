@@ -26,7 +26,7 @@ export default async function Home() {
     <div className="flex min-h-dvh flex-col">
       <PublicHeader />
       <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-10 px-4 py-6 md:gap-14 md:px-8 md:py-10">
-        <section className="flex flex-col gap-6 rounded-[28px] bg-hero p-6 text-white md:p-12 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-16">
+        <section className="flex flex-col gap-6 rounded-card bg-hero p-6 text-white md:p-12 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:gap-16">
           <div className="flex flex-col gap-6">
           <div className="flex max-w-2xl flex-col gap-3">
             <h1 className="m-0 text-[32px] leading-[1.15] font-semibold tracking-[-0.015em] md:text-5xl">

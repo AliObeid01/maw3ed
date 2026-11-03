@@ -149,7 +149,7 @@ export function StaffForm({
           role="alert"
           tabIndex={-1}
           data-form-banner
-          className="rounded-[20px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="rounded-card-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           {upgrade ? (
             <Callout tone="warning" icon={<Sparkles />}>
@@ -216,7 +216,7 @@ export function StaffForm({
                   aria-pressed={on}
                   onClick={() => toggleService(service.id)}
                   className={cn(
-                    'flex min-h-11 items-center gap-1.5 rounded-pill px-4 text-[15px] transition-colors duration-200 ease-out',
+                    'flex min-h-11 items-center gap-1.5 rounded-btn px-4 text-[15px] transition-colors duration-200 ease-out',
                     on
                       ? 'bg-brand font-medium text-white'
                       : 'border border-line bg-surface text-ink hover:bg-canvas',

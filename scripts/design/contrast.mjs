@@ -28,21 +28,9 @@ export function ratio(a, b) {
   const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
   return (hi + 0.05) / (lo + 0.05);
 }
-const mix = (fg, bg, alpha) =>
-  '#' +
-  toRgb(fg)
-    .map((c, i) =>
-      Math.round(c * alpha + toRgb(bg)[i] * (1 - alpha))
-        .toString(16)
-        .padStart(2, '0'),
-    )
-    .join('');
 
-// Hero band: base teal plus two radial glows (see `bg-hero` in globals.css). Check the extremes.
-const heroBase = hex('brand');
-const heroTeal = mix('#2e7d80', heroBase, 0.64);
-const heroGold = mix('#e8b86d', heroBase, 0.24);
-const heroStops = { 'hero base': heroBase, 'hero teal glow': heroTeal, 'hero gold glow': heroGold };
+// Hero band: flat navy (see `bg-hero` in globals.css), no gradient. The 4 px Royal Blue edge is decorative.
+const heroStops = { 'hero navy': hex('navy') };
 
 // [label, foreground, background, px, bold]
 const pairs = [
@@ -50,14 +38,20 @@ const pairs = [
   ['ink on surface', 'ink', 'surface', 15],
   ['muted on canvas', 'muted', 'canvas', 14],
   ['muted on surface', 'muted', 'surface', 14],
-  ['muted on divider (neutral chip)', 'muted', 'divider', 12, true],
+  ['muted on divider (neutral chip, full-day pill)', 'muted', 'divider', 12, true],
   ['muted on brand-soft', 'muted', 'brand-soft', 14],
+  ['ink on divider (chip)', 'ink', 'divider', 12, true],
   ['brand on surface (link, ghost button)', 'brand', 'surface', 15],
+  ['brand on canvas (link on page)', 'brand', 'canvas', 15],
+  ['brand on divider (link on mist)', 'brand', 'divider', 15],
   ['brand on brand-soft (active nav, chip)', 'brand', 'brand-soft', 15],
   ['brand-deep on brand-soft (callout)', 'brand-deep', 'brand-soft', 14],
-  ['white on brand (primary button)', '#ffffff', 'brand', 15, true],
-  ['white on brand-hover', '#ffffff', 'brand-hover', 15, true],
-  ['ink on accent (gold button)', 'ink', 'accent', 15, true],
+  ['white on brand (primary button, finished step)', '#ffffff', 'brand', 15, true],
+  ['white on brand-hover (pressed)', '#ffffff', 'brand-hover', 15, true],
+  ['white on electric (selected day, accent button)', '#ffffff', 'electric', 15, true],
+  ['white on ink (selected time, current step)', '#ffffff', 'ink', 15, true],
+  ['ink on cyan (info chip, initials tile)', 'ink', 'cyan', 12, true],
+  ['ink on turquoise (refilled tile)', 'ink', 'turquoise', 14],
   ['success on success-soft (chip)', 'success', 'success-soft', 12, true],
   ['success-deep on success-soft', 'success-deep', 'success-soft', 14],
   ['warning on warning-soft (chip, amber badge)', 'warning', 'warning-soft', 12, true],
@@ -69,7 +63,6 @@ const pairs = [
   ['amber on canvas (stat number)', 'amber', 'canvas', 28, true],
   ['amber on surface (stat number)', 'amber', 'surface', 28, true],
   ['success on surface (stat number)', 'success', 'surface', 28, true],
-  ['ink on divider (chip)', 'ink', 'divider', 12, true],
 ];
 for (const [name, bg] of Object.entries(heroStops)) {
   for (const [label, fg] of [
@@ -77,14 +70,17 @@ for (const [name, bg] of Object.entries(heroStops)) {
     ['hero-ink', hex('hero-ink')],
     ['hero-muted', hex('hero-muted')],
     ['hero-subtle', hex('hero-subtle')],
+    ['cyan (logo, chip edge)', hex('cyan')],
   ]) {
     pairs.push([`${label} on ${name}`, fg, bg, 14, false]);
   }
+  pairs.push([`ink on cyan chip over ${name} (status chip)`, 'ink', 'cyan', 13, true]);
 }
 // Only for placeholders and disabled text, which WCAG exempts (disabled) or where we accept 3:1 (placeholder hint).
 const placeholderOnly = [
   ['subtle on surface (input placeholder)', 'subtle', 'surface', 16],
   ['subtle on canvas (disabled text)', 'subtle', 'canvas', 14],
+  ['subtle on divider (struck-out time slot)', 'subtle', 'divider', 15],
 ];
 
 const isLarge = (px, bold) => px >= 24 || (bold && px >= 18.66);

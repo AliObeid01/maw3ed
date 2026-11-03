@@ -98,7 +98,7 @@ export function ServiceForm({
           role="alert"
           tabIndex={-1}
           data-form-banner
-          className="rounded-[20px] outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="rounded-card-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <Callout tone="danger" icon={<CircleAlert />}>
             {banner}

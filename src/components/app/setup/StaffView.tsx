@@ -33,7 +33,7 @@ function StaffSkeleton() {
     <div aria-hidden="true" className="flex flex-wrap gap-5">
       <div className="flex flex-[1_1_320px] flex-col gap-2.5 lg:max-w-[420px]">
         {Array.from({ length: 4 }, (_, i) => (
-          <Skeleton key={i} className="h-[76px] rounded-[20px]" />
+          <Skeleton key={i} className="h-[76px] rounded-card-sm" />
         ))}
       </div>
       <Skeleton className="hidden h-[360px] flex-[999_1_420px] rounded-card lg:block" />
@@ -63,7 +63,7 @@ function StaffCard({
       aria-current={selected ? 'true' : undefined}
       onClick={onSelect}
       className={cn(
-        'flex min-h-[76px] w-full items-center gap-3 rounded-[20px] bg-surface text-start transition-colors duration-200 ease-out hover:bg-canvas',
+        'flex min-h-[76px] w-full items-center gap-3 rounded-card-sm bg-surface text-start transition-colors duration-200 ease-out hover:bg-canvas',
         selected ? 'border-2 border-brand px-[15px] py-[13px]' : 'border border-line px-4 py-3.5',
       )}
     >

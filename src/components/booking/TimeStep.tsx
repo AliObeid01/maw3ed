@@ -64,7 +64,7 @@ export function TimeStep(props: TimeStepProps) {
         />
         <div
           role="alert"
-          className="flex items-start gap-3 rounded-[20px] border border-warning-line bg-warning-soft p-4 text-warning-deep"
+          className="flex items-start gap-3 rounded-card-sm border border-warning-line bg-warning-soft p-4 text-warning-deep"
         >
           <TriangleAlert size={22} aria-hidden="true" className="mt-0.5 shrink-0 text-warning" />
           <span className="flex flex-col gap-1">
@@ -140,14 +140,14 @@ export function TimeStep(props: TimeStepProps) {
       {loading ? (
         <TimeSkeleton />
       ) : failed ? (
-        <div role="alert" className="flex flex-col items-start gap-3 rounded-[20px] bg-canvas p-4">
+        <div role="alert" className="flex flex-col items-start gap-3 rounded-card-sm bg-canvas p-4">
           <p className="m-0 text-[15px]">{t('time.slotsFailed')}</p>
           <Button variant="secondary" onClick={props.onRetry}>
             {t('errors.retry')}
           </Button>
         </div>
       ) : covered.length === 0 ? (
-        <div className="flex flex-col items-start gap-3 rounded-[20px] bg-canvas p-4">
+        <div className="flex flex-col items-start gap-3 rounded-card-sm bg-canvas p-4">
           <p className="m-0 text-[15px] text-muted">{t('time.noTimesAtAll', { days: days.length })}</p>
           {props.waitlistHref ? (
             <>
@@ -181,7 +181,7 @@ export function TimeStep(props: TimeStepProps) {
                   labelId={labelId}
                 />
               ) : dayWaitlistHref ? (
-                <div className="flex flex-col items-start gap-3 rounded-[20px] bg-canvas p-4">
+                <div className="flex flex-col items-start gap-3 rounded-card-sm bg-canvas p-4">
                   <p className="m-0 text-[15px] font-medium">{t('time.noTimesOn', { day: f.ymd(props.day) })}</p>
                   <p className="m-0 text-sm text-muted">{t('waitlist.body')}</p>
                   <ButtonLink href={dayWaitlistHref} variant="secondary" className="max-sm:w-full">
@@ -227,7 +227,7 @@ export function TimeSkeleton() {
       </div>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
         {Array.from({ length: 9 }, (_, i) => (
-          <Skeleton key={i} className="h-11 rounded-pill" />
+          <Skeleton key={i} className="h-11 rounded-btn" />
         ))}
       </div>
     </div>

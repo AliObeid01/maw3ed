@@ -30,7 +30,7 @@ function CountPill({ value, tone }: { value: number; tone: 'danger' | 'warning' 
   return (
     <span
       className={cn(
-        'inline-flex min-w-6 items-center justify-center rounded-pill px-2 py-0.5 text-[13px] font-semibold',
+        'inline-flex min-w-6 items-center justify-center rounded-chip px-2 py-0.5 text-[13px] font-semibold',
         tone === 'danger' ? 'bg-danger-soft text-danger' : 'bg-warning-soft text-warning',
       )}
     >
@@ -220,14 +220,14 @@ export function ClientsView() {
             value={text}
             onChange={(e) => onText(e.target.value)}
             placeholder={t('searchPlaceholder')}
-            className="h-[52px] w-full rounded-pill border border-line bg-surface ps-12 pe-12 text-base text-ink placeholder:text-subtle [&::-webkit-search-cancel-button]:appearance-none"
+            className="h-[52px] w-full rounded-btn border border-line bg-surface ps-12 pe-12 text-base text-ink placeholder:text-subtle [&::-webkit-search-cancel-button]:appearance-none"
           />
           {text ? (
             <button
               type="button"
               onClick={clear}
               aria-label={t('clearSearch')}
-              className="absolute end-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-pill text-muted transition-colors duration-200 ease-out hover:bg-canvas"
+              className="absolute end-1 top-1/2 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-btn text-muted transition-colors duration-200 ease-out hover:bg-canvas"
             >
               <X size={18} aria-hidden="true" />
             </button>

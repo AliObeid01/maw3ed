@@ -73,7 +73,7 @@ function ChannelCard({
   onClick?: () => void;
 }) {
   const className =
-    'flex min-h-11 w-full flex-col gap-3 rounded-card-sm border border-line bg-surface p-5 text-start text-ink no-underline transition-shadow duration-200 ease-out hover:shadow-[0_4px_14px_rgb(37_45_45/0.06)]';
+    'flex min-h-11 w-full flex-col gap-3 rounded-card-sm border border-line bg-surface p-5 text-start text-ink no-underline transition-shadow duration-200 ease-out hover:shadow-[0_4px_14px_rgb(11_25_56/0.06)]';
   const content = (
     <>
       <span
@@ -119,7 +119,7 @@ function QrCard({ url, name }: { url: string; name: string }) {
           width: 352,
           margin: 1,
           errorCorrectionLevel: 'M',
-          color: { dark: '#174C4F', light: '#FFFFFF' },
+          color: { dark: '#0B1938', light: '#FFFFFF' },
         }),
       )
       .then((value) => {
@@ -174,7 +174,7 @@ function QrCard({ url, name }: { url: string; name: string }) {
 function ShareSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-5">
-      <Skeleton className="h-[200px] rounded-[28px] md:h-[117px]" />
+      <Skeleton className="h-[200px] rounded-card md:h-[117px]" />
       <Skeleton className="h-7 w-64" />
       <div className="grid gap-3.5 md:grid-cols-3">
         {Array.from({ length: 3 }, (_, i) => (
@@ -211,14 +211,14 @@ function ShareBody({
 
   return (
     <>
-      <section className="flex flex-wrap items-center gap-5 rounded-[28px] bg-hero p-5 text-white md:p-7">
+      <section className="flex flex-wrap items-center gap-5 rounded-card bg-hero p-5 text-white md:p-7">
         <div className="flex min-w-0 flex-[1_1_320px] flex-col gap-2">
           <div className="flex items-center gap-2">
             <span
               aria-hidden="true"
               className={cn('size-2.5 rounded-pill', ready ? 'bg-accent' : 'bg-white/60')}
             />
-            <span className="text-sm font-semibold text-[#f3d49a]">
+            <span className="text-sm font-semibold text-hero-ink">
               {ready ? t('live') : t('notReady')}
             </span>
           </div>

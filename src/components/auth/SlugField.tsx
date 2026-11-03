@@ -130,36 +130,45 @@ export function SlugField({
           className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-start text-base text-ink outline-none placeholder:text-subtle"
         />
       </div>
-      {/* The preview changes on every keystroke, so it stays OUT of the live region. */}
-      <p className="m-0 min-h-[19px] text-[13px] text-muted">
-        {value
-          ? // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
-            t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })
-          : null}
-      </p>
-      {/* Only the status text is announced (polite), and "checking" only if it is slow. */}
-      <div id={statusId} aria-live="polite" className={cn('text-[13px]', status !== 'idle' && 'min-h-[19px]')}>
-        {text && !error ? (
-          <span
-            className={cn(
-              'flex items-center gap-1.5 font-medium',
-              bad ? 'text-danger' : status === 'available' ? 'text-success' : 'text-muted',
-            )}
-          >
-            {status === 'checking' ? (
-              <Loader2
-                size={14}
-                aria-hidden="true"
-                className="animate-spin motion-reduce:animate-none"
-              />
-            ) : status === 'available' ? (
-              <Check size={14} aria-hidden="true" />
-            ) : bad ? (
-              <X size={14} aria-hidden="true" />
-            ) : null}
-            {text}
-          </span>
+      {/* One line for the address preview and the availability status: no space is reserved while the field is
+          empty and idle, and once something is typed the line is already there, so nothing jumps. The preview
+          changes on every keystroke, so it stays OUT of the live region; only the status text is announced
+          (polite), and "checking" only if it is slow. */}
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[13px]',
+          (value || status !== 'idle') && 'min-h-[19px]',
+        )}
+      >
+        {value ? (
+          <p className="m-0 text-muted">
+            {/* U+2066/U+2069 isolate the LTR address inside an RTL sentence. */}
+            {t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })}
+          </p>
         ) : null}
+        <div id={statusId} aria-live="polite">
+          {text && !error ? (
+            <span
+              className={cn(
+                'flex items-center gap-1.5 font-medium',
+                bad ? 'text-danger' : status === 'available' ? 'text-success' : 'text-muted',
+              )}
+            >
+              {status === 'checking' ? (
+                <Loader2
+                  size={14}
+                  aria-hidden="true"
+                  className="animate-spin motion-reduce:animate-none"
+                />
+              ) : status === 'available' ? (
+                <Check size={14} aria-hidden="true" />
+              ) : bad ? (
+                <X size={14} aria-hidden="true" />
+              ) : null}
+              {text}
+            </span>
+          ) : null}
+        </div>
       </div>
     </FieldShell>
   );
