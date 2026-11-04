@@ -49,7 +49,7 @@ beforeAll(async () => {
     .map((d) => d.name)
     .sort();
   expect(all).toContain(MIGRATION);
-  expect(all[all.length - 1]).toBe(MIGRATION); // it is the latest migration
+  // Later migrations (for example F68 reminder_kind_late) are not applied here: this proves only this one.
   for (const dir of all.filter((d) => d < MIGRATION)) await exec(sql(dir));
 
   // Production-like rows, written BEFORE the migration.

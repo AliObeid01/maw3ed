@@ -95,7 +95,7 @@ async function bookViaUi(page: Page, b: Business, who: Person, dayIso: DateTime,
   await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
   await page.getByLabel('Full name').fill(who.name);
   await page.getByLabel('Mobile number').fill(who.phone.typed);
-  await page.getByLabel('Email (optional)').fill(who.email);
+  await page.getByLabel('Email', { exact: true }).fill(who.email);
   await page.getByRole('button', { name: 'Confirm booking' }).click();
   await expect(
     page.getByRole('heading', { name: `You're booked, ${who.name.split(' ')[0]}!` }),
