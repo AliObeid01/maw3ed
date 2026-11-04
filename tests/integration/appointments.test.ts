@@ -252,6 +252,28 @@ describe('POST /api/public/{slug}/bookings: validation', () => {
     );
   });
 
+  it('F68: 400 with fields[client.email] when the email is missing, blank or invalid', async () => {
+    const good = bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('08:00'));
+    const count = async () =>
+      (await pg.query(`SELECT 1 FROM "Appointment" WHERE "businessId" = $1`, [a.businessId])).rowCount;
+    const before = await count();
+    for (const email of [undefined, '', '   ', 'not-an-email']) {
+      const res = await post(a.slug, { ...good, client: { ...good.client, email } });
+      expect(res.status, String(email)).toBe(400);
+      expect(res.body!.error.code).toBe('VALIDATION_FAILED');
+      expect(res.body!.error.fields['client.email']).toBeTruthy();
+    }
+    // Nothing was booked by any of them.
+    expect(await count()).toBe(before);
+  });
+
+  it('F68: the front-desk route still accepts a booking with no email', async () => {
+    const body = bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('08:00'), { email: undefined });
+    expect('email' in JSON.parse(JSON.stringify(body.client))).toBe(false);
+    const res = await bookAtFrontDesk(a.cookie, body);
+    expect(res.status).toBe(201);
+  });
+
   it('400 for a bad payload and for unknown fields', async () => {
     const good = bookingBody(aScn.serviceId, aScn.staffIds[0]!, at('08:00'));
     const bad: unknown[] = [

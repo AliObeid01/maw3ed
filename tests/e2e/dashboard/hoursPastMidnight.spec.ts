@@ -114,6 +114,22 @@ test.describe('F68-B hours editor: open past midnight', () => {
     expect(saved).toContainEqual({ weekday: 2, startLocal: '09:00', endLocal: '12:00' });
   });
 
+  test('F68-A: the prompt is announced (persistent polite region) and warns that copying replaces the other days', async ({
+    page,
+  }) => {
+    const { dialog } = await open(page, stateWith(monday()), 'Monday');
+    const announcer = dialog.getByTestId('overnight-announcer');
+    // Mounted BEFORE the prompt, polite and empty, so the text it receives is announced.
+    await expect(announcer).toHaveAttribute('aria-live', 'polite');
+    await expect(announcer).toHaveText('');
+    await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');
+    await expect(announcer).toContainText('Apply stays off');
+    await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled();
+    await expect(dialog.getByTestId('overnight-copy-hint')).toHaveCount(0);
+    await dialog.getByRole('button', { name: 'Tue', exact: true }).click();
+    await expect(dialog.getByTestId('overnight-copy-hint')).toContainText('early-morning hours');
+  });
+
   test('keeping the times leaves the draft unchanged and shows the plain error', async ({ page }) => {
     const { dialog } = await open(page, stateWith(monday()), 'Monday');
     await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');

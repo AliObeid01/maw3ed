@@ -360,7 +360,7 @@ export function AppointmentView({ id }: { id: string }) {
             {tel ? (
               <ButtonLink
                 href={tel}
-                variant="secondary"
+                variant="call"
                 size="row"
                 aria-label={sheet.callAria}
                 className="flex-1 sm:flex-none"
@@ -375,7 +375,7 @@ export function AppointmentView({ id }: { id: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={sheet.whatsappAria}
-                className={buttonClasses({ variant: 'secondary', size: 'row', className: 'flex-1 sm:flex-none' })}
+                className={buttonClasses({ variant: 'whatsapp', size: 'row', className: 'flex-1 sm:flex-none' })}
               >
                 <MessageCircle size={18} aria-hidden="true" />
                 {sheet.whatsapp}

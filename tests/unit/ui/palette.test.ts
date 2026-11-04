@@ -69,6 +69,36 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     expect((1.05) / (lum(token('line-strong')!) + 0.05)).toBeGreaterThanOrEqual(3);
   });
 
+  it('WhatsApp green: white text >= 4.5:1 (and on the hover colour), and the bright #25D366 is never used', () => {
+    const lum = (h: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const s = parseInt(h.slice(i, i + 2), 16) / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    const onWhite = (h: string) => 1.05 / (lum(h) + 0.05);
+    expect(token('whatsapp')).toBe('#12805c');
+    expect(onWhite(token('whatsapp')!)).toBeGreaterThanOrEqual(4.5);
+    expect(onWhite(token('whatsapp-hover')!)).toBeGreaterThanOrEqual(onWhite(token('whatsapp')!));
+    expect(onWhite('#25d366')).toBeLessThan(2); // why it is banned
+    const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(cssCode).not.toMatch(/#25d366/i);
+    const offenders = sources
+      .filter(([, code]) => /#25d366|rgb\(\s*37[ ,]+211[ ,]+102/i.test(code))
+      .map(([f]) => path.relative(root, f));
+    expect(offenders).toEqual([]);
+  });
+
+  it('WhatsApp and Call buttons use their own variants (solid green, outlined Royal Blue; never red)', () => {
+    const styles = fs.readFileSync(path.join(root, 'src/components/ui/buttonStyles.ts'), 'utf8');
+    expect(/whatsapp: '[^']*\bbg-whatsapp\b[^']*\btext-white\b/.test(styles)).toBe(true);
+    const call = /call: '([^']*)'/.exec(styles)?.[1] ?? '';
+    expect(call).toMatch(/\bborder-brand\b/);
+    expect(call).toMatch(/\btext-brand\b/);
+    expect(call).not.toMatch(/danger|red/);
+  });
+
   it('has no legacy --color-accent alias and no accent colour utilities (use cyan)', () => {
     expect(css).not.toMatch(/--color-accent\b/);
     const offenders = sources

@@ -6,24 +6,35 @@ export type DetailsField = 'name' | 'phone' | 'email';
 export const NAME_MAX = 80;
 export const PHONE_MAX = 32;
 export type DetailsErrors = Partial<
-  Record<DetailsField, 'nameRequired' | 'nameTooLong' | 'phoneInvalid' | 'emailInvalid'>
+  Record<
+    DetailsField,
+    'nameRequired' | 'nameTooLong' | 'phoneInvalid' | 'emailRequired' | 'emailInvalid'
+  >
 >;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Checks the details form before sending. The server validates again; this only saves a round trip. */
-export function validateDetails(input: {
-  name: string;
-  dial: string;
-  phone: string;
-  email: string;
-}): DetailsErrors {
+/**
+ * Checks the details form before sending. The server validates again; this only saves a round trip.
+ * `requireEmail` is true only on the public booking page (F68); the front desk keeps the email optional.
+ */
+export function validateDetails(
+  input: {
+    name: string;
+    dial: string;
+    phone: string;
+    email: string;
+  },
+  opts: { requireEmail?: boolean } = {},
+): DetailsErrors {
   const errors: DetailsErrors = {};
   if (input.name.trim().length === 0) errors.name = 'nameRequired';
   else if (input.name.trim().length > NAME_MAX) errors.name = 'nameTooLong';
   if (!phoneLooksComplete(input.dial, input.phone)) errors.phone = 'phoneInvalid';
   const email = input.email.trim();
-  if (email && !EMAIL.test(email)) errors.email = 'emailInvalid';
+  if (!email) {
+    if (opts.requireEmail) errors.email = 'emailRequired';
+  } else if (!EMAIL.test(email)) errors.email = 'emailInvalid';
   return errors;
 }
 
@@ -78,7 +89,9 @@ export function classifyBookingError(error: unknown): BookingFailure {
         // The server text is English only, but its length complaint is how a too-long name is told apart from an empty one.
         const tooLong =
           field === 'name' && /\b80\b|<=|at most|too (long|big)/i.test(error.fields[name] ?? '');
-        fields[field] = tooLong ? 'nameTooLong' : FIELD_ERRORS[field];
+        const missing =
+          field === 'email' && /required|>=1|too small|received undefined/i.test(error.fields[name] ?? '');
+        fields[field] = tooLong ? 'nameTooLong' : missing ? 'emailRequired' : FIELD_ERRORS[field];
       }
       else other = true;
     }

@@ -81,6 +81,7 @@ The hand-written migration `appointment_no_overlap` (see the `db-migration` skil
 ### 3. Reminders that never send twice
 1. **Create**: the booking transaction inserts `ReminderJob` rows: `BOOKING/EMAIL` (immediately), `H24/EMAIL`, `H2/EMAIL`, `H24/WHATSAPP`, `H2/WHATSAPP`,
    skipping kinds already past (booked < 24 h ahead → no H24; < 2 h → no H2). Unique `(appointmentId, kind, channel)`.
+   F68: a PUBLIC booking made < 2 h ahead also gets one `LATE/WHATSAPP` row (due at the booking time, never an EMAIL row; front desk and waitlist claims get none). It stays on the receptionist list until the appointment starts, with a confirmation-style text, and the email runner skips an EMAIL LATE row (`whatsapp_only`) if one ever appears. The BOOKING email carries Cancel only when an H24 reminder follows (lead >= 24 h), else Confirm and Cancel (`bookingEmailPlan`).
 2. **Trigger**: `POST /api/jobs/reminders` every 5 min (cron-job.org + GitHub Actions backup). It works on "whatever is due", so late or doubled triggers are harmless.
 3. **Requeue**: `SENDING` rows locked more than 10 min ago → `PENDING` (crash recovery).
 4. **Claim**: one `UPDATE … WHERE id IN (SELECT … FOR UPDATE SKIP LOCKED) RETURNING *`, at most 50 rows.

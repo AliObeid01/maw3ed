@@ -70,6 +70,7 @@ test('books end to end in Arabic, right to left, without horizontal scroll', asy
   await page.getByLabel('الاسم الكامل').fill('Maya Haddad');
   const phone = page.getByLabel('رقم الجوال');
   await phone.fill('71 234 567');
+  await page.getByLabel('البريد الإلكتروني', { exact: true }).fill('maya@example.test');
   // Phone numbers stay left-to-right and copyable inside RTL text.
   await expect(phone).toHaveCSS('direction', 'ltr');
   await expectNoHorizontalScroll(page);

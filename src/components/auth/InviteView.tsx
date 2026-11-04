@@ -16,6 +16,7 @@ import { validateAccept, type AcceptField } from '@/lib/auth/validation';
 import { AuthCard, AuthHeading } from './AuthCard';
 import { FormBanner, useFocusFirstInvalid, type FieldError } from './formKit';
 import { useErrorText } from './useErrorText';
+import { PASSWORD_MIN } from '@/lib/auth/password';
 import { PasswordField, PasswordStrength } from './PasswordField';
 
 type State =
@@ -249,6 +250,7 @@ function AcceptCard({
             setName(e.target.value);
             clear('name');
           }}
+          placeholder={t('namePlaceholder')}
           autoComplete="name"
           error={text.field(errors.name)}
           readOnly={pending}
@@ -264,6 +266,7 @@ function AcceptCard({
               clear('password');
             }}
             hint={t('passwordHint')}
+            placeholder={t('passwordPlaceholder', { min: PASSWORD_MIN })}
             autoComplete="new-password"
             error={text.field(errors.password)}
             readOnly={pending}

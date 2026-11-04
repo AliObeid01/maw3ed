@@ -98,6 +98,8 @@ test.describe('reset password', () => {
     expect(response?.headers()['cache-control']).toContain('no-store');
     await expect(page.locator('input[name=password]')).toHaveAttribute('autocomplete', 'new-password');
     await expect(page.locator('input[name=password]')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('input[name=password]')).toHaveAttribute('placeholder', '10+ characters');
+    await expect(page.getByLabel('New password', { exact: true })).toBeVisible();
 
     await page.locator('input[name=password]').fill('short');
     await page.getByRole('button', { name: 'Save new password' }).click();
@@ -130,6 +132,7 @@ test.describe('reset password', () => {
     await page.goto('/reset-password/tok');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { name: 'اختيار كلمة مرور جديدة' })).toBeVisible();
+    await expect(page.locator('input[name=password]')).toHaveAttribute('placeholder', /أحرف على الأقل/);
     await page.locator('input[name=password]').fill('a-brand-new-passphrase');
     await page.getByRole('button', { name: 'حفظ كلمة المرور الجديدة' }).click();
     await expect(page.getByRole('heading', { name: 'تم تغيير كلمة المرور' })).toBeVisible();

@@ -1,7 +1,7 @@
 'use client';
 
 import { Bidi, MetaLine } from '@/components/ui/Bidi';
-import { Check, CircleAlert, MessageCircle, PhoneOff } from 'lucide-react';
+import { Check, CircleAlert, MessageCircle, Phone, PhoneOff } from 'lucide-react';
 import { useReducer, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
 import { HeaderActions } from '@/components/app/HeaderActions';
@@ -44,7 +44,7 @@ const marksReducer = (state: Marks, action: { id: string; event: MarkEvent }): M
 });
 
 const sendClass =
-  'inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-btn bg-electric px-5 text-[15px] font-semibold text-white no-underline transition-colors duration-200 ease-out hover:bg-brand-hover';
+  'inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-btn bg-whatsapp px-5 text-[15px] font-semibold text-white no-underline transition-colors duration-200 ease-out hover:bg-whatsapp-hover active:bg-whatsapp-hover';
 
 /** Everything for one reminder row that both layouts share. */
 function useRowText(item: ReminderItem, timezone: string) {
@@ -57,12 +57,23 @@ function useRowText(item: ReminderItem, timezone: string) {
       : relation === 'tomorrow'
         ? t('tomorrow')
         : f.day(item.appointment.startAt);
-  return {
-    when: (
+  const time = f.time(item.appointment.startAt);
+  const clock = (chunks: ReactNode) => <bdi dir="ltr">{chunks}</bdi>;
+  // A last-minute public booking: the receptionist reaches out, so the row reads as a booking, not a reminder.
+  const when =
+    item.kind === 'LATE' ? (
+      relation === 'today' ? (
+        t.rich('lateWhen', { time, clock })
+      ) : (
+        t.rich('lateWhenDay', { day, time, clock })
+      )
+    ) : (
       <>
-        {day} <bdi dir="ltr">{f.time(item.appointment.startAt)}</bdi>
+        {day} <bdi dir="ltr">{time}</bdi>
       </>
-    ),
+    );
+  return {
+    when,
     what: (
       <MetaLine
         items={[
@@ -179,8 +190,9 @@ function ActionCell({
           {telUrl(item.client.phone) ? (
             <a
               href={telUrl(item.client.phone) ?? undefined}
-              className="inline-flex min-h-11 items-center text-brand underline"
+              className={buttonClasses({ variant: 'call', size: 'md' })}
             >
+              <Phone size={18} aria-hidden="true" />
               {t('callInstead')}
             </a>
           ) : null}
@@ -204,7 +216,8 @@ function ClientCell({ item }: { item: ReminderItem }) {
 }
 
 function ReminderChip({ kind }: { kind: ReminderItem['kind'] }) {
-  return <StatusChip status={kind === 'H2' ? 'reminder2h' : 'reminder24h'} />;
+  const status = kind === 'H2' ? 'reminder2h' : kind === 'LATE' ? 'reminderLate' : 'reminder24h';
+  return <StatusChip status={status} />;
 }
 
 function Skeletons() {

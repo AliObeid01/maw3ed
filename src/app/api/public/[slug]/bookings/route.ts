@@ -1,4 +1,8 @@
-import { BookingBody, RequiredIdempotencyHeaders, SlugParams } from '@/server/contracts/booking';
+import {
+  PublicBookingBody,
+  RequiredIdempotencyHeaders,
+  SlugParams,
+} from '@/server/contracts/booking';
 import { created, ok, withRoute } from '@/server/http/withRoute';
 import { publicBookingService } from '@/server/services/publicBooking';
 
@@ -10,7 +14,7 @@ export const POST = withRoute(
     rateLimit: { policy: 'bookingCreate' },
     params: SlugParams,
     headers: RequiredIdempotencyHeaders,
-    body: BookingBody,
+    body: PublicBookingBody,
   },
   async ({ ctx, params, headers, body }) => {
     const { replay, ...result } = await publicBookingService.book(

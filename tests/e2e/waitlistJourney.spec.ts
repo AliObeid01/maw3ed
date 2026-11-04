@@ -95,7 +95,7 @@ async function bookViaUi(page: Page, b: Business, who: Person, dayIso: DateTime,
   await expect(page.getByRole('heading', { name: 'Your details' })).toBeVisible();
   await page.getByLabel('Full name').fill(who.name);
   await page.getByLabel('Mobile number').fill(who.phone.typed);
-  await page.getByLabel('Email (optional)').fill(who.email);
+  await page.getByLabel('Email', { exact: true }).fill(who.email);
   await page.getByRole('button', { name: 'Confirm booking' }).click();
   await expect(
     page.getByRole('heading', { name: `You're booked, ${who.name.split(' ')[0]}!` }),
@@ -226,7 +226,7 @@ test('2. A cancels from the link in the confirmation email: slot freed, reminder
   // The booking confirmation is produced by the reminders cron (as in production), then read from the inbox.
   expect((await cron('reminders')).status).toBe(200);
   const confirmation = await waitForMail('A booking confirmation', () => mailsTo(A.email)[0]);
-  expect(confirmation.subject).toContain('Booking confirmed');
+  expect(confirmation.subject).toContain('Your slot is booked');
   expect(confirmation.idempotencyKey).toBeTruthy();
 
   const cancelPath = linkFor(confirmation, 'cancel');
@@ -420,11 +420,11 @@ test('4. the owner logs in and sees the replacement booking as refilled from the
   );
   expect(await cron('reminders').then((r) => r.status)).toBe(200);
   const confirmation = await waitForMail('winner booking confirmation', () =>
-    mailsTo(winner.email).find((m) => m.subject.startsWith('Booking confirmed')),
+    mailsTo(winner.email).find((m) => m.subject.startsWith('Your slot is booked')),
   );
   expect(confirmation.text).toContain(`${day.toFormat('cccc d LLLL yyyy')}, 09:00`);
   expect(
-    mailsTo(winner.email).filter((m) => m.subject.startsWith('Booking confirmed')),
+    mailsTo(winner.email).filter((m) => m.subject.startsWith('Your slot is booked')),
   ).toHaveLength(1);
 
   // Real login, then the dashboard.

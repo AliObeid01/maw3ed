@@ -36,6 +36,7 @@ test.describe('public booking: live refresh', () => {
     await reachDetails(page, options);
     await page.getByLabel('Full name').fill('Maya Haddad');
     await page.getByLabel('Mobile number').fill('71 234 567');
+    await page.getByLabel('Email', { exact: true }).fill('maya@example.test');
     await page.getByLabel('Mobile number').focus();
 
     // Someone else takes 09:00 on every day; the next quiet refresh finds out.

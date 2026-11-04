@@ -30,6 +30,7 @@ for (const v of VARIANTS) {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByLabel('Full name').fill('Maya Haddad');
     await page.getByLabel('Mobile number').fill('71 234 567');
+    await page.getByLabel('Email', { exact: true }).fill('maya@example.test');
     await page.getByRole('button', { name: 'Confirm booking' }).click();
 
     await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
@@ -110,9 +111,13 @@ async function toDetails(page: Page) {
   await page.getByLabel('Mobile number').fill('71 234 567');
 }
 
-test('booked screen without an email address: its own honest variant, no email promise', async ({ page }) => {
-  await mockPublicApi(page); // the mock answers like the server: no email on the booking -> email: false
+test('booked screen when the server says there is no usable email: its own honest variant, no email promise', async ({
+  page,
+}) => {
+  // F68: the page always sends an email now; the server can still answer email:false (a replay, an unusable address).
+  await mockPublicApi(page, { reminders: { h24: false, h2: false, email: false } });
   await toDetails(page);
+  await page.getByLabel('Email', { exact: true }).fill('maya@example.com');
   await page.getByRole('button', { name: 'Confirm booking' }).click();
   await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
   await expect(page.getByText(NO_EMAIL)).toBeVisible();
@@ -122,7 +127,7 @@ test('booked screen without an email address: its own honest variant, no email p
 test('booked screen with an email address, 23 h ahead: only the 2 h variant (the server decided)', async ({ page }) => {
   await mockPublicApi(page);
   await toDetails(page);
-  await page.getByLabel('Email (optional)').fill('maya@example.com');
+  await page.getByLabel('Email', { exact: true }).fill('maya@example.com');
   await page.getByRole('button', { name: 'Confirm booking' }).click();
   await expect(page.getByText(H2)).toBeVisible();
   await expect(page.getByText(NO_EMAIL)).toHaveCount(0);
@@ -133,7 +138,7 @@ test('the details preview is hidden without an email and labelled as an estimate
   await toDetails(page);
   await expect(page.getByText(/Times are estimates/)).toHaveCount(0);
   await expect(page.getByText('Reminder 2 (estimate)')).toHaveCount(0);
-  await page.getByLabel('Email (optional)').fill('maya@example.com');
+  await page.getByLabel('Email', { exact: true }).fill('maya@example.com');
   await expect(page.getByText('Reminder 2 (estimate)')).toBeVisible();
   await expect(page.getByText(/Reminders are sent only if there is enough time before your appointment/)).toBeVisible();
 });

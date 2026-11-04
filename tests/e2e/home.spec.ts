@@ -11,7 +11,7 @@ test('the hero preview is decorative, labelled Example, and only visible on wide
   await expect(preview).toContainText('Example');
   if (info.project.name === 'desktop') {
     await expect(preview).toBeVisible();
-    await expect(preview).toContainText('Booking confirmed');
+    await expect(preview).toContainText('Slot booked');
     await expect(preview).toContainText('Reminder 24 hours before');
     await expect(preview).toContainText('A spot just opened up');
     expect(await preview.locator('img, svg image, script, a, button').count()).toBe(0);

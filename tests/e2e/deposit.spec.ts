@@ -79,6 +79,7 @@ test.describe('deposit journey', () => {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByLabel('Full name').fill('Nadia Haddad');
     await page.getByLabel('Mobile number').fill('71 234 567');
+    await page.getByLabel('Email', { exact: true }).fill('nadia@example.test');
     await page.getByRole('button', { name: 'Confirm booking' }).click();
 
     // The booking is held, not confirmed: the journey goes to the pay page.
@@ -95,7 +96,7 @@ test.describe('deposit journey', () => {
     expect(box!.height).toBeGreaterThanOrEqual(44);
 
     await pay.click();
-    await expect(page.getByRole('heading', { name: "You're booked and confirmed" })).toBeVisible();
+    await expect(page.getByRole('heading', { name: "You're booked" })).toBeVisible();
     await expect(page.getByText('We will email you reminders 24 hours and 2 hours before.')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Pay deposit (test)' })).toHaveCount(0);
 

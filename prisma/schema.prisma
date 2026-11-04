@@ -55,6 +55,8 @@ enum ReminderKind {
   BOOKING
   H24
   H2
+  /// F68: WhatsApp-only item for a PUBLIC booking made under 2 h before the slot (no H24/H2 can exist).
+  LATE
 }
 
 enum ReminderChannel {

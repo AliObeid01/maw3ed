@@ -20,9 +20,10 @@ async function pickFirstTime(page: Page) {
   await expect(slot).toBeChecked();
 }
 
-async function fillDetails(page: Page, name = 'Maya Haddad', phone = '71 234 567') {
+async function fillDetails(page: Page, name = 'Maya Haddad', phone = '71 234 567', email = 'maya@example.test') {
   await page.getByLabel('Full name').fill(name);
   await page.getByLabel('Mobile number').fill(phone);
+  await page.getByLabel('Email', { exact: true }).fill(email);
 }
 
 /** Service, anyone, first time, details form. */
@@ -91,9 +92,8 @@ test.describe('happy path', () => {
     expect(calls[0]!.body).toMatchObject({
       serviceId: IDS.haircut,
       staffId: 'anyone',
-      client: { name: 'Maya Haddad', phone: '+96171234567' },
+      client: { name: 'Maya Haddad', phone: '+96171234567', email: 'maya@example.test' },
     });
-    expect(calls[0]!.body.client).not.toHaveProperty('email');
   });
 
   test('the slots are fetched once for the whole 14-day strip, in the business timezone range', async ({
@@ -392,6 +392,42 @@ test.describe('submitting', () => {
     await expect(page.getByText('Enter your name.')).toBeVisible();
     await expect(page.getByLabel('Full name')).toBeFocused();
     expect(calls).toHaveLength(0);
+  });
+
+  test('F68: the email is required (aria-required, no "optional"), blank and invalid are caught before any request', async ({
+    page,
+  }) => {
+    const { calls } = await reachDetails(page);
+    const email = page.getByLabel('Email', { exact: true });
+    await expect(email).toHaveAttribute('aria-required', 'true');
+    await expect(page.getByText('Email (optional)')).toHaveCount(0);
+    await expect(page.locator('#booking-form').getByText(/optional/i)).toHaveCount(0);
+
+    await fillDetails(page, 'Maya Haddad', '71 234 567', '');
+    await confirm(page).click();
+    await expect(page.getByText('Enter your email address.')).toBeVisible();
+    await expect(email).toHaveAttribute('aria-invalid', 'true');
+    await expect(email).toBeFocused();
+    expect(calls).toHaveLength(0);
+
+    await email.fill('not-an-email');
+    await confirm(page).click();
+    await expect(page.getByText('Enter a valid email address.')).toBeVisible();
+    expect(calls).toHaveLength(0);
+
+    await email.fill('maya@example.test');
+    await confirm(page).click();
+    await expect(page.getByRole('heading', { name: "You're booked, Maya!" })).toBeVisible();
+    expect(calls).toHaveLength(1);
+    expect(calls[0]!.body.client).toMatchObject({ email: 'maya@example.test' });
+  });
+
+  test('F68: a server 400 about a missing email shows the same message on the field', async ({ page }) => {
+    await reachDetails(page, { rejectEmail: true });
+    await fillDetails(page);
+    await confirm(page).click();
+    await expect(page.getByText('Enter your email address.')).toBeVisible();
+    await expect(page.getByLabel('Email', { exact: true })).toHaveAttribute('aria-invalid', 'true');
   });
 
   test('the inputs carry the server limits (name 80, phone 32)', async ({ page }) => {

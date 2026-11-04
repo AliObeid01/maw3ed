@@ -94,6 +94,8 @@ export type PublicMockOptions = {
   bookDelayMs?: number;
   /** Answer the booking with 400 fields['client.phone']. */
   rejectPhone?: boolean;
+  /** Answer 400 for client.email as the server does for a missing address (F68), whatever was typed. */
+  rejectEmail?: boolean;
   businessDelayMs?: number;
   slotsDelayMs?: number;
   /** Booking window of the business (days ahead). Default 30. */
@@ -283,6 +285,11 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     if (options.rejectPhone || (body.client?.phone ?? '').length > 32) {
       fields['client.phone'] = 'Enter a valid phone number.';
     }
+    // F68: the public route requires a valid email (mirrors the Zod body).
+    if (options.rejectEmail || body.client?.email === undefined)
+      fields['client.email'] = 'Invalid input: expected string, received undefined';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.client.email))
+      fields['client.email'] = 'Invalid email address';
     if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
 
     calls.push({ key, body });

@@ -59,11 +59,14 @@ export const publicBookingService = {
       serviceId: string;
       staffId: string;
       startAt: string;
-      client: { name: string; phone: string; email?: string | undefined };
+      /** F68: the public page requires an email (the route's Zod body already did; this is the backstop). */
+      client: { name: string; phone: string; email: string };
     },
     idempotencyKey: string,
     deps: BookDeps = defaultBookDeps,
   ) {
+    if (!body.client.email?.trim())
+      throw AppError.validation({ 'client.email': 'Enter your email address.' });
     const business = await resolve(slug);
     const logger = ctx.logger.child({ businessId: business.id });
     // Per-phone budget (any IP): a deposit hold in the answer reveals "this number has no-shows", so the

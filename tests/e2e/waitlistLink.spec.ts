@@ -114,6 +114,7 @@ test.describe('English', () => {
     await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByLabel('Full name').fill('Maya');
     await page.getByLabel('Mobile number').fill('71 234 567');
+    await page.getByLabel('Email', { exact: true }).fill('maya@example.test');
     await page.getByRole('button', { name: 'Confirm booking' }).filter({ visible: true }).click();
     await expect(page.getByRole('alert').filter({ hasText: 'was just taken' })).toBeVisible();
     await expect(page.getByRole('link', { name: /Join the waitlist/ })).toHaveCount(1);

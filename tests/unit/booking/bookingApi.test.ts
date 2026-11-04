@@ -153,16 +153,41 @@ describe('name length', () => {
     ).toMatchObject({ fields: { name: 'nameRequired' } });
   });
   it('checks the length before sending', () => {
-    const ok = { name: 'x'.repeat(80), dial: '+961', phone: '71 234 567', email: '' };
+    const ok = { name: 'x'.repeat(80), dial: '+961', phone: '71 234 567', email: 'maya@example.test' };
     expect(validateDetails(ok)).toEqual({});
     expect(validateDetails({ ...ok, name: 'x'.repeat(81) })).toEqual({ name: 'nameTooLong' });
   });
 });
 
 describe('validateDetails', () => {
-  const ok = { name: 'Maya', dial: '+961', phone: '71 234 567', email: '' };
-  it('accepts a complete form with no email', () => {
+  const ok = { name: 'Maya', dial: '+961', phone: '71 234 567', email: 'maya@example.test' };
+  it('accepts a complete form', () => {
     expect(validateDetails(ok)).toEqual({});
+  });
+  it('requires the email on the public page (F68): blank or whitespace is emailRequired', () => {
+    const strict = { requireEmail: true };
+    expect(validateDetails({ ...ok, email: '' }, strict)).toEqual({ email: 'emailRequired' });
+    expect(validateDetails({ ...ok, email: '   ' }, strict)).toEqual({ email: 'emailRequired' });
+    expect(validateDetails({ ...ok, email: 'nope' }, strict)).toEqual({ email: 'emailInvalid' });
+    expect(validateDetails(ok, strict)).toEqual({});
+  });
+  it('keeps the email optional for the front desk and the waitlist name/phone check (default)', () => {
+    expect(validateDetails({ ...ok, email: '' })).toEqual({});
+    expect(validateDetails({ ...ok, email: '   ' })).toEqual({});
+    expect(validateDetails({ ...ok, email: 'nope' })).toEqual({ email: 'emailInvalid' });
+  });
+  it('maps a server-side missing email to emailRequired', () => {
+    expect(
+      classifyBookingError(
+        parseErrorBody(400, {
+          error: {
+            code: 'VALIDATION_FAILED',
+            message: 'x',
+            fields: { 'client.email': 'Invalid input: expected string, received undefined' },
+          },
+        }),
+      ),
+    ).toMatchObject({ fields: { email: 'emailRequired' } });
   });
   it('flags a blank name, a short phone and a bad email', () => {
     expect(validateDetails({ ...ok, name: '  ', phone: '12', email: 'nope' })).toEqual({

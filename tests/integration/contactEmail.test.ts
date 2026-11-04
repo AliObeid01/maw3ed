@@ -175,21 +175,21 @@ describe('public booking stores the email on the appointment', () => {
     expect((await row(r2.body!.appointment.id)).contactEmail).toBe('two@x.test');
   });
 
-  it('a booking without an email uses the record email (fallback), contactEmail stays NULL', async () => {
+  it('a booking without an email uses the record email (fallback), contactEmail stays NULL (F68: front desk, the public page always sends one)', async () => {
     const phone = newPhone();
     await bookPublicly(a.slug, body(0, SLOT, { phone, email: OLD }));
     fake.reset();
     await runReminders(deps());
     fake.reset();
-    const res = await bookPublicly(a.slug, body(0, SLOT2, { phone }));
+    const res = await bookAtFrontDesk(a.cookie, body(0, SLOT2, { phone, email: undefined }));
     expect((await row(res.body!.appointment.id)).contactEmail).toBeNull();
     expect(res.body!.reminders).toEqual({ h24: true, h2: true, email: true });
     await runReminders(deps());
     expect(tos()).toEqual([OLD]);
   });
 
-  it('no email anywhere: no_email as today and the promise says no email', async () => {
-    const res = await bookPublicly(a.slug, body(0, SLOT, {}));
+  it('no email anywhere: no_email as today and the promise says no email (F68: front desk)', async () => {
+    const res = await bookAtFrontDesk(a.cookie, body(0, SLOT, { email: undefined }));
     expect(res.body!.reminders).toEqual({ h24: false, h2: false, email: false });
     const sum = await runReminders(deps());
     expect(sum.sent).toBe(0);
@@ -268,7 +268,7 @@ describe('front desk', () => {
   it('without an email: contactEmail NULL, the record email is used', async () => {
     const phone = newPhone();
     await bookPublicly(a.slug, body(0, SLOT, { phone, email: OLD }));
-    const res = await bookAtFrontDesk(a.cookie, body(1, SLOT, { phone }));
+    const res = await bookAtFrontDesk(a.cookie, body(1, SLOT, { phone, email: undefined }));
     expect((await row(res.body!.appointment.id)).contactEmail).toBeNull();
     expect(res.body!.reminders.email).toBe(true);
   });
@@ -490,6 +490,10 @@ describe('review: the record name never reaches a recipient who is not the recor
     expect(same.status).toBe(201);
     const bare = await bookPublicly(a.slug, body(2, SLOT, { phone, name: 'Else' }));
     expect(bare.status).toBe(201);
+    // F68: the public page always sends an address; a row without one is a pre-F16 row (contactEmail NULL).
+    await pg.query(`UPDATE "Appointment" SET "contactEmail" = NULL WHERE id = $1`, [
+      bare.body!.appointment.id,
+    ]);
     // Rows without a typed name (pre-F16 rows, waitlist claims) fall back to the record name, which is
     // fine here because the recipient IS the record email.
     await pg.query(`UPDATE "Appointment" SET "contactName" = NULL WHERE "clientId" = $1`, [
@@ -635,7 +639,10 @@ describe('review B1: a public booking never fills or changes the record of an ex
   // The victim: a phone-only record created at the front desk, with an earlier appointment.
   async function phoneOnlyVictim() {
     const phone = newPhone();
-    const earlier = await bookAtFrontDesk(a.cookie, body(0, SLOT, { phone, name: VICTIM }));
+    const earlier = await bookAtFrontDesk(
+      a.cookie,
+      body(0, SLOT, { phone, name: VICTIM, email: undefined }),
+    );
     expect(earlier.status).toBe(201);
     expect(await recordOf(phone)).toEqual({ name: VICTIM, email: null });
     return { phone, earlierId: earlier.body!.appointment.id as string };

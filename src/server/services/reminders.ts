@@ -1,5 +1,6 @@
 import { effectiveEmail, mailGreetingName } from '@/server/domain/contactEmail';
 import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
+import { bookingEmailPlan } from '@/server/domain/bookingPlan';
 import { buildIcs } from '@/server/domain/ics';
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { expiryFor, signToken } from '@/server/domain/tokens';
@@ -178,7 +179,11 @@ export async function runReminders(
     );
   };
 
-  const process = async (job: ClaimedJob) => {
+  const process = async (claimedJob: ClaimedJob) => {
+    // F68 defensive: LATE is a WhatsApp-only item for the receptionist and the claim only takes EMAIL rows, so
+    // this never fires. If one ever appears it must not become an email.
+    if (claimedJob.kind === 'LATE') return skip(claimedJob, 'whatsapp_only');
+    const job: ClaimedJob & { kind: 'BOOKING' | 'H24' | 'H2' } = { ...claimedJob, kind: claimedJob.kind };
     // Loaded just before sending, so a cancel that landed after the claim is seen.
     const [c] = await reminderJobRepo.loadSendContexts([job.id]);
     if (!c) return skip(job, 'missing');
@@ -188,8 +193,14 @@ export async function runReminders(
     const a = c.appointment;
     const mk = (act: 'confirm' | 'cancel') =>
       `${appUrl}/l/${signToken({ a: a.id, act, exp: expiryFor(a.startAt) }, secret)}`;
+    // F68: the booking email's links and reminder sentence come from the SAME lead rule that planned the
+    // reminders (start - the booking job's dueAt = bookedAt), so the content is deterministic on a retry.
+    const bookingPlan =
+      job.kind === 'BOOKING' ? bookingEmailPlan(a.startAt, job.dueAt, true) : undefined;
     const rendered = renderReminderEmail({
       kind: job.kind,
+      links: bookingPlan?.links,
+      reminderPromise: bookingPlan?.reminderPromise,
       locale: c.business.locale,
       timezone: c.business.timezone,
       businessName: c.business.name,

@@ -368,7 +368,8 @@ async function bookInner(
   // insert below; only its status (PENDING_PAYMENT), reminders (none yet) and a Payment row differ.
   const plan = await depositFor(businessId, phone, input, now, deps);
   const deposit = plan?.deposit;
-  const reminders = deposit ? [] : plannedJobs(input.startAt, now);
+  // F68: a PUBLIC booking under 2 h ahead also gets one WhatsApp LATE row (front desk and waitlist claims none).
+  const reminders = deposit ? [] : plannedJobs(input.startAt, now, { source: input.source });
   await deps.afterAvailability?.({ candidates: [...remaining] });
 
   let sweptAgain = false;

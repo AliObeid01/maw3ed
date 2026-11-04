@@ -2,6 +2,7 @@ import { expect, test } from '../helpers/test';
 import { trackIntlErrors } from '../helpers/intlErrors';
 import { setRole } from '../helpers/mockApi';
 import { appt, client, mockOutcomesApi, SERVICES, STAFF } from '../helpers/outcomesMock';
+import { paint, tokenRgb } from '../helpers/tokens';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
 test.skip(!!process.env.BASE_URL, 'needs the fake-session dev server');
@@ -42,6 +43,16 @@ test('shows the details: time, service, staff, source, status, client with call 
   const wa = who.getByRole('link', { name: /WhatsApp chat with Maya Khoury/ });
   await expect(wa).toHaveAttribute('href', 'https://wa.me/96171234567');
   await expect(wa).toHaveAttribute('rel', /noopener/);
+  // F68-A: WhatsApp is solid deep green (white text), Call is an outlined Royal Blue button; both 44 px.
+  const w = await paint(wa);
+  expect(w.background).toBe(await tokenRgb(page, 'whatsapp'));
+  expect(w.color).toBe('rgb(255, 255, 255)');
+  const call = who.getByRole('link', { name: 'Call Maya Khoury' });
+  const c = await paint(call);
+  expect(c.background).toBe('rgb(255, 255, 255)');
+  expect(c.color).toBe(await tokenRgb(page, 'brand'));
+  expect(c.border).toBe(await tokenRgb(page, 'brand'));
+  for (const l of [wa, call]) expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await expect(who.getByRole('link', { name: 'See the history of Maya Khoury' })).toHaveAttribute(
     'href',
     '/app/clients/clmaya',

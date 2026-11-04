@@ -29,6 +29,10 @@
   --color-mint: #20d2ac; /* service and category icons */
   --color-gold: #e8b86d; /* ONLY the thin underline under the Maw3ed wordmark in the Logo */
 
+  /* WhatsApp buttons: deep green, white text 4.92:1 (contrast.mjs). NEVER the bright #25D366 (1.98:1). */
+  --color-whatsapp: #12805c;
+  --color-whatsapp-hover: #0d6a4c;
+
   --color-success: #17795a;
   --color-success-soft: #ddf5ec;
   --color-success-deep: #0f5139;

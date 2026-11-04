@@ -24,7 +24,7 @@ export function reminderPlan(startAt: Date, bookedAt: Date): PlannedReminder[] {
  * H2 once now > start - 15 min.
  */
 export function sendDecision(
-  kind: ReminderKind,
+  kind: ReminderKind | 'LATE',
   startAt: Date,
   now: Date,
   appointmentActive: boolean,
@@ -33,5 +33,8 @@ export function sendDecision(
   const start = startAt.getTime();
   const t = now.getTime();
   if (kind === 'H24') return t >= start - 2 * HOUR_MS ? 'SKIP' : 'SEND';
+  // F68 LATE (WhatsApp only): a public booking made under 2 h ahead stays on the receptionist's list right up
+  // to the start; it is not hidden at start - 15 min like H2. Never evaluated for an EMAIL job.
+  if (kind === 'LATE') return t >= start ? 'SKIP' : 'SEND';
   return t > start - 15 * MIN_MS ? 'SKIP' : 'SEND';
 }

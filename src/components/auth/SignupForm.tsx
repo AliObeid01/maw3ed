@@ -159,6 +159,7 @@ export function SignupForm() {
           setOwnerName(e.target.value);
           clear('ownerName');
         }}
+        placeholder={t('ownerNamePlaceholder')}
         autoComplete="name"
         error={text.field(errors.ownerName)}
         readOnly={pending}

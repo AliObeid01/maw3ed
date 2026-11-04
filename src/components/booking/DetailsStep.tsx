@@ -10,7 +10,7 @@ import { StepHeading } from './StepHeading';
 
 export type DetailsValues = { name: string; dial: string; phone: string; email: string };
 
-/** Board 1.4: name, mobile with country code, optional email, the consent line and the two reminder times. */
+/** Board 1.4: name, mobile with country code, required email, the consent line and the two reminder times. */
 export function DetailsStep({
   values,
   onChange,
@@ -76,6 +76,8 @@ export function DetailsStep({
           label={t('email')}
           placeholder={t('emailPlaceholder')}
           autoComplete="email"
+          required
+          aria-required="true"
           value={values.email}
           disabled={pending}
           error={err(errors.email)}

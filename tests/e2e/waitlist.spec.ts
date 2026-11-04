@@ -116,6 +116,7 @@ test('the slot-just-taken view links to the waitlist', async ({ page }) => {
   await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByLabel('Full name').fill('Maya');
   await page.getByLabel('Mobile number').fill('71 234 567');
+  await page.getByLabel('Email', { exact: true }).fill('maya@example.test');
   await page.getByRole('button', { name: 'Confirm booking' }).filter({ visible: true }).click();
   await expect(page.getByRole('alert').filter({ hasText: 'was just taken' })).toBeVisible();
   await page.getByRole('link', { name: 'Join the waitlist' }).click();

@@ -25,6 +25,7 @@
       "claimed": "Claimed",
       "reminder2h": "2 h",
       "reminder24h": "24 h",
+      "reminderLate": "Last-minute booking",
       "pendingPayment": "Awaiting payment"
     }
   },
@@ -420,6 +421,8 @@
         "overnight": {
           "title": "Open until {to} the next day?",
           "body": "{day} {from} to 24:00, then {nextDay} 00:00 to {to}. Days you copy to get their own next-day hours.",
+          "announce": "Open past midnight? Choose an option below. Apply stays off until you do.",
+          "copyHint": "Copying replaces the days you picked: their own hours and their early-morning hours after midnight.",
           "keep": "Change the times",
           "confirm": "Yes, open until {to}",
           "tooMany": "{day} already has {max} blocks, so there is no room for the after-midnight hours. Remove one first."
@@ -518,7 +521,9 @@
       "title": "Account",
       "body": "Change your password. Other devices are signed out; this one stays signed in.",
       "current": "Current password",
+      "currentPlaceholder": "Your current password",
       "new": "New password",
+      "newPlaceholder": "{min}+ characters",
       "submit": "Change password",
       "saved": "Password changed. Other devices were signed out.",
       "errors": {
@@ -532,7 +537,7 @@
         "network": "We can't reach the server. Check your connection and try again."
       },
       "others": {
-        "title": "Other devices",
+        "title": "Sessions",
         "body": "Signs you out everywhere else, in every business you belong to. This device stays signed in.",
         "cta": "Sign out other devices",
         "confirmTitle": "Sign out other devices?",
@@ -595,6 +600,8 @@
       "allDone": "All sent",
       "today": "Today",
       "tomorrow": "Tomorrow",
+      "lateWhen": "Booked just now for <clock>{time}</clock>",
+      "lateWhenDay": "Booked just now for {day} <clock>{time}</clock>",
       "col": {
         "client": "Client",
         "appointment": "Appointment",
@@ -611,7 +618,7 @@
       "callInstead": "Call instead",
       "retryBody": "WhatsApp opened, but we could not record it as sent. The message may already be sent, so check before sending again.",
       "retryCta": "Mark as sent",
-      "emptyTitle": "All reminders sent",
+      "emptyTitle": "No reminders to send for now",
       "emptyBody": "New reminders show up here when they are due.",
       "stale": "We couldn't refresh the list. Showing the last version."
     },
@@ -937,6 +944,7 @@
       "slugPlaceholder": "studio-nour",
       "slugPrefix": "/b/",
       "ownerName": "Your name",
+      "ownerNamePlaceholder": "e.g. Alex Morgan",
       "email": "Your email",
       "emailPlaceholder": "you@example.com",
       "password": "Password",
@@ -953,6 +961,7 @@
       "email": "Email",
       "emailPlaceholder": "you@example.com",
       "password": "Password",
+      "passwordPlaceholder": "Your password",
       "submit": "Sign in"
     },
     "invite": {
@@ -961,6 +970,7 @@
       "expires": "This invite expires {when}.",
       "email": "Email",
       "name": "Your name",
+      "namePlaceholder": "e.g. Alex Morgan",
       "password": "Password",
       "passwordPlaceholder": "{min}+ characters",
       "submit": "Accept and join",
@@ -1035,9 +1045,10 @@
     "calendar": "A calendar file is attached so you can add this to your calendar.",
     "footer": "Sent by Maw3ed on behalf of {business}.",
     "booking": {
-      "subject": "Booking confirmed: {service} on {date}",
-      "heading": "Your booking is confirmed",
-      "intro": "You are booked in at {business}. Here are the details."
+      "subject": "Your slot is booked: {service} on {date}",
+      "heading": "Your slot has been booked",
+      "intro": "You are booked in at {business}.",
+      "reminderPromise": "We will email you a reminder with confirm and cancel links before your appointment."
     },
     "h24": {
       "subject": "Reminder: {service} tomorrow at {time}",
@@ -1060,7 +1071,8 @@
     },
     "whatsapp": {
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
-      "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
+      "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
+      "late": "Hi {name}, your {service} with {staff} at {business} is booked for {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
     },
     "invite": {
       "subject": "You are invited to join {business} on Maw3ed",
@@ -1210,8 +1222,8 @@
       "name": "Full name",
       "phone": "Mobile number",
       "countryCode": "Country code",
-      "email": "Email (optional)",
-      "emailPlaceholder": "For a calendar invite",
+      "email": "Email",
+      "emailPlaceholder": "We email your booking here",
       "consent": "Reminders by email and WhatsApp; no account needed.",
       "reminder1": "Reminder 1 (estimate)",
       "reminder2": "Reminder 2 (estimate)",
@@ -1253,7 +1265,7 @@
       "eyebrow": "All done",
       "title": "You're booked, {name}!",
       "subtitle": "{when} · {service} with {staff}",
-      "calendar": "Your confirmation email has a calendar invite (.ics) attached, so you can add this to your calendar.",
+      "calendar": "Your booking email has a calendar invite (.ics) attached, so you can add this to your calendar.",
       "nextTitle": "What happens next",
       "next3Title": "Can't make it?",
       "next3Body": "Confirm or cancel from any reminder, or from your booking link.",
@@ -1271,6 +1283,7 @@
       "fixFields": "Please check the highlighted fields.",
       "nameRequired": "Enter your name.",
       "phoneInvalid": "Enter a valid mobile number.",
+      "emailRequired": "Enter your email address.",
       "emailInvalid": "Enter a valid email address.",
       "retry": "Try again",
       "nameTooLong": "Use {max} characters or fewer.",
@@ -1492,7 +1505,7 @@
     "firstToClaim": "First to claim gets it",
     "book": "Book this slot",
     "side": {
-      "reminders": "Booking is instant. We email you a confirmation, and reminders when there is time before the appointment."
+      "reminders": "Booking is instant. We email you your booking, and reminders when there is time before the appointment."
     },
     "done": {
       "title": "You're booked",
@@ -1686,7 +1699,7 @@
     "signIn": "Sign in",
     "preview": {
       "label": "Example",
-      "confirmed": "Booking confirmed",
+      "confirmed": "Slot booked",
       "service": "Sample service · 30 min",
       "when": "Tomorrow · 10:30",
       "reminder": "Reminder 24 hours before",
@@ -1721,8 +1734,8 @@
     "pay": "Pay deposit (test)",
     "paying": "Paying",
     "done": {
-      "title": "You're booked and confirmed",
-      "next": "Your confirmation email is on the way.",
+      "title": "You're booked",
+      "next": "Your booking email is on the way.",
       "action": "Back to the booking page"
     },
     "expired": {
@@ -1814,6 +1827,7 @@
       "title": "Choose a new password",
       "subtitle": "Use at least {min} characters. You will be signed out everywhere.",
       "password": "New password",
+      "passwordPlaceholder": "{min}+ characters",
       "submit": "Save new password",
       "successTitle": "Password changed",
       "successBody": "Your password was updated and every device was signed out. Sign in with your new password.",

@@ -5,7 +5,7 @@ const person = z.object({ id: z.string(), name: z.string() });
 
 export const reminderItemSchema = z.object({
   id: z.string(),
-  kind: z.enum(['H24', 'H2']),
+  kind: z.enum(['H24', 'H2', 'LATE']),
   dueAt: z.string(),
   appointment: z.object({
     id: z.string(),

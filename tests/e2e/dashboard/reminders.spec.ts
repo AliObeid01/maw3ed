@@ -1,7 +1,9 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from '../helpers/test';
 import { nowDate } from '../helpers/clock';
-import { mockDashboardApi } from '../helpers/dashboardMock';
+import { appt, at, defaultAppointments, defaultReminders, MAYA, mockDashboardApi } from '../helpers/dashboardMock';
+import { IDS } from '../helpers/publicMock';
+import { paint, tokenRgb } from '../helpers/tokens';
 import { setRole } from '../helpers/mockApi';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
@@ -146,10 +148,48 @@ test('the list refreshes when the window regains focus (another device sent one)
   await expect(badge(page, 2)).toBeVisible();
 });
 
+test('F68-A: a LATE row has its own chip and booking copy, is counted, and the Send button is WhatsApp green', async ({
+  page,
+  isMobile,
+}) => {
+  const late = appt('ap6', at(16), 30, IDS.haircut, IDS.lina, MAYA);
+  await mockDashboardApi(page, {
+    appointments: [...defaultAppointments(), late],
+    reminders: [
+      ...defaultReminders(),
+      { id: 'rm5', kind: 'LATE', appointmentId: 'ap6', status: 'PENDING', sentBy: null, sentAt: null },
+    ],
+  });
+  await page.goto('/app/reminders');
+  await expect(page.getByRole('status').filter({ hasText: '4 to send' })).toBeVisible();
+  const lateRow = page.getByRole('listitem').filter({ hasText: 'Last-minute booking' });
+  await expect(lateRow).toHaveCount(1);
+  await expect(lateRow.getByText('Last-minute booking', { exact: true })).toBeVisible();
+  await expect(lateRow).toContainText('Booked just now for 16:00');
+  await expect(lateRow).not.toContainText(/reminder/i);
+  // Not shown with the 24 h chip, and the 24 h rows keep theirs.
+  await expect(lateRow.getByText('24 h', { exact: true })).toHaveCount(0);
+  await expect(row(page, 'Nadine Aoun').getByText('2 h', { exact: true })).toBeVisible();
+  const send = lateRow.getByRole('link', { name: /Send the reminder to Maya Haddad/ });
+  expect((await send.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  const p = await paint(send);
+  expect(p.background).toBe(await tokenRgb(page, 'whatsapp'));
+  expect(p.color).toBe('rgb(255, 255, 255)');
+  // The no-phone row offers an OUTLINED blue Call button (not red).
+  const call = row(page, 'Lea Saab').getByRole('link', { name: 'Call instead' });
+  const c = await paint(call);
+  expect(c.border).toBe(await tokenRgb(page, 'brand'));
+  expect(c.color).toBe(await tokenRgb(page, 'brand'));
+  expect(c.background).toBe('rgb(255, 255, 255)');
+  expect((await call.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  if (isMobile) await expect(page.getByRole('main')).toBeVisible();
+});
+
 test('empty and error states', async ({ page }) => {
   await mockDashboardApi(page, { reminders: [] });
   await page.goto('/app/reminders');
-  await expect(page.getByRole('heading', { name: 'All reminders sent' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No reminders to send for now' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'All reminders sent' })).toHaveCount(0);
 
   const second = await page.context().newPage();
   await second.route('**/api/reminders/whatsapp-due', (route) =>

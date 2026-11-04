@@ -196,6 +196,11 @@ function DayEditorBody({
         </ul>
       )}
 
+      {/* One persistent polite live region (a region that mounts together with its text is often not announced):
+          when the prompt appears, screen-reader users hear that Apply is off until they choose. */}
+      <p aria-live="polite" data-testid="overnight-announcer" className="sr-only">
+        {offerOvernight && overnightEntry ? t('overnight.announce') : ''}
+      </p>
       {offerOvernight && overnightEntry ? (
         <div role="group" aria-labelledby="overnight-title" className="flex flex-col gap-3">
           <Callout icon={<Moon />}>
@@ -211,6 +216,11 @@ function DayEditorBody({
               })}
             </p>
           </Callout>
+          {copyTo.length > 0 ? (
+            <p data-testid="overnight-copy-hint" className="m-0 text-[13px] text-muted">
+              {t('overnight.copyHint')}
+            </p>
+          ) : null}
           {overnightError ? (
             <p role="alert" className="m-0 text-[13px] font-medium text-danger">
               {overnightError}

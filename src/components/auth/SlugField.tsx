@@ -130,18 +130,13 @@ export function SlugField({
           className="h-full min-w-0 flex-1 bg-transparent px-3.5 text-start text-base text-ink outline-none placeholder:text-subtle"
         />
       </div>
-      {/* Two reserved lines from the first render, so typing never moves anything below (the Create account button
-          stays put): the address preview on the first (it truncates with an ellipsis instead of wrapping into extra
-          height) and the availability status on its own line. The preview changes on every keystroke, so it stays
-          OUT of the live region; only the status text is announced (polite), and "checking" only if it is slow. */}
-      <div className="flex flex-col gap-0.5 text-[13px] leading-[19px]">
-        <p className="m-0 h-[19px] min-w-0 truncate text-start text-muted">
-          {value ? (
-            // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
-            t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })
-          ) : null}
-        </p>
-        <div id={statusId} aria-live="polite" className="h-[19px] min-w-0">
+      {/* ONE reserved line (19 px) from the first render, so typing never moves anything below (the Create account
+          button stays put): the availability status first, the address preview inline after it. Both truncate with an
+          ellipsis instead of wrapping into extra height; when the status is long the preview yields. The preview
+          changes on every keystroke, so it stays OUT of the live region; only the status is announced (polite), and
+          "checking" only if it is slow. */}
+      <div className="flex h-[19px] min-w-0 items-center gap-2 text-[13px] leading-[19px]">
+        <div id={statusId} aria-live="polite" className="flex min-w-0 shrink items-center">
           {text && !error ? (
             <span
               className={cn(
@@ -164,6 +159,17 @@ export function SlugField({
             </span>
           ) : null}
         </div>
+        <p
+          className={cn(
+            'm-0 min-w-0 flex-1 truncate text-start text-muted',
+            value && text && !error && "before:me-2 before:content-['\\00b7']",
+          )}
+        >
+          {value ? (
+            // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
+            t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })
+          ) : null}
+        </p>
       </div>
     </FieldShell>
   );

@@ -44,4 +44,34 @@ describe('sendDecision', () => {
     expect(sendDecision('H2', start, at(-15 * M + 1), true)).toBe('SKIP');
     expect(sendDecision('H2', start, at(5 * M), true)).toBe('SKIP');
   });
+  it('F68 LATE: shown until the appointment STARTS (not hidden at start - 15 min)', () => {
+    expect(sendDecision('LATE', start, at(-90 * M), true)).toBe('SEND');
+    expect(sendDecision('LATE', start, at(-15 * M), true)).toBe('SEND');
+    expect(sendDecision('LATE', start, at(-5 * M), true)).toBe('SEND');
+    expect(sendDecision('LATE', start, at(-1), true)).toBe('SEND');
+    expect(sendDecision('LATE', start, at(0), true)).toBe('SKIP');
+    expect(sendDecision('LATE', start, at(5 * M), true)).toBe('SKIP');
+  });
+  it('F68 LATE: an inactive appointment hides it', () => {
+    expect(sendDecision('LATE', start, at(-30 * M), false)).toBe('SKIP');
+  });
+});
+
+describe('F68 pendingIsDue (receptionist list rule)', () => {
+  it('uses the kind window and hides non-BOOKED/CONFIRMED appointments', async () => {
+    const { pendingIsDue } = await import('@/server/services/whatsappReminders');
+    const a = (status: string) => ({ status, startAt: start });
+    expect(pendingIsDue('LATE', a('BOOKED'), at(-5 * M))).toBe(true);
+    expect(pendingIsDue('LATE', a('CONFIRMED'), at(-5 * M))).toBe(true);
+    expect(pendingIsDue('LATE', a('BOOKED'), at(M))).toBe(false);
+    expect(pendingIsDue('LATE', a('CANCELLED'), at(-5 * M))).toBe(false);
+    expect(pendingIsDue('LATE', a('PENDING_PAYMENT'), at(-5 * M))).toBe(false);
+    // The older kinds are unchanged.
+    expect(pendingIsDue('H2', a('BOOKED'), at(-20 * M))).toBe(true);
+    expect(pendingIsDue('H2', a('BOOKED'), at(-10 * M))).toBe(false);
+    // ...while LATE is still listed at the same moments.
+    expect(pendingIsDue('LATE', a('BOOKED'), at(-10 * M))).toBe(true);
+    expect(pendingIsDue('H24', a('BOOKED'), at(-3 * H))).toBe(true);
+    expect(pendingIsDue('H24', a('BOOKED'), at(-1 * H))).toBe(false);
+  });
 });

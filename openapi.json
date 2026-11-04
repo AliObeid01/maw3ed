@@ -1397,6 +1397,64 @@
         ],
         "additionalProperties": false
       },
+      "PublicBookingBody": {
+        "type": "object",
+        "properties": {
+          "serviceId": {
+            "type": "string",
+            "format": "cuid2"
+          },
+          "staffId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "anyone"
+                ]
+              },
+              {
+                "type": "string",
+                "format": "cuid2"
+              }
+            ]
+          },
+          "startAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "client": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80
+              },
+              "phone": {
+                "type": "string",
+                "minLength": 3,
+                "maxLength": 32
+              },
+              "email": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name",
+              "phone",
+              "email"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "serviceId",
+          "staffId",
+          "startAt",
+          "client"
+        ],
+        "additionalProperties": false
+      },
       "Reminders": {
         "type": "object",
         "properties": {
@@ -2256,8 +2314,10 @@
                   "type": "string",
                   "enum": [
                     "H24",
-                    "H2"
-                  ]
+                    "H2",
+                    "LATE"
+                  ],
+                  "description": "H24 and H2 are the reminders. LATE is a public booking made less than 2 h before the slot: it is due at once, shown until the appointment starts, and its text is a booking confirmation."
                 },
                 "dueAt": {
                   "type": "string",
@@ -6268,7 +6328,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BookingBody"
+                "$ref": "#/components/schemas/PublicBookingBody"
               }
             }
           }
@@ -7034,7 +7094,7 @@
     },
     "/api/reminders/whatsapp-due": {
       "get": {
-        "summary": "WhatsApp reminders due now, plus those sent in the last 12 hours",
+        "summary": "WhatsApp reminders and last-minute bookings due now, plus those sent in the last 12 hours",
         "tags": [
           "reminders"
         ],
