@@ -134,7 +134,7 @@ function Checklist({
                 className={cn(
                   'flex min-h-[92px] items-center gap-3.5 rounded-card-sm bg-surface text-ink no-underline transition-shadow duration-200 ease-out',
                   step.current
-                    ? 'border-2 border-brand p-[17px] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_4px_12px_rgb(0_0_0/0.08)]'
+                    ? 'border-2 border-brand p-[17px] shadow-[0_1px_2px_rgb(0_0_0/0.08),0_3px_8px_rgb(0_0_0/0.08)]'
                     : 'border border-line p-[18px] hover:shadow-[0_1px_2px_rgb(0_0_0/0.08)]',
                 )}
               >

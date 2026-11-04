@@ -11,7 +11,7 @@ export async function HeroPreview() {
   const t = await getTranslations('home');
   return (
     <div aria-hidden="true" className="relative hidden w-full max-w-[340px] justify-self-center lg:block" data-testid="hero-preview">
-      <div className="flex flex-col gap-3 rounded-card border border-white/20 bg-white/10 p-3 shadow-[0_1px_2px_rgb(0_0_0/0.08),0_4px_12px_rgb(0_0_0/0.08)]">
+      <div className="flex flex-col gap-3 rounded-card border border-white/20 bg-white/10 p-3 shadow-[0_1px_2px_rgb(0_0_0/0.08),0_3px_8px_rgb(0_0_0/0.08)]">
         <div className="flex flex-col gap-4 rounded-card bg-surface p-5 text-ink">
           <div className="flex items-center justify-between gap-2">
             <span className="rounded-chip bg-canvas px-2.5 py-1 text-xs font-semibold text-muted">{t('preview.label')}</span>

@@ -72,6 +72,45 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     expect(offenders).toEqual([]);
   });
 
+  it('every arbitrary shadow-[...] is black-only with a blur under 10 px (file:line listed on failure)', () => {
+    const violations: string[] = [];
+    const layerSplit = (v: string) => {
+      const out: string[] = [];
+      let depth = 0;
+      let cur = '';
+      for (const ch of v) {
+        if (ch === '(') depth++;
+        if (ch === ')') depth--;
+        if (ch === ',' && depth === 0) {
+          out.push(cur);
+          cur = '';
+        } else cur += ch;
+      }
+      out.push(cur);
+      return out;
+    };
+    for (const [file, code] of sources) {
+      if (!code.includes('shadow-[')) continue;
+      code.split('\n').forEach((line, i) => {
+        for (const m of line.matchAll(/shadow-\[((?:[^\]\[]|\[[^\]]*\])*)\]/g)) {
+          for (const layer of layerSplit(m[1]!)) {
+            const parts = layer.replace(/^inset_/, '').match(/^(-?[\d.]+(?:px)?)_(-?[\d.]+(?:px)?)(?:_(-?[\d.]+(?:px)?))?(?:_(-?[\d.]+(?:px)?))?_(.+)$/);
+            const where = `${path.relative(root, file)}:${i + 1} ${m[0]}`;
+            if (!parts) {
+              violations.push(`${where} (unparseable layer)`);
+              continue;
+            }
+            const blur = parts[3] === undefined ? 0 : parseFloat(parts[3]);
+            const colour = parts[5]!;
+            if (!/^rgb\(0_0_0[/)]/.test(colour)) violations.push(`${where} (colour must be rgb(0_0_0/..), got ${colour})`);
+            if (blur >= 10) violations.push(`${where} (blur ${blur}px, max 9)`);
+          }
+        }
+      });
+    }
+    expect(violations, violations.join('\n')).toEqual([]);
+  });
+
   it('keeps the old teal and warm greys out of the theme', () => {
     expect(css).not.toMatch(/#174c4f|#f7f5f0|#252d2d|#e3ded2/i);
   });

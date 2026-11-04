@@ -10,7 +10,14 @@ import { useToast } from '@/components/ui/Toast';
 import { putStaffHours, type HoursInterval } from '@/lib/api/setup';
 import { cn } from '@/lib/cn';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
-import { WEEK_ORDER, validateWeek, weekFromApi, weekToApi, type Week } from '@/lib/setup/hours';
+import {
+  WEEK_ORDER,
+  continuesFromPrevious,
+  validateWeek,
+  weekFromApi,
+  weekToApi,
+  type Week,
+} from '@/lib/setup/hours';
 import { StickySaveBar } from '../StickySaveBar';
 import { useErrorMessage, useSharedText } from '../states';
 import { DayEditor, useWeekdayName } from './DayEditor';
@@ -98,6 +105,7 @@ export function WeeklyHours({
         {WEEK_ORDER.map((weekday) => {
           const day = week[weekday]!;
           const dayProblems = problems[weekday];
+          const fromNight = continuesFromPrevious(week, weekday);
           return (
             <li
               key={weekday}
@@ -115,23 +123,34 @@ export function WeeklyHours({
                 {day.length === 0 ? (
                   <span className="py-2.5 text-[15px] text-muted">{t('dayOff')}</span>
                 ) : (
-                  day.map((interval, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setEditingDay(weekday)}
-                      aria-label={t('editInterval', {
-                        day: dayName.long(weekday),
-                        from: interval.start,
-                        to: interval.end,
-                      })}
-                      className="min-h-11 rounded-nav border border-line bg-canvas px-3.5 text-[15px] tabular-nums transition-colors duration-200 ease-out hover:border-brand"
-                    >
-                      <bdi dir="ltr">
-                        {interval.start} – {interval.end}
-                      </bdi>
-                    </button>
-                  ))
+                  day.map((interval, index) => {
+                    const tail = fromNight && index === 0;
+                    return (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => setEditingDay(weekday)}
+                        aria-label={
+                          tail
+                            ? t('editTail', { day: dayName.long(weekday), to: interval.end })
+                            : t('editInterval', {
+                                day: dayName.long(weekday),
+                                from: interval.start,
+                                to: interval.end,
+                              })
+                        }
+                        className="min-h-11 rounded-nav border border-line bg-canvas px-3.5 text-[15px] tabular-nums transition-colors duration-200 ease-out hover:border-brand"
+                      >
+                        {tail ? (
+                          <bdi>{t('continuesUntil', { to: interval.end })}</bdi>
+                        ) : (
+                          <bdi dir="ltr">
+                            {interval.start} – {interval.end}
+                          </bdi>
+                        )}
+                      </button>
+                    );
+                  })
                 )}
               </div>
               <button

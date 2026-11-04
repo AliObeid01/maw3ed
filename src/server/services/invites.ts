@@ -16,7 +16,9 @@ import { hashPassword, verifyPassword } from './password';
 import { emailVerificationService } from './emailVerification';
 import { sessionService } from './session';
 
-export const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
+import { INVITE_TTL_MS } from '@/lib/invites/ttl';
+
+export { INVITE_TTL_MS };
 const defaultDeps: AuthDeps = { now: () => new Date(), guard: loginGuard };
 
 const notFound = () => AppError.notFound('This invitation is not valid.');

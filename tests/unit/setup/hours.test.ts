@@ -3,7 +3,6 @@ import {
   copyDay,
   emptyWeek,
   endFromInput,
-  endToInput,
   suggestInterval,
   toMinutes,
   validateDay,
@@ -115,9 +114,7 @@ describe('suggestInterval and 24:00 inputs', () => {
     expect(suggestInterval([iv('09:00', '23:00')])).toEqual(iv('22:00', '24:00'));
   });
 
-  it('maps end-of-day to the time input and back', () => {
-    expect(endToInput('24:00')).toBe('00:00');
-    expect(endToInput('17:00')).toBe('17:00');
+  it('reads a legacy 00:00 end as end of day', () => {
     expect(endFromInput('00:00')).toBe('24:00');
     expect(endFromInput('17:00')).toBe('17:00');
   });

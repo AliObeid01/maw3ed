@@ -48,10 +48,13 @@ function RuleRow({
   value,
   onChange,
   error,
+  help,
 }: {
   id: string;
   title: string;
   hint: string;
+  /** Longer explanation under the row; also announced with the input. */
+  help?: string;
   unit: string;
   value: string;
   onChange: (value: string) => void;
@@ -73,7 +76,9 @@ function RuleRow({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={error ? true : undefined}
-          aria-describedby={error ? `${id}-error` : undefined}
+          aria-describedby={
+            [error ? `${id}-error` : '', help ? `${id}-help` : ''].filter(Boolean).join(' ') || undefined
+          }
           className={cn(
             'h-12 w-16 shrink-0 rounded-nav border bg-surface text-center text-base tabular-nums',
             error ? 'border-danger' : 'border-line',
@@ -81,6 +86,11 @@ function RuleRow({
         />
         <span className="w-11 shrink-0 text-sm text-muted">{unit}</span>
       </div>
+      {help ? (
+        <p id={`${id}-help`} className="m-0 text-[13px] leading-snug text-muted">
+          {help}
+        </p>
+      ) : null}
       {error ? (
         <p id={`${id}-error`} role="alert" className="m-0 text-[13px] font-medium text-danger">
           {error}
@@ -344,6 +354,7 @@ function SettingsForm({
             value={values.notice}
             onChange={(v) => set('notice', v)}
             error={errors.notice}
+            help={t('field.noticeHelp')}
           />
           <RuleRow
             id={`${uid}-cutoff`}
