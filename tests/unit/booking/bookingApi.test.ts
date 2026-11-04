@@ -164,9 +164,17 @@ describe('validateDetails', () => {
   it('accepts a complete form', () => {
     expect(validateDetails(ok)).toEqual({});
   });
-  it('requires the email (F68): blank or whitespace is emailRequired', () => {
-    expect(validateDetails({ ...ok, email: '' })).toEqual({ email: 'emailRequired' });
-    expect(validateDetails({ ...ok, email: '   ' })).toEqual({ email: 'emailRequired' });
+  it('requires the email on the public page (F68): blank or whitespace is emailRequired', () => {
+    const strict = { requireEmail: true };
+    expect(validateDetails({ ...ok, email: '' }, strict)).toEqual({ email: 'emailRequired' });
+    expect(validateDetails({ ...ok, email: '   ' }, strict)).toEqual({ email: 'emailRequired' });
+    expect(validateDetails({ ...ok, email: 'nope' }, strict)).toEqual({ email: 'emailInvalid' });
+    expect(validateDetails(ok, strict)).toEqual({});
+  });
+  it('keeps the email optional for the front desk and the waitlist name/phone check (default)', () => {
+    expect(validateDetails({ ...ok, email: '' })).toEqual({});
+    expect(validateDetails({ ...ok, email: '   ' })).toEqual({});
+    expect(validateDetails({ ...ok, email: 'nope' })).toEqual({ email: 'emailInvalid' });
   });
   it('maps a server-side missing email to emailRequired', () => {
     expect(

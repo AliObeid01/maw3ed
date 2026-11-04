@@ -437,7 +437,7 @@ export function BookingFlow({ slug }: { slug: string }) {
       go({ step: 'time', ...base, day: resolved.day }, 'replace');
       return;
     }
-    const found = validateDetails(values);
+    const found = validateDetails(values, { requireEmail: true });
     if (Object.keys(found).length > 0) {
       setErrors(found);
       setNotice(undefined);

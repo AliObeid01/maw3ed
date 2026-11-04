@@ -14,21 +14,27 @@ export type DetailsErrors = Partial<
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** Checks the details form before sending. The server validates again; this only saves a round trip. */
-export function validateDetails(input: {
-  name: string;
-  dial: string;
-  phone: string;
-  email: string;
-}): DetailsErrors {
+/**
+ * Checks the details form before sending. The server validates again; this only saves a round trip.
+ * `requireEmail` is true only on the public booking page (F68); the front desk keeps the email optional.
+ */
+export function validateDetails(
+  input: {
+    name: string;
+    dial: string;
+    phone: string;
+    email: string;
+  },
+  opts: { requireEmail?: boolean } = {},
+): DetailsErrors {
   const errors: DetailsErrors = {};
   if (input.name.trim().length === 0) errors.name = 'nameRequired';
   else if (input.name.trim().length > NAME_MAX) errors.name = 'nameTooLong';
   if (!phoneLooksComplete(input.dial, input.phone)) errors.phone = 'phoneInvalid';
   const email = input.email.trim();
-  // F68: the public booking page requires an email.
-  if (!email) errors.email = 'emailRequired';
-  else if (!EMAIL.test(email)) errors.email = 'emailInvalid';
+  if (!email) {
+    if (opts.requireEmail) errors.email = 'emailRequired';
+  } else if (!EMAIL.test(email)) errors.email = 'emailInvalid';
   return errors;
 }
 
