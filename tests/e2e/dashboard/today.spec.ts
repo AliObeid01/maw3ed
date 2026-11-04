@@ -10,6 +10,7 @@ import {
   RAMI,
   todayLocal,
 } from '../helpers/dashboardMock';
+import { paint, tokenRgb } from '../helpers/tokens';
 import { setRole } from '../helpers/mockApi';
 import { IDS } from '../helpers/publicMock';
 
@@ -138,6 +139,20 @@ test.describe('phone: agenda list', () => {
     const wa = sheet.getByRole('link', { name: 'Open a WhatsApp chat with Maya Haddad' });
     await expect(wa).toHaveAttribute('href', 'https://wa.me/96170555218');
     await expect(wa).toHaveAttribute('rel', /noopener/);
+    // F68-A: WhatsApp is solid deep green, Call is an outlined Royal Blue button (never red).
+    const w = await paint(wa);
+    expect(w.background).toBe(await tokenRgb(page, 'whatsapp'));
+    expect(w.color).toBe('rgb(255, 255, 255)');
+    const call = sheet.getByRole('link', { name: 'Call Maya Haddad' });
+    const c = await paint(call);
+    expect(c.background).toBe('rgb(255, 255, 255)');
+    expect(c.color).toBe(await tokenRgb(page, 'brand'));
+    expect(c.border).toBe(await tokenRgb(page, 'brand'));
+    expect(parseFloat(c.borderWidth)).toBeGreaterThanOrEqual(1);
+    for (const l of [wa, call]) expect((await l.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await page.keyboard.press('Shift'); // keyboard modality, so :focus-visible applies to the scripted focus
+    await wa.focus();
+    expect(await wa.evaluate((el) => getComputedStyle(el).outlineStyle)).not.toBe('none');
     await page.keyboard.press('Escape');
     await expect(sheet).toHaveCount(0);
   });

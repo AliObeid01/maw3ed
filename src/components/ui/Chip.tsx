@@ -45,6 +45,7 @@ export const statusTones = {
   claimed: 'refill',
   reminder2h: 'danger',
   reminder24h: 'info',
+  reminderLate: 'brand',
 } as const satisfies Record<string, ChipTone>;
 
 export type Status = keyof typeof statusTones;

@@ -33,7 +33,7 @@ type Appt = {
 
 export type Reminder = {
   id: string;
-  kind: 'H24' | 'H2';
+  kind: 'H24' | 'H2' | 'LATE';
   appointmentId: string;
   status: 'PENDING' | 'SENT';
   sentBy: { id: string; name: string } | null;

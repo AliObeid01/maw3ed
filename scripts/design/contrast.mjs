@@ -63,6 +63,11 @@ const pairs = [
   ['amber on canvas (stat number)', 'amber', 'canvas', 28, true],
   ['amber on surface (stat number)', 'amber', 'surface', 28, true],
   ['success on surface (stat number)', 'success', 'surface', 28, true],
+  ['white on whatsapp (WhatsApp button)', '#ffffff', 'whatsapp', 15, true],
+  ['white on whatsapp-hover (pressed)', '#ffffff', 'whatsapp-hover', 15, true],
+  ['brand on surface (outlined Call button)', 'brand', 'surface', 15, true],
+  ['brand on brand-soft (Call button hover)', 'brand', 'brand-soft', 15, true],
+  ['brand on brand-soft (Last-minute booking chip)', 'brand', 'brand-soft', 12, true],
 ];
 for (const [name, bg] of Object.entries(heroStops)) {
   for (const [label, fg] of [

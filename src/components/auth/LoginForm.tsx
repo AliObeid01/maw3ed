@@ -93,6 +93,7 @@ export function LoginForm() {
           setPassword(e.target.value);
           clear('password');
         }}
+        placeholder={t('passwordPlaceholder')}
         autoComplete="current-password"
         error={text.field(errors.password)}
         readOnly={pending}

@@ -61,44 +61,66 @@ test.describe('Account (part C)', () => {
     await page.goto('/app/account');
     const profile = page.getByRole('region', { name: 'Your sign-in' });
     const card = page.getByRole('region', { name: 'Account', exact: true });
-    const signOut = page.getByRole('button', { name: 'Sign out', exact: true }).last();
+    const signOut = card.getByRole('button', { name: 'Sign out', exact: true });
+    const others = card.getByRole('button', { name: 'Sign out other devices', exact: true });
     await expect(profile).toBeVisible();
     await expect(card).toBeVisible();
     await expect(signOut).toBeVisible();
-    return { profile, card, signOut };
+    return { profile, card, signOut, others };
   }
 
-  test('at lg+ Your sign-in and Account are side by side, top aligned, with Sign out full width below both', async ({
+  test('at lg+ Your sign-in and Account are side by side, top aligned; Sign out sits next to Sign out other devices inside the card', async ({
     page,
   }) => {
     await page.setViewportSize(WIDE);
-    const { profile, card, signOut } = await account(page);
+    const { profile, card, signOut, others } = await account(page);
     const a = await box(profile);
     const b = await box(card);
     expect(b.x, 'Account is beside Your sign-in').toBeGreaterThanOrEqual(a.x + a.width);
     expect(Math.abs(a.y - b.y), 'top aligned').toBeLessThanOrEqual(1);
     expect(Math.abs(a.width - b.width), 'equal widths').toBeLessThanOrEqual(2);
     const s = await box(signOut);
-    expect(s.y).toBeGreaterThanOrEqual(Math.max(a.y + a.height, b.y + b.height) - 1);
-    expect(Math.abs(s.x - a.x)).toBeLessThanOrEqual(1);
-    expect(Math.abs(s.x + s.width - (b.x + b.width))).toBeLessThanOrEqual(1);
+    const o = await box(others);
+    expect(Math.abs(s.y - o.y), 'one row').toBeLessThanOrEqual(1);
+    expect(s.x, 'Sign out comes first').toBeLessThan(o.x);
+    expect(s.x).toBeGreaterThanOrEqual(b.x);
+    expect(o.x + o.width).toBeLessThanOrEqual(b.x + b.width + 1);
     expect(s.height).toBeGreaterThanOrEqual(44);
+    expect(o.height).toBeGreaterThanOrEqual(44);
+    await expect(page.getByRole('heading', { name: 'Sessions' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Other devices' })).toHaveCount(0);
+    await expect(page.getByRole('main').getByRole('button', { name: 'Sign out', exact: true }), 'no bottom bar').toHaveCount(1);
     await expectNoPageOverflow(page);
   });
 
-  for (const [name, viewport] of [['900', BELOW_LG], ['360', PHONE]] as const) {
-    test(`below lg (${name}) it is one column`, async ({ page }) => {
-      await page.setViewportSize(viewport);
-      const { profile, card, signOut } = await account(page);
-      const a = await box(profile);
-      const b = await box(card);
-      const s = await box(signOut);
-      expect(Math.abs(a.x - b.x)).toBeLessThanOrEqual(1);
-      expect(b.y).toBeGreaterThanOrEqual(a.y + a.height - 1);
-      expect(s.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
-      await expectNoPageOverflow(page);
-    });
-  }
+  test('at 900 the two Sessions buttons share a row', async ({ page }) => {
+    await page.setViewportSize(BELOW_LG);
+    const { profile, card, signOut, others } = await account(page);
+    const a = await box(profile);
+    const b = await box(card);
+    expect(Math.abs(a.x - b.x)).toBeLessThanOrEqual(1);
+    expect(b.y).toBeGreaterThanOrEqual(a.y + a.height - 1);
+    expect(Math.abs((await box(signOut)).y - (await box(others)).y)).toBeLessThanOrEqual(1);
+    await expectNoPageOverflow(page);
+  });
+
+  test('at 360 the Sessions buttons stack at full width, Sign out first, no overflow', async ({ page }) => {
+    await page.setViewportSize(PHONE);
+    const { profile, card, signOut, others } = await account(page);
+    const a = await box(profile);
+    const b = await box(card);
+    expect(Math.abs(a.x - b.x)).toBeLessThanOrEqual(1);
+    expect(b.y).toBeGreaterThanOrEqual(a.y + a.height - 1);
+    const s = await box(signOut);
+    const o = await box(others);
+    expect(o.y, 'stacked, Sign out first').toBeGreaterThanOrEqual(s.y + s.height - 1);
+    expect(Math.abs(s.x - o.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(s.width - o.width)).toBeLessThanOrEqual(1);
+    expect(s.width, 'full width of the card content').toBeGreaterThan(b.width - 60);
+    expect(s.height).toBeGreaterThanOrEqual(44);
+    expect(o.height).toBeGreaterThanOrEqual(44);
+    await expectNoPageOverflow(page);
+  });
 
   test('Arabic: still two columns at lg+, mirrored, no overflow', async ({ page, context }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);

@@ -61,6 +61,16 @@ for (const role of ['OWNER', 'STAFF'] as const) {
       expect(calls.filter((c) => !c.path.startsWith('/api/dashboard/'))).toEqual([]);
     });
 
+    test('F68-A: the password fields carry placeholders; the labels stay the accessible names', async ({ page }) => {
+      await mockSetupApi(page);
+      await page.goto('/app/account');
+      await expect(page.getByLabel('Current password', { exact: true })).toHaveAttribute(
+        'placeholder',
+        'Your current password',
+      );
+      await expect(page.getByLabel('New password', { exact: true })).toHaveAttribute('placeholder', '10+ characters');
+    });
+
     test('changes the password: validation, wrong current password, then success', async ({ page }) => {
       const sent: Sent[] = [];
       await mockSetupApi(page, {
@@ -125,6 +135,18 @@ for (const role of ['OWNER', 'STAFF'] as const) {
     });
   });
 }
+
+test.describe('Account page: Arabic placeholders', () => {
+  test('current and new password placeholders are Arabic', async ({ page, context }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+    await setRole(page, 'OWNER', DASHBOARD);
+    await mockSetupApi(page);
+    await page.goto('/app/account');
+    await expect(page.locator('input[name=currentPassword]')).toHaveAttribute('placeholder', 'أدخل كلمة مرورك الحالية');
+    await expect(page.locator('input[name=newPassword]')).toHaveAttribute('placeholder', /أحرف على الأقل/);
+    await expect(page.getByRole('heading', { name: 'الجلسات' })).toBeVisible();
+  });
+});
 
 test.describe('Account page: other states', () => {
   test('an unverified address says so, and the banner still resends from this page', async ({ page }) => {

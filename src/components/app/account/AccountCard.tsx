@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { ConfirmSheet } from '../ConfirmSheet';
+import { useSignOut } from '../useSignOut';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError, changePassword } from '@/lib/api/auth';
 import { signOutOtherSessions } from '@/lib/api/team';
@@ -28,6 +29,7 @@ export function AccountCard() {
   const [pending, setPending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const { signOut, signingOut: signingOutHere } = useSignOut();
   const [others, setOthers] = useState<{ text: string; failed: boolean }>();
 
   const focusFirstInvalid = () =>
@@ -129,6 +131,7 @@ export function AccountCard() {
             setCurrent(e.target.value);
             setErrors((prev) => ({ ...prev, current: undefined }));
           }}
+          placeholder={t('currentPlaceholder')}
           autoComplete="current-password"
           error={errors.current}
           readOnly={pending}
@@ -142,6 +145,7 @@ export function AccountCard() {
               setNext(e.target.value);
               setErrors((prev) => ({ ...prev, next: undefined }));
             }}
+            placeholder={t('newPlaceholder', { min: PASSWORD_MIN })}
             autoComplete="new-password"
             error={errors.next}
             readOnly={pending}
@@ -158,15 +162,28 @@ export function AccountCard() {
           <h3 className="m-0 text-base font-semibold">{t('others.title')}</h3>
           <p className="m-0 text-sm text-muted">{t('others.body')}</p>
         </div>
-        <Button
-          variant="secondary"
-          size="lg"
-          className="self-start"
-          onClick={() => setConfirmOpen(true)}
-        >
-          <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
-          {t('others.cta')}
-        </Button>
+        {/* Two outline buttons in one row; below ~30 rem they wrap and stack at full width. */}
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="secondary"
+            size="row"
+            className="grow basis-32"
+            loading={signingOutHere}
+            onClick={signOut}
+          >
+            <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+            {t('signOut')}
+          </Button>
+          <Button
+            variant="secondary"
+            size="row"
+            className="grow basis-60"
+            onClick={() => setConfirmOpen(true)}
+          >
+            <LogOut size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+            {t('others.cta')}
+          </Button>
+        </div>
         <p
           aria-live="polite"
           className={others?.failed ? 'm-0 text-sm text-danger' : 'm-0 text-sm text-muted'}

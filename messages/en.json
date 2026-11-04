@@ -25,6 +25,7 @@
       "claimed": "Claimed",
       "reminder2h": "2 h",
       "reminder24h": "24 h",
+      "reminderLate": "Last-minute booking",
       "pendingPayment": "Awaiting payment"
     }
   },
@@ -420,6 +421,8 @@
         "overnight": {
           "title": "Open until {to} the next day?",
           "body": "{day} {from} to 24:00, then {nextDay} 00:00 to {to}. Days you copy to get their own next-day hours.",
+          "announce": "Open past midnight? Choose an option below. Apply stays off until you do.",
+          "copyHint": "Copying replaces the days you picked: their own hours and their early-morning hours after midnight.",
           "keep": "Change the times",
           "confirm": "Yes, open until {to}",
           "tooMany": "{day} already has {max} blocks, so there is no room for the after-midnight hours. Remove one first."
@@ -518,7 +521,9 @@
       "title": "Account",
       "body": "Change your password. Other devices are signed out; this one stays signed in.",
       "current": "Current password",
+      "currentPlaceholder": "Your current password",
       "new": "New password",
+      "newPlaceholder": "{min}+ characters",
       "submit": "Change password",
       "saved": "Password changed. Other devices were signed out.",
       "errors": {
@@ -532,7 +537,7 @@
         "network": "We can't reach the server. Check your connection and try again."
       },
       "others": {
-        "title": "Other devices",
+        "title": "Sessions",
         "body": "Signs you out everywhere else, in every business you belong to. This device stays signed in.",
         "cta": "Sign out other devices",
         "confirmTitle": "Sign out other devices?",
@@ -595,6 +600,8 @@
       "allDone": "All sent",
       "today": "Today",
       "tomorrow": "Tomorrow",
+      "lateWhen": "Booked just now for <clock>{time}</clock>",
+      "lateWhenDay": "Booked just now for {day} <clock>{time}</clock>",
       "col": {
         "client": "Client",
         "appointment": "Appointment",
@@ -611,7 +618,7 @@
       "callInstead": "Call instead",
       "retryBody": "WhatsApp opened, but we could not record it as sent. The message may already be sent, so check before sending again.",
       "retryCta": "Mark as sent",
-      "emptyTitle": "All reminders sent",
+      "emptyTitle": "No reminders to send for now",
       "emptyBody": "New reminders show up here when they are due.",
       "stale": "We couldn't refresh the list. Showing the last version."
     },
@@ -937,6 +944,7 @@
       "slugPlaceholder": "studio-nour",
       "slugPrefix": "/b/",
       "ownerName": "Your name",
+      "ownerNamePlaceholder": "e.g. Alex Morgan",
       "email": "Your email",
       "emailPlaceholder": "you@example.com",
       "password": "Password",
@@ -953,6 +961,7 @@
       "email": "Email",
       "emailPlaceholder": "you@example.com",
       "password": "Password",
+      "passwordPlaceholder": "Your password",
       "submit": "Sign in"
     },
     "invite": {
@@ -961,6 +970,7 @@
       "expires": "This invite expires {when}.",
       "email": "Email",
       "name": "Your name",
+      "namePlaceholder": "e.g. Alex Morgan",
       "password": "Password",
       "passwordPlaceholder": "{min}+ characters",
       "submit": "Accept and join",
@@ -1817,6 +1827,7 @@
       "title": "Choose a new password",
       "subtitle": "Use at least {min} characters. You will be signed out everywhere.",
       "password": "New password",
+      "passwordPlaceholder": "{min}+ characters",
       "submit": "Save new password",
       "successTitle": "Password changed",
       "successBody": "Your password was updated and every device was signed out. Sign in with your new password.",

@@ -101,6 +101,7 @@ export function ResetPasswordView({ token }: { token: string }) {
               setPassword(e.target.value);
               setProblem(undefined);
             }}
+            placeholder={t('passwordPlaceholder', { min: PASSWORD_MIN })}
             autoComplete="new-password"
             error={problem ? t(`errors.${problem}`, { min: PASSWORD_MIN, max: PASSWORD_MAX }) : undefined}
             readOnly={pending}

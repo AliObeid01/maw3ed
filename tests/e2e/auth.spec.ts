@@ -59,6 +59,29 @@ test.describe('autocomplete values', () => {
   });
 });
 
+test.describe('F68-A placeholders (guidance only: labels and accessible names stay)', () => {
+  test('login, signup and invite show password and name placeholders', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('placeholder', 'Your password');
+    await page.goto('/signup');
+    await expect(page.getByLabel('Your name', { exact: true })).toHaveAttribute('placeholder', 'e.g. Alex Morgan');
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('placeholder', '10+ characters');
+    await mockInvite(page, (route) => json(route, 200, session('STAFF')));
+    await page.goto('/invite/tok');
+    await expect(page.getByLabel('Your name', { exact: true })).toHaveAttribute('placeholder', 'e.g. Alex Morgan');
+    await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('placeholder', '10+ characters');
+  });
+
+  test('Arabic: the same fields carry Arabic placeholders', async ({ page, context, baseURL }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
+    await page.goto('/login');
+    await expect(page.locator('input[name=password]')).toHaveAttribute('placeholder', 'أدخل كلمة المرور');
+    await page.goto('/signup');
+    await expect(page.locator('input[name=ownerName]')).toHaveAttribute('placeholder', /\S/);
+    await expect(page.locator('input[name=ownerName]')).not.toHaveAttribute('placeholder', 'e.g. Alex Morgan');
+  });
+});
+
 test.describe('invite token privacy', () => {
   test('sends no-referrer as a response header and in the page head', async ({ page }) => {
     await mockInvite(page, (route) => json(route, 200, session('STAFF')));

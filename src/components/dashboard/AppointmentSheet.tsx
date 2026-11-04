@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
 import { useErrorMessage } from '@/components/app/states';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
-import { Button, ButtonLink } from '@/components/ui/Button';
+import { Button, ButtonLink, buttonClasses } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Sheet } from '@/components/ui/Sheet';
 import { cancelAppointment, type TodayAppointment } from '@/lib/api/dashboard';
@@ -110,7 +110,7 @@ export function AppointmentSheet({
               {tel ? (
                 <ButtonLink
                   href={tel}
-                  variant="secondary"
+                  variant="call"
                   size="row"
                   aria-label={t('callAria', { name: name })}
                 >
@@ -124,7 +124,7 @@ export function AppointmentSheet({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={t('whatsappAria', { name })}
-                  className="inline-flex h-[46px] items-center justify-center gap-2 rounded-btn border border-line bg-surface px-5 text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
+                  className={buttonClasses({ variant: 'whatsapp', size: 'row' })}
                 >
                   <MessageCircle size={18} aria-hidden="true" />
                   {t('whatsapp')}

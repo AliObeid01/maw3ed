@@ -1,6 +1,6 @@
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger';
+export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'whatsapp' | 'call';
 export type ButtonSize = 'md' | 'row' | 'lg';
 
 const variants: Record<ButtonVariant, string> = {
@@ -8,6 +8,9 @@ const variants: Record<ButtonVariant, string> = {
   accent: 'bg-electric text-white hover:bg-brand-hover',
   secondary: 'border border-line bg-surface text-ink hover:bg-canvas',
   ghost: 'bg-transparent text-brand hover:bg-brand-soft',
+  // WhatsApp is solid deep green (never the bright WhatsApp brand green, it fails contrast with white); Call is OUTLINED Royal Blue.
+  whatsapp: 'bg-whatsapp text-white hover:bg-whatsapp-hover active:bg-whatsapp-hover',
+  call: 'border border-brand bg-surface text-brand hover:bg-brand-soft active:bg-brand-soft',
   danger: 'border border-danger-line bg-danger-soft text-danger hover:brightness-95',
 };
 
