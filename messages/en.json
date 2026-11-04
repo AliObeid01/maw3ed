@@ -1274,7 +1274,8 @@
       "emailInvalid": "Enter a valid email address.",
       "retry": "Try again",
       "nameTooLong": "Use {max} characters or fewer.",
-      "slotGone": "That time is no longer available. Please pick another."
+      "slotGone": "That time is no longer available. Please pick another.",
+      "slotTakenLive": "That time was just taken. Pick another; your details are kept."
     },
     "notFound": {
       "title": "We can't find this booking page",

@@ -66,6 +66,7 @@ For each local day in range and each staff member:
    `start + duration + buffer ≤ interval.end` and `start ≥ now + minNotice` and `start < windowEnd`.
 4. "Anyone": union of starts across staff; each slot keeps the candidate staff ids. On booking, the service picks the free
    candidate with the fewest bookings that local day (ties → stable order by staff id).
+**Known limit (after-midnight hours):** working hours are per weekday and an interval never crosses midnight, so a night shift is stored as `start–24:00` plus `00:00–end` on the next weekday (the hours editor's "open past midnight" assistant writes both). A booking therefore cannot span midnight: the last start of a 60-minute service stays 23:00 even when the next day opens at 00:00.
 The repository loads all inputs for the range in a fixed number of queries (no N+1), keeping NFR-09 (< 300 ms p95).
 **F33 speed:** the profile showed ~60 % of a request in Luxon `IANAZone.offset` (an Intl format on every call, thousands per request). The generator now memoises zone offsets per hour bucket (a bucket that contains a transition is never cached, so DST answers still come from Luxon), memoises local-to-UTC conversions, walks the calendar days once per call, and scans only the time-off/busy intervals that overlap each working interval. Output is proven identical to the pre-change code by `tests/unit/booking/slots.f33.equivalence.test.ts`. These are memoised pure functions of the immutable tz database: no business data is cached.
 

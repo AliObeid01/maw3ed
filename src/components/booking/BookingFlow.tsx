@@ -48,6 +48,7 @@ import {
   type BookingParams,
 } from '@/lib/booking/urlState';
 import { clearBooked, loadBooked, saveBooked, type BookedState } from '@/lib/booking/bookedStore';
+import { createLiveRefresh, sameData } from '@/lib/booking/liveRefresh';
 import { loadSlotWindow } from '@/lib/booking/window';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { BookedView } from './BookedView';
@@ -101,7 +102,7 @@ export function BookingFlow({ slug }: { slug: string }) {
   const slotKey = `${ready}:${resolved?.serviceId}:${resolved?.staffId}:${days[0]}`;
   // The booking window re-read after the server rejected the published one (F28); wins over the first load.
   const knownWindow = useRef<number | undefined>(undefined);
-  const windowRes = useResource(async (signal) => {
+  const fetchWindow = async (signal: AbortSignal) => {
     if (!ready) return null;
     const window = await loadSlotWindow(
       slug,
@@ -122,7 +123,8 @@ export function BookingFlow({ slug }: { slug: string }) {
       },
     );
     return window;
-  }, slotKey);
+  };
+  const windowRes = useResource(fetchWindow, slotKey);
   const reloadSlots = windowRes.reload;
 
   const [fresh, setFresh] = useState<FreshDays>(NO_FRESH);
@@ -157,6 +159,51 @@ export function BookingFlow({ slug }: { slug: string }) {
     return () => document.removeEventListener('visibilitychange', onVisible);
   }, [reloadSlots]);
 
+  // Live refresh (F68-B): about every minute while the tab is visible, the business and the chosen service's slots
+  // are re-read quietly. Only changed data replaces what is on screen (same object when equal), the form state lives
+  // above and is never touched, errors are ignored (the next tick tries again), and a result for a service/person
+  // the client has since left is dropped.
+  const liveWindow = useRef(fetchWindow);
+  const liveKey = useRef(slotKey);
+  const liveBusiness = useRef(business.setData);
+  const liveSlots = useRef(windowRes.setData);
+  useEffect(() => {
+    liveWindow.current = fetchWindow;
+    liveKey.current = slotKey;
+    liveBusiness.current = business.setData;
+    liveSlots.current = windowRes.setData;
+  });
+  const liveReady = !!data;
+  useEffect(() => {
+    if (!liveReady) return;
+    let controller: AbortController | undefined;
+    const refreshQuietly = async () => {
+      controller?.abort();
+      const mine = new AbortController();
+      controller = mine;
+      const key = liveKey.current;
+      try {
+        const [fresh, slots] = await Promise.all([
+          getPublicBusiness(slug, mine.signal),
+          liveWindow.current(mine.signal),
+        ]);
+        if (mine.signal.aborted) return;
+        liveBusiness.current((current) => (sameData(current, fresh) ? current! : fresh));
+        if (liveKey.current === key) {
+          liveSlots.current((current) => (sameData(current, slots) ? current! : slots));
+        }
+      } catch {
+        /* background refresh: keep what is shown */
+      }
+    };
+    const live = createLiveRefresh({ refresh: () => void refreshQuietly() });
+    live.start();
+    return () => {
+      live.stop();
+      controller?.abort();
+    };
+  }, [slug, liveReady]);
+
   // ---- details, submit state ----------------------------------------------------------------
   const [values, setValues] = useState<DetailsValues>({
     name: '',
@@ -166,7 +213,9 @@ export function BookingFlow({ slug }: { slug: string }) {
   });
   const [errors, setErrors] = useState<DetailsErrors>({});
   const [banner, setBanner] = useState<BookingBanner>();
-  const [notice, setNotice] = useState<'slotGone'>();
+  const [notice, setNotice] = useState<'slotGone' | 'slotTaken'>();
+  // True while the client has a real chosen time on the details step; if it vanishes after that, someone took it.
+  const hadSlot = useRef(false);
   const [pending, setPending] = useState(false);
   const [tick, setTick] = useState(0);
   const [taken, setTaken] = useState<TakenInfo>();
@@ -219,10 +268,16 @@ export function BookingFlow({ slug }: { slug: string }) {
   const step = resolved?.step;
   const day = resolved?.day;
   useEffect(() => {
+    if (step !== 'details') hadSlot.current = false;
+    else if (selectedSlot) hadSlot.current = true;
+  }, [step, selectedSlot]);
+  useEffect(() => {
     if (booked || taken || step !== 'details' || windowRes.loading || selectedSlot) return;
     // (Queued: this is a reaction to loaded data, not a render-time state change.)
     const failed = !!windowRes.error;
-    queueMicrotask(() => setNotice(failed ? undefined : 'slotGone'));
+    const someoneTookIt = hadSlot.current;
+    hadSlot.current = false;
+    queueMicrotask(() => setNotice(failed ? undefined : someoneTookIt ? 'slotTaken' : 'slotGone'));
     go({ step: 'time', service: resolved?.serviceId, staff: resolved?.staffId, day }, 'replace');
   }, [booked, taken, step, windowRes.loading, windowRes.error, selectedSlot, go, resolved?.serviceId, resolved?.staffId, day]);
 
@@ -559,7 +614,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             {notice ? (
               <div role="status">
                 <Callout tone="warning" icon={<Info />}>
-                  {t('errors.slotGone')}
+                  {t(notice === 'slotTaken' ? 'errors.slotTakenLive' : 'errors.slotGone')}
                 </Callout>
               </div>
             ) : null}

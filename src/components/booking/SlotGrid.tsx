@@ -54,7 +54,7 @@ export function SlotGrid({
               role="radio"
               aria-checked={false}
               disabled
-              className="h-11 min-w-[76px] rounded-btn border border-dashed border-line bg-surface px-4 text-[15px] text-subtle line-through"
+              className="h-11 min-w-[76px] cursor-not-allowed rounded-btn border border-dashed border-line-strong bg-surface px-4 text-[15px] text-subtle line-through"
             >
               <bdi dir="ltr" className="tabular-nums">
                 {time}

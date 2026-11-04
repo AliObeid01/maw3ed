@@ -29,6 +29,7 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     ['surface', '#ffffff'],
     ['canvas', '#f3f5fa'],
     ['line', '#d3dcee'],
+    ['line-strong', '#8393b8'],
     ['brand-hover', '#1d3fb8'],
     ['success', '#17795a'],
     ['success-soft', '#ddf5ec'],
@@ -55,6 +56,17 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     };
     expect(ratio(token('subtle')!, '#ffffff')).toBeGreaterThanOrEqual(4.5);
     expect(lum(token('subtle')!)).toBeGreaterThan(lum(token('muted')!));
+  });
+
+  it('--color-line-strong (taken slot border, a non-text boundary) reaches 3:1 on white', () => {
+    const lum = (h: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const s = parseInt(h.slice(i, i + 2), 16) / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    expect((1.05) / (lum(token('line-strong')!) + 0.05)).toBeGreaterThanOrEqual(3);
   });
 
   it('has no legacy --color-accent alias and no accent colour utilities (use cyan)', () => {
