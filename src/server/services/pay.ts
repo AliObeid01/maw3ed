@@ -239,7 +239,7 @@ export const payService = {
       r.businessId,
       r.appointmentId,
       now,
-      plannedJobs(row.startAt, now),
+      plannedJobs(row.startAt, now, { source: row.source }),
     );
     row = await load(r);
     if (flipped) {

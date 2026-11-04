@@ -21,9 +21,10 @@ interface Kind {
 
 const startAt = new Date('2026-11-04T07:00:00Z');
 const reminder =
-  (kind: EmailContext['kind']) =>
+  (kind: EmailContext['kind'], extra: { links?: 'both' | 'cancel'; reminderPromise?: boolean } = {}) =>
   (locale: string, names = { business: 'Studio Nour', client: 'Rana' }) =>
     renderReminderEmail({
+      ...extra,
       kind,
       locale,
       timezone: 'Asia/Beirut',
@@ -42,7 +43,7 @@ const KINDS: Kind[] = [
     render: reminder('BOOKING'),
     cta: 'https://app.test/l/confirm.sig?a=1&b=2',
     secondary: ['https://app.test/l/cancel.sig'],
-    subjectEn: 'Booking confirmed: Haircut on Wednesday 4 November 2026',
+    subjectEn: 'Your slot is booked: Haircut on Wednesday 4 November 2026',
   },
   {
     name: 'h24',
@@ -116,6 +117,16 @@ const KINDS: Kind[] = [
     cta: 'https://app.test/reset-password?token=tok456',
     secondary: [],
     subjectEn: '',
+  },
+  {
+    // F68: booked 24 h or more ahead, the booking email carries the Cancel link only (appended last: the
+    // tests below index KINDS by position).
+    name: 'booking (cancel only)',
+    render: (locale, names) =>
+      reminder('BOOKING', { links: 'cancel', reminderPromise: true })(locale, names),
+    cta: 'https://app.test/l/cancel.sig',
+    secondary: [],
+    subjectEn: 'Your slot is booked: Haircut on Wednesday 4 November 2026',
   },
 ];
 

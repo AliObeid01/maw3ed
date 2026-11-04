@@ -1035,9 +1035,10 @@
     "calendar": "A calendar file is attached so you can add this to your calendar.",
     "footer": "Sent by Maw3ed on behalf of {business}.",
     "booking": {
-      "subject": "Booking confirmed: {service} on {date}",
-      "heading": "Your booking is confirmed",
-      "intro": "You are booked in at {business}. Here are the details."
+      "subject": "Your slot is booked: {service} on {date}",
+      "heading": "Your slot has been booked",
+      "intro": "You are booked in at {business}.",
+      "reminderPromise": "We will email you a reminder with confirm and cancel links before your appointment."
     },
     "h24": {
       "subject": "Reminder: {service} tomorrow at {time}",
@@ -1060,7 +1061,8 @@
     },
     "whatsapp": {
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
-      "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
+      "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
+      "late": "Hi {name}, your {service} with {staff} at {business} is booked for {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
     },
     "invite": {
       "subject": "You are invited to join {business} on Maw3ed",
@@ -1210,8 +1212,8 @@
       "name": "Full name",
       "phone": "Mobile number",
       "countryCode": "Country code",
-      "email": "Email (optional)",
-      "emailPlaceholder": "For a calendar invite",
+      "email": "Email",
+      "emailPlaceholder": "We email your booking here",
       "consent": "Reminders by email and WhatsApp; no account needed.",
       "reminder1": "Reminder 1 (estimate)",
       "reminder2": "Reminder 2 (estimate)",
@@ -1253,7 +1255,7 @@
       "eyebrow": "All done",
       "title": "You're booked, {name}!",
       "subtitle": "{when} · {service} with {staff}",
-      "calendar": "Your confirmation email has a calendar invite (.ics) attached, so you can add this to your calendar.",
+      "calendar": "Your booking email has a calendar invite (.ics) attached, so you can add this to your calendar.",
       "nextTitle": "What happens next",
       "next3Title": "Can't make it?",
       "next3Body": "Confirm or cancel from any reminder, or from your booking link.",
@@ -1271,6 +1273,7 @@
       "fixFields": "Please check the highlighted fields.",
       "nameRequired": "Enter your name.",
       "phoneInvalid": "Enter a valid mobile number.",
+      "emailRequired": "Enter your email address.",
       "emailInvalid": "Enter a valid email address.",
       "retry": "Try again",
       "nameTooLong": "Use {max} characters or fewer.",
@@ -1492,7 +1495,7 @@
     "firstToClaim": "First to claim gets it",
     "book": "Book this slot",
     "side": {
-      "reminders": "Booking is instant. We email you a confirmation, and reminders when there is time before the appointment."
+      "reminders": "Booking is instant. We email you your booking, and reminders when there is time before the appointment."
     },
     "done": {
       "title": "You're booked",
@@ -1686,7 +1689,7 @@
     "signIn": "Sign in",
     "preview": {
       "label": "Example",
-      "confirmed": "Booking confirmed",
+      "confirmed": "Slot booked",
       "service": "Sample service · 30 min",
       "when": "Tomorrow · 10:30",
       "reminder": "Reminder 24 hours before",
@@ -1721,8 +1724,8 @@
     "pay": "Pay deposit (test)",
     "paying": "Paying",
     "done": {
-      "title": "You're booked and confirmed",
-      "next": "Your confirmation email is on the way.",
+      "title": "You're booked",
+      "next": "Your booking email is on the way.",
       "action": "Back to the booking page"
     },
     "expired": {

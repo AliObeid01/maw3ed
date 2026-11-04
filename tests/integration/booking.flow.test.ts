@@ -236,7 +236,7 @@ describe('reminder jobs (FR-15)', () => {
 });
 
 describe('client upsert by phone', () => {
-  it('B1: a PUBLIC booking never replaces an existing client’s name or email (not even an empty email: the record is only set when the booking creates it)', async () => {
+  it('B1: a PUBLIC booking never replaces an existing client’s name or email (the record is only set when the booking creates it)', async () => {
     const { serviceId, staffIds } = await newScenario(prisma, t);
     const clients = async () =>
       (
@@ -248,20 +248,16 @@ describe('client upsert by phone', () => {
 
     const a = await bookPublicly(t.slug, {
       ...bookingBody(serviceId, staffIds[0]!, at('07:00')),
-      client: { name: 'Rana', phone: '71 987 654' },
+      client: { name: 'Rana', phone: '71 987 654', email: 'rana@example.test' },
     });
     const b = await bookPublicly(t.slug, {
       ...bookingBody(serviceId, staffIds[0]!, at('08:00')),
-      client: { name: 'Rana K', phone: '+961 71 987 654', email: 'Rana@Example.test' },
+      client: { name: 'Rana K', phone: '+961 71 987 654', email: 'Rana.K@Example.test' },
     });
-    const c = await bookPublicly(t.slug, {
-      ...bookingBody(serviceId, staffIds[0]!, at('09:00')),
-      client: { name: 'Rana K', phone: '0096171987654' }, // no email: must not wipe it
-    });
-    expect([a.status, b.status, c.status]).toEqual([201, 201, 201]);
-    // different phone formats share one Client; an existing record is never filled or changed by a public booking
+    expect([a.status, b.status]).toEqual([201, 201]);
+    // different phone formats share one Client; an existing record is never changed by a public booking
     expect(await clients()).toEqual([
-      { name: 'Rana', email: null, phone: '+96171987654' },
+      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
     ]);
     // the hijack attempt: victim's phone with another name and email changes nothing
     const evil = await bookPublicly(t.slug, {
@@ -269,12 +265,40 @@ describe('client upsert by phone', () => {
       client: { name: 'Mallory', phone: '71 987 654', email: 'mallory@evil.test' },
     });
     expect(evil.status).toBe(201);
-    expect(await clients()).toEqual([{ name: 'Rana', email: null, phone: '+96171987654' }]);
+    expect(await clients()).toEqual([
+      { name: 'Rana', email: 'rana@example.test', phone: '+96171987654' },
+    ]);
     const ids = await pg.query(
       `SELECT DISTINCT "clientId" FROM "Appointment" WHERE "serviceId" = $1`,
       [serviceId],
     );
     expect(ids.rowCount).toBe(1);
+  });
+
+  it('F68: the now-required public email never fills a record that has none (front-desk record without email)', async () => {
+    const { serviceId, staffIds } = await newScenario(prisma, t);
+    // Front desk creates the record with NO email (still allowed there).
+    const desk = await bookAtFrontDesk(t.cookie, {
+      ...bookingBody(serviceId, staffIds[0]!, at('07:00')),
+      client: { name: 'Hadi', phone: '71 444 555' },
+    });
+    expect(desk.status).toBe(201);
+    const pub = await bookPublicly(t.slug, {
+      ...bookingBody(serviceId, staffIds[0]!, at('08:00')),
+      client: { name: 'Stranger', phone: '71 444 555', email: 'stranger@evil.test' },
+    });
+    expect(pub.status).toBe(201);
+    const rec = await pg.query(
+      `SELECT name, email FROM "Client" WHERE "businessId" = $1 AND phone = '+96171444555'`,
+      [t.businessId],
+    );
+    expect(rec.rows).toEqual([{ name: 'Hadi', email: null }]);
+    // The typed address lives on the appointment only.
+    const appt = await pg.query(
+      `SELECT "contactEmail", "contactName" FROM "Appointment" WHERE id = $1`,
+      [pub.body!.appointment.id],
+    );
+    expect(appt.rows).toEqual([{ contactEmail: 'stranger@evil.test', contactName: 'Stranger' }]);
   });
 
   it('B1: a session-authenticated FRONT DESK booking may update name and email', async () => {
@@ -311,7 +335,7 @@ describe('client upsert by phone', () => {
     const other = await newTenant();
     const a = await newScenario(prisma, t);
     const b = await newScenario(prisma, other);
-    const client = { name: 'Sam', phone: '71 222 333' };
+    const client = { name: 'Sam', phone: '71 222 333', email: 'sam@example.test' };
     await bookPublicly(t.slug, {
       ...bookingBody(a.serviceId, a.staffIds[0]!, at('07:00')),
       client,

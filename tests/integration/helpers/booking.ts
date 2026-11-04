@@ -76,7 +76,13 @@ export function bookingBody(
     serviceId,
     staffId,
     startAt,
-    client: { name: 'Client', phone: newPhone(), ...client },
+    // F68: the public page requires an email, so every default client has one. A test that needs a booking
+    // WITHOUT an email (front desk only) passes `{ email: undefined }`.
+    client: { name: 'Client', phone: newPhone(), email: `c-${unique()}@example.test`, ...client } as {
+      name: string;
+      phone: string;
+      email: string;
+    },
   };
 }
 

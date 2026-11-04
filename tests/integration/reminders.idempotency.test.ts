@@ -58,6 +58,12 @@ async function book(
     bookingBody(scenario.serviceId, scenario.staffIds[0]!, startAt, email ? { email } : {}),
   );
   if (res.status !== 201) throw new Error(`book failed ${res.status} ${JSON.stringify(res.body)}`);
+  if (!email) {
+    // F68: the public page always sends an email. A booking with none is what is left after the address is
+    // removed (a deleted client record, a pre-F16 appointment): null both places.
+    await pg.query(`UPDATE "Appointment" SET "contactEmail" = NULL WHERE id = $1`, [res.body!.appointment.id]);
+    await pg.query(`UPDATE "Client" SET email = NULL WHERE "businessId" = $1`, [tenant.businessId]);
+  }
   return { id: res.body!.appointment.id as string, startAt: new Date(startAt) };
 }
 
@@ -255,7 +261,7 @@ describe('send windows', () => {
 });
 
 describe('booking confirmation email', () => {
-  it('is sent immediately with the .ics and signed confirm/cancel links', async () => {
+  it('F68: booked 24 h or more ahead (47 h): sent at once with the .ics and ONLY a signed cancel link', async () => {
     const appt = await book(a, scn, 'rana@example.test', '07:00');
     const run = await runReminders(deps(NOW));
     expect(run).toMatchObject({ claimed: 1, sent: 1 });
@@ -270,15 +276,48 @@ describe('booking confirmation email', () => {
     expect(ics.content).toContain('\r\n');
     expect(mail.text).toContain('Alpha Salon');
     expect(mail.text).toContain('Wednesday 4 November 2026, 09:00');
+    expect(mail.subject).toMatch(/^Your slot is booked: /);
+    expect(mail.subject + mail.text + mail.html).not.toMatch(/confirmed/i);
 
     const links = [...mail.text.matchAll(/http:\/\/localhost:3000\/l\/(\S+)/g)].map((m) => m[1]!);
+    expect(links).toHaveLength(1);
+    const cancel = verifyToken(links[0]!, secret(), NOW, 'cancel');
+    expect(cancel.ok && cancel.payload.a).toBe(appt.id);
+    expect(cancel.ok && cancel.payload.act).toBe('cancel');
+    expect(cancel.ok && cancel.payload.exp).toBe(Math.floor(appt.startAt.getTime() / 1000));
+    // It cannot confirm, and the mail has no confirm line or button.
+    expect(verifyToken(links[0]!, secret(), NOW, 'confirm').ok).toBe(false);
+    expect(mail.text).not.toContain('Confirm my appointment');
+    expect(mail.html).not.toContain('Confirm my appointment');
+    expect(mail.text).toContain('We will email you a reminder with confirm and cancel links');
+    expect(mail.text).toContain('These links stop working when your appointment starts.');
+  });
+
+  it('F68: booked under 24 h ahead (11 h): both signed links, and the reminder sentence (H2 follows)', async () => {
+    const t = new Date('2026-11-03T20:00:00Z'); // 22:00 Beirut; the slot is 11 h later
+    vi.setSystemTime(t);
+    const appt = await book(a, scn, 'rana@example.test', '07:00');
+    const run = await runReminders(deps(t));
+    expect(run).toMatchObject({ claimed: 1, sent: 1 });
+    const mail = fake.calls[0]!;
+    const links = [...mail.text.matchAll(/http:\/\/localhost:3000\/l\/(\S+)/g)].map((m) => m[1]!);
     expect(links).toHaveLength(2);
-    const [confirm, cancel] = links;
-    const ok = verifyToken(confirm!, secret(), NOW, 'confirm');
-    expect(ok.ok && ok.payload.a).toBe(appt.id);
-    expect(ok.ok && ok.payload.exp).toBe(Math.floor(appt.startAt.getTime() / 1000));
-    expect(verifyToken(cancel!, secret(), NOW, 'cancel').ok).toBe(true);
-    expect(verifyToken(cancel!, secret(), NOW, 'confirm').ok).toBe(false);
+    const confirm = verifyToken(links[0]!, secret(), t, 'confirm');
+    expect(confirm.ok && confirm.payload.a).toBe(appt.id);
+    expect(verifyToken(links[1]!, secret(), t, 'cancel').ok).toBe(true);
+    expect(mail.text).toContain('We will email you a reminder with confirm and cancel links');
+    expect(mail.subject + mail.text).not.toMatch(/confirmed/i);
+  });
+
+  it('F68: booked 75 min ahead: both links and NO reminder promise (none is planned)', async () => {
+    const t = new Date('2026-11-04T05:45:00Z');
+    vi.setSystemTime(t);
+    await book(a, scn, 'rana@example.test', '07:00');
+    await runReminders(deps(t));
+    const mail = fake.calls[0]!;
+    expect([...mail.text.matchAll(/\/l\/(\S+)/g)]).toHaveLength(2);
+    expect(mail.text).not.toContain('We will email you a reminder');
+    expect(mail.text).toContain('These links stop working when your appointment starts.');
   });
 
   it('reminder emails carry no calendar attachment', async () => {
@@ -482,8 +521,9 @@ describe('tenant', () => {
     expect(bMail.html + bMail.text).not.toContain('Alpha Salon');
     expect(bMail.html).toContain('dir="rtl"');
     const tokenOf = (m: { text: string }) => /\/l\/(\S+)/.exec(m.text)![1]!;
-    const pa = verifyToken(tokenOf(aMail), secret(), NOW, 'confirm');
-    const pb = verifyToken(tokenOf(bMail), secret(), NOW, 'confirm');
+    // 47 h ahead: the booking email carries the cancel link only (F68).
+    const pa = verifyToken(tokenOf(aMail), secret(), NOW, 'cancel');
+    const pb = verifyToken(tokenOf(bMail), secret(), NOW, 'cancel');
     expect(pa.ok && pa.payload.a).toBe(aAppt.id);
     expect(pb.ok && pb.payload.a).toBe(bAppt.id);
   });

@@ -263,6 +263,7 @@ export const appointmentRepo = {
         status: true,
         holdExpiresAt: true,
         cancelledVia: true,
+        source: true,
         serviceId: true,
         staffId: true,
         service: { select: { id: true, name: true, durationMin: true, price: true } },

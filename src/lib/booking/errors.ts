@@ -6,7 +6,10 @@ export type DetailsField = 'name' | 'phone' | 'email';
 export const NAME_MAX = 80;
 export const PHONE_MAX = 32;
 export type DetailsErrors = Partial<
-  Record<DetailsField, 'nameRequired' | 'nameTooLong' | 'phoneInvalid' | 'emailInvalid'>
+  Record<
+    DetailsField,
+    'nameRequired' | 'nameTooLong' | 'phoneInvalid' | 'emailRequired' | 'emailInvalid'
+  >
 >;
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -23,7 +26,9 @@ export function validateDetails(input: {
   else if (input.name.trim().length > NAME_MAX) errors.name = 'nameTooLong';
   if (!phoneLooksComplete(input.dial, input.phone)) errors.phone = 'phoneInvalid';
   const email = input.email.trim();
-  if (email && !EMAIL.test(email)) errors.email = 'emailInvalid';
+  // F68: the public booking page requires an email.
+  if (!email) errors.email = 'emailRequired';
+  else if (!EMAIL.test(email)) errors.email = 'emailInvalid';
   return errors;
 }
 
@@ -78,7 +83,9 @@ export function classifyBookingError(error: unknown): BookingFailure {
         // The server text is English only, but its length complaint is how a too-long name is told apart from an empty one.
         const tooLong =
           field === 'name' && /\b80\b|<=|at most|too (long|big)/i.test(error.fields[name] ?? '');
-        fields[field] = tooLong ? 'nameTooLong' : FIELD_ERRORS[field];
+        const missing =
+          field === 'email' && /required|>=1|too small|received undefined/i.test(error.fields[name] ?? '');
+        fields[field] = tooLong ? 'nameTooLong' : missing ? 'emailRequired' : FIELD_ERRORS[field];
       }
       else other = true;
     }

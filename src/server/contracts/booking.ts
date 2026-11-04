@@ -61,24 +61,32 @@ export const SlotsDto = registry.register('Slots', z.object({ slots: z.array(Slo
 
 // ---- booking ----------------------------------------------------------------------------------------
 
-const ClientInput = z
-  .object({
-    name: z.string().trim().min(1).max(80),
-    phone: z.string().trim().min(3).max(32),
-    email: z.string().trim().toLowerCase().pipe(z.email().max(254)).optional(),
-  })
-  .strict();
+const clientEmail = z.string().trim().toLowerCase().pipe(z.email().max(254));
+const clientBase = {
+  name: z.string().trim().min(1).max(80),
+  phone: z.string().trim().min(3).max(32),
+};
+/** Front desk: the email stays optional. */
+const ClientInput = z.object({ ...clientBase, email: clientEmail.optional() }).strict();
+/** Public page (F68): the email is required so the booking email and its links always have somewhere to go. */
+const PublicClientInput = z.object({ ...clientBase, email: clientEmail }).strict();
 
+const bookingFields = {
+  serviceId: id,
+  staffId: z.union([z.literal('anyone'), id]),
+  startAt: isoInstant,
+};
+
+/** Front-desk booking (OWNER or STAFF): the client's email is optional. */
 export const BookingBody = registry.register(
   'BookingBody',
-  z
-    .object({
-      serviceId: id,
-      staffId: z.union([z.literal('anyone'), id]),
-      startAt: isoInstant,
-      client: ClientInput,
-    })
-    .strict(),
+  z.object({ ...bookingFields, client: ClientInput }).strict(),
+);
+
+/** Public booking: same as BookingBody but `client.email` is required. */
+export const PublicBookingBody = registry.register(
+  'PublicBookingBody',
+  z.object({ ...bookingFields, client: PublicClientInput }).strict(),
 );
 
 const idempotencyKey = z
@@ -227,7 +235,7 @@ registry.registerPath({
   request: {
     params: SlugParams,
     headers: RequiredIdempotencyHeaders,
-    body: { content: json(BookingBody) },
+    body: { content: json(PublicBookingBody) },
   },
   responses: {
     200: { description: 'Idempotent replay of the first booking', content: json(BookingResultDto) },

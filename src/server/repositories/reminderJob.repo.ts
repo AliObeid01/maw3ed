@@ -3,17 +3,20 @@ import type { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
 
 export interface NewReminderJob {
-  kind: 'BOOKING' | 'H24' | 'H2';
+  kind: 'BOOKING' | 'H24' | 'H2' | 'LATE';
   channel: 'EMAIL' | 'WHATSAPP';
   dueAt: Date;
 }
+
+/** The kinds that appear on the receptionist's WhatsApp list. */
+export const WHATSAPP_KINDS = ['H24', 'H2', 'LATE'] as const;
 
 /** A row returned by the claim statement. */
 export interface ClaimedJob {
   id: string;
   businessId: string;
   appointmentId: string;
-  kind: 'BOOKING' | 'H24' | 'H2';
+  kind: 'BOOKING' | 'H24' | 'H2' | 'LATE';
   dueAt: Date;
   attempts: number;
 }
@@ -254,7 +257,7 @@ export const reminderJobRepo = {
       where: {
         businessId,
         channel: 'WHATSAPP',
-        kind: { in: ['H24', 'H2'] },
+        kind: { in: [...WHATSAPP_KINDS] },
         OR: [
           { status: 'PENDING', dueAt: { lte: now } },
           { status: 'SENT', sentAt: { gte: sentSince } },
@@ -270,7 +273,7 @@ export const reminderJobRepo = {
       where: {
         businessId,
         channel: 'WHATSAPP',
-        kind: { in: ['H24', 'H2'] },
+        kind: { in: [...WHATSAPP_KINDS] },
         status: 'PENDING',
         dueAt: { lte: now },
       },

@@ -90,7 +90,10 @@ export const WhatsappDueDto = registry.register(
     items: z.array(
       z.object({
         id: z.string(),
-        kind: z.enum(['H24', 'H2']),
+        kind: z.enum(['H24', 'H2', 'LATE']).openapi({
+          description:
+            'H24 and H2 are the reminders. LATE is a public booking made less than 2 h before the slot: it is due at once, shown until the appointment starts, and its text is a booking confirmation.',
+        }),
         dueAt: iso,
         appointment: z.object({
           id: z.string(),
@@ -207,7 +210,7 @@ registry.registerPath({
 registry.registerPath({
   method: 'get',
   path: '/api/reminders/whatsapp-due',
-  summary: 'WhatsApp reminders due now, plus those sent in the last 12 hours',
+  summary: 'WhatsApp reminders and last-minute bookings due now, plus those sent in the last 12 hours',
   tags: ['reminders'],
   security: [{ session: [] }],
   responses: {

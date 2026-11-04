@@ -87,7 +87,7 @@ describe('renderReminderEmail', () => {
       'Reminder: Haircut today at 09:00',
     );
     expect(renderReminderEmail({ ...base, kind: 'BOOKING' }).subject).toBe(
-      'Booking confirmed: Haircut on Wednesday 4 November 2026',
+      'Your slot is booked: Haircut on Wednesday 4 November 2026',
     );
   });
 
