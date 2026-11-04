@@ -1,9 +1,10 @@
 'use client';
 
-import { Plus, X } from 'lucide-react';
+import { Moon, Plus, X } from 'lucide-react';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
+import { Callout } from '@/components/ui/Callout';
 import { TimeField } from '@/components/ui/DateTimeFields';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
@@ -12,8 +13,12 @@ import {
   WEEK_ORDER,
   copyDay,
   endFromInput,
-  endToInput,
+  nextWeekday,
+  openPastMidnight,
+  overnightIndex,
+  sortDay,
   suggestInterval,
+  toMinutes,
   validateDay,
   type DayInterval,
   type DayProblem,
@@ -55,8 +60,9 @@ function IntervalRow({
       <TimeField
         className="min-w-0 flex-1"
         label={t('closes')}
-        value={endToInput(interval.end)}
+        value={interval.end}
         invalid={invalid}
+        endOfDay
         onChange={(end) => onChange({ ...interval, end: endFromInput(end) })}
       />
       <button
@@ -123,10 +129,22 @@ function DayEditorBody({
 }) {
   const t = useTranslations('app.hours.editor');
   const dayName = useWeekdayName();
-  const [draft, setDraft] = useState<DayInterval[]>(() => week[weekday]!.map((i) => ({ ...i })));
+  const [draft, setDraft] = useState<DayInterval[]>(() =>
+    sortDay(week[weekday]!.map((i) => ({ start: i.start, end: endFromInput(i.end) }))),
+  );
   const [copyTo, setCopyTo] = useState<number[]>([]);
+  const [declined, setDeclined] = useState<string>();
+  const [overnightError, setOvernightError] = useState<string>();
 
-  const problems = validateDay(draft);
+  // Closes earlier than Opens on one entry is the "open past midnight" case: offer the split instead of an error.
+  const overnight = overnightIndex(draft);
+  const overnightEntry = overnight >= 0 ? draft[overnight]! : undefined;
+  const overnightKey = overnightEntry ? `${overnightEntry.start}-${overnightEntry.end}` : undefined;
+  const offerOvernight = overnightEntry !== undefined && declined !== overnightKey;
+  const nextDayName = dayName.long(nextWeekday(weekday));
+  const allProblems = validateDay(draft);
+  const otherBad = draft.some((i, k) => k !== overnight && toMinutes(i.end) <= toMinutes(i.start));
+  const problems = allProblems.filter((p) => p !== 'endBeforeStart' || !offerOvernight || otherBad);
   const problemText: Record<DayProblem, string> = {
     invalid: t('problem.invalid'),
     endBeforeStart: t('problem.endBeforeStart'),
@@ -135,9 +153,26 @@ function DayEditorBody({
   };
 
   const apply = () => {
-    if (problems.length > 0) return;
-    const next = week.map((day, index) => (index === weekday ? draft : day));
+    if (problems.length > 0 || offerOvernight) return;
+    const next = week.map((day, index) => (index === weekday ? sortDay(draft) : day));
     onApply(copyDay(next, weekday, copyTo));
+    onClose();
+  };
+
+  const confirmOvernight = () => {
+    const result = openPastMidnight(week, weekday, draft, overnight, copyTo);
+    if (!result.ok) {
+      setOvernightError(
+        result.problem === 'tooMany'
+          ? t('overnight.tooMany', {
+              day: dayName.long(result.weekday),
+              max: MAX_INTERVALS_PER_DAY,
+            })
+          : t('problem.overlap'),
+      );
+      return;
+    }
+    onApply(result.week);
     onClose();
   };
 
@@ -161,6 +196,37 @@ function DayEditorBody({
         </ul>
       )}
 
+      {offerOvernight && overnightEntry ? (
+        <div role="group" aria-labelledby="overnight-title" className="flex flex-col gap-3">
+          <Callout icon={<Moon />}>
+            <p id="overnight-title" className="m-0 font-semibold">
+              {t('overnight.title', { to: overnightEntry.end })}
+            </p>
+            <p className="m-0 mt-1">
+              {t('overnight.body', {
+                day: dayName.long(weekday),
+                from: overnightEntry.start,
+                nextDay: nextDayName,
+                to: overnightEntry.end,
+              })}
+            </p>
+          </Callout>
+          {overnightError ? (
+            <p role="alert" className="m-0 text-[13px] font-medium text-danger">
+              {overnightError}
+            </p>
+          ) : null}
+          <div className="grid grid-cols-2 gap-2.5">
+            <Button variant="secondary" block onClick={() => setDeclined(overnightKey)}>
+              {t('overnight.keep')}
+            </Button>
+            <Button block onClick={confirmOvernight}>
+              {t('overnight.confirm', { to: overnightEntry.end })}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {problems.length > 0 ? (
         <ul role="alert" className="m-0 flex list-none flex-col gap-1 p-0">
           {problems.map((p) => (
@@ -170,6 +236,8 @@ function DayEditorBody({
           ))}
         </ul>
       ) : null}
+
+      <p className="m-0 text-[13px] text-muted">{t('midnightHint')}</p>
 
       <Button
         variant="secondary"
@@ -217,7 +285,7 @@ function DayEditorBody({
         <Button variant="secondary" size="lg" block onClick={onClose}>
           {t('cancel')}
         </Button>
-        <Button size="lg" block disabled={problems.length > 0} onClick={apply}>
+        <Button size="lg" block disabled={problems.length > 0 || offerOvernight} onClick={apply}>
           {t('apply')}
         </Button>
       </div>

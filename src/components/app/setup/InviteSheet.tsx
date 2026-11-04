@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Field';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { createInvite, type CreatedInvite } from '@/lib/api/setup';
+import { INVITE_TTL_DAYS } from '@/lib/invites/ttl';
 import { copyText } from '@/lib/setup/clipboard';
 import { invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
@@ -106,7 +107,7 @@ function InviteForm({ onDone, onCreated }: { onDone: () => void; onCreated: () =
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         error={emailError}
-        hint={t('hint')}
+        hint={t('hint', { days: INVITE_TTL_DAYS })}
       />
       <Button type="submit" size="lg" block loading={pending}>
         {t('send')}

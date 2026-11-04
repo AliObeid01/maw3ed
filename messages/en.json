@@ -10,7 +10,8 @@
     "fields": {
       "date": "{label}, date",
       "hours": "{label}, hours",
-      "minutes": "{label}, minutes"
+      "minutes": "{label}, minutes",
+      "midnight": "24:00 (midnight)"
     },
     "status": {
       "booked": "Booked",
@@ -369,7 +370,7 @@
         "email": "Email",
         "emailPlaceholder": "name@example.com",
         "emailInvalid": "Enter a valid email address.",
-        "hint": "The link expires in 7 days.",
+        "hint": "The link expires in {days, plural, one {# day} other {# days}}.",
         "send": "Send invite",
         "sent": "Invite sent to {email}.",
         "devLink": "Invite link (testing only)",
@@ -414,6 +415,14 @@
           "endBeforeStart": "Closing time must be after opening time.",
           "overlap": "These hours overlap.",
           "tooMany": "At most {max} blocks per day."
+        },
+        "midnightHint": "Hours after midnight belong to the next day's date. Set Closes earlier than Opens and we will offer to continue past midnight.",
+        "overnight": {
+          "title": "Open until {to} the next day?",
+          "body": "{day} {from} to 24:00, then {nextDay} 00:00 to {to}. Days you copy to get their own next-day hours.",
+          "keep": "Change the times",
+          "confirm": "Yes, open until {to}",
+          "tooMany": "{day} already has {max} blocks, so there is no room for the after-midnight hours. Remove one first."
         }
       },
       "timeOff": {
@@ -441,7 +450,9 @@
           "nonexistent": "That time does not exist on this day because the clocks change. Pick another time.",
           "checkDates": "Check the dates and try again."
         }
-      }
+      },
+      "continuesUntil": "until {to} (continues from the night before)",
+      "editTail": "Edit {day}, until {to}, continues from the night before"
     },
     "settings": {
       "business": "Business",
@@ -464,7 +475,8 @@
         "notice": "Minimum notice",
         "noticeHint": "No bookings closer than this",
         "cutoff": "Cancellation cutoff",
-        "cutoffHint": "Later cancels count as late"
+        "cutoffHint": "Later cancels count as late",
+        "noticeHelp": "A lower value fills more last-minute slots but leaves less time to prepare; a higher value protects it. Front-desk bookings always ignore it."
       },
       "units": {
         "days": "days",
@@ -1262,7 +1274,8 @@
       "emailInvalid": "Enter a valid email address.",
       "retry": "Try again",
       "nameTooLong": "Use {max} characters or fewer.",
-      "slotGone": "That time is no longer available. Please pick another."
+      "slotGone": "That time is no longer available. Please pick another.",
+      "slotTakenLive": "That time was just taken. Pick another; your details are kept."
     },
     "notFound": {
       "title": "We can't find this booking page",

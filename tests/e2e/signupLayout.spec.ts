@@ -119,6 +119,18 @@ test.describe('sign up layout', () => {
         form: (await box(page.locator('form').first())).height,
         card: (await box(card)).height,
       });
+      // The preview and status lines never wrap or grow: one line of at most 19 px each.
+      const lines = async () =>
+        page.locator('[name=slug]').evaluate((input) => {
+          const wrap = input.closest('div')!.nextElementSibling!;
+          const [preview, status] = Array.from(wrap.children) as HTMLElement[];
+          return {
+            previewH: preview!.getBoundingClientRect().height,
+            previewTruncated: preview!.scrollWidth > preview!.clientWidth,
+            statusH: status!.getBoundingClientRect().height,
+            statusWraps: Array.from(status!.querySelectorAll('span')).some((n) => n.getBoundingClientRect().height > 20),
+          };
+        });
       const idle = await snapshot();
       await slug.fill('studio-nour');
       const typed = await snapshot();
@@ -127,10 +139,37 @@ test.describe('sign up layout', () => {
       await slug.fill('x');
       await expect(page.getByText(/Use 3 to 40/)).toBeVisible();
       const invalid = await snapshot();
-      // A long address must truncate, not wrap into extra height.
-      await slug.fill('a-very-long-booking-link-name-for-a-salon');
+
+      // "Checking": hold the slug-check answer, wait until the slow-server text shows, measure, then release.
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      await page.unroute('**/api/auth/slug-check**');
+      await page.route('**/api/auth/slug-check**', async (route) => {
+        await gate;
+        await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ available: true }) });
+      });
+      await slug.fill('held-address');
+      await expect(page.getByText('Checking availability…')).toBeVisible();
+      const checking = await snapshot();
+      expect((await lines()).statusWraps).toBe(false);
+      release();
+      await expect(page.getByText('Available', { exact: true })).toBeVisible();
+
+      // The longest allowed address (the input's own maxLength) must truncate, not wrap into extra height.
+      const max = Number(await slug.getAttribute('maxlength'));
+      expect(max, 'the slug input has a maxLength').toBeGreaterThan(20);
+      const longest = ('ab-'.repeat(max).slice(0, max - 1) + 'z').toLowerCase();
+      await slug.fill(longest + 'EXTRA-IGNORED');
+      await expect(slug).toHaveValue(longest);
+      expect(longest).toHaveLength(max);
+      await expect(page.getByText('Available', { exact: true })).toBeVisible();
       const long = await snapshot();
-      for (const [name, state] of Object.entries({ typed, available, invalid, long })) {
+      const longLines = await lines();
+      expect(longLines.previewH, 'preview stays one line').toBeLessThanOrEqual(20);
+      expect(longLines.statusH, 'status stays one line').toBeLessThanOrEqual(20);
+      expect(longLines.statusWraps).toBe(false);
+      if (viewport.width <= 400) expect(longLines.previewTruncated, 'the long address really is cut with an ellipsis').toBe(true);
+      for (const [name, state] of Object.entries({ typed, available, invalid, checking, long })) {
         expect(Math.abs(state.button - idle.button), `button y after ${name}`).toBeLessThanOrEqual(1);
         expect(Math.abs(state.form - idle.form), `form height after ${name}`).toBeLessThanOrEqual(1);
         expect(Math.abs(state.card - idle.card), `card height after ${name}`).toBeLessThanOrEqual(1);

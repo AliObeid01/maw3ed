@@ -87,6 +87,82 @@ export function suggestInterval(day: DayInterval[]): DayInterval {
   return { start: fmt(start), end: fmt(Math.min(start + 4 * 60, 24 * 60)) };
 }
 
-/** `<input type="time">` cannot hold 24:00; an end of midnight means end of day. */
-export const endToInput = (end: string) => (end === '24:00' ? '00:00' : end);
-export const endFromInput = (value: string) => (value === '00:00' ? '24:00' : value);
+/** Hours-select value for end of day. Stored as "24:00"; the Closes list offers it explicitly. */
+export const END_OF_DAY = '24:00';
+
+/** An old value or hand-typed `00:00` used as an end meant end of day: read it as 24:00. */
+export const endFromInput = (value: string) => (value === '00:00' ? END_OF_DAY : value);
+
+/** Weekday after `weekday` (0 = Sunday ... 6 = Saturday); Saturday continues into Sunday. */
+export const nextWeekday = (weekday: number) => (weekday + 1) % 7;
+
+const sameInterval = (a: DayInterval, b: DayInterval) => a.start === b.start && a.end === b.end;
+
+/**
+ * Index of the first valid entry that closes earlier than it opens (09:00 to 02:00), the "open past midnight"
+ * case; -1 when there is none. An equal start and end is a plain error, not a night shift.
+ */
+export function overnightIndex(day: DayInterval[]): number {
+  return day.findIndex((i) => {
+    const s = toMinutes(i.start);
+    const e = toMinutes(i.end);
+    return !Number.isNaN(s) && !Number.isNaN(e) && e < s;
+  });
+}
+
+/** Add one interval to a day: sorted, exact duplicates dropped, overlapping entries unioned (touching ones stay apart). */
+export function mergeDay(day: DayInterval[], add: DayInterval): DayInterval[] {
+  const sorted = sortDay([...day.filter((i) => !sameInterval(i, add)), add]);
+  const out: DayInterval[] = [];
+  for (const cur of sorted) {
+    const last = out[out.length - 1];
+    if (last && toMinutes(cur.start) < toMinutes(last.end)) {
+      if (toMinutes(cur.end) > toMinutes(last.end)) last.end = cur.end;
+    } else out.push({ ...cur });
+  }
+  return out;
+}
+
+export type PastMidnightResult =
+  | { ok: true; week: Week }
+  | { ok: false; problem: 'tooMany' | 'overlap'; weekday: number };
+
+/**
+ * "Open until 02:00 the next day": entry `index` of `draft` (09:00 to 02:00) becomes 09:00 to 24:00 on `weekday` and
+ * a 00:00 to 02:00 tail on the next weekday (Sunday continues into Monday), merged with what is already there.
+ * With `copyTo`, those days get the same split day and each gets its own tail on its own next day. Local wall times,
+ * so DST plays no part. Pure; returns a new week or the first problem (the input week is never changed).
+ */
+export function openPastMidnight(
+  week: Week,
+  weekday: number,
+  draft: DayInterval[],
+  index: number,
+  copyTo: readonly number[] = [],
+): PastMidnightResult {
+  const target = draft[index];
+  if (!target) return { ok: false, problem: 'overlap', weekday };
+  const tailEnd = target.end;
+  const split = sortDay(draft.map((i, k) => (k === index ? { start: i.start, end: END_OF_DAY } : { ...i })));
+  if (validateDay(split).length > 0) {
+    return { ok: false, problem: split.length > MAX_INTERVALS_PER_DAY ? 'tooMany' : 'overlap', weekday };
+  }
+  const days = new Set<number>([weekday, ...copyTo.filter((d) => d !== weekday)]);
+  // 1. the split day replaces this day and every copy target; 2. each of them adds its tail to its own next day.
+  let next: Week = week.map((day, d) => (days.has(d) ? split.map((i) => ({ ...i })) : day.map((i) => ({ ...i }))));
+  for (const d of [...days].sort((a, b) => a - b)) {
+    const n = nextWeekday(d);
+    const merged = mergeDay(next[n]!, { start: '00:00', end: tailEnd });
+    if (merged.length > MAX_INTERVALS_PER_DAY) return { ok: false, problem: 'tooMany', weekday: n };
+    next = next.map((day, k) => (k === n ? merged : day));
+  }
+  return { ok: true, week: next };
+}
+
+/** True when the day starts at 00:00 and the day before closes at 24:00: its first entry is the end of last night's shift. */
+export function continuesFromPrevious(week: Week, weekday: number): boolean {
+  const first = sortDay(week[weekday] ?? [])[0];
+  if (!first || first.start !== '00:00') return false;
+  const prev = week[(weekday + 6) % 7] ?? [];
+  return prev.some((i) => i.end === END_OF_DAY);
+}

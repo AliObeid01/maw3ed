@@ -11,6 +11,8 @@
      lighter than muted. Never use for real copy, and never on canvas or divider fills (it falls below 4.5 there). */
   --color-subtle: #657799;
   --color-line: #d3dcee;
+  /* Non-text border for things that must read as unavailable (taken slots): 3.07:1 on white, still quiet. */
+  --color-line-strong: #8393b8;
   --color-divider: #e9eff8; /* Soft Blue Gray */
   --color-row: #edf1f8;
 

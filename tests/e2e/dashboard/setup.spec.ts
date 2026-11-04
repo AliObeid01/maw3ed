@@ -1,5 +1,6 @@
 import type { Locator } from '@playwright/test';
 import { expect, test } from '../helpers/test';
+import { expectNoPageOverflow } from '../helpers/layout';
 import { defaultState, mockSetupApi, setRole, type MockState } from '../helpers/mockApi';
 
 // Dashboard specs run against `next dev` with a fake session (see playwright.config.ts); every /api call is
@@ -395,6 +396,20 @@ test.describe('3.8 settings', () => {
     await page.getByRole('button', { name: 'Save settings' }).last().click();
     await expect(page.getByText('Enter a whole number from 1 to 365.')).toBeVisible();
     expect(calls.some((c) => c.method === 'PATCH')).toBe(false);
+  });
+
+  test('F68-B: Minimum notice explains the trade-off, wraps in two or three lines and never overflows', async ({
+    page,
+  }) => {
+    await mockSetupApi(page, { state: freshState() });
+    await page.goto('/app/settings');
+    const help = page.getByText(/A lower value fills more last-minute slots but leaves less time to prepare/);
+    await expect(help).toBeVisible();
+    await expect(help).toContainText('Front-desk bookings always ignore it.');
+    await expect(page.getByLabel('Minimum notice')).toHaveAccessibleDescription(/Front-desk bookings always ignore it/);
+    const box = (await help.boundingBox())!;
+    expect(box.height, 'at most 4 lines of 13 px text').toBeLessThanOrEqual(4 * 20);
+    await expectNoPageOverflow(page);
   });
 });
 

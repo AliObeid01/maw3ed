@@ -18,7 +18,9 @@ const YMD = /^\d{4}-\d{2}-\d{2}$/;
 const HM = /^(\d{2}):(\d{2})$/;
 const HOURS = Array.from({ length: 24 }, (_, h) => String(h).padStart(2, '0'));
 const MINUTE_STEP = 5;
-const MINUTES = Array.from({ length: 60 / MINUTE_STEP }, (_, i) => String(i * MINUTE_STEP).padStart(2, '0'));
+const MINUTES = Array.from({ length: 60 / MINUTE_STEP }, (_, i) =>
+  String(i * MINUTE_STEP).padStart(2, '0'),
+);
 
 /** The chosen day in the app's own format: "Fri 10 Jul 2036", Latin digits in both languages. */
 function useDayText() {
@@ -40,7 +42,11 @@ function DatePreview({ id, ymd }: { id: string; ymd: string }) {
   const text = useDayText()(ymd);
   // The line is always in the layout (min height) so choosing a date never moves the fields below it.
   return (
-    <p id={id} aria-live="polite" className="m-0 min-h-5 text-[13px] leading-5 font-medium text-ink tabular-nums">
+    <p
+      id={id}
+      aria-live="polite"
+      className="m-0 min-h-5 text-[13px] leading-5 font-medium text-ink tabular-nums"
+    >
       {text ? <bdi>{text}</bdi> : null}
     </p>
   );
@@ -61,7 +67,20 @@ type DateInputProps = {
   className?: string;
 };
 
-function DateInput({ id, name, value, onChange, min, max, disabled, error, hint, dir, className, ...rest }: DateInputProps) {
+function DateInput({
+  id,
+  name,
+  value,
+  onChange,
+  min,
+  max,
+  disabled,
+  error,
+  hint,
+  dir,
+  className,
+  ...rest
+}: DateInputProps) {
   const previewId = `${id}-day`;
   return (
     <input
@@ -132,7 +151,10 @@ export function DateField({
   );
 }
 
-const selectClass = cn(control, 'min-w-0 flex-1 cursor-pointer appearance-none px-2 text-center tabular-nums');
+const selectClass = cn(
+  control,
+  'min-w-0 flex-1 cursor-pointer appearance-none px-2 text-center tabular-nums',
+);
 
 /** Two selects, hours 00-23 and minutes, as one left-to-right `HH : mm` unit. `value` is `HH:mm`. */
 export function TimeSelects({
@@ -142,6 +164,7 @@ export function TimeSelects({
   invalid,
   disabled,
   idPrefix,
+  endOfDay,
 }: {
   /** Visible label text; the selects are named "<label>, hours" and "<label>, minutes". */
   label: string;
@@ -150,6 +173,11 @@ export function TimeSelects({
   invalid?: boolean;
   disabled?: boolean;
   idPrefix?: string;
+  /**
+   * A closing time: hours run 01-24 and `24` is end of day ("24:00 (midnight)", minutes locked to 00), so nobody
+   * needs the old 00:00-means-24:00 trick. 00 is not offered because it would be ambiguous with 24.
+   */
+  endOfDay?: boolean;
 }) {
   const t = useTranslations('ui.fields');
   const auto = useId();
@@ -160,6 +188,10 @@ export function TimeSelects({
   // A minute that is not on the 5-minute grid (an old value, an imported one) stays selectable.
   const minutes = minute && !MINUTES.includes(minute) ? [...MINUTES, minute].sort() : MINUTES;
   const border = borderFor(invalid ? 'x' : undefined);
+  const midnight = endOfDay && hour === '24';
+  const baseHours = endOfDay ? [...HOURS.slice(1), '24'] : HOURS;
+  // A value outside the list (an imported 00:30 end) stays selectable instead of silently changing.
+  const hours = hour && !baseHours.includes(hour) ? [hour, ...baseHours].sort() : baseHours;
   return (
     <div dir="ltr" className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
@@ -169,13 +201,15 @@ export function TimeSelects({
           aria-invalid={invalid || undefined}
           disabled={disabled}
           value={hour}
-          onChange={(e) => onChange(`${e.target.value}:${minute || '00'}`)}
+          onChange={(e) =>
+            onChange(e.target.value === '24' ? '24:00' : `${e.target.value}:${minute || '00'}`)
+          }
           className={cn(selectClass, border, 'w-full')}
         >
           {hour ? null : <option value="">--</option>}
-          {HOURS.map((h) => (
+          {hours.map((h) => (
             <option key={h} value={h}>
-              {h}
+              {h === '24' ? t('midnight') : h}
             </option>
           ))}
         </select>
@@ -188,13 +222,13 @@ export function TimeSelects({
           id={`${base}-m`}
           aria-label={t('minutes', { label })}
           aria-invalid={invalid || undefined}
-          disabled={disabled}
-          value={minute}
+          disabled={disabled || midnight}
+          value={midnight ? '00' : minute}
           onChange={(e) => onChange(`${hour || '00'}:${e.target.value}`)}
           className={cn(selectClass, border, 'w-full')}
         >
           {minute ? null : <option value="">--</option>}
-          {minutes.map((m) => (
+          {(midnight ? ['00'] : minutes).map((m) => (
             <option key={m} value={m}>
               {m}
             </option>
@@ -213,6 +247,7 @@ export function TimeField({
   invalid,
   disabled,
   className,
+  endOfDay,
 }: {
   label: string;
   value: string;
@@ -220,6 +255,7 @@ export function TimeField({
   invalid?: boolean;
   disabled?: boolean;
   className?: string;
+  endOfDay?: boolean;
 }) {
   const labelId = useId();
   return (
@@ -227,7 +263,14 @@ export function TimeField({
       <span id={labelId} className="text-sm font-medium">
         {label}
       </span>
-      <TimeSelects label={label} value={value} onChange={onChange} invalid={invalid} disabled={disabled} />
+      <TimeSelects
+        label={label}
+        value={value}
+        onChange={onChange}
+        invalid={invalid}
+        disabled={disabled}
+        endOfDay={endOfDay}
+      />
     </div>
   );
 }
@@ -277,7 +320,14 @@ export function DateTimeField({
         aria-label={t('date', { label })}
       />
       <DatePreview id={`${id}-date-day`} ymd={date} />
-      <TimeSelects label={label} value={time} onChange={onTimeChange} invalid={Boolean(error)} disabled={disabled} idPrefix={`${id}-time`} />
+      <TimeSelects
+        label={label}
+        value={time}
+        onChange={onTimeChange}
+        invalid={Boolean(error)}
+        disabled={disabled}
+        idPrefix={`${id}-time`}
+      />
       {hint && !error ? (
         <p id={`${id}-date-hint`} className="m-0 text-[13px] text-muted">
           {hint}

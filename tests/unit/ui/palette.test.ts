@@ -29,6 +29,7 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     ['surface', '#ffffff'],
     ['canvas', '#f3f5fa'],
     ['line', '#d3dcee'],
+    ['line-strong', '#8393b8'],
     ['brand-hover', '#1d3fb8'],
     ['success', '#17795a'],
     ['success-soft', '#ddf5ec'],
@@ -57,6 +58,17 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     expect(lum(token('subtle')!)).toBeGreaterThan(lum(token('muted')!));
   });
 
+  it('--color-line-strong (taken slot border, a non-text boundary) reaches 3:1 on white', () => {
+    const lum = (h: string) => {
+      const [r, g, b] = [1, 3, 5].map((i) => {
+        const s = parseInt(h.slice(i, i + 2), 16) / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+    };
+    expect((1.05) / (lum(token('line-strong')!) + 0.05)).toBeGreaterThanOrEqual(3);
+  });
+
   it('has no legacy --color-accent alias and no accent colour utilities (use cyan)', () => {
     expect(css).not.toMatch(/--color-accent\b/);
     const offenders = sources
@@ -70,6 +82,45 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
       .filter(([, code]) => /rgba?\(\s*(11[ ,_]25|37[ ,_]78)|shadow-\[0_(1[0-9]|[2-9][0-9])px/.test(code))
       .map(([f]) => f);
     expect(offenders).toEqual([]);
+  });
+
+  it('every arbitrary shadow-[...] is black-only with a blur under 10 px (file:line listed on failure)', () => {
+    const violations: string[] = [];
+    const layerSplit = (v: string) => {
+      const out: string[] = [];
+      let depth = 0;
+      let cur = '';
+      for (const ch of v) {
+        if (ch === '(') depth++;
+        if (ch === ')') depth--;
+        if (ch === ',' && depth === 0) {
+          out.push(cur);
+          cur = '';
+        } else cur += ch;
+      }
+      out.push(cur);
+      return out;
+    };
+    for (const [file, code] of sources) {
+      if (!code.includes('shadow-[')) continue;
+      code.split('\n').forEach((line, i) => {
+        for (const m of line.matchAll(/shadow-\[((?:[^\]\[]|\[[^\]]*\])*)\]/g)) {
+          for (const layer of layerSplit(m[1]!)) {
+            const parts = layer.replace(/^inset_/, '').match(/^(-?[\d.]+(?:px)?)_(-?[\d.]+(?:px)?)(?:_(-?[\d.]+(?:px)?))?(?:_(-?[\d.]+(?:px)?))?_(.+)$/);
+            const where = `${path.relative(root, file)}:${i + 1} ${m[0]}`;
+            if (!parts) {
+              violations.push(`${where} (unparseable layer)`);
+              continue;
+            }
+            const blur = parts[3] === undefined ? 0 : parseFloat(parts[3]);
+            const colour = parts[5]!;
+            if (!/^rgb\(0_0_0[/)]/.test(colour)) violations.push(`${where} (colour must be rgb(0_0_0/..), got ${colour})`);
+            if (blur >= 10) violations.push(`${where} (blur ${blur}px, max 9)`);
+          }
+        }
+      });
+    }
+    expect(violations, violations.join('\n')).toEqual([]);
   });
 
   it('keeps the old teal and warm greys out of the theme', () => {
