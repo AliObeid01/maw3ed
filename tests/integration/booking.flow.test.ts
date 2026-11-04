@@ -171,7 +171,10 @@ describe('reminder jobs (FR-15)', () => {
       bookingBody(serviceId, staffIds[0]!, '2026-11-02T09:30:00.000Z'), // 1.5 h ahead
     );
     expect(under2.status).toBe(201);
-    expect((await jobs(under2.body!.appointment.id)).map((r) => r.key)).toEqual(['BOOKING/EMAIL']);
+    // F68: a PUBLIC booking under 2 h ahead gets one WhatsApp LATE row instead (see whatsapp.late.test.ts).
+    expect((await jobs(under2.body!.appointment.id)).map((r) => r.key).sort()).toEqual(
+      ['BOOKING/EMAIL', 'LATE/WHATSAPP'].sort(),
+    );
   });
 
   it('cancelling frees the slot and marks pending jobs SKIPPED; cancel is idempotent', async () => {

@@ -15,6 +15,7 @@ import {
   newScenario,
   newTenant,
   NOW,
+  removeEmail,
   type Tenant,
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
@@ -66,24 +67,30 @@ beforeEach(async () => {
 });
 
 describe('a client without an email address is promised no reminder email', () => {
-  it('public booking 30 h ahead: nothing promised, the WhatsApp rows are still planned', async () => {
+  // F68: the public page always sends an email, so "no address" is reached by removing it afterwards.
+  it('public booking 30 h ahead: promised while the address exists; the WhatsApp rows are planned either way', async () => {
     vi.setSystemTime(SLOT_MS - 30 * HOUR);
     const res = await bookPublicly(a.slug, bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT));
     expect(res.status).toBe(201);
-    expect(res.body!.reminders).toEqual(NONE);
+    expect(res.body!.reminders).toEqual(BOTH);
     expect(await rowKinds(res.body!.appointment.id)).toEqual(
       expect.arrayContaining(['H24/WHATSAPP', 'H2/WHATSAPP']),
     );
   });
 
-  it('a replay reports the same', async () => {
+  it('a replay after the address was removed promises nothing (the rows still exist)', async () => {
     vi.setSystemTime(SLOT_MS - 30 * HOUR);
     const key = newKey();
     const body = bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT);
-    expect((await bookPublicly(a.slug, body, key)).status).toBe(201);
+    const first = await bookPublicly(a.slug, body, key);
+    expect(first.status).toBe(201);
+    await removeEmail(pg, first.body!.appointment.id);
     const again = await bookPublicly(a.slug, body, key);
     expect(again.status).toBe(200);
     expect(again.body!.reminders).toEqual(NONE);
+    expect(await rowKinds(first.body!.appointment.id)).toEqual(
+      expect.arrayContaining(['H24/EMAIL', 'H24/WHATSAPP']),
+    );
   });
 
   it('a returning client whose stored profile has an email is promised reminders', async () => {
@@ -103,7 +110,10 @@ describe('a client without an email address is promised no reminder email', () =
 
   it('front-desk booking without email', async () => {
     vi.setSystemTime(SLOT_MS - 30 * HOUR);
-    const res = await bookAtFrontDesk(a.cookie, bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT));
+    const res = await bookAtFrontDesk(
+      a.cookie,
+      bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { email: undefined }),
+    );
     expect(res.status).toBe(201);
     expect(res.body!.reminders).toEqual(NONE);
   });
@@ -136,6 +146,8 @@ describe('a client without an email address is promised no reminder email', () =
       bookingBody(scn.serviceId, scn.staffIds[0]!, SLOT, { phone: national }),
     );
     expect(hold.body!.status).toBe('PENDING_PAYMENT');
+    // The page sent an address; it is gone by the time the deposit is paid (the client record has none).
+    await removeEmail(pg, hold.body!.appointment.id, false);
     const paid = await payPost(hold.body!.payToken);
     expect(paid.status).toBe(200);
     expect(paid.body!.reminders).toEqual(NONE);

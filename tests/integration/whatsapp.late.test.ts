@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON bodies */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { POST as cancelAppointment } from '@/app/api/appointments/[id]/cancel/route';
@@ -14,7 +13,6 @@ import { runReminders, type ReminderDeps } from '@/server/services/reminders';
 import type { PrismaClient } from '../../src/generated/prisma/client';
 import { call } from './helpers/api';
 import {
-  at,
   bookAtFrontDesk,
   bookingBody,
   bookPublicly,

@@ -89,14 +89,15 @@ describe('GET /api/appointments/{id}: reminderEmail', () => {
   it('is the record email as the fallback, and does not differ', async () => {
     const phone = newPhone();
     await seedClient(prisma, a.businessId, { name: 'Rana', phone: normalizePhone(phone)!, email: RECORD });
-    const booked = await bookPublicly(a.slug, body(SLOT, { phone }));
+    // F68: the public page always sends an address, so the fallback is a front-desk booking without one.
+    const booked = await bookAtFrontDesk(a.cookie, body(SLOT, { phone, email: undefined }));
     const res = await one(a.cookie, booked.body!.appointment.id);
     expect(res.body!.appointment.reminderEmail).toBe(RECORD);
     expect(res.body!.appointment.reminderEmailDiffers).toBe(false);
   });
 
   it('is null when there is no email anywhere', async () => {
-    const booked = await bookPublicly(a.slug, body(SLOT, {}));
+    const booked = await bookAtFrontDesk(a.cookie, body(SLOT, { email: undefined }));
     const res = await one(a.cookie, booked.body!.appointment.id);
     expect(res.body!.appointment.reminderEmail).toBeNull();
     expect(res.body!.appointment.reminderEmailDiffers).toBe(false);

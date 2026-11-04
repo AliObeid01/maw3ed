@@ -20,6 +20,7 @@ import {
   newScenario,
   newTenant,
   NOW,
+  removeEmail,
   type Tenant,
 } from './helpers/booking';
 import { newClient, newPrisma, setupSchema, truncateAll } from './helpers/db';
@@ -60,6 +61,8 @@ async function book(email: string | null = `h${seq}@example.test`, time?: string
     bookingBody(wide.serviceId, wide.staffIds[i % 3]!, at(t), email ? { email } : {}),
   );
   if (res.status !== 201) throw new Error(`book failed ${res.status} ${JSON.stringify(res.body)}`);
+  // F68: a public booking always has an address; "no email" means it was removed afterwards.
+  if (!email) await removeEmail(pg, res.body!.appointment.id);
   return { id: res.body!.appointment.id as string, startAt: new Date(at(t)) };
 }
 const job = async (appointmentId: string, kind: string, channel = 'EMAIL') =>

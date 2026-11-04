@@ -86,6 +86,24 @@ export function bookingBody(
   };
 }
 
+/**
+ * F68: the public page always sends an email, so "a booking with no usable address" is what is left after the
+ * address is removed (an erased client record, a pre-F16 appointment). Clears the appointment's own address
+ * and, with `clientToo`, the client record's.
+ */
+export async function removeEmail(
+  pg: { query: (sql: string, params?: unknown[]) => Promise<unknown> },
+  appointmentId: string,
+  clientToo = true,
+) {
+  await pg.query(`UPDATE "Appointment" SET "contactEmail" = NULL WHERE id = $1`, [appointmentId]);
+  if (clientToo)
+    await pg.query(
+      `UPDATE "Client" SET email = NULL WHERE id = (SELECT "clientId" FROM "Appointment" WHERE id = $1)`,
+      [appointmentId],
+    );
+}
+
 let keySeq = 0;
 export const newKey = () => `key-${unique()}-${keySeq++}`;
 
