@@ -17,3 +17,6 @@ design/shots-*/
 src/generated/
 .impeccable/
 tmp/
+
+# Local CI summary (pnpm ci:local)
+.ci-local/

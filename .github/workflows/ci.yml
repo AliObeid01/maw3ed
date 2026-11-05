@@ -1,8 +1,20 @@
 name: CI
 on:
+  # Paths that can never change behaviour are ignored. NOT ignored on purpose: nothing under design/ (tests/unit/ui/logo.test.ts
+  # reads design/logo/*.svg) and no other path any test or script reads.
   pull_request:
+    paths-ignore:
+      - '.claude/**'
+      - 'docs/**'
+      - '**.md'
   push:
     branches: [main]
+    paths-ignore:
+      - '.claude/**'
+      - 'docs/**'
+      - '**.md'
+  # Manual full pipeline (checks + both e2e shards): Actions tab -> CI -> Run workflow.
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -63,6 +75,8 @@ jobs:
   # for the build and migrations to mirror `checks`.
   e2e:
     name: e2e (${{ matrix.shard }}/2)
+    # Push to main skips the browser shards (they already ran on the pull request); PRs and manual runs run them.
+    if: github.event_name != 'push'
     strategy:
       fail-fast: false
       matrix:
