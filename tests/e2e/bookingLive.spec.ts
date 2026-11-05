@@ -10,6 +10,11 @@ const BOOK = `/b/${SLUG}`;
 const MIN = 60_000;
 
 async function reachDetails(page: Page, options: PublicMockOptions) {
+  // The poller waits 60 s +-15 % (Math.random jitter, src/lib/booking/liveRefresh.ts). Pin the draw to 0.5 so every
+  // wait is exactly 60 s: the request counts below are then deterministic instead of depending on 51-69 s draws.
+  await page.addInitScript(() => {
+    Math.random = () => 0.5;
+  });
   const mock = await mockPublicApi(page, options);
   await page.goto(BOOK);
   await page.getByRole('button', { name: /Haircut/ }).click();
