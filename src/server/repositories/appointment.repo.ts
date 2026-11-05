@@ -1,4 +1,6 @@
 import { DELETED_CLIENT_NAME, TOMBSTONE_PHONE_PREFIX } from '@/server/domain/clientFlags';
+import { effectiveEmail, isContactEditable } from '@/server/domain/contactEmail';
+import { sendDecision } from '@/server/domain/reminderWindows';
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { Prisma } from '@/generated/prisma/client';
 import { db } from './db';
@@ -71,6 +73,68 @@ export const appointmentRepo = {
     db.appointment.findFirst({
       where: { id, businessId },
       select: { contactEmail: true, client: { select: { email: true } } },
+    }),
+
+  /**
+   * F69-C: correct THIS booking's contactEmail / contactName (only those two columns; the Client row is never
+   * touched). One transaction: lock the appointment row (`FOR UPDATE`, so concurrent identical edits queue and
+   * the second sees the first's result), re-check it is still editable, update, and, when an address is ADDED
+   * to a booking that had none, put the EMAIL H24/H2 jobs that were skipped only for `no_email` (and are still
+   * inside their send window) back to PENDING. Same row, same id (= provider idempotency key): never a new row,
+   * never a SENT job, never a job skipped for any other reason. BOOKING (the confirmation) is not re-queued.
+   */
+  updateContact: (
+    businessId: string,
+    id: string,
+    change: { contactEmail?: string | null | undefined; contactName?: string | null | undefined },
+    now: Date,
+  ): Promise<
+    | { kind: 'ok'; requeued: number }
+    | { kind: 'not_found' }
+    | { kind: 'not_editable' }
+    | { kind: 'email_required' }
+  > =>
+    db.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Appointment" WHERE "id" = ${id} AND "businessId" = ${businessId} FOR UPDATE`;
+      if (locked.length === 0) return { kind: 'not_found' as const };
+      const cur = await tx.appointment.findFirstOrThrow({
+        where: { id, businessId },
+        select: {
+          status: true,
+          startAt: true,
+          source: true,
+          contactEmail: true,
+          client: { select: { name: true, phone: true, email: true } },
+        },
+      });
+      const anonymised =
+        cur.client.name === DELETED_CLIENT_NAME ||
+        cur.client.phone.startsWith(TOMBSTONE_PHONE_PREFIX);
+      if (anonymised || !isContactEditable(cur, now)) return { kind: 'not_editable' as const };
+      // A public booking was made with a required address: it can be corrected, never removed.
+      if (cur.source === 'PUBLIC' && change.contactEmail === null)
+        return { kind: 'email_required' as const };
+
+      const data: Prisma.AppointmentUpdateManyMutationInput = {};
+      if (change.contactEmail !== undefined) data.contactEmail = change.contactEmail;
+      if (change.contactName !== undefined) data.contactName = change.contactName;
+      await tx.appointment.updateMany({ where: { id, businessId }, data });
+
+      const before = effectiveEmail(cur.contactEmail, cur.client.email);
+      const after = effectiveEmail(
+        change.contactEmail === undefined ? cur.contactEmail : change.contactEmail,
+        cur.client.email,
+      );
+      let requeued = 0;
+      if (before === null && after !== null) {
+        const kinds = (['H24', 'H2'] as const).filter(
+          (k) => sendDecision(k, cur.startAt, now, true) === 'SEND',
+        );
+        if (kinds.length > 0)
+          requeued = await reminderJobRepo.requeueNoEmail(businessId, tx, id, kinds);
+      }
+      return { kind: 'ok' as const, requeued };
     }),
 
   findByIdempotencyKey: (businessId: string, key: string) =>

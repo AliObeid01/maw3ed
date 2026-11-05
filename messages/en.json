@@ -722,6 +722,24 @@
         "ended": "Did {name} come? Mark it so the history stays accurate.",
         "recorded": "Recorded as {outcome}. You can change it if it was a mistake.",
         "lateCancelFinal": "A late cancel is final. It cannot be changed to Attended or No-show."
+      },
+      "contact": {
+        "edit": "Edit contact details",
+        "title": "Edit contact details",
+        "close": "Close",
+        "note": "This changes this booking only, not the client’s saved record. The phone cannot be changed here: cancel and book again if it is wrong.",
+        "email": "Email for this booking",
+        "name": "Name for this booking",
+        "emailRequired": "This booking was made online, so it needs an email address.",
+        "emailInvalid": "Enter a valid email address.",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "Keep the name under {max} characters.",
+        "fieldInvalid": "Please check this value.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "saved": "Contact details updated",
+        "notEditable": "This appointment can no longer be edited."
       }
     },
     "clients": {

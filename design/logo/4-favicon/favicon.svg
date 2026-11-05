@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Maw3ed favicon">
+<title>Maw3ed favicon</title>
+<rect y="0" width="64" height="64" rx="12" fill="#0B1938"/>
+<path d="M0 11V12A12 12 0 0 1 12 0H52A12 12 0 0 1 64 12V11Z" fill="#2864F5"/>
+
+<g transform="translate(11.88 0.17) scale(0.58)">
+<path fill="none" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" stroke="#FFFFFF" d="M7.5 92.5V35.5M61.5 35.5V92.5"/>
+<path fill="none" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" stroke="#21CDB3" d="M7.5 35.5L34.5 76.54 61.5 35.5"/>
+</g>
+</svg>

@@ -37,7 +37,6 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     ['warning-soft', '#fff1d6'],
     ['danger', '#c21f3a'],
     ['danger-soft', '#ffe4e8'],
-    ['gold', '#e8b86d'],
   ])('--color-%s is %s', (name, value) => {
     expect(token(name)).toBe(value);
   });
@@ -181,6 +180,16 @@ describe('palette v2 (blue, approved 3 Nov 2026)', () => {
     expect(EMAIL_COLORS.muted).toBe(token('muted'));
     expect(EMAIL_COLORS.line).toBe(token('line'));
     expect(EMAIL_COLORS.canvas).toBe(token('canvas'));
+    expect(EMAIL_COLORS.navy).toBe(token('navy')); // the header band behind the reverse logo
+  });
+
+  it('has no gold anywhere: no token, no #E8B86D, no gold utility or constant (the logo underline is gone)', () => {
+    expect(css).not.toMatch(/--color-gold|e8b86d/i);
+    expect(Object.values(EMAIL_COLORS).map((v) => v.toLowerCase())).not.toContain('#e8b86d');
+    const offenders = sources
+      .filter(([, code]) => /e8b86d|\b(bg|text|border|ring|fill|stroke|from|to|via)-gold\b|var\(--color-gold\)|\bGOLD\b/i.test(code))
+      .map(([f]) => path.relative(root, f));
+    expect(offenders).toEqual([]);
   });
 
   it('never uses cyan or turquoise as a text colour or under white text in components', () => {

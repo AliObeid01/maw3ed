@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderReminderEmail, type EmailContext } from '@/server/i18n/emailRender';
 import { renderOfferEmail } from '@/server/i18n/offerEmail';
-import { EMAIL_COLORS } from '@/server/i18n/emailLayout';
+import { EMAIL_COLORS, EMAIL_LOGO_HEIGHT, EMAIL_LOGO_PATH } from '@/server/i18n/emailLayout';
 import { getEmailMessages } from '@/server/i18n/messages';
 import { inviteEmail } from '@/server/providers/email/inviteTemplate';
 import { accountEmail } from '@/server/providers/email/accountEmails';
@@ -143,7 +143,6 @@ describe('branded email layout (all kinds)', () => {
         it('uses the shared layout and brand colours', () => {
           expect(out.html).toContain('<meta name="color-scheme" content="light">');
           expect(out.html).toContain('<meta name="supported-color-schemes" content="light">');
-          expect(out.html).toContain('>Maw3ed</span>');
           for (const c of [
             EMAIL_COLORS.canvas,
             EMAIL_COLORS.card,
@@ -151,17 +150,38 @@ describe('branded email layout (all kinds)', () => {
             EMAIL_COLORS.ink,
             EMAIL_COLORS.muted,
             EMAIL_COLORS.brand,
-            EMAIL_COLORS.accent,
+            EMAIL_COLORS.navy,
           ]) {
             expect(out.html).toContain(c);
           }
           expect(out.html).toContain('max-width:600px');
           expect(out.html).toContain('border-radius:16px');
           expect(out.html).toContain('padding:14px 28px');
-          expect(out.html).not.toMatch(/<img\b/i);
+          // F69-C: the ONLY image is the logo in the navy band (see the header test below).
+          expect(out.html.match(/<img\b/gi)).toHaveLength(1);
           expect(out.html).not.toMatch(/@import|<link\b|url\(|data:image/i);
+          // The gold wordmark underline is gone everywhere.
+          expect(out.html).not.toMatch(/e8b86d|border-bottom:3px/i);
           // The old neutral palette is gone.
           expect(out.html).not.toMatch(/#f6f5f1|#0E7C66|#5a5a5a|#1b1b1b|#174c4f|#f7f5f0/i);
+        });
+
+        it('has the navy logo band: absolute reverse logo, width/height, alt, display:block, readable alt colours', () => {
+          const img = /<img\b[^>]*>/.exec(out.html)![0];
+          expect(img).toContain(`src="http://localhost:3000${EMAIL_LOGO_PATH}"`);
+          expect(img).toContain('src="http://localhost:3000/brand/maw3ed-email-logo-reverse-320w.png"');
+          expect(img).toContain('width="160"');
+          expect(img).toContain(`height="${EMAIL_LOGO_HEIGHT}"`);
+          expect(img).toContain('alt="Maw3ed"');
+          expect(img).toMatch(/style="[^"]*display:block/);
+          expect(img).toMatch(/style="[^"]*border:0/);
+          expect(img).toMatch(/style="[^"]*color:#ffffff/);
+          // The band is a navy cell (bgcolor for Outlook) holding the logo, ahead of the white card.
+          const band = /<td [^>]*bgcolor="#0b1938"[^>]*>(?:(?!<\/td>).)*<img\b/.exec(out.html)?.[0];
+          expect(band).toBeDefined();
+          expect(out.html.indexOf('<img')).toBeLessThan(out.html.indexOf('<h1'));
+          // The plain-text part carries no image and no markup.
+          expect(out.text).not.toMatch(/<img|brand\/maw3ed/);
         });
 
         it('keeps the CTA href exactly and shows the same URL as visible text', () => {
@@ -194,7 +214,9 @@ describe('branded email layout (all kinds)', () => {
             client: '<img src=x onerror=1>"y\'',
           });
           expect(hostile.html).not.toContain('<script>');
-          expect(hostile.html).not.toMatch(/<img\b/i);
+          // Still only our own logo: the hostile client name never becomes a tag.
+          expect(hostile.html.match(/<img\b/gi)).toHaveLength(1);
+          expect(hostile.html).not.toContain('<img src=x');
           expect(hostile.html).not.toContain('onerror=1>');
           // The password reset email never names the business.
           if (k.name !== 'reset') expect(hostile.html).toContain('&lt;script&gt;');

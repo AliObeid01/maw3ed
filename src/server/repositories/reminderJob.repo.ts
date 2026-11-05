@@ -129,6 +129,33 @@ export const reminderJobRepo = {
     return res.count;
   },
 
+  /**
+   * F69-C: an address was ADDED to an appointment that had none. EMAIL jobs of `kinds` that the runner skipped
+   * for `no_email` and only for that go back to PENDING, on the caller's transaction. The row (and its id, the
+   * provider idempotency key) is reused: the unique (appointmentId, kind, channel) key means no second row can
+   * exist. SENT, FAILED, in-flight and other-reason rows never match. The attempts budget starts afresh because
+   * nothing was ever handed to the provider.
+   */
+  async requeueNoEmail(
+    businessId: string,
+    tx: Prisma.TransactionClient,
+    appointmentId: string,
+    kinds: readonly ('H24' | 'H2')[],
+  ) {
+    const res = await tx.reminderJob.updateMany({
+      where: {
+        businessId,
+        appointmentId,
+        channel: 'EMAIL',
+        kind: { in: [...kinds] },
+        status: 'SKIPPED',
+        lastError: 'no_email',
+      },
+      data: { status: 'PENDING', lastError: null, lockedAt: null, nextAttemptAt: null, attempts: 0 },
+    });
+    return res.count;
+  },
+
   // ---- job runner: these queries span all tenants on purpose (jobs only) ---------------------------
 
   /**

@@ -17,6 +17,8 @@ import { cn } from '@/lib/cn';
 export type { SlugStatus };
 
 const noopSubscribe = () => () => {};
+// Typographic middle dot, not translatable copy.
+const SEPARATOR = '·';
 /** "Checking" is only shown (and announced) when the server is slow. */
 const CHECKING_VISIBLE_AFTER_MS = 600;
 
@@ -159,12 +161,14 @@ export function SlugField({
             </span>
           ) : null}
         </div>
-        <p
-          className={cn(
-            'm-0 min-w-0 flex-1 truncate text-start text-muted',
-            value && text && !error && "before:me-2 before:content-['\\00b7']",
-          )}
-        >
+        <p className="m-0 min-w-0 flex-1 truncate text-start text-muted">
+          {/* Decorative separator between the status and the preview: a real (hidden) node, because a CSS
+              `content` dot would be read as part of the preview text by assistive tech. Same inline width as before. */}
+          {value && text && !error ? (
+            <span aria-hidden="true" className="me-2">
+              {SEPARATOR}
+            </span>
+          ) : null}
           {value ? (
             // U+2066/U+2069 isolate the LTR address inside an RTL sentence.
             t('slugStatus.preview', { url: `⁦${host}/b/${value}⁩` })

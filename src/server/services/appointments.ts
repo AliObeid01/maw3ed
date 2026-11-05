@@ -77,6 +77,38 @@ export const appointmentsService = {
     return { appointment: await withReminderEmail(ctx, row) };
   },
 
+  /**
+   * F69-C: correct THIS booking's contact email / name. Only the appointment's own columns change; the client
+   * record never does. Another business's id is a 404. Past / cancelled / attended: 409.
+   */
+  async updateContact(
+    ctx: SessionContext,
+    id: string,
+    change: { contactEmail?: string | null | undefined; contactName?: string | null | undefined },
+    now: () => Date = () => new Date(),
+  ) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const res = await appointmentRepo.updateContact(ctx.businessId, id, change, now());
+    if (res.kind === 'not_found') throw AppError.notFound();
+    if (res.kind === 'not_editable')
+      throw AppError.conflict(
+        'APPOINTMENT_NOT_EDITABLE',
+        undefined,
+        'This appointment can no longer be edited.',
+      );
+    if (res.kind === 'email_required')
+      throw AppError.validation({
+        contactEmail: 'A booking made on the public page needs an email address.',
+      });
+    ctx.logger.info(
+      { businessId: ctx.businessId, appointmentId: id, requeued: res.requeued },
+      'appointment contact details corrected',
+    );
+    const row = await appointmentRepo.findById(ctx.businessId, id);
+    if (!row) throw AppError.notFound();
+    return { appointment: await withReminderEmail(ctx, row) };
+  },
+
   /** Front-desk booking: same engine as the public page; the business comes from the session. */
   async book(
     ctx: SessionContext,

@@ -13,7 +13,7 @@ The full component recipes, tokens and responsive rules are in the `maw3ed-desig
 - **Palette (v2 blue, shipped 3 Nov 2026)** canvas `#F3F5FA` · surface `#FFFFFF` · ink / Deep Navy `#0B1938` · muted `#56668A` (darkened from `#5B6B8C` so it also passes on brand-soft) ·
   line `#D3DCEE` · divider / Soft Blue Gray `#E9EFF8` · brand / Royal Blue `#254EDB` (hover `#1D3FB8`) · Electric `#2864F5` (selected day, focus ring, accent button) ·
   Cyan `#43C4F0` (info chips, initials tiles, logo check; navy text only) · Turquoise `#21CDB3` (the one highlight tile "Refilled from waitlist"; navy text only) · Mint `#20D2AC` (service icons) ·
-  success `#17795A` · warning `#9A5800` · danger `#C21F3A` · gold `#E8B86D` only as the thin underline under the wordmark in the Logo and emails.
+  success `#17795A` · warning `#9A5800` · danger `#C21F3A`. **There is no gold**: the old `#E8B86D` wordmark underline was removed with the new logo (F69-C); `palette.test.ts` fails if it reappears anywhere.
   Cyan and Turquoise are never a text colour on white and never carry white text. The old `--color-accent` alias is gone: use `bg-cyan` (`--color-cyan`), never `accent`. `--color-subtle` (#657799) is 4.5:1 on white and only for placeholders, disabled text and struck-out taken slots on white.
 - **Shape** rounded-rectangle buttons (12 px, `rounded-btn`), chips 8 px (`rounded-chip`), inputs 12 px (52 px tall), cards 14 to 16 px, hairline borders, neutral shadows only. `rounded-pill` is kept for the Switch, avatars, dots and count badges.
 - **Signature** a FLAT Deep Navy hero band (`bg-hero`) with a 4 px Royal Blue bottom edge. No gradients, radial glows, blurred blobs, gradient text, coloured glow shadows or frosted glass anywhere.
@@ -21,7 +21,15 @@ The full component recipes, tokens and responsive rules are in the `maw3ed-desig
 > **Palette change (3 Nov 2026).** The shipped palette is the v2 blue above. `maw3ed-design.html` and the boards in `design/screens` and `design/boards`
 > still show the ORIGINAL teal and gold design: use them as **layout references only** (hierarchy, spacing, copy), never for colour or corner radius.
 > The tokens live in `src/app/globals.css`; `tests/unit/ui/palette.test.ts` pins them and `node scripts/design/contrast.mjs` checks every text pair (AA).
+> The boards also still show the OLD logo (a slanted calendar with a gold underline): they stay as the old reference; the logo is now the one in `design/logo` (see **Logo** below).
 > F66 also moved the Plan box next to Deposits on Settings (lg+), put the Account page cards side by side (lg+) and made the Sign up card 640 px with a two-column form from md.
+
+## Logo (F69-C, owner files in `design/logo`, option B)
+A calendar icon with the M inside; the "3" of Maw3ed is two stacked arcs (navy over turquoise). Flat paths only: no text, gradients or filters. `design/logo` (with its README) is the source of truth.
+- **In the UI**: `src/components/brand/Logo.tsx` renders inline SVG built from `1-platform`. Props `label` (accessible name; omitted = `aria-hidden`), `className`, `width`, `tone` (`brand` = the light version on white surfaces, `white` = the reverse version on the navy hero or header), `variant` (`full` | `wordmark`). Under `MIN_FULL_LOGO_WIDTH` (96 px) the full logo automatically becomes the written wordmark, because the calendar icon is unreadable there. Sizes in use: sign-in and sign-up 160, dashboard sidebar 130, public header 132 (112 below `md`), error page 120.
+- **Email**: a Deep Navy `#0B1938` band with the reverse PNG (`/brand/maw3ed-email-logo-reverse-320w.png`, shown at 160 x 44, `alt="Maw3ed"`) as an absolute URL from `APP_URL`; the files live in `public/brand` (160w, 320w and 480w, reverse and light). The plain-text part and the `.ics` carry the plain name Maw3ed.
+- **Icons**: `src/app/favicon.ico`, `src/app/icon.svg` (the no-band favicon: bigger letter, readable at 16 px), `src/app/apple-icon.png` (180), `src/app/manifest.ts` (192, 512 and a maskable 512 from `public/brand`). The WhatsApp profile picture (`5-whatsapp`) is uploaded by the owner by hand.
+- Do not recolour, outline or redraw it; edit `design/logo` first, then copy the paths.
 
 ## Responsive strategy
 The boards are 1440 px desktop. We build **360 px first**:

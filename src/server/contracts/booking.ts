@@ -89,6 +89,24 @@ export const PublicBookingBody = registry.register(
   z.object({ ...bookingFields, client: PublicClientInput }).strict(),
 );
 
+/**
+ * F69-C: correct THIS booking's contact details (the F16 `contactEmail` / `contactName`). Nothing else: no phone,
+ * no time, no free text. `null` clears a value. The client record is never touched.
+ */
+export const ContactBody = registry.register(
+  'AppointmentContactBody',
+  z
+    .object({
+      contactEmail: clientEmail.nullable().optional(),
+      contactName: z.string().trim().min(1).max(80).nullable().optional(),
+    })
+    .strict()
+    .refine((v) => v.contactEmail !== undefined || v.contactName !== undefined, {
+      message: 'Send contactEmail, contactName or both.',
+      path: ['contactEmail'],
+    }),
+);
+
 const idempotencyKey = z
   .string()
   .min(8)
@@ -310,5 +328,22 @@ registry.registerPath({
     403: errorResponses[403],
     404: errorResponses[404],
     409: err('CONFLICT: the appointment already has an outcome'),
+  },
+});
+
+registry.registerPath({
+  method: 'patch',
+  path: '/api/appointments/{id}/contact',
+  summary: "Correct this booking's contact email and/or name (the client record is not changed)",
+  tags: ['appointments'],
+  security: [{ session: [] }],
+  request: { params: AppointmentParams, body: { content: json(ContactBody) } },
+  responses: {
+    200: { description: 'Updated', content: json(AppointmentOneDto) },
+    400: errorResponses[400],
+    401: errorResponses[401],
+    403: errorResponses[403],
+    404: errorResponses[404],
+    409: err('APPOINTMENT_NOT_EDITABLE: past, cancelled, attended, no-show or unpaid appointment'),
   },
 });
