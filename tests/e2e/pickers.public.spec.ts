@@ -3,7 +3,7 @@ import { DateTime } from 'luxon';
 import { expect, test } from './helpers/test';
 import { clockNow } from './helpers/clock';
 import { expectNoHorizontalOverflow, expectNoPageOverflow } from './helpers/layout';
-import { goToMonth, picker, pickDate, searchAndSelect } from './helpers/pickers';
+import { goToMonth, picker, pickDate, searchAndSelect, stable } from './helpers/pickers';
 import { IDS, mockPublicApi, SLUG, TZ } from './helpers/publicMock';
 import { mockJoinWaitlist } from './helpers/waitlistMock';
 
@@ -25,7 +25,7 @@ async function openWaitlist(page: Page) {
 
 test('Select opens as a sheet on a phone and a popover on desktop, fits, scrolls and returns focus', async ({ page }) => {
   await openWaitlist(page);
-  const trigger = picker(page, 'Service');
+  const trigger = await stable(page, 'Service');
   await trigger.click();
   const surface = page.getByRole('dialog', { name: 'Service', exact: true });
   await expect(surface).toBeVisible();
@@ -110,7 +110,7 @@ test.describe('Arabic', () => {
   test('waitlist pickers: RTL, Arabic labels, Latin digits, mirrored chevrons, no overflow', async ({ page, context, baseURL }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
     await openWaitlistAr(page);
-    const from = page.getByRole('combobox').filter({ hasText: /\d{4}/ }).first();
+    const from = page.locator('button[role=combobox][data-value]').filter({ hasText: /\d{4}/ }).first();
     await from.click();
     const surface = page.getByRole('dialog').last();
     const prev = surface.getByRole('button', { name: 'الشهر السابق' });

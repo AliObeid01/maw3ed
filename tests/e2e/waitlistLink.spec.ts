@@ -54,8 +54,8 @@ test.describe('English', () => {
     await toTimeStep(page, /Lina/);
     await page.getByRole('link', { name: EN_LINK }).click();
     await expect(page).toHaveURL(new RegExp(`${WL}\\?service=${IDS.haircut}&staff=${IDS.lina}&from=\\d{4}-\\d{2}-\\d{2}$`));
-    await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
-    await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
+    await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.haircut);
+    await expect(page.getByLabel('With')).toHaveAttribute('data-value', IDS.lina);
     // The wanted day starts the range on the form.
     await expect(page.getByLabel('From day')).toHaveAttribute('data-value', firstBookableDay());
   });
@@ -245,7 +245,7 @@ test.describe('the waitlist page ignores a bad ?from=', () => {
       await mockPublicApi(page);
       await mockJoinWaitlist(page);
       await page.goto(`${WL}?service=${IDS.haircut}&from=${from}`);
-      await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
+      await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.haircut);
       // The default range starts today in the business timezone, never the bad value.
       await expect(page.getByLabel('From day')).toHaveAttribute('data-value', businessToday().toISODate()!);
       await expect(page.getByLabel('From day')).not.toHaveAttribute('data-value', from);

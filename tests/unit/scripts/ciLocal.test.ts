@@ -78,6 +78,11 @@ describe('ci-local: localhost guard', () => {
     expect(msg).toMatch(/DATABASE_URL/);
     expect(msg).not.toMatch(/secretpw/);
   });
+  it('refuses look-alike hosts and allows the IPv6 loopback', () => {
+    expect(() => ci.assertLocalDatabases({ DATABASE_URL: 'postgresql://localhost@neon.tech/db' })).toThrow(/DATABASE_URL/);
+    expect(() => ci.assertLocalDatabases({ DATABASE_URL: 'postgresql://u:p@localhost.evil.com/db' })).toThrow(/DATABASE_URL/);
+    expect(ci.assertLocalDatabases({ DATABASE_URL: 'postgresql://u:p@[::1]:5432/db' })).toBeUndefined();
+  });
   it('refuses an unparsable value', () => {
     expect(() => ci.assertLocalDatabases({ DIRECT_URL: 'not a url' })).toThrow(/DIRECT_URL/);
   });

@@ -75,7 +75,7 @@ test.describe('public booking: live refresh', () => {
     }
     await expect.poll(() => mock.businessRequests - business0).toBeGreaterThanOrEqual(4);
     expect(mock.businessRequests - business0).toBeLessThanOrEqual(6);
-    expect(mock.slotRequests.length - slots0).toBeGreaterThanOrEqual(4);
+    await expect.poll(() => mock.slotRequests.length - slots0).toBeGreaterThanOrEqual(4);
     expect(mock.slotRequests.length - slots0).toBeLessThanOrEqual(6);
 
     await expect(name).toBeFocused();
