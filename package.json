@@ -30,6 +30,7 @@
     "db:check": "tsx scripts/db/run-sql.ts scripts/db/check-constraints.sql",
     "test:e2e:public": "playwright test --project=mobile --project=desktop",
     "test:e2e:dashboard": "playwright test --project=dashboard-mobile --project=dashboard-desktop",
+    "ci:local": "node scripts/ci-local.mjs",
     "vercel-build": "node scripts/vercel-build.mjs"
   },
   "devDependencies": {

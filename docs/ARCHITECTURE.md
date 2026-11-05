@@ -19,6 +19,8 @@ repositories are the only code that touches Prisma. The two hard guarantees live
                              unique (appointmentId, kind, channel) (no double send)
 ```
 
+CI minutes and the local CI script (`pnpm ci:local`): see `docs/CI_LOCAL.md`.
+
 ## Folder layout
 ```
 src/app/(public)/b/[slug]/page.tsx            booking stepper (1.1–1.6)
