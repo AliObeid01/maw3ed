@@ -136,6 +136,18 @@ test.describe('sign up layout', () => {
       const typed = await snapshot();
       await expect(page.getByText('Available', { exact: true })).toBeVisible();
       const available = await snapshot();
+      // F69-C: the "·" between the status and the preview is a decorative aria-hidden node, so it is not part of
+      // the preview's accessible text (a CSS ::before dot would have been read out).
+      const dot = page.locator('p [aria-hidden="true"]', { hasText: '·' });
+      await expect(dot).toHaveCount(1);
+      const readable = await dot.locator('xpath=..').evaluate((p) =>
+        Array.from(p.childNodes)
+          .filter((n) => !(n instanceof Element && n.getAttribute('aria-hidden') === 'true'))
+          .map((n) => n.textContent)
+          .join(''),
+      );
+      expect(readable).toContain('/b/');
+      expect(readable).not.toContain('·');
       await slug.fill('x');
       await expect(page.getByText(/Use 3 to 40/)).toBeVisible();
       const invalid = await snapshot();

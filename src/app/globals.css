@@ -27,7 +27,6 @@
   --color-cyan: #43c4f0; /* small info chips, logo check; navy text only */
   --color-turquoise: #21cdb3; /* one highlight tile; navy text only */
   --color-mint: #20d2ac; /* service and category icons */
-  --color-gold: #e8b86d; /* ONLY the thin underline under the Maw3ed wordmark in the Logo */
 
   /* WhatsApp buttons: deep green, white text 4.92:1 (contrast.mjs). NEVER the bright #25D366 (1.98:1). */
   --color-whatsapp: #12805c;

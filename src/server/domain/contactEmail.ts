@@ -64,3 +64,12 @@ export function normaliseContactEmail(raw: string | null | undefined): string | 
   const v = raw?.trim().toLowerCase();
   return v ? v : undefined;
 }
+
+/**
+ * F69-C: a booking's contact details may be corrected only while it is still ahead of us and still a live
+ * booking (BOOKED or CONFIRMED). Past, cancelled, attended, no-show and unpaid-hold appointments are final.
+ * `now` is injected.
+ */
+export function isContactEditable(a: { status: string; startAt: Date }, now: Date): boolean {
+  return (a.status === 'BOOKED' || a.status === 'CONFIRMED') && a.startAt.getTime() > now.getTime();
+}

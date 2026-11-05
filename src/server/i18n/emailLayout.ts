@@ -1,12 +1,14 @@
+import { getServerEnv } from '@/server/env';
 import { escapeHtml } from './emailRender';
 import { emailFontStack, getEmailMessages, isRtl } from './messages';
 
 /**
  * The ONE shared HTML layout for every transactional email (booking, reminders, waitlist offer, invite, email
  * verification, password reset). Table based with inline styles (the optional <style> block only tightens
- * padding and makes the button full width at phone widths). No images and no remote fonts: many clients block
- * both. Colours are the app tokens in src/app/globals.css; light colour scheme only so dark-mode clients do
- * not invert it. Pure.
+ * padding and makes the button full width at phone widths). The only image is the logo in the navy header band
+ * (an absolute URL under APP_URL, with alt text on a navy cell so the name stays readable when images are
+ * blocked); no remote fonts. Colours are the app tokens in src/app/globals.css; light colour scheme only so
+ * dark-mode clients do not invert it. Deterministic for a given APP_URL, so a retried send is byte-identical.
  */
 export const EMAIL_COLORS = {
   canvas: '#f3f5fa',
@@ -15,11 +17,22 @@ export const EMAIL_COLORS = {
   ink: '#0b1938',
   muted: '#56668a',
   brand: '#254edb',
-  accent: '#e8b86d',
+  /** Deep Navy: the header band behind the reverse (white) logo. */
+  navy: '#0b1938',
   onBrand: '#ffffff',
 } as const;
 
+/** The reverse logo: the 320 px file shown at 160 px (sharp on retina). Served from public/brand. */
+export const EMAIL_LOGO_PATH = '/brand/maw3ed-email-logo-reverse-320w.png';
+export const EMAIL_LOGO_WIDTH = 160;
+export const EMAIL_LOGO_HEIGHT = 44;
+
 const C = EMAIL_COLORS;
+
+/** Public origin the logo is fetched from (APP_URL, no trailing slash). Constant for the life of a process. */
+export function emailAssetBase(): string {
+  return getServerEnv().APP_URL;
+}
 
 export interface EmailLink {
   label: string;
@@ -83,6 +96,11 @@ export function renderEmailLayout(o: EmailLayoutOptions): string {
     ? `<tr><td class="px" style="padding:20px 8px 0;font-size:12px;line-height:18px;color:${C.muted};text-align:center">${o.footerHtml}</td></tr>`
     : '';
 
+  // Navy band + reverse logo. Inline styles only; the text colour and size keep the alt text readable on navy when
+  // the client blocks images. The src is absolute: email clients cannot resolve relative paths.
+  const logo = `${emailAssetBase()}${EMAIL_LOGO_PATH}`;
+  const header = `<tr><td class="px" bgcolor="${C.navy}" style="background:${C.navy};padding:20px 28px;border-radius:16px 16px 0 0;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;color:${C.onBrand};text-align:start"><img src="${e(logo)}" width="${EMAIL_LOGO_WIDTH}" height="${EMAIL_LOGO_HEIGHT}" alt="Maw3ed" style="display:block;border:0;outline:none;text-decoration:none;width:${EMAIL_LOGO_WIDTH}px;height:${EMAIL_LOGO_HEIGHT}px;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;color:${C.onBrand}"></td></tr>`;
+
   return [
     '<!doctype html>',
     `<html lang="${lang}" dir="${dir}">`,
@@ -98,8 +116,8 @@ export function renderEmailLayout(o: EmailLayoutOptions): string {
     `<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;font-size:1px;line-height:1px">${e(o.preheader)}</div>`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${C.canvas}" style="background:${C.canvas}"><tr><td class="outer" align="center" style="padding:28px 12px">`,
     `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" dir="${dir}" style="max-width:600px;width:100%">`,
-    `<tr><td class="px" style="padding:0 8px 16px;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;letter-spacing:0.2px;color:${C.ink};text-align:start"><span style="border-bottom:3px solid ${C.accent};padding-bottom:2px">Maw3ed</span></td></tr>`,
-    `<tr><td style="background:${C.card};border:1px solid ${C.line};border-top:4px solid ${C.brand};border-radius:16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" dir="${dir}" style="padding:28px 28px 20px;font-family:${font};text-align:start">`,
+    header,
+    `<tr><td style="background:${C.card};border:1px solid ${C.line};border-top:0;border-radius:0 0 16px 16px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td class="px" dir="${dir}" style="padding:28px 28px 20px;font-family:${font};text-align:start">`,
     `<h1 style="margin:0 0 12px;font-size:22px;line-height:30px;font-weight:bold;color:${C.ink}">${e(o.title)}</h1>`,
     o.bodyHtml,
     button,

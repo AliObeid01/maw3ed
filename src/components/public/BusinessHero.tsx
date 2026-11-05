@@ -11,7 +11,7 @@ export type BusinessHeroProps = {
   className?: string;
 };
 
-/** Teal hero band with the gold monogram (board 02). */
+/** Navy hero band with the cyan monogram tile (board 02, palette v2). */
 export function BusinessHero({ name, meta, facts = [], className }: BusinessHeroProps) {
   return (
     // Named, so it is a region landmark and its content is not orphaned outside <main>.

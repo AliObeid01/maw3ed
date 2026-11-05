@@ -195,6 +195,10 @@ export async function runReminders(
       `${appUrl}/l/${signToken({ a: a.id, act, exp: expiryFor(a.startAt) }, secret)}`;
     // F68: the booking email's links and reminder sentence come from the SAME lead rule that planned the
     // reminders (start - the booking job's dueAt = bookedAt), so the content is deterministic on a retry.
+    // `hasEmail` is always true here on purpose: a job with no effective address was already skipped as
+    // `no_email` by planFor() above, so any email we render HAS a recipient. The "we will remind you" promise
+    // is therefore derived from the lead-time plan alone, not from stored ReminderJob rows (which exist whether
+    // or not the booking has an address).
     const bookingPlan =
       job.kind === 'BOOKING' ? bookingEmailPlan(a.startAt, job.dueAt, true) : undefined;
     const rendered = renderReminderEmail({

@@ -75,6 +75,7 @@ export type MockAppt = {
   cancelledVia?: 'LINK' | 'STAFF' | 'SYSTEM' | null;
   /** F16: the address typed for this booking (the mock mirrors the server's effectiveEmail with the client email). */
   contactEmail?: string | null;
+  contactName?: string | null;
 };
 
 export const SERVICES = {
@@ -144,6 +145,8 @@ export type OutcomesOptions = {
   signals?: Signals;
   /** Per PATCH outcome attempt, in order: 'ok' (default) or an HTTP failure. */
   outcomeScript?: Array<'ok' | '500' | 'slow'>;
+  /** Per PATCH /contact attempt, in order: 'ok' (default), '409' (not editable), '404', '500' or 'slow'. */
+  contactScript?: Array<'ok' | '409' | '404' | '500' | 'slow'>;
   /** Milliseconds a 'slow' outcome attempt waits before answering. */
   slowMs?: number;
   /** The queue also lists appointments ending within this many minutes (a server clock ahead of the browser). */
@@ -196,6 +199,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
   let baseline = options.baseline ?? null;
   const calls: Call[] = [];
   let outcomeAttempt = 0;
+  let contactAttempt = 0;
   const script = options.outcomeScript ?? [];
 
   const byClient = (id: string) => clients.find((c) => c.id === id);
@@ -336,6 +340,29 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       if (!ID.test(one[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
       const found = appointments.find((a) => a.id === one[1]);
       if (!found) return apiError(route, 404, 'NOT_FOUND');
+      return json(route, 200, { appointment: apptItem(found) });
+    }
+    const contact = /^\/api\/appointments\/([^/]+)\/contact$/.exec(path);
+    if (contact && method === 'PATCH') {
+      const found = appointments.find((a) => a.id === contact[1]);
+      if (!found) return apiError(route, 404, 'NOT_FOUND');
+      const keys = Object.keys(body ?? {});
+      const email = (body as { contactEmail?: string | null } | undefined)?.contactEmail;
+      const name = (body as { contactName?: string | null } | undefined)?.contactName;
+      const fields: Record<string, string> = {};
+      for (const k of keys) if (k !== 'contactEmail' && k !== 'contactName') fields[k] = 'Unknown field.';
+      if (keys.length === 0) fields.contactEmail = 'Send contactEmail, contactName or both.';
+      if (typeof email === 'string' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.contactEmail = 'Invalid email.';
+      if (email === null && found.source === 'PUBLIC') fields.contactEmail = 'A booking made on the public page needs an email address.';
+      if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
+      contactAttempt += 1;
+      const step = options.contactScript?.[contactAttempt - 1] ?? 'ok';
+      if (step === '409') return apiError(route, 409, 'APPOINTMENT_NOT_EDITABLE');
+      if (step === '404') return apiError(route, 404, 'NOT_FOUND');
+      if (step === '500') return apiError(route, 500, 'INTERNAL');
+      if (step === 'slow') await new Promise((r) => setTimeout(r, options.slowMs ?? 600));
+      if (email !== undefined) found.contactEmail = email;
+      if (name !== undefined) found.contactName = name;
       return json(route, 200, { appointment: apptItem(found) });
     }
     const cancel = /^\/api\/appointments\/([^/]+)\/cancel$/.exec(path);

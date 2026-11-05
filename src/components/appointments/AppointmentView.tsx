@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarX2, ChevronLeft, MessageCircle, Phone } from 'lucide-react';
+import { CalendarX2, ChevronLeft, MessageCircle, Pencil, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -10,6 +10,7 @@ import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError, useErrorMessage } from '@/components/app/states';
 import { useSummary } from '@/components/app/SummaryContext';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
+import { EditContactSheet } from './EditContactSheet';
 import { OutcomeButtons } from '@/components/outcomes/OutcomeButtons';
 import { useFailureText } from '@/components/outcomes/useFailureText';
 import { Bidi, MetaLine, TimeRange, isolate } from '@/components/ui/Bidi';
@@ -176,6 +177,7 @@ export function AppointmentView({ id }: { id: string }) {
   const label = useClientLabel();
   const res = useResource((signal) => getAppointment(id, signal), id);
   const [confirming, setConfirming] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string>();
 
@@ -404,6 +406,17 @@ export function AppointmentView({ id }: { id: string }) {
               )}
             </p>
           ) : null}
+          {cancellable && !deleted ? (
+            <Button
+              variant="secondary"
+              size="row"
+              className="w-full sm:w-auto"
+              onClick={() => setEditing(true)}
+            >
+              <Pencil size={18} aria-hidden="true" />
+              {t('contact.edit')}
+            </Button>
+          ) : null}
         </Card>
 
         {cancellable ? (
@@ -415,6 +428,17 @@ export function AppointmentView({ id }: { id: string }) {
           </div>
         ) : null}
       </div>
+
+      <EditContactSheet
+        appt={appt}
+        open={editing && cancellable && !deleted}
+        onOpenChange={setEditing}
+        onSaved={(next) => {
+          res.setData(next);
+          res.reload();
+        }}
+        onStale={res.reload}
+      />
 
       <Sheet
         open={confirming}

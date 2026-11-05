@@ -92,6 +92,19 @@ export const getAppointment = (id: string, signal?: AbortSignal) =>
     (r) => r.appointment,
   );
 
+/**
+ * F69-C: correct THIS booking's contact email and/or name. `null` clears. The client record is not changed.
+ * Answers with the refreshed appointment (including the staff-only `reminderEmail` line).
+ */
+export const updateContact = (
+  id: string,
+  body: { contactEmail?: string | null; contactName?: string | null },
+) =>
+  request(`/api/appointments/${encodeURIComponent(id)}/contact`, appointmentSchema, {
+    method: 'PATCH',
+    body,
+  }).then((r) => r.appointment);
+
 // ---- Clients ---------------------------------------------------------------------------------------
 
 export const CLIENT_SORTS = ['name', 'noShows', 'recent'] as const;
