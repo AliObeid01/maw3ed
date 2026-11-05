@@ -14,7 +14,9 @@ import { PageState } from '@/components/public/PageState';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
+import { DatePicker } from '@/components/ui/DatePicker';
+import { Select } from '@/components/ui/Select';
 import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ApiError } from '@/lib/api/auth';
@@ -430,67 +432,60 @@ export function JoinWaitlist({ slug }: { slug: string }) {
                   value={serviceId ?? ''}
                   disabled={pending}
                   error={err(errors.service)}
-                  onChange={(e) => {
-                    setPickedService(e.target.value || '');
+                  placeholder={t('want.servicePlaceholder')}
+                  onChange={(value) => {
+                    setPickedService(value || '');
                     setPickedStaff(null);
                     clearField('service');
                   }}
-                >
-                  <option value="">{t('want.servicePlaceholder')}</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} · {f.duration(s.durationMin)}
-                    </option>
-                  ))}
-                </Select>
+                  options={services.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} · ${f.duration(s.durationMin)}`,
+                  }))}
+                />
                 <Select
                   id={FIELD_IDS.staff}
                   label={t('want.with')}
                   value={staffId ?? ''}
                   disabled={pending || !service}
                   error={err(errors.staff)}
-                  onChange={(e) => {
-                    setPickedStaff(e.target.value || null);
+                  onChange={(value) => {
+                    setPickedStaff(value || null);
                     clearField('staff');
                   }}
-                >
-                  <option value="">{t('want.anyone')}</option>
-                  {eligible.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.displayName}
-                    </option>
-                  ))}
-                </Select>
+                  options={[
+                    { value: '', label: t('want.anyone') },
+                    ...eligible.map((p) => ({ value: p.id, label: p.displayName })),
+                  ]}
+                />
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <Input
+                <DatePicker
                   id={FIELD_IDS.from}
-                  type="date"
                   label={t('want.from')}
                   value={range.from}
                   min={today}
+                  today={today}
                   disabled={pending}
                   error={err(errors.from)}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    setRange((r) => followStart(r!, e.target.value));
+                  onChange={(value) => {
+                    setRange((r) => followStart(r!, value));
                     clearField('from');
                     clearField('to');
                   }}
                 />
-                <Input
+                <DatePicker
                   id={FIELD_IDS.to}
-                  type="date"
                   label={t('want.to')}
                   value={range.to}
                   min={range.from || today}
                   max={range.from ? addDays(range.from, MAX_SPAN_DAYS - 1) : undefined}
+                  today={today}
                   disabled={pending}
                   error={err(errors.to)}
                   hint={t('want.rangeHint')}
-                  autoComplete="off"
-                  onChange={(e) => {
-                    setRange((r) => ({ ...r!, to: e.target.value }));
+                  onChange={(value) => {
+                    setRange((r) => ({ ...r!, to: value }));
                     clearField('to');
                   }}
                 />

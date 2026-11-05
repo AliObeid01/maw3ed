@@ -7,16 +7,15 @@ import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { Chip, StatusChip, statusTones, type Status } from '@/components/ui/Chip';
 import { CountBadge } from '@/components/ui/CountBadge';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
 import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTile } from '@/components/ui/StatTile';
 import { ShellDemo } from './Demos';
+import { PickersDemo } from './PickersDemo';
 import { SheetDemo } from './SheetDemo';
 
 export const dynamic = 'force-dynamic';
-
-const COUNTRY_CODES = ['+961', '+971'];
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -121,18 +120,6 @@ export default async function UiPreviewPage() {
               {t('fields.phone')}
             </label>
             <div className="flex gap-2">
-              <Select
-                label={t('fields.countryCode')}
-                wrapperClassName="[&>label]:sr-only w-28"
-                autoComplete="tel-country-code"
-                defaultValue="+961"
-              >
-                {COUNTRY_CODES.map((code) => (
-                  <option key={code} value={code}>
-                    {`‎${code}`}
-                  </option>
-                ))}
-              </Select>
               <Input
                 id="ui-phone"
                 label={t('fields.phone')}
@@ -151,10 +138,7 @@ export default async function UiPreviewPage() {
             defaultValue="maya@"
             error={t('fields.emailError')}
           />
-          <Select label={t('fields.service')} hint={t('fields.serviceHint')}>
-            <option>{t('fields.haircut')}</option>
-            <option>{t('fields.blowDry')}</option>
-          </Select>
+          <PickersDemo />
         </div>
       </Section>
 

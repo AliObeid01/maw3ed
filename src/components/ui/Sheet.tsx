@@ -16,6 +16,8 @@ export type SheetProps = {
   hideTitle?: boolean;
   children: ReactNode;
   className?: string;
+  /** Decide what gets focus when the sheet opens (default: the first focusable element, the Close button). */
+  onOpenAutoFocus?: (event: Event) => void;
   /** Render in place instead of in a portal (server-render tests, previews). */
   inline?: boolean;
 };
@@ -33,6 +35,7 @@ export function Sheet({
   hideTitle,
   children,
   className,
+  onOpenAutoFocus,
   inline,
 }: SheetProps) {
   const Wrapper = inline ? Fragment : Dialog.Portal;
@@ -44,6 +47,7 @@ export function Sheet({
         <Dialog.Content
           // Without a description, explicitly opt out so Radix does not point at a missing element.
           {...(description ? {} : { 'aria-describedby': undefined })}
+          onOpenAutoFocus={onOpenAutoFocus}
           className={cn(
             'animate-sheet-in fixed inset-x-0 bottom-0 z-50 flex max-h-[88dvh] flex-col rounded-t-card bg-surface shadow-[0_1px_3px_rgb(0_0_0/0.06)] outline-none',
             'md:inset-0 md:m-auto md:h-fit md:max-h-[85dvh] md:w-[calc(100%-48px)] md:max-w-md md:animate-dialog-in md:rounded-card',

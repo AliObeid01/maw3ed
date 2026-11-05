@@ -39,7 +39,10 @@ test('pre-filled, note shown, save sends only the changed fields and refreshes "
     'This changes this booking only, not the client’s saved record. The phone cannot be changed here: cancel and book again if it is wrong.',
   );
   await expect(dialog.getByLabel('Email for this booking')).toHaveValue('maya@gmial.test');
-  await expect(dialog.getByLabel('Name for this booking')).toHaveValue('Maya Khoury');
+  // F69-D: only this booking's own override is pre-filled. This one has an email override but no name override,
+  // so the name starts empty and the hint says what is used now.
+  await expect(dialog.getByLabel('Name for this booking')).toHaveValue('');
+  await expect(dialog).toContainText('Currently shown as Maya Khoury.');
   await expect(dialog.getByLabel(/phone/i)).toHaveCount(0);
   await expectNoPageOverflow(page);
   await expectNoHorizontalOverflow(dialog, 'edit contact sheet');
@@ -57,10 +60,67 @@ test('pre-filled, note shown, save sends only the changed fields and refreshes "
   expect(sent[0]!.body).toEqual({ contactEmail: 'maya.fixed@gmail.test' });
 });
 
+test('F69-D: a front-desk booking with NO override starts empty, shows what reminders use, and an untouched save sends nothing', async ({
+  page,
+}) => {
+  const { calls } = await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: 'maya.record@example.test' }],
+    appointments: [appt('apone', 'clmaya', 180, 30, { source: 'FRONT_DESK' })],
+  });
+  await page.goto('/app/appointments/apone');
+  await page.getByRole('button', { name: EDIT }).click();
+  const dialog = editDialog(page);
+  await expect(dialog.getByLabel('Email for this booking')).toHaveValue('');
+  await expect(dialog.getByLabel('Name for this booking')).toHaveValue('');
+  await expect(dialog).toContainText('Reminders currently go to maya.record@example.test.');
+  await expect(dialog).toContainText('Currently shown as Maya Khoury.');
+  // Nothing to clear: no hint about clearing, and saving the untouched form changes nothing.
+  await expect(dialog).not.toContainText('Clear this field');
+  await dialog.getByRole('button', { name: 'Save changes' }).click();
+  await expect(dialog).toBeHidden();
+  expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(0);
+});
+
+test('F69-D: no override and no email on file says no reminders are sent', async ({ page }) => {
+  await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: null }],
+    appointments: [appt('apone', 'clmaya', 180, 30, { source: 'FRONT_DESK' })],
+  });
+  await page.goto('/app/appointments/apone');
+  await page.getByRole('button', { name: EDIT }).click();
+  await expect(editDialog(page)).toContainText('No email is on file, so no reminders are sent for this booking.');
+});
+
+test('F69-D: a front-desk booking WITH an override can clear it (back to the saved address) and is told so', async ({
+  page,
+}) => {
+  const { calls } = await mockOutcomesApi(page, {
+    clients: [{ ...MAYA, email: 'maya.record@example.test' }],
+    appointments: [
+      appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya@gmial.test', contactName: 'Maya K.', source: 'FRONT_DESK' }),
+    ],
+  });
+  await page.goto('/app/appointments/apone');
+  await page.getByRole('button', { name: EDIT }).click();
+  const dialog = editDialog(page);
+  await expect(dialog.getByLabel('Email for this booking')).toHaveValue('maya@gmial.test');
+  await expect(dialog.getByLabel('Name for this booking')).toHaveValue('Maya K.');
+  await expect(dialog).toContainText('Clear this field to use the client’s saved email again.');
+  await dialog.getByLabel('Email for this booking').fill('');
+  await dialog.getByRole('button', { name: 'Save changes' }).click();
+  await expect(dialog).toBeHidden();
+  const sent = calls.filter((c) => c.method === 'PATCH' && c.path.endsWith('/contact'));
+  expect(sent).toHaveLength(1);
+  expect(sent[0]!.body).toEqual({ contactEmail: null });
+  await expect(page.getByTestId('reminders-go-to')).toContainText('maya.record@example.test');
+});
+
 test('inline validation: bad email, empty name, and a public booking cannot drop its email', async ({ page }) => {
   const { calls } = await mockOutcomesApi(page, {
     clients: [{ ...MAYA }],
-    appointments: [appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya@example.test', source: 'PUBLIC' })],
+    appointments: [
+      appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya@example.test', contactName: 'Maya K.', source: 'PUBLIC' }),
+    ],
   });
   await page.goto('/app/appointments/apone');
   await page.getByRole('button', { name: EDIT }).click();

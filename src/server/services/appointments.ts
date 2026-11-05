@@ -40,6 +40,9 @@ async function withReminderEmail(ctx: SessionContext, row: Row) {
     ...toItem(row),
     reminderEmail,
     reminderEmailDiffers: reminderEmail !== null && reminderEmail.toLowerCase() !== recordEmail,
+    // This booking's own override (null = none), so the edit form can start empty when there is nothing to correct.
+    contactEmail: src?.contactEmail?.trim() || null,
+    contactName: src?.contactName?.trim() || null,
   };
 }
 

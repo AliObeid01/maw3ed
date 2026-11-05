@@ -31,6 +31,15 @@ A calendar icon with the M inside; the "3" of Maw3ed is two stacked arcs (navy o
 - **Icons**: `src/app/favicon.ico`, `src/app/icon.svg` (the no-band favicon: bigger letter, readable at 16 px), `src/app/apple-icon.png` (180), `src/app/manifest.ts` (192, 512 and a maskable 512 from `public/brand`). The WhatsApp profile picture (`5-whatsapp`) is uploaded by the owner by hand.
 - Do not recolour, outline or redraw it; edit `design/logo` first, then copy the paths.
 
+## Pickers (F69-D): Select, TimePicker, DatePicker
+No native `<select>`, `type="date"` or `type="time"` anywhere (the browser versions look different on every phone and ignore the app's language and 24-hour clock). One look, three controls, one open/close primitive.
+- **Closed**: a 52 px field-looking button, `role="combobox"`, named by the visible label, with the value (or the placeholder) and a trailing icon (chevron, clock, calendar). Focus ring, invalid (danger border, `aria-invalid`), disabled (60 % opacity), required (`aria-required`).
+- **Open**: below `md` a bottom sheet (the shared Sheet: focus trap, Esc, backdrop, focus return, 16 px top corners, never taller than 88 dvh, content scrolls inside); from `md` an anchored popover under the field (flips above when there is no room, scrolls inside, closes on Esc, outside click and Tab, neutral `0 2px 8px` shadow). Both live in `src/components/ui/pickers/PickerSurface.tsx`; the popover position is written through the CSS object model, never an inline `style=""` attribute, so the strict nonce CSP is untouched.
+- **Select** (`ui/Select.tsx`): `options`, `onChange(value)`, `placeholder`, groups, a check mark on the chosen option, 44 px options, arrows / Home / End / PageUp / PageDown / typeahead / Enter / Space. `searchable` adds a search box (time zones, country codes).
+- **TimePicker** (`ui/TimePicker.tsx`): `HH:mm`, 24 h, Latin digits, always left to right. Hours column then minutes column (5-minute grid; an off-grid saved minute stays selectable). `endOfDay` (Closes) offers 01 to 24 where 24 is "24:00 (midnight)" with the minutes locked to 00.
+- **DatePicker** (`ui/DatePicker.tsx`): `yyyy-MM-dd` in the business time zone; the field shows "Jul 10, 2036" (Latin digits). Month grid, Monday first, 44 px day cells on phones (40 px from `md`), today marker, selected day, `min` / `max` disabled days, previous / next month (chevrons mirror in RTL), PageUp / PageDown (Shift for years), Home / End, Today and optional Clear. In RTL the grid is mirrored and ArrowLeft goes forward.
+- Tests drive them with `tests/e2e/helpers/pickers.ts` (`selectOption`, `searchAndSelect`, `pickTime`, `pickDate`); each closed field exposes `data-value` with the raw value.
+
 ## Responsive strategy
 The boards are 1440 px desktop. We build **360 px first**:
 - Public booking: single column, compact progress + back, sticky bottom summary/CTA; the 3-column layout comes back at `lg`.

@@ -72,7 +72,7 @@ export const appointmentRepo = {
   reminderSources: (businessId: string, id: string) =>
     db.appointment.findFirst({
       where: { id, businessId },
-      select: { contactEmail: true, client: { select: { email: true } } },
+      select: { contactEmail: true, contactName: true, client: { select: { email: true } } },
     }),
 
   /**

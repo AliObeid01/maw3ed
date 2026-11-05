@@ -218,6 +218,8 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
     return {
       reminderEmail,
       reminderEmailDiffers: reminderEmail !== null && reminderEmail.toLowerCase() !== (c.email ?? '').toLowerCase(),
+      contactEmail: a.contactEmail ?? null,
+      contactName: a.contactName ?? null,
       id: a.id,
       startAt: a.startAt,
       endAt: a.endAt,

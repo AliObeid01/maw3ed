@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
+import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
 import { createService, updateService, type Service } from '@/lib/api/setup';
 import { BUFFER_OPTIONS, DURATION_OPTIONS, parsePrice, withCurrent } from '@/lib/setup/duration';
@@ -120,27 +121,17 @@ export function ServiceForm({
         <Select
           label={t('field.duration')}
           name="durationMin"
-          value={durationMin}
-          onChange={(e) => setDurationMin(Number(e.target.value))}
-        >
-          {durations.map((value) => (
-            <option key={value} value={value}>
-              {duration(value)}
-            </option>
-          ))}
-        </Select>
+          value={String(durationMin)}
+          onChange={(v) => setDurationMin(Number(v))}
+          options={durations.map((value) => ({ value: String(value), label: duration(value) }))}
+        />
         <Select
           label={t('field.buffer')}
           name="bufferMin"
-          value={bufferMin}
-          onChange={(e) => setBufferMin(Number(e.target.value))}
-        >
-          {buffers.map((value) => (
-            <option key={value} value={value}>
-              {duration(value)}
-            </option>
-          ))}
-        </Select>
+          value={String(bufferMin)}
+          onChange={(v) => setBufferMin(Number(v))}
+          options={buffers.map((value) => ({ value: String(value), label: duration(value) }))}
+        />
       </div>
       <Input
         label={t('field.price', { currency: currencySymbol() })}

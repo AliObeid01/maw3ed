@@ -1,7 +1,8 @@
-import type { Locator, Page } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { expect, test } from '../helpers/test';
 import { defaultState, mockSetupApi, setRole, type MockState } from '../helpers/mockApi';
 import { expectNoHorizontalOverflow, expectNoPageOverflow } from '../helpers/layout';
+import { pickTime, picker } from '../helpers/pickers';
 
 // F68-B: closing at midnight and opening past midnight in the hours editor (mocked API, fake-session dev server).
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
@@ -17,12 +18,6 @@ const stateWith = (hours: Iv[]): MockState => {
   state.hours['p1'] = hours;
   return state;
 };
-
-async function setTime(group: Locator, hm: string) {
-  const [h, m] = hm.split(':') as [string, string];
-  await group.getByRole('combobox').nth(0).selectOption(h);
-  if (h !== '24') await group.getByRole('combobox').nth(1).selectOption(m);
-}
 
 async function open(page: Page, state: MockState, day: string) {
   const mock = await mockSetupApi(page, { state });
@@ -41,15 +36,20 @@ test.describe('F68-B hours editor: midnight', () => {
     const { calls, dialog } = await open(page, stateWith([{ weekday: 1, startLocal: '09:00', endLocal: '17:30' }]), 'Monday');
     await dialog.getByRole('button', { name: 'Add hours' }).click();
     // The suggested second entry starts at 18:30 on a half hour: 23:30 to midnight used to be refused.
-    const opens = dialog.getByRole('group', { name: 'Opens' }).nth(1);
-    const closes = dialog.getByRole('group', { name: 'Closes' }).nth(1);
-    await setTime(opens, '23:30');
-    await closes.getByRole('combobox').nth(0).selectOption({ label: '24:00 (midnight)' });
-    await expect(closes.getByRole('combobox').nth(0)).toHaveValue('24');
-    await expect(closes.getByRole('combobox').nth(1)).toBeDisabled();
-    await expect(closes.getByRole('combobox').nth(1)).toHaveValue('00');
-    // No ambiguous "00" in the Closes hour list.
-    await expect(closes.getByRole('combobox').nth(0).locator('option[value="00"]')).toHaveCount(0);
+    await pickTime(page, 'Opens', '23:30', { within: dialog, nth: 1 });
+    await pickTime(page, 'Closes', '24:00', { within: dialog, nth: 1 });
+    const closes = picker(page, 'Closes', { within: dialog, nth: 1 });
+    await expect(closes).toHaveText('24:00');
+    // Open it again: no ambiguous "00" in the hour list, 24 is chosen, and its minutes are locked to 00.
+    await closes.click();
+    const hours = page.getByRole('listbox', { name: 'Hours', exact: true });
+    await expect(hours.getByRole('option', { name: /^00(\s|$)/ })).toHaveCount(0);
+    await expect(hours.getByRole('option', { name: /^24/ })).toHaveAttribute('aria-selected', 'true');
+    await expect(hours.getByRole('option', { name: /^24/ })).toContainText('midnight');
+    await expect(page.getByRole('listbox', { name: 'Minutes', exact: true }).getByRole('option')).toHaveCount(1);
+    await page.keyboard.press('Escape');
+    await expect(closes).toBeFocused();
+    await expect(dialog).toBeVisible();
     await expect(dialog.getByRole('alert')).toHaveCount(0);
     await expectNoHorizontalOverflow(dialog, 'hours sheet');
     await dialog.getByRole('button', { name: 'Apply' }).click();
@@ -62,14 +62,14 @@ test.describe('F68-B hours editor: midnight', () => {
 
   test('an old 00:00 end is read as 24:00', async ({ page }) => {
     const { dialog } = await open(page, stateWith([{ weekday: 1, startLocal: '09:00', endLocal: '24:00' }]), 'Monday');
-    await expect(dialog.getByRole('group', { name: 'Closes' }).getByRole('combobox').first()).toHaveValue('24');
+    await expect(picker(page, 'Closes', { within: dialog })).toHaveText('24:00');
   });
 
   test('entries are sorted when Apply is pressed, so the list never reorders after saving', async ({ page }) => {
     const { dialog } = await open(page, stateWith([{ weekday: 1, startLocal: '09:00', endLocal: '12:00' }]), 'Monday');
     await dialog.getByRole('button', { name: 'Add hours' }).click();
-    await setTime(dialog.getByRole('group', { name: 'Opens' }).nth(1), '06:00');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }).nth(1), '08:00');
+    await pickTime(page, 'Opens', '06:00', { within: dialog, nth: 1 });
+    await pickTime(page, 'Closes', '08:00', { within: dialog, nth: 1 });
     await dialog.getByRole('button', { name: 'Apply' }).click();
     const chips = page.getByRole('button', { name: /^Edit Monday, / });
     await expect(chips.nth(0)).toHaveAccessibleName('Edit Monday, 06:00 to 08:00');
@@ -85,7 +85,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
   }) => {
     const hours: Iv[] = [...monday(), { weekday: 2, startLocal: '09:00', endLocal: '12:00' }];
     const { calls, dialog } = await open(page, stateWith(hours), 'Monday');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');
+    await pickTime(page, 'Closes', '02:00', { within: dialog });
     await expect(dialog.getByText('Open until 02:00 the next day?')).toBeVisible();
     await expect(dialog.getByText('Monday 09:00 to 24:00, then Tuesday 00:00 to 02:00.', { exact: false })).toBeVisible();
     await expect(dialog.getByText('Closing time must be after opening time.')).toHaveCount(0);
@@ -122,7 +122,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
     // Mounted BEFORE the prompt, polite and empty, so the text it receives is announced.
     await expect(announcer).toHaveAttribute('aria-live', 'polite');
     await expect(announcer).toHaveText('');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');
+    await pickTime(page, 'Closes', '02:00', { within: dialog });
     await expect(announcer).toContainText('Apply stays off');
     await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled();
     await expect(dialog.getByTestId('overnight-copy-hint')).toHaveCount(0);
@@ -132,7 +132,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
 
   test('keeping the times leaves the draft unchanged and shows the plain error', async ({ page }) => {
     const { dialog } = await open(page, stateWith(monday()), 'Monday');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');
+    await pickTime(page, 'Closes', '02:00', { within: dialog });
     await dialog.getByRole('button', { name: 'Change the times' }).click();
     await expect(dialog.getByText('Open until 02:00 the next day?')).toHaveCount(0);
     await expect(dialog.getByText('Closing time must be after opening time.')).toBeVisible();
@@ -143,7 +143,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
 
   test('the week wraps: Sunday night continues on Monday', async ({ page }) => {
     const { dialog } = await open(page, stateWith([{ weekday: 0, startLocal: '20:00', endLocal: '24:00' }, ...monday()]), 'Sunday');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '03:00');
+    await pickTime(page, 'Closes', '03:00', { within: dialog });
     await dialog.getByRole('button', { name: 'Yes, open until 03:00' }).click();
     const mondayChips = page.getByRole('button', { name: /^Edit Monday, / });
     await expect(mondayChips.nth(0)).toHaveAccessibleName('Edit Monday, until 03:00, continues from the night before');
@@ -159,7 +159,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
       ]),
       'Monday',
     );
-    await setTime(dialog.getByRole('group', { name: 'Closes' }).first(), '02:00');
+    await pickTime(page, 'Closes', '02:00', { within: dialog });
     await dialog.getByRole('button', { name: 'Yes, open until 02:00' }).click();
     await expect(dialog.getByText('These hours overlap.')).toBeVisible();
     await expect(dialog).toBeVisible();
@@ -167,7 +167,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
 
   test('Copy to other days gives every copied day its own next-day tail', async ({ page }) => {
     const { dialog, calls } = await open(page, stateWith(monday()), 'Monday');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '01:00');
+    await pickTime(page, 'Closes', '01:00', { within: dialog });
     await dialog.getByRole('button', { name: 'Fri' }).click();
     await dialog.getByRole('button', { name: 'Sat' }).click();
     await dialog.getByRole('button', { name: 'Yes, open until 01:00' }).click();
@@ -189,7 +189,7 @@ test.describe('F68-B hours editor: open past midnight', () => {
       endLocal: `${String(9 + k * 2).padStart(2, '0')}:00`,
     }));
     const { dialog } = await open(page, stateWith([...monday(), ...full]), 'Monday');
-    await setTime(dialog.getByRole('group', { name: 'Closes' }), '02:00');
+    await pickTime(page, 'Closes', '02:00', { within: dialog });
     await dialog.getByRole('button', { name: 'Yes, open until 02:00' }).click();
     await expect(dialog.getByText(/Tuesday already has 6 blocks/)).toBeVisible();
   });
@@ -206,9 +206,10 @@ test.describe('F68-B hours editor: open past midnight', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await page.getByRole('button', { name: /الإثنين|الاثنين/ }).first().click();
     const dialog = page.getByRole('dialog');
-    // Opens hours, Opens minutes, Closes hours, Closes minutes: the selects keep dir=ltr inside the rtl page.
-    await expect(dialog.getByRole('combobox').first().locator('xpath=ancestor::div[@dir="ltr"][1]')).toHaveCount(1);
-    await dialog.getByRole('combobox').nth(2).selectOption('02');
+    // The time fields keep their value left to right inside the rtl page.
+    await expect(dialog.getByRole('combobox').first().locator('span').first()).toHaveAttribute('dir', 'ltr');
+    // Opens, Closes: the second field is the closing time.
+    await pickTime(page, dialog.getByRole('combobox').nth(1), '02:00', { names: { hours: 'الساعات', minutes: 'الدقائق' } });
     await expect(dialog.getByText('هل تريد البقاء مفتوحاً حتى 02:00 من اليوم التالي؟')).toBeVisible();
     await expectNoHorizontalOverflow(dialog, 'hours sheet (ar)');
     await expectNoPageOverflow(page);

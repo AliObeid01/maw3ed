@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useAppSession } from '@/components/app/SessionContext';
 import { useErrorMessage } from '@/components/app/states';
 import { Button } from '@/components/ui/Button';
-import { DateField } from '@/components/ui/DateTimeFields';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { Input } from '@/components/ui/Field';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
@@ -138,20 +138,22 @@ export function BaselineForm({
   };
 
   return (
-    <form ref={formRef} onSubmit={submit} noValidate className="flex flex-col gap-3.5">
-      <div className="grid grid-cols-2 gap-3">
-        <DateField
+    <form ref={formRef} onSubmit={submit} noValidate className="@container flex flex-col gap-3.5">
+      <div className="grid grid-cols-1 gap-3 @sm:grid-cols-2">
+        <DatePicker
           name="fromDate"
           max={today}
+          today={today}
           label={t('from')}
           error={err('fromDate')}
           value={values.fromDate}
           onChange={set('fromDate')}
           disabled={saving}
         />
-        <DateField
+        <DatePicker
           name="toDate"
           max={today}
+          today={today}
           label={t('to')}
           error={err('toDate')}
           value={values.toDate}

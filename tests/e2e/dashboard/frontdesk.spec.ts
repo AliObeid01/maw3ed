@@ -197,9 +197,9 @@ test('?service=&staff= prefill the choices; an unknown person falls back to anyo
   await mockDashboardApi(page, { clientsEndpoint: false });
   await page.goto(`/app/book?service=${IDS.blowdry}&staff=${IDS.karim}`);
   await expect(page.getByRole('button', { name: /Blow-dry/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByLabel('With')).toHaveValue(IDS.karim);
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', IDS.karim);
   await page.goto(`/app/book?service=${IDS.beard}&staff=${IDS.karim}`);
-  await expect(page.getByLabel('With')).toHaveValue('anyone');
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', 'anyone');
 });
 
 test('layout: Book is pinned on phones and every control is at least 44px tall', async ({ page, isMobile }) => {

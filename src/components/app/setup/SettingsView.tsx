@@ -9,7 +9,8 @@ import { DepositSettings } from './DepositSettings';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { Segmented } from '@/components/ui/Segmented';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
@@ -154,6 +155,15 @@ function SettingsForm({
     };
   }, [business.timezone]);
 
+  const timezoneOptions = useMemo<SelectOption[]>(
+    () => [
+      ...(zones.extra ? [{ value: zones.extra.z, label: zones.extra.label, searchText: zones.extra.z }] : []),
+      ...zones.common.map(({ z, label }) => ({ value: z, label, searchText: z, group: t('field.zonesCommon') })),
+      ...zones.rest.map(({ z, label }) => ({ value: z, label, searchText: z, group: t('field.zonesAll') })),
+    ],
+    [zones, t],
+  );
+
   const slotChoices = [...new Set([...SLOT_CHOICES, values.slotStepMin])].sort((a, b) => a - b);
 
   const parsedMinutes = (key: NumberKey) =>
@@ -297,26 +307,12 @@ function SettingsForm({
             label={t('field.timezone')}
             name="timezone"
             value={values.timezone}
-            onChange={(e) => set('timezone', e.target.value)}
-            hint={t('field.timezoneHint')}
+            searchable
             dir="ltr"
-          >
-            {zones.extra ? <option value={zones.extra.z}>{zones.extra.label}</option> : null}
-            <optgroup label={t('field.zonesCommon')}>
-              {zones.common.map(({ z, label }) => (
-                <option key={z} value={z}>
-                  {label}
-                </option>
-              ))}
-            </optgroup>
-            <optgroup label={t('field.zonesAll')}>
-              {zones.rest.map(({ z, label }) => (
-                <option key={z} value={z}>
-                  {label}
-                </option>
-              ))}
-            </optgroup>
-          </Select>
+            options={timezoneOptions}
+            onChange={(value) => set('timezone', value)}
+            hint={t('field.timezoneHint')}
+          />
         </Card>
 
         <Card

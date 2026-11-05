@@ -2,9 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useId, useMemo, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { signup } from '@/lib/api/auth';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
@@ -55,6 +56,13 @@ export function SignupForm() {
   // Server list is read after mount: Intl.supportedValuesOf can differ between server and browser.
   const allZones = useSyncExternalStore(noopSubscribe, clientTimezones, () => NO_ZONES);
   const zones = timezoneGroups(allZones);
+  const timezoneOptions = useMemo<SelectOption[]>(
+    () => [
+      ...zones.common.map((z) => ({ value: z, label: timezoneLabel(z), searchText: z, group: t('timezoneCommon') })),
+      ...zones.rest.map((z) => ({ value: z, label: timezoneLabel(z), searchText: z, group: t('timezoneAll') })),
+    ],
+    [zones.common, zones.rest, t],
+  );
 
   const [errors, setErrors] = useState<Partial<Record<SignupField, FieldError>>>({});
   const [banner, setBanner] = useState<BannerKey>();
@@ -206,32 +214,18 @@ export function SignupForm() {
         label={t('timezone')}
         name="timezone"
         value={timezone}
-        onChange={(e) => {
+        searchable
+        dir="ltr"
+        options={timezoneOptions}
+        onChange={(value) => {
           if (guard.current.isBusy()) return;
-          setTimezone(e.target.value);
+          setTimezone(value);
           clear('timezone');
         }}
         hint={t('timezoneHint')}
         error={text.field(errors.timezone)}
         aria-disabled={pending || undefined}
-      >
-        <optgroup label={t('timezoneCommon')}>
-          {zones.common.map((z) => (
-            <option key={z} value={z}>
-              {timezoneLabel(z)}
-            </option>
-          ))}
-        </optgroup>
-        {zones.rest.length > 0 ? (
-          <optgroup label={t('timezoneAll')}>
-            {zones.rest.map((z) => (
-              <option key={z} value={z}>
-                {timezoneLabel(z)}
-              </option>
-            ))}
-          </optgroup>
-        ) : null}
-      </Select>
+      />
 
       <Button type="submit" size="lg" block loading={pending} className="h-[54px] text-base md:col-span-2">
         {t('submit')}

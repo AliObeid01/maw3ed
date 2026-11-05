@@ -4,6 +4,7 @@ import { clockNow, ORIGIN } from './helpers/clock';
 import { DateTime } from 'luxon';
 import { IDS, mockPublicApi, SLUG, TZ } from './helpers/publicMock';
 import { mockJoinWaitlist, type JoinOptions } from './helpers/waitlistMock';
+import { selectOption } from './helpers/pickers';
 
 // Self-contained: /api/public (catalogue, slots) and the join POST are answered by page.route.
 
@@ -28,8 +29,8 @@ const submit = (page: Page) => page.getByRole('button', { name: 'Join the waitli
 
 test('join happy path sends the real contract and shows what happens next', async ({ page }) => {
   const { calls } = await open(page);
-  await page.getByLabel('Service').selectOption(IDS.haircut);
-  await page.getByLabel('With').selectOption(IDS.karim);
+  await selectOption(page, 'Service', /^Haircut/);
+  await selectOption(page, 'With', /^Karim/);
   await fill(page);
   await submit(page).click();
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
@@ -82,15 +83,16 @@ test('the server 400 on the email field is translated and focused', async ({ pag
 
 test('prefills service and person from the URL; unknown ids are ignored', async ({ page }) => {
   await open(page, `?service=${IDS.haircut}&staff=${IDS.lina}`);
-  await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
-  await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
+  await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.haircut);
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', IDS.lina);
   await page.goto(`${WL}?service=nope&staff=${IDS.lina}`);
-  await expect(page.getByLabel('Service')).toHaveValue('');
+  await expect(page.getByLabel('Service')).toHaveAttribute('data-value', '');
 });
 
 test('only people who perform the service are offered', async ({ page }) => {
   await open(page, `?service=${IDS.beard}`);
-  const options = await page.getByLabel('With').locator('option').allTextContents();
+  await page.getByLabel('With').click();
+  const options = await page.getByRole('option').allTextContents();
   expect(options).toEqual(['Anyone available', 'Jad']);
 });
 
@@ -103,8 +105,8 @@ test('the booking flow empty state links to the waitlist with the choice prefill
   await expect(page.getByText(/No free times in the next/)).toBeVisible();
   await page.getByRole('link', { name: 'Join the waitlist' }).click();
   await expect(page).toHaveURL(new RegExp(`${WL}\\?service=${IDS.haircut}&staff=${IDS.lina}`));
-  await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
-  await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
+  await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.haircut);
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', IDS.lina);
 });
 
 test('the slot-just-taken view links to the waitlist', async ({ page }) => {
@@ -189,7 +191,7 @@ test('the same request submitted twice (201 then 200 duplicate) succeeds both ti
   });
   for (let i = 0; i < 2; i++) {
     await page.goto(`${WL}?service=${IDS.haircut}`);
-    await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
+    await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.haircut);
     await fill(page);
     await submit(page).click();
     await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
@@ -200,11 +202,11 @@ test('the same request submitted twice (201 then 200 duplicate) succeeds both ti
 
 test('tampered prefill: a staff id that does not do the service, and an over-long service id, are dropped', async ({ page }) => {
   await open(page, `?service=${IDS.beard}&staff=${IDS.lina}`);
-  await expect(page.getByLabel('Service')).toHaveValue(IDS.beard);
-  await expect(page.getByLabel('With')).toHaveValue('');
+  await expect(page.getByLabel('Service')).toHaveAttribute('data-value', IDS.beard);
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', '');
   await page.goto(`${WL}?service=${'a'.repeat(80)}&staff=${IDS.lina}`);
-  await expect(page.getByLabel('Service')).toHaveValue('');
-  await expect(page.getByLabel('With')).toHaveValue('');
+  await expect(page.getByLabel('Service')).toHaveAttribute('data-value', '');
+  await expect(page.getByLabel('With')).toHaveAttribute('data-value', '');
 });
 
 test('the default range overshooting a short booking window is clipped to the named window and the user is told', async ({
@@ -237,5 +239,5 @@ test('when the window complaint names no length, the range is retried once at 7 
   await expect.poll(() => rejected.length).toBe(2);
   expect(calls).toHaveLength(0);
   const today = clockNow().setZone(TZ).toISODate()!;
-  await expect(page.getByLabel('To day')).toHaveValue(DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
+  await expect(page.getByLabel('To day')).toHaveAttribute('data-value', DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
 });
