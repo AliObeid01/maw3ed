@@ -4,6 +4,7 @@ import { clockNow, ORIGIN } from './helpers/clock';
 import { DateTime } from 'luxon';
 import { IDS, mockPublicApi, SLUG, TZ } from './helpers/publicMock';
 import { mockJoinWaitlist, type JoinOptions } from './helpers/waitlistMock';
+import { selectOption } from './helpers/pickers';
 
 // Self-contained: /api/public (catalogue, slots) and the join POST are answered by page.route.
 
@@ -28,8 +29,8 @@ const submit = (page: Page) => page.getByRole('button', { name: 'Join the waitli
 
 test('join happy path sends the real contract and shows what happens next', async ({ page }) => {
   const { calls } = await open(page);
-  await page.getByLabel('Service').selectOption(IDS.haircut);
-  await page.getByLabel('With').selectOption(IDS.karim);
+  await selectOption(page, 'Service', /^Haircut/);
+  await selectOption(page, 'With', /^Karim/);
   await fill(page);
   await submit(page).click();
   await expect(page.getByRole('heading', { name: "You're on the waitlist" })).toBeVisible();
@@ -237,5 +238,5 @@ test('when the window complaint names no length, the range is retried once at 7 
   await expect.poll(() => rejected.length).toBe(2);
   expect(calls).toHaveLength(0);
   const today = clockNow().setZone(TZ).toISODate()!;
-  await expect(page.getByLabel('To day')).toHaveValue(DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
+  await expect(page.getByLabel('To day')).toHaveAttribute('data-value', DateTime.fromISO(today).plus({ days: 6 }).toISODate()!);
 });

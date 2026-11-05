@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { DateTimeField } from '@/components/ui/DateTimeFields';
-import { Select } from '@/components/ui/Field';
+import { Select } from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast';
 import {
   TIME_OFF_REASONS,
@@ -204,14 +204,9 @@ export function TimeOffPanel({
           label={t('reason')}
           name="reason"
           value={reason}
-          onChange={(e) => setReason(e.target.value as TimeOffReason)}
-        >
-          {TIME_OFF_REASONS.map((value) => (
-            <option key={value} value={value}>
-              {t(`reasons.${value}`)}
-            </option>
-          ))}
-        </Select>
+          onChange={(value) => setReason(value as TimeOffReason)}
+          options={TIME_OFF_REASONS.map((value) => ({ value, label: t(`reasons.${value}`) }))}
+        />
         <Button
           type="submit"
           variant="ghost"

@@ -1,5 +1,4 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { useId, type InputHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
 export const control =
@@ -102,49 +101,6 @@ export function Input({
       ) : (
         input
       )}
-    </FieldShell>
-  );
-}
-
-export type SelectProps = Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> & {
-  id?: string;
-  label: ReactNode;
-  error?: string;
-  hint?: string;
-  wrapperClassName?: string;
-};
-
-export function Select({
-  id,
-  label,
-  error,
-  hint,
-  className,
-  wrapperClassName,
-  children,
-  'aria-describedby': extraDescribedBy,
-  ...props
-}: SelectProps) {
-  const auto = useId();
-  const fieldId = id ?? auto;
-  return (
-    <FieldShell id={fieldId} label={label} error={error} hint={hint} className={wrapperClassName}>
-      <div className="relative">
-        <select
-          {...props}
-          id={fieldId}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={describedByIds(fieldId, error, hint, extraDescribedBy)}
-          className={cn(control, borderFor(error), 'appearance-none pe-10', className)}
-        >
-          {children}
-        </select>
-        <ChevronDown
-          size={18}
-          aria-hidden="true"
-          className="pointer-events-none absolute end-3.5 top-1/2 -translate-y-1/2 text-muted"
-        />
-      </div>
     </FieldShell>
   );
 }

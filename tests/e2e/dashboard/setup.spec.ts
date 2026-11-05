@@ -1,6 +1,6 @@
-import type { Locator } from '@playwright/test';
 import { expect, test } from '../helpers/test';
 import { expectNoPageOverflow } from '../helpers/layout';
+import { picker, pickDate, pickTime, selectOption } from '../helpers/pickers';
 import { defaultState, mockSetupApi, setRole, type MockState } from '../helpers/mockApi';
 
 // Dashboard specs run against `next dev` with a fake session (see playwright.config.ts); every /api call is
@@ -104,8 +104,8 @@ test.describe('3.5 services', () => {
 
     await page.getByRole('button', { name: 'Add service' }).first().click();
     await page.getByLabel('Name', { exact: true }).fill('Kids haircut');
-    await page.getByLabel('Duration').selectOption('20');
-    await page.getByLabel('Buffer after').selectOption('5');
+    await selectOption(page, 'Duration', '20 min');
+    await selectOption(page, 'Buffer after', '5 min');
     await page.getByLabel(/^Price/).fill('12,50');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
 
@@ -173,13 +173,6 @@ test.describe('3.5 services', () => {
   });
 });
 
-/** Time of day is two 24-hour selects (hours, minutes) inside a group named after the field. */
-async function setTime(group: Locator, hm: string) {
-  const [h, m] = hm.split(':') as [string, string];
-  await group.getByRole('combobox').nth(0).selectOption(h);
-  await group.getByRole('combobox').nth(1).selectOption(m);
-}
-
 test.describe('3.7 hours and time off', () => {
   test('flags overlapping hours in the day editor, blocks Apply, and saves once fixed', async ({
     page,
@@ -189,16 +182,15 @@ test.describe('3.7 hours and time off', () => {
     await page.getByRole('button', { name: /Edit Monday, 09:00 to 13:00/ }).click();
 
     const dialog = page.getByRole('dialog');
-    const opens = dialog.getByRole('group', { name: 'Opens' });
-    await setTime(opens.nth(1), '12:00');
+    await pickTime(page, 'Opens', '12:00', { within: dialog, nth: 1 });
     await expect(dialog.getByText('These hours overlap.')).toBeVisible();
     await expect(dialog.getByRole('button', { name: 'Apply' })).toBeDisabled();
-    await expect(opens.nth(1).getByRole('combobox').first()).toHaveAttribute('aria-invalid', 'true');
+    await expect(picker(page, 'Opens', { within: dialog, nth: 1 })).toHaveAttribute('aria-invalid', 'true');
 
-    await setTime(opens.nth(1), '14:00');
+    await pickTime(page, 'Opens', '14:00', { within: dialog, nth: 1 });
     await expect(dialog.getByText('These hours overlap.')).toHaveCount(0);
     await dialog.getByRole('button', { name: 'Tue' }).click();
-    await setTime(dialog.getByRole('group', { name: 'Closes' }).first(), '12:30');
+    await pickTime(page, 'Closes', '12:30', { within: dialog });
     await dialog.getByRole('button', { name: 'Apply' }).click();
 
     // Monday and the copied Tuesday both read 09:00 - 12:30 now.
@@ -217,14 +209,15 @@ test.describe('3.7 hours and time off', () => {
   test('adds time off converted to UTC with the business timezone', async ({ page }) => {
     const { calls } = await mockSetupApi(page, { state: freshState() });
     await page.goto('/app/hours');
-    await page.getByLabel('From, date').fill('2036-07-10');
-    await page.getByLabel('To, date').fill('2036-07-10');
+    await pickDate(page, 'From, date', '2036-07-10');
+    await pickDate(page, 'To, date', '2036-07-10');
     // The chosen day is always written out in the app's own format, never the browser's mm/dd/yyyy.
-    await expect(page.getByText('Thu, Jul 10, 2036', { exact: true })).toHaveCount(2);
+    await expect(picker(page, 'From, date')).toHaveText('Jul 10, 2036');
+    await expect(picker(page, 'To, date')).toHaveText('Jul 10, 2036');
     // The clock is 24-hour: no AM/PM anywhere in the controls.
-    await setTime(page.getByRole('group', { name: 'From', exact: true }), '09:00');
-    await setTime(page.getByRole('group', { name: 'To', exact: true }), '12:00');
-    await expect(page.getByRole('group', { name: 'To', exact: true }).getByRole('combobox').first()).toHaveValue('12');
+    await pickTime(page, 'From, time', '09:00');
+    await pickTime(page, 'To, time', '12:00');
+    await expect(picker(page, 'To, time')).toHaveText('12:00');
     await page.getByRole('button', { name: 'Add time off' }).click();
     await expect(page.getByText(/Thu, Jul 10 · 09:00 – 12:00/)).toBeVisible();
     const post = calls.find((c) => c.method === 'POST' && c.path === '/api/staff/p1/time-off');
@@ -239,10 +232,10 @@ test.describe('3.7 hours and time off', () => {
   test('rejects an end before the start without calling the API', async ({ page }) => {
     const { calls } = await mockSetupApi(page, { state: freshState() });
     await page.goto('/app/hours');
-    await page.getByLabel('From, date').fill('2036-07-10');
-    await page.getByLabel('To, date').fill('2036-07-10');
-    await setTime(page.getByRole('group', { name: 'From', exact: true }), '12:00');
-    await setTime(page.getByRole('group', { name: 'To', exact: true }), '09:00');
+    await pickDate(page, 'From, date', '2036-07-10');
+    await pickDate(page, 'To, date', '2036-07-10');
+    await pickTime(page, 'From, time', '12:00');
+    await pickTime(page, 'To, time', '09:00');
     await page.getByRole('button', { name: 'Add time off' }).click();
     await expect(page.getByText('The end must be after the start.')).toBeVisible();
     expect(calls.some((c) => c.method === 'POST')).toBe(false);
@@ -252,10 +245,10 @@ test.describe('3.7 hours and time off', () => {
     const { calls } = await mockSetupApi(page, { state: freshState() });
     await page.goto('/app/hours');
     // Beirut jumps 00:00 -> 01:00 on 30 Mar 2036 (computed from the zone rules), so 00:30 does not exist.
-    await page.getByLabel('From, date').fill('2036-03-30');
-    await page.getByLabel('To, date').fill('2036-03-30');
-    await setTime(page.getByRole('group', { name: 'From', exact: true }), '00:30');
-    await setTime(page.getByRole('group', { name: 'To', exact: true }), '03:00');
+    await pickDate(page, 'From, date', '2036-03-30');
+    await pickDate(page, 'To, date', '2036-03-30');
+    await pickTime(page, 'From, time', '00:30');
+    await pickTime(page, 'To, time', '03:00');
     await page.getByRole('button', { name: 'Add time off' }).click();
     await expect(
       page.getByText('That time does not exist on this day because the clocks change. Pick another time.'),

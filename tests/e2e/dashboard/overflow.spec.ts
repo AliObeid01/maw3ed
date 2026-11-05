@@ -36,9 +36,9 @@ for (const locale of LOCALES) {
         await page.getByRole('button', { name: locale.monday }).first().click();
         const dialog = page.getByRole('dialog');
         await expect(dialog).toBeVisible();
-        const before = await dialog.getByRole('group').count();
+        const before = await dialog.getByRole('combobox').count();
         await dialog.getByRole('button', { name: locale.add }).click();
-        await expect(dialog.getByRole('group')).not.toHaveCount(before);
+        await expect(dialog.getByRole('combobox')).not.toHaveCount(before);
         // Select the first copy-to day so the note under the pills shows too.
         await dialog.locator('button[aria-pressed="false"]').first().click();
 

@@ -4,6 +4,7 @@ import { clockNow } from '../helpers/clock';
 import { DateTime } from 'luxon';
 import { trackIntlErrors } from '../helpers/intlErrors';
 import { setRole } from '../helpers/mockApi';
+import { goToMonth, pickDate } from '../helpers/pickers';
 import { appt, client, mockOutcomesApi, pilotHistory, TZ, type Baseline } from '../helpers/outcomesMock';
 
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
@@ -129,8 +130,8 @@ test('the baseline form says "held or missed" and prefills the saved numbers', a
   await expect(f.getByLabel('Held or missed')).toHaveValue('78');
   await expect(f.getByLabel('No-shows')).toHaveValue('14');
   await expect(f.getByLabel('Late cancels')).toHaveValue('3');
-  await expect(f.getByLabel('From')).toHaveValue(BASELINE.fromDate);
-  await expect(f.getByLabel('To')).toHaveValue(BASELINE.toDate);
+  await expect(f.getByLabel('From')).toHaveAttribute('data-value', BASELINE.fromDate);
+  await expect(f.getByLabel('To')).toHaveAttribute('data-value', BASELINE.toDate);
   await expect(f).toContainText('Baseline appointments are those held or missed');
   await expect(f).toContainText('excluding cancellations and late cancels');
   await expect(f.getByRole('button', { name: 'Update baseline' })).toBeVisible();
@@ -148,17 +149,22 @@ test('baseline form validates before sending: required, no-shows above appointme
   await expect(f.getByLabel('From')).toBeFocused();
   await expect(f.getByLabel('From')).toHaveAttribute('aria-invalid', 'true');
 
-  await f.getByLabel('From').fill(ymd(today().minus({ days: 20 })));
-  await f.getByLabel('To').fill(ymd(today().plus({ days: 1 })));
+  // F69-D: the calendar itself refuses a day after today (max), so the "ends in the future" message can no longer be
+  // reached from the UI (its rule stays covered by unit/outcomes/pilotMetrics.test.ts). Check the refusal instead.
+  await pickDate(page, f.getByLabel('From'), ymd(today().minus({ days: 20 })));
+  await f.getByLabel('To').click();
+  await expect(page.locator(`[data-ymd="${ymd(today())}"]`)).toBeEnabled();
+  await expect(page.locator(`[data-ymd="${ymd(today().plus({ days: 1 }))}"]`)).toBeDisabled();
+  await page.keyboard.press('Escape');
+  await pickDate(page, f.getByLabel('To'), ymd(today()));
   await f.getByLabel('Held or missed').fill('10');
   await f.getByLabel('No-shows').fill('11');
   await f.getByLabel('Late cancels').fill('0');
   await f.getByRole('button', { name: 'Save baseline' }).click();
-  await expect(f.getByText('The period cannot end in the future.')).toBeVisible();
   await expect(f.getByText('No-shows cannot be more than the appointments.')).toBeVisible();
 
-  await f.getByLabel('To').fill(ymd(today().minus({ days: 1 })));
-  await f.getByLabel('From').fill(ymd(today().minus({ days: 40 })));
+  await pickDate(page, f.getByLabel('To'), ymd(today().minus({ days: 1 })));
+  await pickDate(page, f.getByLabel('From'), ymd(today().minus({ days: 40 })));
   await f.getByLabel('No-shows').fill('2');
   await f.getByRole('button', { name: 'Save baseline' }).click();
   await expect(f.getByText('The period can be at most 31 days.')).toBeVisible();
@@ -171,13 +177,13 @@ test('a valid baseline is saved with numbers, confirmed with a toast, and the co
   const f = form(page);
   const from = ymd(today().minus({ days: 20 }));
   const to = ymd(today().minus({ days: 7 }));
-  await f.getByLabel('From').fill(from);
-  await f.getByLabel('To').fill(to);
-  // The native date input is locale-bound (mm/dd/yyyy in a US browser): the chosen days are also written out in the app's format.
+  await pickDate(page, f.getByLabel('From'), from);
+  await pickDate(page, f.getByLabel('To'), to);
+  // The chosen days are written out in the app's format, never the browser's locale-bound mm/dd/yyyy.
   const written = (d: string) =>
-    new Intl.DateTimeFormat('en', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${d}T12:00:00Z`));
-  await expect(f.getByText(written(from), { exact: true })).toBeVisible();
-  await expect(f.getByText(written(to), { exact: true })).toBeVisible();
+    new Intl.DateTimeFormat('en', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${d}T12:00:00Z`));
+  await expect(f.getByLabel('From')).toHaveText(written(from));
+  await expect(f.getByLabel('To')).toHaveText(written(to));
   await f.getByLabel('Held or missed').fill('78');
   await f.getByLabel('No-shows').fill('14');
   await f.getByLabel('Late cancels').fill('3');
@@ -358,12 +364,21 @@ test('a short pilot is exported whole, without a clamp note', async ({ page }) =
   await expect(page.getByText(/the most the server allows/)).toHaveCount(0);
 });
 
-test('the baseline date inputs cannot pick a day after today', async ({ page }) => {
+test('the baseline date pickers cannot pick a day after today', async ({ page }) => {
   await mockOutcomesApi(page, withHistory());
   await page.goto('/app/pilot');
   const f = form(page);
-  await expect(f.getByLabel('From')).toHaveAttribute('max', ymd(today()));
-  await expect(f.getByLabel('To')).toHaveAttribute('max', ymd(today()));
+  for (const label of ['From', 'To']) {
+    await f.getByLabel(label).click();
+    await goToMonth(page, ymd(today()));
+    // Today is the last enabled day: nothing after it is selectable, and next month is out of reach.
+    await expect(page.locator(`[data-ymd="${ymd(today())}"]`)).toBeEnabled();
+    const after = page.locator(`[data-ymd="${ymd(today().plus({ days: 1 }))}"]`);
+    if (today().plus({ days: 1 }).month === today().month) await expect(after).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Next month' })).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(f.getByLabel(label)).toHaveAttribute('aria-expanded', 'false');
+  }
 });
 
 test('Arabic: only the numbers are left-to-right islands; the sentences keep the page direction', async ({ page }) => {

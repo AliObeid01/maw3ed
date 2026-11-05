@@ -5,7 +5,7 @@ import { useFormatter, useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
-import { TimeField } from '@/components/ui/DateTimeFields';
+import { TimePicker } from '@/components/ui/TimePicker';
 import { Sheet } from '@/components/ui/Sheet';
 import { cn } from '@/lib/cn';
 import {
@@ -50,15 +50,15 @@ function IntervalRow({
   const t = useTranslations('app.hours.editor');
   return (
     <li className="flex items-end gap-2">
-      <TimeField
-        className="min-w-0 flex-1"
+      <TimePicker
+        wrapperClassName="min-w-0 flex-1"
         label={t('opens')}
         value={interval.start}
         invalid={invalid}
         onChange={(start) => onChange({ ...interval, start })}
       />
-      <TimeField
-        className="min-w-0 flex-1"
+      <TimePicker
+        wrapperClassName="min-w-0 flex-1"
         label={t('closes')}
         value={interval.end}
         invalid={invalid}

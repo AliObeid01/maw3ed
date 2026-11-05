@@ -57,7 +57,7 @@ test.describe('English', () => {
     await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
     await expect(page.getByLabel('With')).toHaveValue(IDS.lina);
     // The wanted day starts the range on the form.
-    await expect(page.getByLabel('From day')).toHaveValue(firstBookableDay());
+    await expect(page.getByLabel('From day')).toHaveAttribute('data-value', firstBookableDay());
   });
 
   test('a chosen full day says so, offers the waitlist prominently and keeps Continue disabled', async ({ page }) => {
@@ -247,8 +247,8 @@ test.describe('the waitlist page ignores a bad ?from=', () => {
       await page.goto(`${WL}?service=${IDS.haircut}&from=${from}`);
       await expect(page.getByLabel('Service')).toHaveValue(IDS.haircut);
       // The default range starts today in the business timezone, never the bad value.
-      await expect(page.getByLabel('From day')).toHaveValue(businessToday().toISODate()!);
-      await expect(page.getByLabel('From day')).not.toHaveValue(from);
+      await expect(page.getByLabel('From day')).toHaveAttribute('data-value', businessToday().toISODate()!);
+      await expect(page.getByLabel('From day')).not.toHaveAttribute('data-value', from);
     });
   }
 
@@ -257,6 +257,6 @@ test.describe('the waitlist page ignores a bad ?from=', () => {
     await mockJoinWaitlist(page);
     const day = firstBookableDay();
     await page.goto(`${WL}?service=${IDS.haircut}&from=${day}`);
-    await expect(page.getByLabel('From day')).toHaveValue(day);
+    await expect(page.getByLabel('From day')).toHaveAttribute('data-value', day);
   });
 });

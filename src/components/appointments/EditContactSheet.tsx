@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, type FormEvent } from 'react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useErrorMessage } from '@/components/app/states';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
@@ -17,7 +17,7 @@ const NAME_MAX = 80;
 type FieldErrors = { email?: string; name?: string };
 
 /**
- * F69-C: correct this booking's contact email and name. Pre-filled with what reminders use now. Only the fields
+ * F69-C: correct this booking's contact email and name. Each field starts with this booking's own override (F69-D; empty when there is none, with what is in use shown as a hint). Only the fields
  * the person actually changed are sent. The client's saved record, the phone, the time, service and staff are
  * not part of this form.
  */
@@ -35,9 +35,16 @@ function ContactForm({
 }) {
   const t = useTranslations('app.appointment.contact');
   const toast = useToast();
+  // In Arabic text an address or a name is isolated so it keeps its own reading order; English needs nothing.
+  const locale = useLocale();
+  const isolate = (text: string) => (locale === 'ar' ? `⁨${text}⁩` : text);
   const errorMessage = useErrorMessage();
-  const startEmail = appt.reminderEmail ?? '';
-  const startName = appt.client.name;
+  // Each field starts with THIS booking's own override only (empty when there is none), so saving an untouched
+  // form can never turn the client's saved email or name into a booking override.
+  const startEmail = appt.contactEmail ?? '';
+  const startName = appt.contactName ?? '';
+  const hasEmailOverride = startEmail !== '';
+  const hasNameOverride = startName !== '';
   const [email, setEmail] = useState(startEmail);
   const [name, setName] = useState(startName);
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -45,6 +52,15 @@ function ContactForm({
   const [pending, setPending] = useState(false);
   const busy = useRef(false);
   const publicBooking = appt.source === 'PUBLIC';
+  // What reminders use now, shown as a hint when the field is empty (nothing to correct, nothing to clear). A booking
+  // that has its own address and may drop it (front desk) is told what clearing does.
+  const emailHint = !hasEmailOverride
+    ? appt.reminderEmail
+      ? t('emailHint', { email: isolate(appt.reminderEmail) })
+      : t('emailHintNone')
+    : publicBooking
+      ? undefined
+      : t('emailHintClear');
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -54,7 +70,7 @@ function ContactForm({
     const found: FieldErrors = {};
     if (nextEmail === '' && publicBooking && startEmail !== '') found.email = t('emailRequired');
     else if (nextEmail !== '' && !isEmail(nextEmail)) found.email = t('emailInvalid');
-    if (nextName === '') found.name = t('nameRequired');
+    if (nextName === '' && hasNameOverride) found.name = t('nameRequired');
     else if (nextName.length > NAME_MAX) found.name = t('nameTooLong', { max: NAME_MAX });
     setErrors(found);
     setFormError(undefined);
@@ -62,7 +78,7 @@ function ContactForm({
 
     const body: { contactEmail?: string | null; contactName?: string } = {};
     if (nextEmail !== startEmail.toLowerCase()) body.contactEmail = nextEmail === '' ? null : nextEmail;
-    if (nextName !== startName) body.contactName = nextName;
+    if (nextName !== startName && nextName !== '') body.contactName = nextName;
     if (Object.keys(body).length === 0) return onClose();
 
     busy.current = true;
@@ -109,6 +125,7 @@ function ContactForm({
         spellCheck={false}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
+        hint={emailHint}
         error={errors.email}
         disabled={pending}
       />
@@ -119,6 +136,7 @@ function ContactForm({
         autoComplete="off"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        hint={hasNameOverride ? undefined : t('nameHint', { name: isolate(appt.client.name) })}
         error={errors.name}
         disabled={pending}
       />

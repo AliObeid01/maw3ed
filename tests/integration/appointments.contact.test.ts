@@ -226,6 +226,26 @@ describe('what it changes', () => {
     expect(got.reminderEmail).toBe(NEW);
     expect(got.reminderEmailDiffers).toBe(true);
   });
+
+  it("F69-D: the detail carries this booking's OWN contactEmail / contactName (null when there is none)", async () => {
+    const id = await frontDesk({ email: 'record@example.test' });
+    // Nothing stored on the booking: the edit form must start empty, not with the client record's values.
+    await pg.query(`UPDATE "Appointment" SET "contactEmail" = NULL, "contactName" = NULL WHERE id = $1`, [id]);
+    let got = (await one(id)).body!.appointment;
+    expect(got.contactEmail).toBeNull();
+    expect(got.contactName).toBeNull();
+    expect(got.reminderEmail).toBe('record@example.test'); // the effective address is still reported
+    const res = await patch(a.cookie, id, { contactEmail: NEW, contactName: 'Maya K.' });
+    expect(res.body!.appointment.contactEmail).toBe(NEW);
+    expect(res.body!.appointment.contactName).toBe('Maya K.');
+    got = (await one(id)).body!.appointment;
+    expect(got.contactEmail).toBe(NEW);
+    expect(got.contactName).toBe('Maya K.');
+    // Clearing the address returns to "no override".
+    const cleared = await patch(a.cookie, id, { contactEmail: null });
+    expect(cleared.body!.appointment.contactEmail).toBeNull();
+    expect(cleared.body!.appointment.reminderEmail).toBe('record@example.test');
+  });
 });
 
 describe('reminders', () => {
@@ -305,7 +325,11 @@ describe('reminders', () => {
     expect((await jobs(id)).find((x) => x.kind === 'H24')?.status).toBe('SKIPPED');
   });
 
-  it('concurrent identical PATCHes re-queue once and never duplicate jobs', async () => {
+  // What this proves: five identical edits racing each other end with the SAME job rows (no duplicate job) and
+  // exactly one PENDING H24, so the runner sends exactly one email. It does NOT prove the `FOR UPDATE` lock in
+  // `updateContact`: the re-queue is an UPDATE of an existing row, so this test would also pass without the lock.
+  // The lock only makes each edit's "before" read consistent; no event order is asserted here.
+  it('concurrent identical PATCHes re-queue once and never duplicate jobs (idempotent, not a lock proof)', async () => {
     const { id, t1 } = await skippedNoEmail();
     vi.setSystemTime(t1);
     const before = await jobs(id);

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON bodies and SQL rows */
 import { type Browser, type BrowserContext, type Page } from '@playwright/test';
 import { expect, test } from './helpers/test';
+import { selectOption } from './helpers/pickers';
 import { readFileSync } from 'node:fs';
 import { DateTime } from 'luxon';
 import {
@@ -106,7 +107,7 @@ async function bookViaUi(page: Page, b: Business, who: Person, dayIso: DateTime,
 async function joinViaUi(page: Page, b: Business, who: Person, service: string) {
   await page.goto(`/b/${b.slug}/waitlist`);
   await expect(page.getByRole('heading', { name: 'Join the waitlist', level: 2 })).toBeVisible();
-  await page.getByLabel('Service').selectOption(b.services[service]!.id);
+  await selectOption(page, 'Service', new RegExp(`^${b.services[service]!.name}`));
   await page.getByLabel('Full name').fill(who.name);
   await page.getByLabel('Mobile number').fill(who.phone.typed);
   await page.getByLabel('Email').fill(who.email);

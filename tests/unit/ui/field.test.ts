@@ -1,7 +1,9 @@
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { Input, Select, describedByIds } from '@/components/ui/Field';
+import { Input, describedByIds } from '@/components/ui/Field';
+import { Select } from '@/components/ui/Select';
+import { render } from './helpers';
 
 const input = (props: Partial<Parameters<typeof Input>[0]> = {}) =>
   renderToStaticMarkup(createElement(Input, { label: 'Full name', ...props }));
@@ -51,16 +53,48 @@ describe('Input', () => {
 });
 
 describe('Select', () => {
-  it('shares the same label and describedby wiring', () => {
-    const out = renderToStaticMarkup(
-      createElement(
-        Select,
-        { id: 'svc', label: 'Service', hint: 'Change later', 'aria-describedby': 'extra' },
-        createElement('option', null, 'Haircut'),
-      ),
+  const select = (props: Partial<Parameters<typeof Select>[0]> = {}) =>
+    render(
+      createElement(Select, {
+        id: 'svc',
+        label: 'Service',
+        value: 'cut',
+        onChange: () => {},
+        options: [
+          { value: 'cut', label: 'Haircut' },
+          { value: 'dry', label: 'Blow-dry' },
+        ],
+        ...props,
+      }),
     );
+
+  it('shares the same label and describedby wiring', () => {
+    const out = select({ hint: 'Change later', 'aria-describedby': 'extra' });
     expect(out).toMatch(/<label for="svc"/);
-    expect(attr(out, 'select', 'aria-describedby')).toBe('svc-hint extra');
+    expect(attr(out, 'button', 'aria-describedby')).toBe('svc-hint extra');
+  });
+
+  it('is a collapsed select-only combobox showing the chosen label', () => {
+    const out = select();
+    expect(attr(out, 'button', 'role')).toBe('combobox');
+    expect(attr(out, 'button', 'aria-haspopup')).toBe('listbox');
+    expect(attr(out, 'button', 'aria-expanded')).toBe('false');
+    expect(out).toContain('>Haircut<');
+    expect(out).not.toContain('role="listbox"');
+  });
+
+  it('shows the placeholder when nothing matches and flags errors and required', () => {
+    const out = select({ value: '', placeholder: 'Choose a service', error: 'Required', required: true });
+    expect(out).toContain('>Choose a service<');
+    expect(attr(out, 'button', 'aria-invalid')).toBe('true');
+    expect(attr(out, 'button', 'aria-required')).toBe('true');
+    expect(attr(out, 'button', 'aria-describedby')).toBe('svc-error');
+  });
+
+  it('puts the name on the field and renders a disabled button', () => {
+    const out = select({ name: 'service', disabled: true });
+    expect(attr(out, 'button', 'name')).toBe('service');
+    expect(out).toMatch(/<button[^>]* disabled/);
   });
 });
 

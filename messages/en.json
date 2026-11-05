@@ -9,9 +9,22 @@
   "ui": {
     "fields": {
       "date": "{label}, date",
-      "hours": "{label}, hours",
-      "minutes": "{label}, minutes",
-      "midnight": "24:00 (midnight)"
+      "time": "{label}, time"
+    },
+    "pickers": {
+      "close": "Close",
+      "select": "Select",
+      "search": "Search",
+      "searchPlaceholder": "Type to search",
+      "noResults": "No matches",
+      "selectDate": "Select a date",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Today",
+      "clear": "Clear",
+      "hours": "Hours",
+      "minutes": "Minutes",
+      "midnightTag": "midnight"
     },
     "status": {
       "booked": "Booked",
@@ -734,6 +747,10 @@
         "emailInvalid": "Enter a valid email address.",
         "nameRequired": "Enter a name.",
         "nameTooLong": "Keep the name under {max} characters.",
+        "emailHint": "Reminders currently go to {email}. Type another address to change this booking only.",
+        "emailHintNone": "No email is on file, so no reminders are sent for this booking.",
+        "emailHintClear": "Clear this field to use the client’s saved email again.",
+        "nameHint": "Currently shown as {name}. Type a name to change it for this booking only.",
         "fieldInvalid": "Please check this value.",
         "save": "Save changes",
         "saving": "Saving…",
@@ -1165,7 +1182,9 @@
         "service": "Service",
         "serviceHint": "You can change this later",
         "haircut": "Haircut",
-        "blowDry": "Blow-dry"
+        "blowDry": "Blow-dry",
+        "time": "Opens",
+        "date": "Date"
       },
       "noShowBadge": "{count, plural, one {● # no-show} other {● # no-shows}}",
       "callout": "No account needed. Confirm or cancel from the reminder in one tap.",

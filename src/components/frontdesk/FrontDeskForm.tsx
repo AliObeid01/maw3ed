@@ -15,7 +15,8 @@ import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { isolate } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { Input, Select } from '@/components/ui/Field';
+import { Input } from '@/components/ui/Field';
+import { Select } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { createFrontDeskBooking, getPublicBusiness, type BookingBody, type BookingResult, type Slot } from '@/lib/api/booking';
 import { searchClients } from '@/lib/api/dashboard';
@@ -410,18 +411,15 @@ export function FrontDeskForm() {
             label={t('staff.title')}
             value={effectiveStaff}
             disabled={!service || pending}
-            onChange={(e) => {
-              setStaffId(e.target.value);
+            onChange={(value) => {
+              setStaffId(value);
               setPickedTime(undefined);
             }}
-          >
-            <option value="anyone">{t('anyone')}</option>
-            {staffOptions.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.displayName}
-              </option>
-            ))}
-          </Select>
+            options={[
+              { value: 'anyone', label: t('anyone') },
+              ...staffOptions.map((p) => ({ value: p.id, label: p.displayName })),
+            ]}
+          />
         </Card>
       </div>
 

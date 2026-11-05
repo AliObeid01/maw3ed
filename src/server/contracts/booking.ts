@@ -203,6 +203,13 @@ export const AppointmentOneDto = registry.register(
         description:
           'Staff only. The address reminder emails for this booking go to (the booking address, else the client record address; null when neither is a plausible address). Never in a public response, link, email, log or export.',
       }),
+      contactEmail: z.string().nullable().openapi({
+        description:
+          'Staff only. The address typed for THIS booking (the override), or null when there is none and the client record address is used. Never in a public response, link, email, log or export.',
+      }),
+      contactName: z.string().nullable().openapi({
+        description: 'Staff only. The name typed for THIS booking, or null when there is none and the client record name is used.',
+      }),
       reminderEmailDiffers: z.boolean().openapi({
         description: "True when reminderEmail is set and is not the client record's email.",
       }),
