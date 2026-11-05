@@ -149,8 +149,22 @@ describe('F68 LATE job creation', () => {
       bookPublicly(a.slug, body, key),
       bookPublicly(a.slug, body, key),
     ]);
-    expect([r1.status, r2.status].sort()).toEqual([200, 201]);
-    expect(r1.body!.appointment.id).toBe(r2.body!.appointment.id);
+    // Under a true race the idempotency key or the slot constraint may fire first for the duplicate, so the pair is
+    // [200, 201] (replay) or [201, 409] (never a 5xx). What must hold: one booking, one LATE job.
+    const statuses = [r1.status, r2.status].sort((x, y) => x - y);
+    expect([[200, 201], [201, 409]]).toContainEqual(statuses);
+    const rows = await pg.query(`SELECT id FROM "Appointment" WHERE "startAt" = $1`, [START]);
+    expect(rows.rowCount).toBe(1);
+    const created = (r1.status === 201 ? r1 : r2).body!.appointment.id as string;
+    expect(rows.rows[0].id).toBe(created);
+    if (statuses[1] === 409) {
+      // The loser retries with the same key and gets the stored booking back.
+      const replay = await bookPublicly(a.slug, body, key);
+      expect(replay.status).toBe(200);
+      expect(replay.body!.appointment.id).toBe(created);
+    } else {
+      expect(r1.body!.appointment.id).toBe(r2.body!.appointment.id);
+    }
     const all = await pg.query(`SELECT 1 FROM "ReminderJob" WHERE kind = 'LATE'`);
     expect(all.rowCount).toBe(1);
   });
