@@ -153,7 +153,7 @@ describe('F68 LATE job creation', () => {
     // [200, 201] (replay) or [201, 409] (never a 5xx). What must hold: one booking, one LATE job.
     const statuses = [r1.status, r2.status].sort((x, y) => x - y);
     expect([[200, 201], [201, 409]]).toContainEqual(statuses);
-    const rows = await pg.query(`SELECT id FROM "Appointment" WHERE "startAt" = $1`, [START]);
+    const rows = await pg.query(`SELECT id FROM "Appointment" WHERE "businessId" = $1 AND "startAt" = $2`, [a.businessId, START]);
     expect(rows.rowCount).toBe(1);
     const created = (r1.status === 201 ? r1 : r2).body!.appointment.id as string;
     expect(rows.rows[0].id).toBe(created);
@@ -165,7 +165,7 @@ describe('F68 LATE job creation', () => {
     } else {
       expect(r1.body!.appointment.id).toBe(r2.body!.appointment.id);
     }
-    const all = await pg.query(`SELECT 1 FROM "ReminderJob" WHERE kind = 'LATE'`);
+    const all = await pg.query(`SELECT 1 FROM "ReminderJob" WHERE kind = 'LATE' AND "appointmentId" = $1`, [created]);
     expect(all.rowCount).toBe(1);
   });
 

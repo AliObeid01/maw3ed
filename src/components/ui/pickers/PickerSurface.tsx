@@ -113,10 +113,17 @@ function AnchoredPopover({
     if (!node || !anchor) return;
     const rect = anchor.getBoundingClientRect();
     const wanted = width === 'anchor' ? Math.max(rect.width, minWidth) : width;
-    // Measure the natural size first, then cap it to the room on the chosen side.
-    node.style.maxHeight = 'none';
-    node.style.width = `${wanted}px`;
-    const natural = node.getBoundingClientRect();
+    // Measure the natural height on a hidden clone, never on the live node: changing the live node's max-height lets
+    // its scroll area grow, and the browser then clamps the list's scrollTop (the chosen option would jump out of view).
+    const clone = node.cloneNode(true) as HTMLElement;
+    clone.removeAttribute('id');
+    clone.setAttribute('aria-hidden', 'true');
+    clone.inert = true;
+    clone.style.cssText = `position:fixed;visibility:hidden;pointer-events:none;top:-10000px;left:0;max-height:none;width:${wanted}px`;
+    document.body.appendChild(clone);
+    const naturalHeight = clone.getBoundingClientRect().height;
+    clone.remove();
+    const natural = { height: naturalHeight };
     const rtl = getComputedStyle(anchor).direction === 'rtl';
     const p = placePopover(
       rect,
@@ -137,11 +144,15 @@ function AnchoredPopover({
   useEffect(() => {
     const node = nodeRef.current;
     if (!mounted || !node) return;
-    const again = () => place();
+    // The popover's own scrolling (the list, a wheel) is not a reason to move it.
+    const again = (e?: Event) => {
+      if (e?.target instanceof Node && node.contains(e.target)) return;
+      place();
+    };
     window.addEventListener('resize', again);
     // Capture: any scrolling ancestor of the field moves it.
     window.addEventListener('scroll', again, true);
-    const observer = new ResizeObserver(again);
+    const observer = new ResizeObserver(() => again());
     observer.observe(node);
     return () => {
       window.removeEventListener('resize', again);

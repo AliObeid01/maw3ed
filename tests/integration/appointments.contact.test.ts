@@ -2,6 +2,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import type { Client } from 'pg';
 import { GET as getAppointment } from '@/app/api/appointments/[id]/route';
 import { PATCH as patchContact } from '@/app/api/appointments/[id]/contact/route';
+import { GET as getLink } from '@/app/api/links/[token]/route';
+import { GET as listAppointments } from '@/app/api/appointments/route';
 import { rootLogger } from '@/server/http/logger';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { runReminders, type ReminderDeps } from '@/server/services/reminders';
@@ -225,6 +227,39 @@ describe('what it changes', () => {
     const got = (await one(id)).body!.appointment;
     expect(got.reminderEmail).toBe(NEW);
     expect(got.reminderEmailDiffers).toBe(true);
+  });
+
+  it('F69-D privacy: contactEmail / contactName are staff-only (OWNER and STAFF see them; public, link and list shapes never do)', async () => {
+    const booked = await publicly({ email: 'private@gmail.test', name: 'Layla' });
+    await patch(a.cookie, booked, { contactName: 'Layla K.' });
+    for (const cookie of [a.cookie, staffCookie]) {
+      const got = (await call(getAppointment, `/api/appointments/${booked}`, { cookie, params: { id: booked } })).body!
+        .appointment;
+      expect(got.contactEmail).toBe('private@gmail.test');
+      expect(got.contactName).toBe('Layla K.');
+    }
+    // A fresh public booking response and its signed link view carry neither key.
+    const second = await bookPublicly(
+      a.slug,
+      bookingBody(scn.serviceId, scn.staffIds[0]!, at('09:00'), {
+        email: 'second@gmail.test',
+        name: 'Second',
+      }),
+    );
+    expect(second.status).toBe(201);
+    const manage = second.body!.links.manage as string;
+    const token = manage.split('/l/')[1]!;
+    const link = await call(getLink, `/api/links/${token}`, { params: { token } });
+    for (const shown of [JSON.stringify(second.body), JSON.stringify(link.body)]) {
+      expect(shown).not.toContain('contactEmail');
+      expect(shown).not.toContain('contactName');
+    }
+    // The staff list shape does not carry them either.
+    const list = await call(listAppointments, '/api/appointments', {
+      cookie: a.cookie,
+      query: { from: new Date(new Date(SLOT).getTime() - 86_400_000).toISOString().slice(0, 10), to: new Date(new Date(SLOT).getTime() + 86_400_000).toISOString().slice(0, 10) },
+    });
+    expect(JSON.stringify(list.body)).not.toContain('contactEmail');
   });
 
   it("F69-D: the detail carries this booking's OWN contactEmail / contactName (null when there is none)", async () => {

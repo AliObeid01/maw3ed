@@ -203,6 +203,11 @@ describe('typeahead', () => {
     expect(typeaheadIndex(opts, 'a', 1)).toBe(0);
   });
 
+  it('wraps around and ignores case', () => {
+    expect(typeaheadIndex(opts, 'C', 4)).toBe(4); // only "Cherry" starts with c, found again after wrapping
+    expect(typeaheadIndex(opts, 'a', 4)).toBe(0); // from the last option the search wraps to the start
+  });
+
   it('matches a longer buffer by prefix from the current option', () => {
     expect(typeaheadIndex(opts, 'av', 0)).toBe(1);
     expect(typeaheadIndex(opts, 'ban', 0)).toBe(2);
@@ -271,6 +276,19 @@ describe('placePopover', () => {
     const p = placePopover(low, { width: 300, height: 400 }, vp, false);
     expect(p.side).toBe('above');
     expect(p.top).toBe(700 - 6 - 400);
+  });
+
+  it('stays below when it fits neither side but there is more room below; flips and caps when above is bigger', () => {
+    const mid = { top: 300, bottom: 352, left: 400, right: 700, width: 300 };
+    const below = placePopover(mid, { width: 300, height: 2000 }, vp, false);
+    expect(below.side).toBe('below');
+    expect(below.top).toBe(358);
+    const low = { top: 600, bottom: 652, left: 400, right: 700, width: 300 };
+    const above = placePopover(low, { width: 300, height: 2000 }, vp, false);
+    expect(above.side).toBe('above');
+    expect(above.maxHeight).toBe(600 - 6 - 8);
+    // The popover ends 6 px above the field, so it never covers it.
+    expect(above.top + Math.min(2000, above.maxHeight)).toBe(600 - 6);
   });
 
   it('caps the height to the room so the content scrolls inside', () => {

@@ -95,6 +95,32 @@ test.describe('phone: 360 px bottom sheet', () => {
 test.describe('desktop: 1440 px popover', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
+  test('long list popover: the chosen option is centred in view and wheel scrolling is not snapped back to the top', async ({
+    page,
+  }) => {
+    await mockSetupApi(page, { state: defaultState() });
+    await page.goto('/app/settings');
+    // A zone late in the alphabet: the list must open scrolled down to it.
+    await searchAndSelect(page, 'Timezone', 'auckland', /Pacific\/Auckland/);
+    const trigger = await stable(page, 'Timezone');
+    await trigger.click();
+    const list = page.getByRole('listbox');
+    const selected = list.getByRole('option', { selected: true });
+    await expect(selected).toBeVisible();
+    await page.waitForTimeout(300); // let any scroll-triggered repositioning settle
+    const lb = (await list.boundingBox())!;
+    const sb = (await selected.boundingBox())!;
+    expect(sb.y, 'chosen option inside the visible list').toBeGreaterThanOrEqual(lb.y - 1);
+    expect(sb.y + sb.height).toBeLessThanOrEqual(lb.y + lb.height + 1);
+    const top0 = await list.evaluate((el) => el.scrollTop);
+    expect(top0, 'opened scrolled to the chosen option').toBeGreaterThan(100);
+    await list.hover();
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(300);
+    const top1 = await list.evaluate((el) => el.scrollTop);
+    expect(top1, 'wheel scroll sticks').toBeGreaterThan(top0 - 1);
+  });
+
   test('Select opens as a popover under the field (no backdrop), Esc closes only the picker', async ({ page }) => {
     await openAddService(page);
     const trigger = await stable(page, 'Duration');
@@ -264,6 +290,32 @@ test.describe('values and the business time zone', () => {
     await page.goto('/app/settings');
     await searchAndSelect(page, 'Timezone', 'new york', /America\/New York/);
     await expect(picker(page, 'Timezone')).toHaveAttribute('data-value', 'America/New_York');
+  });
+});
+
+test.describe('a picker inside a sheet (hours editor)', () => {
+  test('Esc closes only the picker and returns focus to it; a second Esc closes the sheet', async ({ page }) => {
+    await mockSetupApi(page, { state: defaultState() });
+    await page.goto('/app/hours');
+    await page.getByRole('button', { name: /Edit or add hours on Monday/ }).click();
+    const sheet = page.getByRole('dialog');
+    await expect(sheet).toBeVisible();
+    const opens = await stable(page, 'Opens');
+    const closes = await stable(page, 'Closes');
+    const hours = page.getByRole('listbox', { name: 'Hours', exact: true });
+    await opens.click();
+    await expect(hours).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(hours).toHaveCount(0);
+    await expect(sheet).toBeVisible();
+    await expect(opens).toBeFocused();
+    await closes.click();
+    await expect(hours).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(closes).toBeFocused();
+    await expect(sheet).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog')).toHaveCount(0);
   });
 });
 

@@ -229,6 +229,18 @@ function OptionList({
     first.current = false;
   }, [active]);
 
+  // In a popover the list only gets its capped height once the surface has been placed (just after mount), and an
+  // un-capped list cannot scroll: centre the chosen option again on the next frame. A separate effect with no
+  // dependencies, so it also survives React's development double-invoke of mount effects.
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      const list = listRef.current;
+      const el = list?.querySelector<HTMLElement>('[aria-selected="true"]');
+      if (list && el) revealInside(list, el, true);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
   const choose = (index: number) => {
     const o = visible[index];
     if (o && !o.disabled) onSelect(o.value);
