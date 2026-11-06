@@ -978,6 +978,13 @@
       "emptyTitle": "Nobody is waiting",
       "emptyBody": "When a day is full, clients can join the waitlist from your booking page. They will appear here.",
       "close": "Close"
+    },
+    "practitioner": {
+      "nav": "Your pages",
+      "welcomeLink": "Home",
+      "accountLink": "Account",
+      "welcomeTitle": "Welcome, {name}",
+      "welcomeBody": "Your schedule is coming soon. For now you can change your password and sign out here."
     }
   },
   "team": {
