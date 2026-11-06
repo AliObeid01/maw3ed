@@ -5,7 +5,15 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { CountBadge } from '@/components/ui/CountBadge';
 import { cn } from '@/lib/cn';
-import { badgeTone, moreNav, navIcons, tabNav, type ActiveId, type NavBadges } from './nav';
+import {
+  badgeTone,
+  moreNav,
+  navIcons,
+  practitionerNav,
+  tabNav,
+  type ActiveId,
+  type NavBadges,
+} from './nav';
 
 type Props = {
   activeId: ActiveId;
@@ -13,6 +21,8 @@ type Props = {
   hrefs: Record<ActiveId, string>;
   moreOpen: boolean;
   onMore: () => void;
+  /** The barber tab bar: Today, Mark outcome, Account. No More tab. */
+  practitioner?: boolean;
 };
 
 const itemClass =
@@ -32,7 +42,7 @@ function IconPill({ active, children }: { active: boolean; children: React.React
 }
 
 /** Below `lg`: Today, Reminders (red badge), Outcomes (amber badge), Clients, More. Safe-area aware. */
-export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore }: Props) {
+export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore, practitioner }: Props) {
   const t = useTranslations('app.tabs');
   const tn = useTranslations('app.nav');
   const moreActive = (moreNav as string[]).includes(activeId);
@@ -43,7 +53,7 @@ export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore }: Props) 
       className="fixed inset-x-0 bottom-0 z-40 border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <div className="mx-auto flex max-w-xl items-stretch">
-        {tabNav.map((id) => {
+        {(practitioner ? practitionerNav : tabNav).map((id) => {
           const Icon = navIcons[id];
           const active = activeId === id;
           const count = id === 'reminders' || id === 'outcomes' ? (badges?.[id] ?? 0) : 0;
@@ -72,6 +82,7 @@ export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore }: Props) 
             </Link>
           );
         })}
+        {practitioner ? null : (
         <button
           type="button"
           onClick={onMore}
@@ -87,6 +98,7 @@ export function AppTabBar({ activeId, badges, hrefs, moreOpen, onMore }: Props) 
           </IconPill>
           <span>{t('more')}</span>
         </button>
+        )}
       </div>
     </nav>
   );

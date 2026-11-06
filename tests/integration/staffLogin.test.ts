@@ -316,9 +316,10 @@ describe('signing in as a barber', () => {
     });
     expect(change.status).toBe(200);
     expect((await loginAs(PHONE, 'a different password')).status).toBe(200);
-    expect((await call(dashboardToday, '/api/dashboard/today', { cookie: b.cookie })).status).toBe(
-      403,
-    );
+    // PR-5: the barber's own (empty) day is allowed; the owner-only routes stay refused.
+    const day = await call(dashboardToday, '/api/dashboard/today', { cookie: b.cookie });
+    expect(day.status).toBe(200);
+    expect(day.body!.appointments).toEqual([]);
     expect((await call(listStaff, '/api/staff', { cookie: b.cookie })).status).toBe(403);
     expect((await call(teamList, '/api/team', { cookie: b.cookie })).status).toBe(403);
   });

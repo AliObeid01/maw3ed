@@ -16,11 +16,12 @@ export const queueItemSchema = z.object({
   endAt: z.string(),
   service: person,
   staff: staffRef,
+  // A barber's queue carries only the client's first name and phone.
   client: z.object({
-    id: z.string(),
+    id: z.string().default(''),
     name: z.string(),
     phone: z.string(),
-    noShows: z.number().int(),
+    noShows: z.number().int().default(0),
   }),
 });
 export type QueueItem = z.infer<typeof queueItemSchema>;
@@ -35,12 +36,12 @@ export const outcomeResultSchema = z.object({
     startAt: z.string(),
     endAt: z.string(),
     client: z.object({
-      id: z.string(),
+      id: z.string().default(''),
       name: z.string(),
       phone: z.string(),
-      attended: z.number().int(),
-      noShows: z.number().int(),
-      lateCancels: z.number().int(),
+      attended: z.number().int().default(0),
+      noShows: z.number().int().default(0),
+      lateCancels: z.number().int().default(0),
     }),
   }),
 });
@@ -70,7 +71,7 @@ export const appointmentSchema = z.object({
     startAt: z.string(),
     endAt: z.string(),
     status: z.string(),
-    source: z.string(),
+    source: z.string().default('PUBLIC'),
     confirmedAt: z.string().nullable().optional(),
     /** Staff-only: where reminder emails go (same rule as the reminder runner); null = no usable address. */
     reminderEmail: z.string().nullable().optional(),
@@ -86,11 +87,11 @@ export const appointmentSchema = z.object({
     }),
     staff: staffRef,
     client: z.object({
-      id: z.string(),
+      id: z.string().default(''),
       name: z.string(),
       phone: z.string(),
-      noShows: z.number().int(),
-      repeatNoShow: z.boolean(),
+      noShows: z.number().int().default(0),
+      repeatNoShow: z.boolean().default(false),
       lateCancels: z.number().int().optional(),
     }),
   }),

@@ -63,6 +63,24 @@ async function seed() {
   await token('used', 'RESET', '20 minutes', '-5 minutes');
   await token('expired-used', 'VERIFY', '-2 days', '-3 days');
 
+  // Staff activation links (they carry an E.164 phone): used or expired more than 7 days ago go, the rest stay.
+  await pg.query(
+    `INSERT INTO "StaffMember" (id, "businessId", "displayName", "updatedAt") VALUES ('st-1', $1, 'Barber 1', now()), ('st-2', $1, 'Barber 2', now()), ('st-3', $1, 'Barber 3', now())`,
+    [businessId],
+  );
+  // One OPEN (unused) link per staff member is a database rule, so each unused link has its own staff member.
+  const activation = (n: string, staff: string, expires: string, used: string | null) =>
+    pg.query(
+      `INSERT INTO "ActivationToken" (id, "businessId", "staffMemberId", phone, "tokenHash", "expiresAt", "usedAt")
+       VALUES ($1, $2, $6, '+96170000001', $3, now() + $4::interval, ${used ? 'now() + $5::interval' : '$5::text::timestamptz'})`,
+      [`a-${n}`, businessId, `ahash-${n}`, expires, used, staff],
+    );
+  await activation('old-used', 'st-1', '-5 days', '-8 days');
+  await activation('old-expired', 'st-1', '-8 days', null);
+  await activation('recent-used', 'st-1', '2 days', '-1 day');
+  await activation('recent-expired', 'st-2', '-1 day', null);
+  await activation('open', 'st-3', '2 days', null);
+
   await pg.query(
     `INSERT INTO "RateLimitBucket" (key, "windowStart", count) VALUES
      ('old', now() - interval '3 days', 4), ('fresh', now() - interval '1 hour', 2)`,
@@ -83,6 +101,7 @@ describe('cleanup job', () => {
       sessions: 3,
       invites: 2,
       emailTokens: 3,
+      activationTokens: 2,
       rateLimitBuckets: 1,
       truncated: false,
     });
@@ -100,11 +119,14 @@ describe('cleanup job', () => {
     expect(
       (await pg.query(`SELECT 1 FROM "EmailToken" WHERE "usedAt" IS NOT NULL OR "expiresAt" < now()`)).rowCount,
     ).toBe(0);
+    // Old used and old expired links are gone (their E.164 phone with them); recent and open ones stay.
+    expect(await ids('ActivationToken')).toEqual(['a-open', 'a-recent-expired', 'a-recent-used']);
     // Idempotent.
     expect(await runCleanup(rootLogger)).toEqual({
       sessions: 0,
       invites: 0,
       emailTokens: 0,
+      activationTokens: 0,
       rateLimitBuckets: 0,
       truncated: false,
     });
@@ -176,6 +198,7 @@ describe('POST /api/jobs/cleanup', () => {
       sessions: 3,
       invites: 2,
       emailTokens: 3,
+      activationTokens: 2,
       rateLimitBuckets: 1,
       truncated: false,
     });

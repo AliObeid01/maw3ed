@@ -1,6 +1,7 @@
 'use client';
 
 import { BadgeCheck, ChevronDown, MailPlus } from 'lucide-react';
+import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -112,6 +113,15 @@ export function TeamAccess({
     ? t('summary', { people: members.length, pending: invites.length })
     : t('loading');
 
+  // Plain node, so the JSX below holds no call with a literal argument.
+  const barberHint = t.rich('barberHint', {
+    link: (chunks) => (
+      <Link href="/app/staff" className="font-semibold text-brand">
+        {chunks}
+      </Link>
+    ),
+  });
+
   return (
     <Card
       as="section"
@@ -144,6 +154,7 @@ export function TeamAccess({
             )}
           </h2>
           <p className="m-0 text-[13px] text-muted">{t('purpose')}</p>
+          <p className="m-0 text-[13px] text-muted">{barberHint}</p>
           <p className="m-0 text-[13px] text-muted">{summary}</p>
         </div>
         {/* The one invite button: always visible, also while the member list is collapsed on a phone. */}

@@ -307,15 +307,37 @@ registry.registerPath({
   },
 });
 
+/** What a PRACTITIONER (barber login) gets for one of THEIR OWN appointments: no client id, e-mail or counters. */
+export const BarberAppointmentDto = registry.register(
+  'BarberAppointment',
+  z.object({
+    appointment: z.object({
+      id: z.string(),
+      startAt: isoInstant,
+      endAt: isoInstant,
+      status: z.string(),
+      confirmedAt: isoInstant.nullable(),
+      client: z.object({ name: z.string().openapi({ description: 'First name only.' }), phone: z.string() }),
+      service: z.object({ id: z.string(), name: z.string(), durationMin: z.number().int() }),
+      staff: z.object({ id: z.string(), displayName: z.string() }),
+    }),
+  }),
+);
+
 registry.registerPath({
   method: 'get',
   path: '/api/appointments/{id}',
   summary: 'One appointment',
+  description:
+    'OWNER and STAFF: any appointment of the business. PRACTITIONER (barber login): only an appointment of the staff member the login is linked to, in the barber shape (client first name and phone, service, time, status, confirmation; no e-mail, contact override, reminder details, counters or history). An id of another barber, of another business or unknown are the same 404; a barber login without an active linked staff member is 403.',
   tags: ['appointments'],
   security: [{ session: [] }],
   request: { params: AppointmentParams },
   responses: {
-    200: { description: 'Appointment', content: json(AppointmentOneDto) },
+    200: {
+      description: 'Appointment',
+      content: json(z.union([AppointmentOneDto, BarberAppointmentDto])),
+    },
     400: errorResponses[400],
     401: errorResponses[401],
     404: errorResponses[404],

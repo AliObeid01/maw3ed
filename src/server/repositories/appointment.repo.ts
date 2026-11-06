@@ -3,6 +3,7 @@ import { effectiveEmail, isContactEditable } from '@/server/domain/contactEmail'
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { Prisma } from '@/generated/prisma/client';
+import { scopeWhere, type Scope as RowScope } from '@/server/domain/scope';
 import { db } from './db';
 import { clientRepo } from './client.repo';
 import { expirePendingDeposits } from './payment.repo';
@@ -17,6 +18,7 @@ const detailSelect = {
   source: true,
   idempotencyKey: true,
   holdExpiresAt: true,
+  confirmedAt: true,
   client: { select: { id: true, name: true, phone: true, noShows: true, lateCancels: true } },
   service: { select: { id: true, name: true, durationMin: true, price: true } },
   staff: { select: { id: true, displayName: true } },
@@ -64,6 +66,13 @@ const COUNTED_STATUSES = [...SLOT_HOLDING_STATUSES, 'ATTENDED', 'NO_SHOW'] as co
 export const appointmentRepo = {
   findById: (businessId: string, id: string) =>
     db.appointment.findFirst({ where: { id, businessId }, select: detailSelect }),
+
+  /** Same row, but only when it is inside the session's scope (a barber: their own staff member's). */
+  findByIdInScope: (businessId: string, scope: RowScope, id: string) =>
+    db.appointment.findFirst({
+      where: { id, businessId, ...scopeWhere(scope) },
+      select: detailSelect,
+    }),
 
   /**
    * Staff-only: the two stored addresses `effectiveEmail` chooses from. Kept out of `detailSelect` so no

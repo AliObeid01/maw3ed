@@ -39,9 +39,9 @@ describe('validateSignup', () => {
 });
 
 describe('validateLogin', () => {
-  it('requires both fields but never checks password length (existing accounts)', () => {
+  it('asks for an email or phone when the box is empty, requires the password, and never checks its length (existing accounts)', () => {
     expect(validateLogin({ email: '', password: '' })).toEqual({
-      email: 'required',
+      email: 'identifierRequired',
       password: 'required',
     });
     expect(validateLogin({ email: 'a@b.co', password: 'x' })).toEqual({});

@@ -15,6 +15,7 @@ import {
   businessNav,
   mainNav,
   navIcons,
+  practitionerMainNav,
   type ActiveId,
   type NavBadges,
   type NavId,
@@ -28,6 +29,8 @@ type Props = {
   badges?: NavBadges;
   hrefs: Record<ActiveId, string>;
   hideBusiness?: boolean;
+  /** The barber sidebar: Today and Mark outcome, Account. No business navigation and no New booking. */
+  practitioner?: boolean;
   className?: string;
 };
 
@@ -107,7 +110,15 @@ export function BusinessSection({
 }
 
 /** Board 21: 256 px sidebar for `lg+`. */
-export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, className }: Props) {
+export function AppSidebar({
+  business,
+  activeId,
+  badges,
+  hrefs,
+  hideBusiness,
+  practitioner,
+  className,
+}: Props) {
   const t = useTranslations('app.nav');
   const appName = useTranslations('common')('appName');
   return (
@@ -140,23 +151,25 @@ export function AppSidebar({ business, activeId, badges, hrefs, hideBusiness, cl
 
       <nav aria-label={t('main')}>
         <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
-          {mainNav.map((id) => (
+          {(practitioner ? practitionerMainNav : mainNav).map((id) => (
             <NavLink key={id} id={id} active={activeId === id} href={hrefs[id]} badges={badges} />
           ))}
         </ul>
         {hideBusiness ? null : <BusinessSection activeId={activeId} hrefs={hrefs} />}
       </nav>
 
-      <ButtonLink
-        href={hrefs.book}
-        size="lg"
-        block
-        aria-current={activeId === 'book' ? 'page' : undefined}
-        className="mt-3"
-      >
-        <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
-        {t('newBooking')}
-      </ButtonLink>
+      {practitioner ? null : (
+        <ButtonLink
+          href={hrefs.book}
+          size="lg"
+          block
+          aria-current={activeId === 'book' ? 'page' : undefined}
+          className="mt-3"
+        >
+          <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
+          {t('newBooking')}
+        </ButtonLink>
+      )}
 
       <div className="mt-auto flex flex-col gap-3">
         <nav aria-label={t('accountNav')}>

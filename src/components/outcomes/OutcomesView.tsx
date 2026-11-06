@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { getOutcomeQueue, markOutcome, type Outcome, type QueueItem } from '@/lib/api/outcomes';
 import { useResource } from '@/lib/api/useResource';
+import { PRACTITIONER_HOME } from '@/lib/auth/practitionerPaths';
 import { dayRelation } from '@/lib/dashboard/agenda';
 import { cn } from '@/lib/cn';
 import {
@@ -203,7 +204,7 @@ export function OutcomesView() {
   const t = useTranslations('app.outcomes');
   const label = useClientLabel();
   const ts = useTranslations('ui.status');
-  const { timezone } = useAppSession();
+  const { timezone, role } = useAppSession();
   const toast = useToast();
   const failureText = useFailureText();
   const { refresh, setOutcomesToMark } = useSummary();
@@ -291,7 +292,7 @@ export function OutcomesView() {
               body={t('emptyBody')}
               action={
                 <Link
-                  href="/app"
+                  href={role === 'PRACTITIONER' ? PRACTITIONER_HOME : '/app'}
                   className="inline-flex h-11 items-center rounded-btn border border-line bg-surface px-[18px] text-[15px] font-semibold text-ink no-underline transition-colors duration-200 ease-out hover:bg-canvas"
                 >
                   {t('backToToday')}

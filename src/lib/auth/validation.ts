@@ -3,7 +3,7 @@ import { isReservedSlug, isValidSlugFormat } from './slug';
 
 /** Message keys under `auth.errors`; the form turns them into translated text. */
 export type FieldErrorKey =
-  'required' | 'email' | 'identifier' | 'passwordShort' | 'passwordLong' | 'slugFormat' | 'slugReserved';
+  'required' | 'email' | 'identifier' | 'identifierRequired' | 'passwordShort' | 'passwordLong' | 'slugFormat' | 'slugReserved';
 export type FieldErrors<F extends string> = Partial<Record<F, FieldErrorKey>>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -55,7 +55,7 @@ export type LoginField = keyof LoginValues;
 
 export function validateLogin(v: LoginValues): FieldErrors<LoginField> {
   const e: FieldErrors<LoginField> = {};
-  if (!v.email.trim()) e.email = 'required';
+  if (!v.email.trim()) e.email = 'identifierRequired';
   else if (!isLoginIdentifier(v.email)) e.email = 'identifier';
   if (!v.password) e.password = 'required';
   else if (tooLong(v.password)) e.password = 'passwordLong';

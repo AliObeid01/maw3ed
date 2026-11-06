@@ -42,7 +42,7 @@ import { toneLabelKey } from '@/components/dashboard/apptStyles';
 const statusKey = { ATTENDED: 'attended', NO_SHOW: 'noShow', LATE_CANCEL: 'lateCancel' } as const;
 
 /** A clock that re-reads every `ms`, so "can I mark it yet?" flips on its own while the page stays open. */
-function useNow(ms = 30_000) {
+export function useNow(ms = 30_000) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), ms);
@@ -87,21 +87,24 @@ function Skeletons() {
   );
 }
 
-function OutcomeCard({
+export function OutcomeCard({
   appt,
   options,
   timezone,
   onMarked,
   onStale,
   clientName,
+  canExcuse = true,
 }: {
-  appt: AppointmentDetail;
+  appt: Pick<AppointmentDetail, 'id' | 'startAt' | 'endAt'>;
   options: Extract<OutcomeOptions, { open: true }>;
   timezone: string;
   onMarked: (status: string) => void;
   /** The server disagreed with what this page showed (409 CONFLICT / NOT_STARTED): reload the truth. */
   onStale: () => void;
   clientName: string;
+  /** False for the barber (PRACTITIONER): they mark outcomes but never excuse them. */
+  canExcuse?: boolean;
 }) {
   const t = useTranslations('app.appointment.outcome');
   const to = useTranslations('app.outcomes');
@@ -121,7 +124,7 @@ function OutcomeCard({
   const excuseBusy = useRef(false);
 
   // Only a recorded no-show or late cancel (staff-marked or written by the cancel link) can be excused.
-  const excusable = options.current === 'NO_SHOW' || options.current === 'LATE_CANCEL';
+  const excusable = canExcuse && (options.current === 'NO_SHOW' || options.current === 'LATE_CANCEL');
   const excuse = async () => {
     if (excuseBusy.current) return;
     excuseBusy.current = true;

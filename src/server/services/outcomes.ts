@@ -2,17 +2,21 @@ import type { OutcomeTarget } from '@/server/domain/outcomes';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
+import { ALL_SCOPE, type Scope } from '@/server/domain/scope';
 import { outcomeRepo, type OutcomeRow } from '@/server/repositories/outcome.repo';
+import { barberClient } from './barberView';
+import { resolveScope } from './scope';
 
 const MAX_ATTEMPTS = 3;
 
-const toDto = (row: OutcomeRow) => ({
+/** The owner / receptionist shape (full client counters), or the barber's (first name + phone only). */
+const toDto = (row: OutcomeRow, scope: Scope = ALL_SCOPE) => ({
   appointment: {
     id: row.id,
     status: row.status,
     startAt: row.startAt,
     endAt: row.endAt,
-    client: row.client,
+    client: scope.kind === 'own' ? barberClient(row.client) : row.client,
   },
 });
 
@@ -28,9 +32,17 @@ export const outcomesService = {
     outcome: OutcomeTarget,
     now: () => Date = () => new Date(),
   ) {
-    requireRole(ctx, 'OWNER', 'STAFF');
+    requireRole(ctx, 'OWNER', 'STAFF', 'PRACTITIONER');
+    const scope = await resolveScope(ctx);
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const res = await outcomeRepo.markOutcome(ctx.businessId, id, ctx.userId, outcome, now());
+      const res = await outcomeRepo.markOutcome(
+        ctx.businessId,
+        id,
+        ctx.userId,
+        outcome,
+        now(),
+        scope,
+      );
       switch (res.kind) {
         case 'not_found':
           throw AppError.notFound();
@@ -70,9 +82,9 @@ export const outcomesService = {
             { businessId: ctx.businessId, appointmentId: id, outcome, userId: ctx.userId },
             'appointment outcome recorded',
           );
-          return toDto(res.row);
+          return toDto(res.row, scope);
         case 'noop':
-          return toDto(res.row);
+          return toDto(res.row, scope);
       }
     }
     throw AppError.conflict('CONFLICT', undefined, 'The appointment changed; try again.');
@@ -111,12 +123,25 @@ export const outcomesService = {
   },
 
   async queue(ctx: SessionContext, limit: number, now: () => Date = () => new Date()) {
-    requireRole(ctx, 'OWNER', 'STAFF');
+    requireRole(ctx, 'OWNER', 'STAFF', 'PRACTITIONER');
+    const scope = await resolveScope(ctx);
     const at = now();
     const [items, count] = await Promise.all([
-      outcomeRepo.listQueue(ctx.businessId, at, limit),
-      outcomeRepo.countQueue(ctx.businessId, at),
+      outcomeRepo.listQueue(ctx.businessId, scope, at, limit),
+      outcomeRepo.countQueue(ctx.businessId, scope, at),
     ]);
+    if (scope.kind === 'own')
+      return {
+        count,
+        items: items.map((i) => ({
+          id: i.id,
+          startAt: i.startAt,
+          endAt: i.endAt,
+          service: i.service,
+          staff: i.staff,
+          client: barberClient(i.client),
+        })),
+      };
     return { count, items };
   },
 };

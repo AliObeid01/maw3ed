@@ -1,12 +1,8 @@
-import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
-import { WelcomeView } from '@/components/app/WelcomeView';
+import { redirect } from 'next/navigation';
+import { assertPractitionerPath } from '@/app/app/practitionerGuard';
 
-export async function generateMetadata(): Promise<Metadata> {
-  const t = await getTranslations('app.practitioner');
-  return { title: t('welcomeLink') };
-}
-
-export default function Page() {
-  return <WelcomeView />;
+/** The PR-4 placeholder is gone: old links lead to the barber's Today (owners to their own). */
+export default async function Page() {
+  await assertPractitionerPath('/app/welcome');
+  redirect('/app');
 }

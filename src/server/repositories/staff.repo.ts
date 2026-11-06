@@ -120,6 +120,18 @@ const toRow = (s: StaffWithRels): StaffRow => ({
 });
 
 export const staffRepo = {
+  /**
+   * The ACTIVE staff member this login is linked to in this business (both ids come from the session), or null.
+   * A turned-off login or a deactivated person has no link, so a barber loses their schedule at once.
+   */
+  linkedStaffId: async (businessId: string, userId: string): Promise<string | null> =>
+    (
+      await db.staffMember.findFirst({
+        where: { businessId, userId, active: true },
+        select: { id: true },
+      })
+    )?.id ?? null,
+
   list: async (businessId: string): Promise<StaffRow[]> =>
     (
       await db.staffMember.findMany({
