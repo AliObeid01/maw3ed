@@ -202,6 +202,26 @@ export const HoursDto = registry.register(
   z.object({ intervals: z.array(HoursIntervalSchema) }),
 );
 
+export const MAX_COPY_TARGETS = 50;
+export const CopyHoursBody = registry.register(
+  'CopyHoursBody',
+  z
+    .object({
+      targetStaffIds: z
+        .array(id)
+        .min(1)
+        .max(MAX_COPY_TARGETS)
+        .refine((ids) => new Set(ids).size === ids.length, 'Each staff member can be listed once.'),
+    })
+    .strict(),
+);
+export const CopyHoursDto = registry.register(
+  'CopyHoursResult',
+  z.object({
+    staff: z.array(z.object({ staffId: z.string(), intervals: z.array(HoursIntervalSchema) })),
+  }),
+);
+
 /* ---------- time off ---------- */
 const reason = z.enum(['VACATION', 'SICK', 'OTHER']);
 export const TimeOffListQuery = z.object({ includePast: flag.optional() }).strict();
@@ -380,6 +400,24 @@ registry.registerPath({
   request: { params: IdParams, body: { content: json(SetHoursBody) } },
   responses: {
     200: { description: 'Replaced', content: json(HoursDto) },
+    400: e[400],
+    401: e[401],
+    403: e[403],
+    404: e[404],
+  },
+});
+
+registry.registerPath({
+  method: 'post',
+  path: '/api/staff/{id}/hours/copy',
+  summary: 'Copy a staff member’s weekly hours to other staff (owner)',
+  description:
+    'Replaces the weekly working hours of every target with the source’s, in one transaction (all or nothing). Touching blocks are merged. Time off and services are not changed. Every id must belong to the session business (404 otherwise); the source cannot be a target (400).',
+  tags: ['setup'],
+  security,
+  request: { params: IdParams, body: { content: json(CopyHoursBody) } },
+  responses: {
+    200: { description: 'The new hours of each target, in request order', content: json(CopyHoursDto) },
     400: e[400],
     401: e[401],
     403: e[403],

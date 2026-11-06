@@ -1,12 +1,13 @@
 'use client';
 
 import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { HeaderActions } from '@/components/app/HeaderActions';
 import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError } from '@/components/app/states';
 import { useSummary } from '@/components/app/SummaryContext';
+import { useViewedDay } from '@/components/app/ViewedDayContext';
 import { usePolling } from '@/components/app/usePolling';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { ButtonLink } from '@/components/ui/Button';
@@ -81,14 +82,20 @@ export function TodayView() {
   const toast = useToast();
   const { refresh: refreshSummary } = useSummary();
   const desktop = useIsDesktop();
-  const [day, setDay] = useState(() => todayIn(timezone));
+  // The viewed day lives in the app frame so the header can follow it; null means "the real today", which moves on
+  // by itself past midnight. Leaving the screen clears it, so coming back starts on today.
+  const { viewedDay, setViewedDay, now } = useViewedDay();
+  const today = todayIn(timezone, now);
+  const day = viewedDay ?? today;
+  const setDay = (next: string) => setViewedDay(next === today ? null : next);
+  useEffect(() => () => setViewedDay(null), [setViewedDay]);
   const [staffId, setStaffId] = useState<string>();
   const [open, setOpen] = useState<TodayAppointment | null>(null);
 
   const res = useResource((signal) => getToday(day, signal), day);
   usePolling(res.reload);
   const data = res.data;
-  const isToday = day === todayIn(timezone);
+  const isToday = day === today;
 
   const stats = data?.stats;
   const visibleCount = data ? data.appointments.filter(isActive).length : 0;
@@ -98,8 +105,8 @@ export function TodayView() {
       <HeaderActions>
         <DayNav
           isToday={isToday}
-          onShift={(delta) => setDay((d) => shiftDay(d, delta))}
-          onToday={() => setDay(todayIn(timezone))}
+          onShift={(delta) => setDay(shiftDay(day, delta))}
+          onToday={() => setViewedDay(null)}
         />
       </HeaderActions>
 

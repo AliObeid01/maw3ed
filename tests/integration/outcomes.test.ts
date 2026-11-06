@@ -360,11 +360,27 @@ describe('PATCH /api/appointments/{id}/outcome: no-show grace period (10 minutes
     expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 1 });
   });
 
-  it('a correction from LATE_CANCEL to NO_SHOW inside the window is allowed (the mark already exists)', async () => {
+  it('a correction from a staff LATE_CANCEL to NO_SHOW inside the window is refused (no loophole); from start+10 it works', async () => {
     const { client, appt } = await fixture({ startAt: JUST_STARTED });
     await mark(a.cookie, appt.id, { outcome: 'LATE_CANCEL' });
+    const early = await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' });
+    expect(early.status).toBe(409);
+    expect(early.body!.error.code).toBe('NO_SHOW_TOO_EARLY');
+    expect(early.body!.error.data).toEqual({ availableAt: '2026-11-02T08:05:00.000Z' });
+    expect((await apptRow(appt.id)).status).toBe('LATE_CANCEL');
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 1 });
+    vi.setSystemTime(new Date('2026-11-02T08:05:00.000Z'));
     expect((await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' })).status).toBe(200);
     expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+  });
+
+  it('other corrections inside the window still work (no-show back to late cancel)', async () => {
+    const { client, appt } = await fixture({ startAt: TEN_AGO });
+    await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' });
+    vi.setSystemTime(NOW);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+    expect((await mark(a.cookie, appt.id, { outcome: 'LATE_CANCEL' })).status).toBe(200);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 1 });
   });
 
   it('refused attempts never touch the counters, even many concurrent ones; the later success counts once', async () => {

@@ -1,6 +1,7 @@
 import type { Page, Route } from '@playwright/test';
 import { freezeClock, nowMs } from './clock';
 import { profileMissing } from '../../../src/lib/business/profile';
+import { mergeWeekIntervals } from '../../../src/lib/setup/hoursMerge';
 import { rules, validate, validateHours } from './serverRules';
 
 /**
@@ -323,13 +324,26 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
       found.serviceIds = v.data.serviceIds;
       return json(route, 200, { serviceIds: found.serviceIds });
     }
+    const copyHours = /^\/api\/staff\/([^/]+)\/hours\/copy$/.exec(path);
+    if (copyHours && method === 'POST') {
+      const ids = (body as { targetStaffIds?: string[] } | undefined)?.targetStaffIds ?? [];
+      const known = new Set(state.staff.map((m) => m.id));
+      if (!known.has(copyHours[1]) || ids.some((x) => !known.has(x)))
+        return error(route, 404, 'NOT_FOUND');
+      const source = mergeWeekIntervals(state.hours[copyHours[1]!] ?? []);
+      for (const x of ids) state.hours[x] = source.map((i) => ({ ...i }));
+      return json(route, 200, {
+        staff: ids.map((x) => ({ staffId: x, intervals: state.hours[x] })),
+      });
+    }
     const staffHours = /^\/api\/staff\/([^/]+)\/hours$/.exec(path);
     if (staffHours) {
       const id = staffHours[1]!;
       if (method === 'PUT') {
         const v = validateHours(body);
         if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
-        const intervals = v.data.intervals;
+        // Like the server: touching blocks are stored as one.
+        const intervals = mergeWeekIntervals(v.data.intervals);
         state.hours[id] = intervals;
         state.business.setup.hasHours = intervals.length > 0;
         return json(route, 200, { intervals });

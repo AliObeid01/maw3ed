@@ -58,6 +58,19 @@ test.describe('No-show grace period', () => {
     expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(1);
   });
 
+  test('a correction from Attended to No-show waits for the grace period too (no loophole)', async ({
+    page,
+  }) => {
+    // A 5 minute booking that started 6 minutes ago and was marked Attended: still inside the first 10 minutes.
+    const { appointments, calls } = await mockOutcomesApi(page, setup({ status: 'ATTENDED' }, -6, 5));
+    await page.goto('/app/appointments/apone');
+    const outcome = page.getByRole('region', { name: 'Outcome' });
+    const noShow = outcome.getByRole('button', { name: /as No-show/ });
+    await expect(noShow).toBeDisabled();
+    await expect(outcome.getByText(available(opensAt(appointments[0]!.startAt)))).toBeVisible();
+    expect(calls.filter((c) => c.method === 'PATCH')).toHaveLength(0);
+  });
+
   test('409 NO_SHOW_TOO_EARLY from the server shows the business-time clock', async ({ page }) => {
     const { appointments } = await mockOutcomesApi(page, setup({}, -12, 30));
     await page.goto('/app/appointments/apone');

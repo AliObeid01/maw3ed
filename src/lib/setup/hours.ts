@@ -1,4 +1,5 @@
 import type { HoursInterval } from '@/lib/api/setup';
+import { mergeDayIntervals } from './hoursMerge';
 
 /** Weekday numbers follow the API: 0 = Sunday ... 6 = Saturday. Boards list Monday first. */
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
@@ -29,12 +30,15 @@ export function sortDay(day: DayInterval[]): DayInterval[] {
 export function weekFromApi(intervals: HoursInterval[]): Week {
   const week = emptyWeek();
   for (const i of intervals) week[i.weekday]?.push({ start: i.startLocal, end: i.endLocal });
-  return week.map(sortDay);
+  return mergeWeek(week);
 }
+
+/** Every day with touching / overlapping blocks merged into one (see hoursMerge.ts); days stay separate. */
+export const mergeWeek = (week: Week): Week => week.map((day) => mergeDayIntervals(day));
 
 export function weekToApi(week: Week): HoursInterval[] {
   return week.flatMap((day, weekday) =>
-    sortDay(day).map((i) => ({ weekday, startLocal: i.start, endLocal: i.end })),
+    mergeDayIntervals(day).map((i) => ({ weekday, startLocal: i.start, endLocal: i.end })),
   );
 }
 

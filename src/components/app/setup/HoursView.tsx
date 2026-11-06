@@ -81,7 +81,7 @@ function HoursSkeleton() {
   );
 }
 
-function StaffHours({ staffId }: { staffId: string }) {
+function StaffHours({ staffId, schedulable }: { staffId: string; schedulable: StaffMember[] }) {
   const hours = useResource((signal) => getStaffHours(staffId, signal), `hours:${staffId}`);
   const timeOff = useResource((signal) => listTimeOff(staffId, signal), `timeoff:${staffId}`);
 
@@ -95,7 +95,13 @@ function StaffHours({ staffId }: { staffId: string }) {
 
   return (
     <div className="flex flex-wrap items-start gap-5">
-      <WeeklyHours staffId={staffId} initial={hours.data} onSaved={hours.setData} />
+      <WeeklyHours
+        staffId={staffId}
+        source={schedulable.find((m) => m.id === staffId)!}
+        others={schedulable.filter((m) => m.id !== staffId)}
+        initial={hours.data}
+        onSaved={hours.setData}
+      />
       {timeOff.error && !timeOff.data ? (
         <LoadError error={timeOff.error} onRetry={timeOff.reload} className="flex-[1_1_300px]" />
       ) : (
@@ -154,7 +160,7 @@ function HoursInner() {
         onSelect={setSelected}
         className="md:hidden"
       />
-      <StaffHours key={selectedId} staffId={selectedId} />
+      <StaffHours key={selectedId} staffId={selectedId} schedulable={schedulable} />
     </>
   );
 }

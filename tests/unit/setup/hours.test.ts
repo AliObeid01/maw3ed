@@ -119,3 +119,25 @@ describe('suggestInterval and 24:00 inputs', () => {
     expect(endFromInput('17:00')).toBe('17:00');
   });
 });
+
+describe('touching blocks are merged (PR-3)', () => {
+  it('weekFromApi merges stored touching blocks per day but not across days', () => {
+    const week = weekFromApi([
+      { weekday: 3, startLocal: '17:00', endLocal: '22:00' },
+      { weekday: 3, startLocal: '09:00', endLocal: '17:00' },
+      { weekday: 1, startLocal: '09:00', endLocal: '24:00' },
+      { weekday: 2, startLocal: '00:00', endLocal: '02:00' },
+    ]);
+    expect(week[3]).toEqual([iv('09:00', '22:00')]);
+    expect(week[1]).toEqual([iv('09:00', '24:00')]);
+    expect(week[2]).toEqual([iv('00:00', '02:00')]);
+  });
+  it('weekToApi sends the merged blocks', () => {
+    const week = emptyWeek();
+    week[1] = [iv('09:00', '12:00'), iv('12:00', '15:00'), iv('16:00', '18:00')];
+    expect(weekToApi(week)).toEqual([
+      { weekday: 1, startLocal: '09:00', endLocal: '15:00' },
+      { weekday: 1, startLocal: '16:00', endLocal: '18:00' },
+    ]);
+  });
+});

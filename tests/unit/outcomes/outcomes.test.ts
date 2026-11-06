@@ -138,16 +138,34 @@ describe('no-show grace period', () => {
     });
     expect(planOutcome({ ...grace, target: 'ATTENDED', now: long }).kind).toBe('apply');
   });
-  it('a correction INTO no-show from an outcome already set is not held back', () => {
+  it('a correction INTO no-show from a staff-set outcome is held back until start+10 (no loophole)', () => {
     const early = at('2026-11-04T12:02:00Z');
+    const shortEnd = at('2026-11-04T12:05:00Z');
     expect(planOutcome({ ...grace, status: 'LATE_CANCEL', now: early })).toEqual({
-      kind: 'apply',
-      decrement: 'lateCancels',
-      increment: 'noShows',
+      kind: 'grace_period',
+      availableAt: at('2026-11-04T12:10:00Z'),
     });
+    expect(planOutcome({ ...grace, status: 'ATTENDED', endAt: shortEnd, now: early })).toEqual({
+      kind: 'grace_period',
+      availableAt: at('2026-11-04T12:10:00Z'),
+    });
+  });
+  it('the correction boundary: start+9:59.999 blocked, start+10:00 allowed', () => {
+    for (const status of ['LATE_CANCEL', 'ATTENDED']) {
+      const plan = (iso: string) =>
+        planOutcome({ ...grace, status, endAt: at('2026-11-04T12:05:00Z'), now: at(iso) });
+      expect(plan('2026-11-04T12:09:59.999Z').kind).toBe('grace_period');
+      expect(plan('2026-11-04T12:10:00.000Z').kind).toBe('apply');
+    }
+  });
+  it('other corrections stay open inside the window', () => {
+    const early = at('2026-11-04T12:02:00Z');
     expect(
-      planOutcome({ ...grace, status: 'ATTENDED', endAt: at('2026-11-04T12:05:00Z'), now: early }),
-    ).toEqual({ kind: 'apply', decrement: 'attended', increment: 'noShows' });
+      planOutcome({ ...grace, status: 'NO_SHOW', target: 'LATE_CANCEL', now: early }),
+    ).toEqual({ kind: 'apply', decrement: 'noShows', increment: 'lateCancels' });
+    expect(
+      planOutcome({ ...grace, status: 'LATE_CANCEL', target: 'ATTENDED', endAt: early, now: early }),
+    ).toEqual({ kind: 'apply', decrement: 'lateCancels', increment: 'attended' });
   });
   it('a no-show again is a no-op even inside the window', () => {
     expect(planOutcome({ ...grace, status: 'NO_SHOW', now: at('2026-11-04T12:01:00Z') })).toEqual({

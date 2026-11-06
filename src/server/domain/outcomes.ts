@@ -38,7 +38,8 @@ export type OutcomePlan =
  *
  * - Only appointments that have started can get an outcome.
  * - From BOOKED / CONFIRMED the target counter goes up by one.
- * - Between ATTENDED / NO_SHOW / LATE_CANCEL (a correction) one count moves from the old counter to the new.
+ * - Between ATTENDED / NO_SHOW / LATE_CANCEL (a correction) one count moves from the old counter to the new. A
+ *   correction INTO NO_SHOW waits for the grace period like the first mark (no "late cancel, then no-show" loophole).
  * - The same outcome again is a no-op.
  * - A LATE_CANCEL written by the cancel flow (cancelledVia set) is already counted and final: marking it
  *   again as LATE_CANCEL is a no-op, anything else conflicts (a cancelled appointment cannot be attended).
@@ -67,13 +68,16 @@ function decide(input: PlanInput): OutcomePlan {
   if (status === 'LATE_CANCEL' && input.cancelledVia !== null)
     return target === 'LATE_CANCEL' ? { kind: 'noop' } : { kind: 'conflict' };
 
+  // The grace period guards every way INTO no-show while it runs: from an unmarked booking, and also as a correction
+  // from a staff-set ATTENDED / LATE_CANCEL (otherwise "late cancel at +1 min, then correct to no-show" would defeat it).
+  const intoNoShow =
+    target === 'NO_SHOW' && ['BOOKED', 'CONFIRMED', 'ATTENDED', 'LATE_CANCEL'].includes(status);
+  if (intoNoShow) {
+    const availableAt = new Date(input.startAt.getTime() + NO_SHOW_GRACE_MIN * 60_000);
+    if (availableAt.getTime() > input.now.getTime()) return { kind: 'grace_period', availableAt };
+  }
+
   if (status === 'BOOKED' || status === 'CONFIRMED') {
-    // The grace period applies only to moving INTO no-show from an unmarked booking. A correction from an outcome
-    // that is already recorded (ATTENDED / LATE_CANCEL set by staff) is not re-blocked: the slot was already free.
-    if (target === 'NO_SHOW') {
-      const availableAt = new Date(input.startAt.getTime() + NO_SHOW_GRACE_MIN * 60_000);
-      if (availableAt.getTime() > input.now.getTime()) return { kind: 'grace_period', availableAt };
-    }
     return { kind: 'apply', decrement: null, increment: COUNTER[target] };
   }
 
