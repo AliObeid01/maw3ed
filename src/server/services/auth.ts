@@ -13,7 +13,14 @@ import { emailVerificationService } from './emailVerification';
 import { sessionService } from './session';
 
 export interface SessionInfo {
-  user: { id: string; name: string; email: string; emailVerified: boolean };
+  user: {
+    id: string;
+    name: string;
+    /** Null for phone-only accounts (staff logins). */
+    email: string | null;
+    phone: string | null;
+    emailVerified: boolean;
+  };
   business: { id: string; slug: string; name: string; timezone: string };
   role: RoleName;
 }
@@ -26,7 +33,13 @@ export interface SignedIn {
 }
 
 export const toSessionInfo = (
-  user: { id: string; name: string; email: string; emailVerifiedAt: Date | null },
+  user: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone?: string | null;
+    emailVerifiedAt: Date | null;
+  },
   business: { id: string; slug: string; name: string; timezone: string },
   role: RoleName,
 ): SessionInfo => ({
@@ -34,6 +47,7 @@ export const toSessionInfo = (
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone ?? null,
     emailVerified: user.emailVerifiedAt !== null,
   },
   business: {
@@ -104,7 +118,12 @@ export const authService = {
       });
       ctx.logger.info({ businessId: business.id, userId: user.id }, 'business signed up');
       // Soft verification: the account works now; a failed send never fails the signup (Resend is in the banner).
-      await emailVerificationService.sendForNewAccount(ctx, user, business, deps.now());
+      await emailVerificationService.sendForNewAccount(
+        ctx,
+        { id: user.id, email: input.email },
+        business,
+        deps.now(),
+      );
       return {
         info: toSessionInfo(user, business, 'OWNER'),
         token: session.token,
@@ -198,6 +217,7 @@ export const authService = {
       userId: user.id,
       userName: user.name,
       email: user.email,
+      phone: user.phone,
       emailVerified: user.emailVerifiedAt !== null,
       businessId: business.id,
       businessName: business.name,

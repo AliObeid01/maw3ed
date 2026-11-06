@@ -8,7 +8,7 @@ export interface StaffRow {
   displayName: string;
   bookable: boolean;
   active: boolean;
-  role: 'OWNER' | 'STAFF' | null;
+  role: 'OWNER' | 'STAFF' | 'PRACTITIONER' | null;
   serviceIds: string[];
 }
 

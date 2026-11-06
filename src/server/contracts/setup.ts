@@ -8,7 +8,7 @@ import { isValidTimezone } from './slug';
 /* ---------- shared pieces ---------- */
 const id = z.string().cuid2();
 const iso = z.iso.datetime();
-const RoleEnum = z.enum(['OWNER', 'STAFF']);
+const RoleEnum = z.enum(['OWNER', 'STAFF', 'PRACTITIONER']);
 const flag = z.enum(['1', '0', 'true', 'false']).transform((v) => v === '1' || v === 'true');
 
 export const IdParams = z.object({ id }).strict();

@@ -44,7 +44,7 @@ export const passwordRecoveryService = {
     await deps.defer(async () => {
       try {
         const user = await userRepo.findByEmail(email);
-        if (!user) {
+        if (!user || !user.email) {
           ctx.logger.info('password reset requested for an unknown address');
           return;
         }

@@ -156,7 +156,8 @@
       "subtitle": "{name} · {role}",
       "role": {
         "OWNER": "Owner",
-        "STAFF": "Staff"
+        "STAFF": "Staff",
+        "PRACTITIONER": "Barber"
       }
     },
     "shared": {
@@ -607,6 +608,7 @@
         "title": "Your sign-in",
         "name": "Name",
         "email": "Email",
+        "phone": "Phone (your sign-in)",
         "role": "Role",
         "verified": "Confirmed",
         "unverified": "Not confirmed yet"

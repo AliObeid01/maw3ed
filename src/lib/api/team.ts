@@ -6,8 +6,8 @@ import { request } from './auth';
 export const teamMemberSchema = z.object({
   userId: z.string(),
   name: z.string(),
-  email: z.string(),
-  role: z.enum(['OWNER', 'STAFF']),
+  email: z.string().nullable(),
+  role: z.enum(['OWNER', 'STAFF', 'PRACTITIONER']),
   emailVerified: z.boolean(),
   isYou: z.boolean(),
 });

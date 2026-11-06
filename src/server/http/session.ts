@@ -8,7 +8,9 @@ export interface CurrentSession {
   userId: string;
   userName: string;
   /** The signed-in address, shown on the Account page. */
-  email: string;
+  email: string | null;
+  /** The phone login of a staff (barber) account. */
+  phone: string | null;
   /** Soft verification: false shows the dashboard banner and disables inviting and listing. */
   emailVerified: boolean;
   businessId: string;

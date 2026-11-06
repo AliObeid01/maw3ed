@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { ErrorResponse, errorResponses, registry } from './registry';
 
-const RoleEnum = z.enum(['OWNER', 'STAFF']);
+const RoleEnum = z.enum(['OWNER', 'STAFF', 'PRACTITIONER']);
 const id = z.string().cuid2();
 
 /** `id` is the userId of the member (Membership is unique per user and business) or the invite id. */
@@ -12,7 +12,7 @@ export const TeamMemberDto = registry.register(
   z.object({
     userId: z.string(),
     name: z.string(),
-    email: z.string(),
+    email: z.string().nullable(),
     role: RoleEnum,
     emailVerified: z.boolean(),
     isYou: z.boolean().openapi({ description: 'True for the signed-in caller.' }),

@@ -8,7 +8,7 @@ export type RemovalVerdict = 'ok' | 'SELF' | 'LAST_OWNER';
 export function checkRemoval(input: {
   actorUserId: string;
   targetUserId: string;
-  targetRole: 'OWNER' | 'STAFF';
+  targetRole: 'OWNER' | 'STAFF' | 'PRACTITIONER';
   ownerCount: number;
 }): RemovalVerdict {
   if (input.actorUserId === input.targetUserId) return 'SELF';

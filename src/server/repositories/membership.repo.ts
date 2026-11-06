@@ -10,7 +10,7 @@ export class ActorGoneError extends Error {}
 export interface TeamMemberRow {
   userId: string;
   name: string;
-  email: string;
+  email: string | null;
   role: Role;
   emailVerified: boolean;
 }
@@ -19,7 +19,7 @@ export const membershipRepo = {
   /** Everyone with access to the business, oldest membership first. No password hash, no session data. */
   async listTeam(businessId: string): Promise<TeamMemberRow[]> {
     const rows = await db.membership.findMany({
-      where: { businessId },
+      where: { businessId, role: { not: 'PRACTITIONER' } },
       select: {
         role: true,
         user: { select: { id: true, name: true, email: true, emailVerifiedAt: true } },
@@ -78,9 +78,10 @@ export const membershipRepo = {
           status: { in: [...ACTIVE_APPOINTMENT_STATUSES] },
         },
       });
-      await tx.invite.deleteMany({
-        where: { businessId, email: target.user.email, acceptedAt: null },
-      });
+      if (target.user.email)
+        await tx.invite.deleteMany({
+          where: { businessId, email: target.user.email, acceptedAt: null },
+        });
       const gone = await tx.membership.deleteMany({ where: { id: target.id, businessId } });
       if (gone.count !== 1) throw new MemberNotFoundError();
       return { futureAppointments };

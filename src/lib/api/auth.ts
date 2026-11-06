@@ -8,7 +8,8 @@ export const API_BASE = process.env.NEXT_PUBLIC_API_BASE ?? '';
 const userSchema = z.object({
   id: z.string(),
   name: z.string(),
-  email: z.string(),
+  email: z.string().nullable(),
+  phone: z.string().nullable().optional(),
   emailVerified: z.boolean().optional(),
 });
 const businessSchema = z.object({

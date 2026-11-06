@@ -77,7 +77,7 @@ export const ResendVerificationDto = registry.register(
   z.object({ ok: z.literal(true), alreadyVerified: z.boolean() }),
 );
 
-const RoleEnum = z.enum(['OWNER', 'STAFF']);
+const RoleEnum = z.enum(['OWNER', 'STAFF', 'PRACTITIONER']);
 
 export const SessionDto = registry.register(
   'SessionInfo',
@@ -85,7 +85,8 @@ export const SessionDto = registry.register(
     user: z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string(),
+      email: z.string().nullable().openapi({ description: 'Null for phone-only staff logins.' }),
+      phone: z.string().nullable().openapi({ description: 'E.164. Set for staff (barber) logins.' }),
       emailVerified: z.boolean().openapi({
         description:
           'False until the address is confirmed (verify link, password reset or accepted staff invite). An unverified owner cannot invite staff or list the business in the directory (409 EMAIL_NOT_VERIFIED).',

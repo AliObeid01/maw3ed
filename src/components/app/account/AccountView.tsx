@@ -16,7 +16,7 @@ export function AccountView() {
   const t = useTranslations('app.account');
   const tf = useTranslations('app.frame');
   const uid = useId();
-  const { userName, email, emailVerified, role } = useAppSession();
+  const { userName, email, phone, emailVerified, role } = useAppSession();
   return (
     <div className="flex max-w-xl flex-col gap-4 lg:grid lg:max-w-4xl lg:grid-cols-2 lg:items-start lg:gap-5">
       <Card padding="none" as="section" aria-labelledby={`${uid}-profile`} className="flex flex-col gap-4 p-[22px]">
@@ -28,15 +28,25 @@ export function AccountView() {
             <dt className="text-sm text-muted">{t('profile.name')}</dt>
             <dd className="m-0 text-base font-semibold">{userName}</dd>
           </div>
-          <div className="flex flex-col gap-1">
-            <dt className="text-sm text-muted">{t('profile.email')}</dt>
-            <dd className="m-0 flex flex-wrap items-center gap-2">
-              <Bidi dir="ltr" className="min-w-0 text-base font-semibold break-all">{email}</Bidi>
-              <Chip tone={emailVerified ? 'success' : 'warning'}>
-                {emailVerified ? t('profile.verified') : t('profile.unverified')}
-              </Chip>
-            </dd>
-          </div>
+          {email ? (
+            <div className="flex flex-col gap-1">
+              <dt className="text-sm text-muted">{t('profile.email')}</dt>
+              <dd className="m-0 flex flex-wrap items-center gap-2">
+                <Bidi dir="ltr" className="min-w-0 text-base font-semibold break-all">{email}</Bidi>
+                <Chip tone={emailVerified ? 'success' : 'warning'}>
+                  {emailVerified ? t('profile.verified') : t('profile.unverified')}
+                </Chip>
+              </dd>
+            </div>
+          ) : null}
+          {phone ? (
+            <div className="flex flex-col gap-1">
+              <dt className="text-sm text-muted">{t('profile.phone')}</dt>
+              <dd className="m-0">
+                <Bidi dir="ltr" className="text-base font-semibold">{phone}</Bidi>
+              </dd>
+            </div>
+          ) : null}
           <div className="flex flex-col gap-0.5">
             <dt className="text-sm text-muted">{t('profile.role')}</dt>
             <dd className="m-0 text-base font-semibold">{tf(`role.${role}`)}</dd>

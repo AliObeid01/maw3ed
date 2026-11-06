@@ -49,5 +49,24 @@ BEGIN
     RAISE EXCEPTION 'MISSING: ReminderJob_pending_due_idx partial index';
   END IF;
 
-  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key and partial index are present';
+  -- Staff login: partial unique indexes and the identity CHECK.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'StaffMember_userId_businessId_key' AND indexdef LIKE '%WHERE ("userId" IS NOT NULL)%'
+  ) THEN
+    RAISE EXCEPTION 'MISSING: StaffMember_userId_businessId_key partial unique index';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'ActivationToken_open_staff_key' AND indexdef LIKE '%WHERE ("usedAt" IS NULL)%'
+  ) THEN
+    RAISE EXCEPTION 'MISSING: ActivationToken_open_staff_key partial unique index';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'user_has_identity' AND connamespace = current_schema()::regnamespace
+  ) THEN
+    RAISE EXCEPTION 'MISSING: user_has_identity CHECK on User';
+  END IF;
+
+  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key, partial indexes and staff-login guarantees are present';
 END $$;

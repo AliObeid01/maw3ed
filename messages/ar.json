@@ -156,7 +156,8 @@
       "subtitle": "{name} · {role}",
       "role": {
         "OWNER": "المالك",
-        "STAFF": "موظف"
+        "STAFF": "موظف",
+        "PRACTITIONER": "حلاق"
       }
     },
     "shared": {
@@ -607,6 +608,7 @@
         "title": "تسجيل دخولك",
         "name": "الاسم",
         "email": "البريد الإلكتروني",
+        "phone": "الهاتف (دخولك)",
         "role": "الدور",
         "verified": "مؤكَّد",
         "unverified": "لم يُؤكَّد بعد"
