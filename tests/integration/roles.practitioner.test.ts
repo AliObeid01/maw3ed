@@ -16,7 +16,13 @@ import { signup } from './helpers/api';
 const modules = import.meta.glob('../../src/app/api/**/route.ts');
 const API = path.resolve(import.meta.dirname, '../../src/app/api');
 
-const ALLOWED = new Set(['auth/change-password', 'auth/logout', 'auth/resend-verification', 'auth/sign-out-others', 'me']);
+const ALLOWED = new Set([
+  'auth/change-password',
+  'auth/logout',
+  'auth/resend-verification',
+  'auth/sign-out-others',
+  'me',
+]);
 
 let pg: Client;
 beforeAll(async () => {
@@ -42,13 +48,22 @@ describe('PRACTITIONER route matrix', () => {
 
     const results: { route: string; method: string; status: number; mode: string }[] = [];
     for (const [file, load] of Object.entries(modules)) {
-      const rel = path.relative(API, path.dirname(path.resolve(import.meta.dirname, file))).split(path.sep).join('/');
+      const rel = path
+        .relative(API, path.dirname(path.resolve(import.meta.dirname, file)))
+        .split(path.sep)
+        .join('/');
       const src = readFileSync(path.join(API, rel, 'route.ts'), 'utf8');
-      const mod = (await load()) as Record<string, (req: Request, args?: unknown) => Promise<Response>>;
+      const mod = (await load()) as Record<
+        string,
+        (req: Request, args?: unknown) => Promise<Response>
+      >;
       for (const method of METHODS) {
         const handler = mod[method];
         if (!handler) continue;
-        const chunk = src.split(new RegExp(`^export const ${method} = withRoute`, 'm'))[1]?.split(/^export const /m)[0] ?? '';
+        const chunk =
+          src
+            .split(new RegExp(`^export const ${method} = withRoute`, 'm'))[1]
+            ?.split(/^export const /m)[0] ?? '';
         const mode = /auth:\s*'(\w+)'/.exec(chunk)?.[1] ?? '?';
         if (mode !== 'session') {
           results.push({ route: rel, method, status: 0, mode });
@@ -58,7 +73,12 @@ describe('PRACTITIONER route matrix', () => {
         const token = randomBytes(24).toString('base64url');
         await pg.query(
           `INSERT INTO "Session" (id, "businessId", "userId", "tokenHash", "expiresAt") VALUES ($1,$2,$3,$4, now() + interval '1 day')`,
-          [`s-${randomBytes(6).toString('hex')}`, businessId, userId, createHash('sha256').update(token).digest('hex')],
+          [
+            `s-${randomBytes(6).toString('hex')}`,
+            businessId,
+            userId,
+            createHash('sha256').update(token).digest('hex'),
+          ],
         );
         const params: Record<string, string> = {};
         for (const m of rel.matchAll(/\[(\w+)\]/g)) params[m[1]!] = 'a'.repeat(24);
@@ -66,7 +86,10 @@ describe('PRACTITIONER route matrix', () => {
         const res = await handler(
           new Request(`http://localhost/api/${rel}`, {
             method,
-            headers: { cookie: `${sessionCookieName()}=${token}`, ...(mutating ? { 'content-type': 'application/json' } : {}) },
+            headers: {
+              cookie: `${sessionCookieName()}=${token}`,
+              ...(mutating ? { 'content-type': 'application/json' } : {}),
+            },
             body: mutating ? '{}' : undefined,
           }),
           { params: Promise.resolve(params) },
@@ -84,6 +107,8 @@ describe('PRACTITIONER route matrix', () => {
     for (const r of allowed) expect(r.status, `${r.method} ${r.route}`).not.toBe(403);
     // Unknown modes would mean the scan missed a handler.
     expect(results.filter((r) => r.mode === '?')).toEqual([]);
-    console.log(`route matrix: ${session.length} session handlers checked, ${session.length - allowed.length} refused with 403, ${allowed.length} self-service allowed`);
+    console.log(
+      `route matrix: ${session.length} session handlers checked, ${session.length - allowed.length} refused with 403, ${allowed.length} self-service allowed`,
+    );
   });
 });

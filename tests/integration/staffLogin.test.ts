@@ -35,7 +35,8 @@ type Owner = Awaited<ReturnType<typeof signup>>;
 const PHONE = '+96170000001';
 const PHONE2 = '+96170000002';
 const tokenOf = (url: string) => url.split('/activate/')[1]!;
-const n = async (sql: string, args: unknown[] = []) => Number((await pg.query(sql, args)).rows[0].n);
+const n = async (sql: string, args: unknown[] = []) =>
+  Number((await pg.query(sql, args)).rows[0].n);
 
 async function newStaff(owner: Owner, displayName = 'Barber One') {
   const res = await call(createStaff, '/api/staff', {
@@ -63,11 +64,19 @@ async function activated(owner: Owner, phone = PHONE, name = 'Barber One') {
   expect(l.status).toBe(200);
   const act = await activateWith(tokenOf(l.body!.url));
   expect(act.status).toBe(200);
-  return { staffId, cookie: act.cookie as string, userId: act.body!.user.id as string, token: tokenOf(l.body!.url) };
+  return {
+    staffId,
+    cookie: act.cookie as string,
+    userId: act.body!.user.id as string,
+    token: tokenOf(l.body!.url),
+  };
 }
 
 async function addReceptionist(owner: Owner, email: string) {
-  const inv = await call(createInvite, '/api/invites', { body: { email, role: 'STAFF' }, cookie: owner.cookie });
+  const inv = await call(createInvite, '/api/invites', {
+    body: { email, role: 'STAFF' },
+    cookie: owner.cookie,
+  });
   expect(inv.status).toBe(201);
   const token = (inv.body!.acceptUrl as string).split('/invite/')[1]!;
   const res = await call(acceptInvite, `/api/invites/${token}/accept`, {
@@ -94,7 +103,8 @@ describe('owner creates a link', () => {
     expect(text).toContain(res.body!.url);
     expect(text).toContain(PHONE);
     expect(text.toLowerCase()).not.toContain('password:');
-    const row = (await pg.query(`SELECT "tokenHash", "expiresAt", "usedAt" FROM "ActivationToken"`)).rows;
+    const row = (await pg.query(`SELECT "tokenHash", "expiresAt", "usedAt" FROM "ActivationToken"`))
+      .rows;
     expect(row).toHaveLength(1);
     expect(row[0].tokenHash).toMatch(/^[0-9a-f]{64}$/);
     expect(row[0].tokenHash).not.toContain(token);
@@ -108,9 +118,13 @@ describe('owner creates a link', () => {
     const reception = await addReceptionist(owner, 'rec@example.test');
     const staffId = await newStaff(owner);
     await link(owner.cookie, staffId);
-    const asOwner = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff.find((s: any) => s.id === staffId);
+    const asOwner = (
+      await call(listStaff, '/api/staff', { cookie: owner.cookie })
+    ).body!.staff.find((s: any) => s.id === staffId);
     expect(asOwner).toMatchObject({ loginStatus: 'NOT_ACTIVATED', loginPhone: PHONE });
-    const asRec = (await call(listStaff, '/api/staff', { cookie: reception })).body!.staff.find((s: any) => s.id === staffId);
+    const asRec = (await call(listStaff, '/api/staff', { cookie: reception })).body!.staff.find(
+      (s: any) => s.id === staffId,
+    );
     expect(asRec).toMatchObject({ loginStatus: 'NOT_ACTIVATED', loginPhone: null });
   });
 
@@ -139,7 +153,8 @@ describe('owner creates a link', () => {
   it('refuses the owner and receptionists (they keep their own login)', async () => {
     const owner = await signup();
     await addReceptionist(owner, 'rec3@example.test');
-    const people = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff as any[];
+    const people = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!
+      .staff as any[];
     expect(people.length).toBeGreaterThanOrEqual(2);
     for (const p of people) {
       expect(p.loginStatus).toBeNull();
@@ -182,16 +197,23 @@ describe('activation page API', () => {
     expect((await previewOf(token)).status).toBe(200); // a weak password does not use the link up
     const res = await activateWith(token, 'a brand new password');
     expect(res.status).toBe(200);
-    expect(res.body).toMatchObject({ role: 'PRACTITIONER', user: { email: null, phone: PHONE, emailVerified: false } });
+    expect(res.body).toMatchObject({
+      role: 'PRACTITIONER',
+      user: { email: null, phone: PHONE, emailVerified: false },
+    });
     expect(res.headers.get('cache-control')).toBe('no-store');
     const who = await call(me, '/api/me', { cookie: res.cookie });
     expect(who.status).toBe(200);
     expect(who.body!.role).toBe('PRACTITIONER');
-    const staff = (await pg.query(`SELECT "userId", "loginOffAt" FROM "StaffMember" WHERE id = $1`, [staffId])).rows[0];
+    const staff = (
+      await pg.query(`SELECT "userId", "loginOffAt" FROM "StaffMember" WHERE id = $1`, [staffId])
+    ).rows[0];
     expect(staff.userId).toBe(res.body!.user.id);
     expect(staff.loginOffAt).toBeNull();
     expect(await n(`SELECT count(*) AS n FROM "Membership" WHERE role = 'PRACTITIONER'`)).toBe(1);
-    const list = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff.find((s: any) => s.id === staffId);
+    const list = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff.find(
+      (s: any) => s.id === staffId,
+    );
     expect(list).toMatchObject({ loginStatus: 'ACTIVE', loginPhone: PHONE, role: 'PRACTITIONER' });
   });
 
@@ -199,7 +221,10 @@ describe('activation page API', () => {
     const owner = await signup();
     const staffId = await newStaff(owner);
     const token = tokenOf((await link(owner.cookie, staffId)).body!.url);
-    const [x, y] = await Promise.all([activateWith(token), activateWith(token, 'another good password')]);
+    const [x, y] = await Promise.all([
+      activateWith(token),
+      activateWith(token, 'another good password'),
+    ]);
     expect([x.status, y.status].sort()).toEqual([200, 404]);
     const replay = await activateWith(token);
     const garbage = await activateWith('x'.repeat(43));
@@ -233,7 +258,10 @@ describe('activation page API', () => {
   });
 
   it('validation: unknown fields are rejected', async () => {
-    const res = await call(activate, '/api/activation/abc', { body: { password: PASSWORD, extra: 1 }, params: { token: 'abc' } });
+    const res = await call(activate, '/api/activation/abc', {
+      body: { password: PASSWORD, extra: 1 },
+      params: { token: 'abc' },
+    });
     expect(res.status).toBe(400);
   });
 });
@@ -248,7 +276,9 @@ describe('signing in as a barber', () => {
       expect(res.body!.role).toBe('PRACTITIONER');
     }
     expect((await loginAs(owner.body.email)).body!.role).toBe('OWNER');
-    const legacy = await call(login, '/api/auth/login', { body: { email: owner.body.email, password: PASSWORD } });
+    const legacy = await call(login, '/api/auth/login', {
+      body: { email: owner.body.email, password: PASSWORD },
+    });
     expect(legacy.status).toBe(200);
   });
 
@@ -266,7 +296,13 @@ describe('signing in as a barber', () => {
   it('locks a phone after 5 attempts whatever the spelling', async () => {
     const owner = await signup();
     await activated(owner);
-    const spellings = ['70 000 001', '+96170000001', '0096170000001', '70000001', '+961 70 000 001'];
+    const spellings = [
+      '70 000 001',
+      '+96170000001',
+      '0096170000001',
+      '70000001',
+      '+961 70 000 001',
+    ];
     for (const s of spellings) expect((await loginAs(s, 'nope nope nope')).status).toBe(401);
     expect((await loginAs(PHONE)).status).toBe(429);
   });
@@ -280,7 +316,9 @@ describe('signing in as a barber', () => {
     });
     expect(change.status).toBe(200);
     expect((await loginAs(PHONE, 'a different password')).status).toBe(200);
-    expect((await call(dashboardToday, '/api/dashboard/today', { cookie: b.cookie })).status).toBe(403);
+    expect((await call(dashboardToday, '/api/dashboard/today', { cookie: b.cookie })).status).toBe(
+      403,
+    );
     expect((await call(listStaff, '/api/staff', { cookie: b.cookie })).status).toBe(403);
     expect((await call(teamList, '/api/team', { cookie: b.cookie })).status).toBe(403);
   });
@@ -289,7 +327,11 @@ describe('signing in as a barber', () => {
     const owner = await signup();
     const b = await activated(owner);
     fakeEmailProvider.reset();
-    const res = await call(resendVerification, '/api/auth/resend-verification', { method: 'POST', body: {}, cookie: b.cookie });
+    const res = await call(resendVerification, '/api/auth/resend-verification', {
+      method: 'POST',
+      body: {},
+      cookie: b.cookie,
+    });
     expect(res.status).toBe(409);
     expect(res.body!.error.code).toBe('NO_EMAIL');
     expect(fakeEmailProvider.calls).toHaveLength(0);
@@ -327,12 +369,18 @@ describe('reset access and turn off', () => {
     expect((await off(owner.cookie, b.staffId)).status).toBe(200);
     expect((await call(me, '/api/me', { cookie: b.cookie })).status).toBe(401);
     expect((await loginAs(PHONE)).status).toBe(401);
-    const staff = (await pg.query(`SELECT "userId", "loginOffAt" FROM "StaffMember" WHERE id = $1`, [b.staffId])).rows[0];
+    const staff = (
+      await pg.query(`SELECT "userId", "loginOffAt" FROM "StaffMember" WHERE id = $1`, [b.staffId])
+    ).rows[0];
     expect(staff.userId).toBeNull();
     expect(staff.loginOffAt).not.toBeNull();
     expect(await n(`SELECT count(*) AS n FROM "Session" WHERE "userId" = $1`, [b.userId])).toBe(0);
-    expect(await n(`SELECT count(*) AS n FROM "Membership" WHERE "userId" = $1`, [b.userId])).toBe(0);
-    const row = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff.find((s: any) => s.id === b.staffId);
+    expect(await n(`SELECT count(*) AS n FROM "Membership" WHERE "userId" = $1`, [b.userId])).toBe(
+      0,
+    );
+    const row = (await call(listStaff, '/api/staff', { cookie: owner.cookie })).body!.staff.find(
+      (s: any) => s.id === b.staffId,
+    );
     expect(row.loginStatus).toBe('OFF');
     // And it can be given again.
     const again = await link(owner.cookie, b.staffId, { phone: PHONE });
@@ -350,7 +398,12 @@ describe('reset access and turn off', () => {
   it('deactivating the staff member revokes the login too', async () => {
     const owner = await signup();
     const b = await activated(owner);
-    const res = await call(patchStaff, `/api/staff/${b.staffId}`, { method: 'PATCH', body: { active: false }, cookie: owner.cookie, params: { id: b.staffId } });
+    const res = await call(patchStaff, `/api/staff/${b.staffId}`, {
+      method: 'PATCH',
+      body: { active: false },
+      cookie: owner.cookie,
+      params: { id: b.staffId },
+    });
     expect(res.status).toBe(200);
     expect((await call(me, '/api/me', { cookie: b.cookie })).status).toBe(401);
     expect(res.body!.loginStatus).toBe('OFF');

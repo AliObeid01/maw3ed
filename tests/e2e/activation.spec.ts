@@ -5,7 +5,9 @@ import { expect, test } from './helpers/test';
 
 const json = (route: Route, status: number, body: unknown) =>
   route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
-const dead = { error: { code: 'NOT_FOUND', message: 'This link is not valid or has expired.', fields: {} } };
+const dead = {
+  error: { code: 'NOT_FOUND', message: 'This link is not valid or has expired.', fields: {} },
+};
 const session = {
   user: { id: 'u9', name: 'Barber One', email: null, phone: '+96170000001', emailVerified: false },
   business: { id: 'b1', slug: 'studio-nour', name: 'Studio Nour', timezone: 'Asia/Beirut' },
@@ -28,7 +30,9 @@ test.describe('activation page', () => {
     await expect(password).toHaveAttribute('autocomplete', 'new-password');
     await expect(page.getByRole('heading', { name: 'Choose your password' })).toBeVisible();
     expect((await password.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
     // Nothing about the business or the person is shown before the password is set.
     await expect(page.locator('body')).not.toContainText('Studio Nour');
 
@@ -47,7 +51,9 @@ test.describe('activation page', () => {
     await page.setViewportSize({ width: 360, height: 740 });
     await page.route('**/api/activation/gone', (route) => json(route, 404, dead));
     await page.goto('/activate/gone');
-    await expect(page.getByRole('heading', { name: 'This link is not valid or has expired' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'This link is not valid or has expired' }),
+    ).toBeVisible();
     await expect(page.locator('input[name=password]')).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'Go to sign in' })).toBeVisible();
   });
@@ -57,18 +63,27 @@ test.describe('activation page', () => {
     const response = await page.goto('/activate/tok');
     expect(response?.headers()['referrer-policy']).toBe('no-referrer');
     expect(response?.headers()['cache-control']).toContain('no-store');
-    await expect(page.locator('head meta[name=referrer]')).toHaveAttribute('content', 'no-referrer');
+    await expect(page.locator('head meta[name=referrer]')).toHaveAttribute(
+      'content',
+      'no-referrer',
+    );
     await expect(page.locator('head meta[name=robots]')).toHaveAttribute('content', /noindex/);
   });
 
-  test('Arabic: right-to-left, no horizontal scroll at 360 px', async ({ page, context, baseURL }) => {
+  test('Arabic: right-to-left, no horizontal scroll at 360 px', async ({
+    page,
+    context,
+    baseURL,
+  }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
     await page.setViewportSize({ width: 360, height: 740 });
     await page.route('**/api/activation/tok', (route) => json(route, 200, { ok: true }));
     await page.goto('/activate/tok');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { name: 'اختر كلمة المرور' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
   });
 });
 

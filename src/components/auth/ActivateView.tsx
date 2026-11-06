@@ -49,7 +49,13 @@ export function ActivateView({ token }: { token: string }) {
     setBanner(undefined);
     const length = Array.from(password).length;
     const found: Problem | undefined =
-      length === 0 ? 'required' : length > PASSWORD_MAX ? 'long' : length < PASSWORD_MIN ? 'short' : undefined;
+      length === 0
+        ? 'required'
+        : length > PASSWORD_MAX
+          ? 'long'
+          : length < PASSWORD_MIN
+            ? 'short'
+            : undefined;
     setProblem(found);
     if (found) return;
     if (!guard.current.tryStart()) return;
@@ -115,7 +121,9 @@ export function ActivateView({ token }: { token: string }) {
             }}
             placeholder={t('passwordPlaceholder', { min: PASSWORD_MIN })}
             autoComplete="new-password"
-            error={problem ? t(`errors.${problem}`, { min: PASSWORD_MIN, max: PASSWORD_MAX }) : undefined}
+            error={
+              problem ? t(`errors.${problem}`, { min: PASSWORD_MIN, max: PASSWORD_MAX }) : undefined
+            }
             readOnly={pending}
           />
           <PasswordStrength id="activate-password-strength" password={password} />

@@ -36,7 +36,11 @@ function loginOverride(state: ReturnType<typeof stateWithLogins>, posted: unknow
       return true;
     }
     const expiresAt = new Date(Date.now() + 72 * 3_600_000).toISOString();
-    Object.assign(person, { loginStatus: 'NOT_ACTIVATED', loginPhone: '+96170000001', linkExpiresAt: expiresAt });
+    Object.assign(person, {
+      loginStatus: 'NOT_ACTIVATED',
+      loginPhone: '+96170000001',
+      linkExpiresAt: expiresAt,
+    });
     await json(route, 200, {
       url: 'https://maw3ed.test/activate/fake-one-time-token',
       whatsappUrl: 'https://wa.me/96170000001?text=hi',
@@ -73,7 +77,9 @@ test.describe('owner: Staff login', () => {
 
     await phone.fill('70 000 009');
     await section.getByRole('button', { name: 'Give this person a login' }).click();
-    await expect(page.getByText('This phone number already belongs to another account.')).toBeVisible();
+    await expect(
+      page.getByText('This phone number already belongs to another account.'),
+    ).toBeVisible();
 
     await phone.fill('70 000 001');
     await section.getByRole('button', { name: 'Give this person a login' }).click();
@@ -87,7 +93,9 @@ test.describe('owner: Staff login', () => {
     await expect(sheet.getByRole('button', { name: 'Copy link' })).toBeVisible();
     // The secret link is not printed anywhere on the page.
     await expect(page.locator('body')).not.toContainText('fake-one-time-token');
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
 
     await sheet.getByRole('button', { name: 'Close' }).first().click();
     await expect(section).toContainText('Not activated');
@@ -113,7 +121,9 @@ test.describe('owner: Staff login', () => {
     const section = page.getByRole('group', { name: 'دخول الموظف' });
     await expect(section).toBeVisible();
     await expect(section.getByRole('button', { name: 'امنح هذا الشخص حساب دخول' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
   });
 
   test('the owner and receptionists have no login section', async ({ page }) => {
@@ -130,7 +140,9 @@ test.describe('practitioner landing', () => {
     await setRole(page, 'PRACTITIONER', DASHBOARD);
   });
 
-  test('360 px: welcome page only, other pages redirect, no business requests are made', async ({ page }) => {
+  test('360 px: welcome page only, other pages redirect, no business requests are made', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 740 });
     const apiCalls: string[] = [];
     await page.route('**/api/**', (route) => {
@@ -144,7 +156,9 @@ test.describe('practitioner landing', () => {
     // No business navigation: no tab bar, no new-booking button.
     await expect(page.getByRole('navigation', { name: 'Main tabs' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: 'New booking' })).toHaveCount(0);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
 
     await page.goto('/app/staff');
     await expect(page).toHaveURL(/\/app\/welcome$/);
@@ -164,10 +178,14 @@ test.describe('practitioner landing', () => {
   test('Arabic: right-to-left landing', async ({ page, context }) => {
     await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
     await page.setViewportSize({ width: 360, height: 740 });
-    await page.route('**/api/**', (route) => json(route, 403, { error: { code: 'FORBIDDEN', message: 'x', fields: {} } }));
+    await page.route('**/api/**', (route) =>
+      json(route, 403, { error: { code: 'FORBIDDEN', message: 'x', fields: {} } }),
+    );
     await page.goto('/app');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { name: 'أهلًا Lina' })).toBeVisible();
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
   });
 });

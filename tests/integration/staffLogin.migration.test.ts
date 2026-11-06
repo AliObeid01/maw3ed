@@ -43,10 +43,18 @@ beforeAll(async () => {
     .sort();
   expect(all).toContain(MIGRATION);
   for (const dir of all.filter((d) => d < MIGRATION)) await exec(sql(dir));
-  await exec(`INSERT INTO "Business" (id, slug, name, "updatedAt") VALUES ('b1','mig-staff','Mig', now())`);
-  await exec(`INSERT INTO "User" (id, email, "passwordHash", name, "updatedAt") VALUES ('u1','owner@mig.test','h','Owner', now())`);
-  await exec(`INSERT INTO "Membership" (id, "businessId", "userId", role) VALUES ('m1','b1','u1','OWNER')`);
-  await exec(`INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('s1','b1','u1','Owner', now()), ('s2','b1',NULL,'Free', now())`);
+  await exec(
+    `INSERT INTO "Business" (id, slug, name, "updatedAt") VALUES ('b1','mig-staff','Mig', now())`,
+  );
+  await exec(
+    `INSERT INTO "User" (id, email, "passwordHash", name, "updatedAt") VALUES ('u1','owner@mig.test','h','Owner', now())`,
+  );
+  await exec(
+    `INSERT INTO "Membership" (id, "businessId", "userId", role) VALUES ('m1','b1','u1','OWNER')`,
+  );
+  await exec(
+    `INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('s1','b1','u1','Owner', now()), ('s2','b1',NULL,'Free', now())`,
+  );
   await exec('BEGIN');
 });
 
@@ -58,7 +66,9 @@ afterAll(async () => {
 
 describe('staff login migration on a populated database', () => {
   it('fails loudly when a duplicate StaffMember(businessId, userId) exists', async () => {
-    await exec(`INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('dup','b1','u1','Dup', now())`);
+    await exec(
+      `INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('dup','b1','u1','Dup', now())`,
+    );
     const msg = await rejects(sql(MIGRATION));
     expect(msg).toMatch(/duplicate StaffMember/);
     await exec(`DELETE FROM "StaffMember" WHERE id = 'dup'`);
@@ -73,19 +83,41 @@ describe('staff login migration on a populated database', () => {
   });
 
   it('allows a phone-only user, many NULL phones, but not a user with no identity', async () => {
-    await exec(`INSERT INTO "User" (id, phone, name, "updatedAt") VALUES ('p1','+96170000001','Barber', now())`);
-    await exec(`INSERT INTO "User" (id, email, name, "updatedAt") VALUES ('e2','two@mig.test','Two', now())`);
-    expect(await rejects(`INSERT INTO "User" (id, name, "updatedAt") VALUES ('none','No identity', now())`)).toMatch(/user_has_identity/);
-    expect(await rejects(`INSERT INTO "User" (id, phone, name, "updatedAt") VALUES ('p2','+96170000001','Dupe', now())`)).toMatch(/User_phone_key/);
+    await exec(
+      `INSERT INTO "User" (id, phone, name, "updatedAt") VALUES ('p1','+96170000001','Barber', now())`,
+    );
+    await exec(
+      `INSERT INTO "User" (id, email, name, "updatedAt") VALUES ('e2','two@mig.test','Two', now())`,
+    );
+    expect(
+      await rejects(
+        `INSERT INTO "User" (id, name, "updatedAt") VALUES ('none','No identity', now())`,
+      ),
+    ).toMatch(/user_has_identity/);
+    expect(
+      await rejects(
+        `INSERT INTO "User" (id, phone, name, "updatedAt") VALUES ('p2','+96170000001','Dupe', now())`,
+      ),
+    ).toMatch(/User_phone_key/);
   });
 
   it('keeps email unique', async () => {
-    expect(await rejects(`INSERT INTO "User" (id, email, name, "updatedAt") VALUES ('e3','two@mig.test','Dupe', now())`)).toMatch(/User_email_key/);
+    expect(
+      await rejects(
+        `INSERT INTO "User" (id, email, name, "updatedAt") VALUES ('e3','two@mig.test','Dupe', now())`,
+      ),
+    ).toMatch(/User_email_key/);
   });
 
   it('allows one StaffMember per user per business, many unlinked', async () => {
-    expect(await rejects(`INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('x','b1','u1','Again', now())`)).toMatch(/StaffMember_userId_businessId_key/);
-    await exec(`INSERT INTO "StaffMember" (id, "businessId", "displayName", "updatedAt") VALUES ('f2','b1','Free 2', now())`);
+    expect(
+      await rejects(
+        `INSERT INTO "StaffMember" (id, "businessId", "userId", "displayName", "updatedAt") VALUES ('x','b1','u1','Again', now())`,
+      ),
+    ).toMatch(/StaffMember_userId_businessId_key/);
+    await exec(
+      `INSERT INTO "StaffMember" (id, "businessId", "displayName", "updatedAt") VALUES ('f2','b1','Free 2', now())`,
+    );
   });
 
   it('allows one OPEN activation link per staff member, any number of used ones', async () => {
@@ -100,6 +132,8 @@ describe('staff login migration on a populated database', () => {
 
   it('accepts the new role value', async () => {
     await exec('COMMIT');
-    await exec(`INSERT INTO "Membership" (id, "businessId", "userId", role) VALUES ('m2','b1','p1','PRACTITIONER')`);
+    await exec(
+      `INSERT INTO "Membership" (id, "businessId", "userId", role) VALUES ('m2','b1','p1','PRACTITIONER')`,
+    );
   });
 });

@@ -52,13 +52,21 @@ export function StaffLoginSection({
 
   const name = isolate(member.displayName);
   const date = (iso: string) =>
-    format.dateTime(new Date(iso), { dateStyle: 'medium', timeStyle: 'short', numberingSystem: 'latn' });
+    format.dateTime(new Date(iso), {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      numberingSystem: 'latn',
+    });
 
   const fail = (error: unknown) => {
-    if (error instanceof ApiError && error.code === 'PHONE_IN_USE') setPhoneError(t('errors.phoneInUse'));
-    else if (error instanceof ApiError && error.code === 'LOGIN_NOT_ALLOWED') setBanner(t('errors.notAllowed'));
-    else if (error instanceof ApiError && error.code === 'STAFF_INACTIVE') setBanner(t('errors.inactive'));
-    else if (error instanceof ApiError && error.status === 400) setPhoneError(t('errors.phoneInvalid'));
+    if (error instanceof ApiError && error.code === 'PHONE_IN_USE')
+      setPhoneError(t('errors.phoneInUse'));
+    else if (error instanceof ApiError && error.code === 'LOGIN_NOT_ALLOWED')
+      setBanner(t('errors.notAllowed'));
+    else if (error instanceof ApiError && error.code === 'STAFF_INACTIVE')
+      setBanner(t('errors.inactive'));
+    else if (error instanceof ApiError && error.status === 400)
+      setPhoneError(t('errors.phoneInvalid'));
     else setBanner(errorText(error));
   };
 
@@ -195,7 +203,11 @@ export function StaffLoginSection({
         open={Boolean(link)}
         onOpenChange={(open) => (open ? undefined : setLink(undefined))}
         title={t('send.title')}
-        description={t('send.body', { name, phone: link?.phone ?? '', date: link ? date(link.expiresAt) : '' })}
+        description={t('send.body', {
+          name,
+          phone: link?.phone ?? '',
+          date: link ? date(link.expiresAt) : '',
+        })}
         closeLabel={closeLabel}
       >
         {link ? (
@@ -237,7 +249,9 @@ export function StaffLoginSection({
         open={confirm !== null}
         onOpenChange={(open) => (open ? undefined : setConfirm(null))}
         title={confirm === 'off' ? t('confirmOff.title') : t('confirmReset.title')}
-        description={confirm === 'off' ? t('confirmOff.body', { name }) : t('confirmReset.body', { name })}
+        description={
+          confirm === 'off' ? t('confirmOff.body', { name }) : t('confirmReset.body', { name })
+        }
         confirmLabel={confirm === 'off' ? t('confirmOff.confirm') : t('confirmReset.confirm')}
         cancelLabel={t('keep')}
         closeLabel={closeLabel}

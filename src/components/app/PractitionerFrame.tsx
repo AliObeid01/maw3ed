@@ -17,7 +17,13 @@ const ACCOUNT = '/app/account';
  * The only dashboard a PRACTITIONER (barber with a phone login) gets in PR-4: a header, the welcome page and the
  * account page. No business navigation and no data requests (every other route refuses this role).
  */
-export function PractitionerFrame({ session, children }: { session: AppSession; children: ReactNode }) {
+export function PractitionerFrame({
+  session,
+  children,
+}: {
+  session: AppSession;
+  children: ReactNode;
+}) {
   const t = useTranslations('app.practitioner');
   const tf = useTranslations('app.frame');
   const pathname = usePathname();
@@ -43,9 +49,7 @@ export function PractitionerFrame({ session, children }: { session: AppSession; 
       <header className="flex flex-wrap items-center gap-2 border-b border-divider bg-surface px-4 py-3">
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-base font-semibold">{session.businessName}</span>
-          <span className="truncate text-sm text-muted">
-            {subtitle}
-          </span>
+          <span className="truncate text-sm text-muted">{subtitle}</span>
         </div>
         <nav aria-label={t('nav')} className="flex items-center gap-1">
           {links}

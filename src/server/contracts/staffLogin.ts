@@ -17,7 +17,9 @@ export const StaffLoginLinkDto = registry.register(
   z.object({
     url: z
       .string()
-      .openapi({ description: 'The one-time activation link. Shown once; only its hash is stored.' }),
+      .openapi({
+        description: 'The one-time activation link. Shown once; only its hash is stored.',
+      }),
     whatsappUrl: z.string().openapi({
       description: 'wa.me link with the prefilled message; opened on the owner phone.',
     }),

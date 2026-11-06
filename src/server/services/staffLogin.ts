@@ -35,7 +35,11 @@ const defaults: Deps = {
 /** The one public answer for every unusable link. */
 const linkInvalid = () => AppError.notFound('This link is not valid or has expired.');
 const phoneInUse = () =>
-  AppError.conflict('PHONE_IN_USE', undefined, 'This phone number already belongs to another account.');
+  AppError.conflict(
+    'PHONE_IN_USE',
+    undefined,
+    'This phone number already belongs to another account.',
+  );
 
 export const staffLoginService = {
   /**
@@ -111,7 +115,11 @@ export const staffLoginService = {
   },
 
   /** OWNER only. Idempotent: no login to remove is still ok. */
-  async turnOff(ctx: SessionContext, staffId: string, deps: Deps = defaults): Promise<{ ok: true }> {
+  async turnOff(
+    ctx: SessionContext,
+    staffId: string,
+    deps: Deps = defaults,
+  ): Promise<{ ok: true }> {
     requireRole(ctx, 'OWNER');
     try {
       const removed = await staffLoginRepo.turnOff(ctx.businessId, staffId, deps.now());

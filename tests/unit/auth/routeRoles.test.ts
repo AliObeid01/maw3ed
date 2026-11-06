@@ -57,7 +57,9 @@ describe('route roles (default-deny)', () => {
   });
 
   it('no roles list names PRACTITIONER yet (PR-5 adds narrow scoped routes explicitly)', () => {
-    const bad = handlers.filter((h) => /roles:\s*\[[^\]]*PRACTITIONER/.test(h.chunk)).map((h) => h.rel);
+    const bad = handlers
+      .filter((h) => /roles:\s*\[[^\]]*PRACTITIONER/.test(h.chunk))
+      .map((h) => h.rel);
     expect(bad).toEqual([]);
   });
 });

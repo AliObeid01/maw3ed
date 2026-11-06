@@ -37,7 +37,9 @@ export const staffLoginRepo = {
         select: {
           active: true,
           userId: true,
-          user: { select: { phone: true, memberships: { where: { businessId }, select: { role: true } } } },
+          user: {
+            select: { phone: true, memberships: { where: { businessId }, select: { role: true } } },
+          },
         },
       });
       if (!staff.active) throw new StaffInactiveError();
@@ -53,7 +55,12 @@ export const staffLoginRepo = {
         phone = data.phone;
         const other = await tx.user.findUnique({
           where: { phone },
-          select: { id: true, email: true, memberships: { select: { businessId: true } }, staff: { select: { id: true, businessId: true } } },
+          select: {
+            id: true,
+            email: true,
+            memberships: { select: { businessId: true } },
+            staff: { select: { id: true, businessId: true } },
+          },
         });
         if (
           other &&
@@ -67,9 +74,16 @@ export const staffLoginRepo = {
         where: { businessId, staffMemberId: staffId, usedAt: null },
       });
       const row = await tx.activationToken.create({
-        data: { businessId, staffMemberId: staffId, phone, tokenHash: data.tokenHash, expiresAt: data.expiresAt },
+        data: {
+          businessId,
+          staffMemberId: staffId,
+          phone,
+          tokenHash: data.tokenHash,
+          expiresAt: data.expiresAt,
+        },
       });
-      if (reset && staff.userId) await tx.session.deleteMany({ where: { businessId, userId: staff.userId } });
+      if (reset && staff.userId)
+        await tx.session.deleteMany({ where: { businessId, userId: staff.userId } });
       return { id: row.id, phone, expiresAt: row.expiresAt, reset };
     }),
 
@@ -82,7 +96,9 @@ export const staffLoginRepo = {
 
   /** Public preview: is this link usable right now? Returns nothing about it. */
   isUsable: async (tokenHash: string, now: Date) =>
-    (await db.activationToken.count({ where: { tokenHash, usedAt: null, expiresAt: { gt: now } } })) === 1,
+    (await db.activationToken.count({
+      where: { tokenHash, usedAt: null, expiresAt: { gt: now } },
+    })) === 1,
 
   /**
    * Single use. The conditional UPDATE (usedAt IS NULL, not expired) decides the winner; any later failure
@@ -102,7 +118,9 @@ export const staffLoginRepo = {
         data: { usedAt: input.now },
       });
       if (claimed.count !== 1) throw new ActivationGoneError();
-      const token = await tx.activationToken.findUniqueOrThrow({ where: { tokenHash: input.tokenHash } });
+      const token = await tx.activationToken.findUniqueOrThrow({
+        where: { tokenHash: input.tokenHash },
+      });
       const { businessId } = token;
       try {
         await lockStaff(tx, businessId, token.staffMemberId);
@@ -112,14 +130,23 @@ export const staffLoginRepo = {
       }
       const staff = await tx.staffMember.findFirstOrThrow({
         where: { id: token.staffMemberId, businessId },
-        select: { active: true, userId: true, displayName: true, user: { select: { phone: true } } },
+        select: {
+          active: true,
+          userId: true,
+          displayName: true,
+          user: { select: { phone: true } },
+        },
       });
       if (!staff.active) throw new ActivationGoneError();
       if (staff.userId && staff.user?.phone !== token.phone) throw new ActivationGoneError();
 
       const existing = await tx.user.findUnique({
         where: { phone: token.phone },
-        select: { id: true, email: true, memberships: { select: { businessId: true, role: true } } },
+        select: {
+          id: true,
+          email: true,
+          memberships: { select: { businessId: true, role: true } },
+        },
       });
       let userId: string;
       if (existing) {
@@ -128,8 +155,12 @@ export const staffLoginRepo = {
         );
         if (existing.email || foreign) throw new ActivationGoneError();
         if (staff.userId && staff.userId !== existing.id) throw new ActivationGoneError();
-        if ((await lockUserPasswordHash(tx, existing.id)) === undefined) throw new ActivationGoneError();
-        await tx.user.update({ where: { id: existing.id }, data: { passwordHash: input.passwordHash } });
+        if ((await lockUserPasswordHash(tx, existing.id)) === undefined)
+          throw new ActivationGoneError();
+        await tx.user.update({
+          where: { id: existing.id },
+          data: { passwordHash: input.passwordHash },
+        });
         await tx.session.deleteMany({ where: { userId: existing.id } });
         userId = existing.id;
       } else {
@@ -147,7 +178,12 @@ export const staffLoginRepo = {
       });
       await tx.activationToken.update({ where: { id: token.id }, data: { userId } });
       await tx.session.create({
-        data: { businessId, userId, tokenHash: input.sessionTokenHash, expiresAt: input.sessionExpiresAt },
+        data: {
+          businessId,
+          userId,
+          tokenHash: input.sessionTokenHash,
+          expiresAt: input.sessionExpiresAt,
+        },
       });
       const [user, business] = await Promise.all([
         tx.user.findUniqueOrThrow({ where: { id: userId } }),
