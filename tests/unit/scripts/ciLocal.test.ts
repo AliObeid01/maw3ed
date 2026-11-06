@@ -90,3 +90,34 @@ describe('ci-local: localhost guard', () => {
     expect(() => ci.assertLocalDatabases(ci.CI_ENV)).not.toThrow();
   });
 });
+
+describe('ci-local: --skip-int (light mode for agents)', () => {
+  it('parses the flag and defaults to off', () => {
+    expect(ci.parseArgs([]).skipInt).toBe(false);
+    expect(ci.parseArgs(['--skip-int']).skipInt).toBe(true);
+    expect(ci.parseArgs(['--', '--skip-int', '--keep-going'])).toMatchObject({ skipInt: true, keepGoing: true });
+  });
+
+  it('drops the database start, the integration run and the scratch-schema drop, keeps everything else in order', () => {
+    const full = ci.buildSteps({ e2e: false }).map((s) => s.id);
+    const light = ci.buildSteps({ e2e: false, skipInt: true }).map((s) => s.id);
+    expect(light).toEqual(full.filter((id) => !['db-up', 'integration', 'db-drop'].includes(id)));
+    expect(light).toEqual(['lint', 'typecheck', 'unit', 'build', 'openapi', 'i18n', 'contrast']);
+  });
+
+  it('is still the default plan without the flag, and --e2e steps survive it', () => {
+    expect(ci.buildSteps({ e2e: false }).map((s) => s.id)).toContain('integration');
+    expect(ci.buildSteps({ e2e: true, skipInt: true }).map((s) => s.id)).toEqual(
+      expect.arrayContaining(['e2e-mobile', 'e2e-desktop']),
+    );
+  });
+
+  it('refuses to combine --skip-int with an explicit integration selection', () => {
+    expect(() => ci.parseArgs(['--skip-int', '--only', 'integration'])).toThrow(/skip-int/);
+    expect(ci.parseArgs(['--skip-int', '--only', 'lint']).only).toEqual(['lint']);
+  });
+
+  it('the help text documents it', () => {
+    expect(ci.HELP).toContain('--skip-int');
+  });
+});

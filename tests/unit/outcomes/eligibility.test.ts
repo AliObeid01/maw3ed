@@ -91,3 +91,15 @@ describe('outcomeOptions', () => {
     });
   });
 });
+
+describe('a locked late cancel', () => {
+  it('has no grace time to show: every option is final and noShowAvailableAt is null', () => {
+    const r = outcomeOptions(appt('LATE_CANCEL'), at('2026-10-29T08:03:00Z'));
+    expect(r).toMatchObject({
+      open: true,
+      current: 'LATE_CANCEL',
+      noShowAvailableAt: null,
+      options: { ATTENDED: 'locked', NO_SHOW: 'locked', LATE_CANCEL: 'current' },
+    });
+  });
+});

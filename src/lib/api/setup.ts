@@ -195,7 +195,7 @@ export const copyStaffHours = (id: string, targetStaffIds: string[]) =>
     method: 'POST',
     body: { targetStaffIds },
   }).then((r) => r.staff);
-export const listTimeOff =(id: string, signal?: AbortSignal) =>
+export const listTimeOff = (id: string, signal?: AbortSignal) =>
   request(`/api/staff/${seg(id)}/time-off`, timeOffListSchema, { signal }).then((r) => r.items);
 export const createTimeOff = (
   id: string,

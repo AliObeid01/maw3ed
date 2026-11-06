@@ -36,7 +36,7 @@ export function assertLocalDatabases(env) {
 }
 
 /** The same sequence as the `checks` job of ci.yml, plus the contrast script; `e2e` adds the CI Playwright runs. */
-export function buildSteps({ e2e }) {
+export function buildSteps({ e2e, skipInt = false }) {
   const steps = [
     { id: 'lint', title: 'Lint', cmd: 'pnpm lint' },
     { id: 'typecheck', title: 'Typecheck', cmd: 'pnpm typecheck' },
@@ -60,6 +60,11 @@ export function buildSteps({ e2e }) {
       always: true,
     },
   ];
+  if (skipInt) {
+    // Light mode: no Docker Postgres, no integration run, no scratch schema. CI stays the full verdict.
+    const dropped = new Set(['db-up', 'integration', 'db-drop']);
+    steps.splice(0, steps.length, ...steps.filter((s) => !dropped.has(s.id)));
+  }
   if (e2e) {
     steps.push(
       {
@@ -78,7 +83,7 @@ export function buildSteps({ e2e }) {
 }
 
 export function parseArgs(argv) {
-  const out = { dryRun: false, keepGoing: false, e2e: false, only: null, help: false };
+  const out = { dryRun: false, keepGoing: false, e2e: false, skipInt: false, only: null, help: false };
   const args = argv.filter((a, i) => !(a === '--' && i === 0));
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
@@ -87,6 +92,7 @@ export function parseArgs(argv) {
     else if (a === '--dry-run') out.dryRun = true;
     else if (a === '--keep-going') out.keepGoing = true;
     else if (a === '--e2e') out.e2e = true;
+    else if (a === '--skip-int') out.skipInt = true;
     else if (a === '--only') {
       const v = args[++i];
       if (!v) throw new Error('--only needs a comma-separated list of step ids.');
@@ -98,6 +104,8 @@ export function parseArgs(argv) {
     const known = new Set(buildSteps({ e2e: true }).map((s) => s.id));
     for (const id of out.only) if (!known.has(id)) throw new Error(`Unknown step: ${id}`);
     if (out.only.some((id) => id.startsWith('e2e'))) out.e2e = true;
+    if (out.skipInt && out.only.some((id) => ['integration', 'db-up', 'db-drop'].includes(id)))
+      throw new Error('--skip-int cannot be combined with --only integration (or db-up / db-drop).');
   }
   return out;
 }
@@ -119,6 +127,8 @@ openapi, i18n, contrast (extra, not in CI), db-drop. With --e2e also: e2e-mobile
 
 Options:
   --e2e            also run the Playwright projects CI uses (mobile, dashboard-mobile, then the desktop shell spec)
+  --skip-int       light mode: skip db-up, integration and db-drop (no Docker Postgres needed). For agents: the full
+                   integration suite is not run locally; run only the touched integration files by hand, CI is the verdict
   --only a,b       run only these step ids (integration adds db-up and db-drop)
   --keep-going     do not stop at the first failure
   --dry-run        print the plan and exit without running anything

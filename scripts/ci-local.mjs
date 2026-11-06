@@ -61,7 +61,7 @@ async function main() {
     return 0;
   }
   assertLocalDatabases(process.env);
-  const steps = selectSteps(buildSteps({ e2e: args.e2e }), args.only);
+  const steps = selectSteps(buildSteps({ e2e: args.e2e, skipInt: args.skipInt }), args.only);
 
   console.log('Plan:');
   steps.forEach((s, i) => console.log(`  ${i + 1}. [${s.id}] ${s.title}\n       ${s.cmd}`));
