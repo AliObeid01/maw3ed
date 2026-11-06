@@ -40,7 +40,14 @@ export const useSummary = () => useContext(SummaryContext);
  * whenever the window regains focus. A failed poll keeps the last counts (a badge must not flicker to 0 offline);
  * a 401 sends the user to sign in.
  */
-export function SummaryProvider({ children }: { children: ReactNode }) {
+export function SummaryProvider({
+  children,
+  fetcher = getSummary,
+}: {
+  children: ReactNode;
+  /** Where the counts come from: the barber (PRACTITIONER) has no access to /api/dashboard/summary. */
+  fetcher?: (signal?: AbortSignal) => Promise<DashboardSummary>;
+}) {
   const router = useRouter();
   const [summary, setSummary] = useState<DashboardSummary>();
   const inflight = useRef<AbortController | undefined>(undefined);
@@ -49,7 +56,7 @@ export function SummaryProvider({ children }: { children: ReactNode }) {
     inflight.current?.abort();
     const controller = new AbortController();
     inflight.current = controller;
-    getSummary(controller.signal)
+    fetcher(controller.signal)
       .then((next) => {
         if (!controller.signal.aborted) setSummary(next);
       })
@@ -57,7 +64,7 @@ export function SummaryProvider({ children }: { children: ReactNode }) {
         if (controller.signal.aborted) return;
         if (errorKey(error) === 'unauthorized') router.replace('/login');
       });
-  }, [router]);
+  }, [router, fetcher]);
 
   useEffect(() => {
     refresh();

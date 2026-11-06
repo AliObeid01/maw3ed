@@ -35,11 +35,40 @@ export const OutcomeResultDto = registry.register(
   }),
 );
 
+export const BarberOutcomeResultDto = registry.register(
+  'BarberOutcomeResult',
+  z.object({
+    appointment: z.object({
+      id: z.string(),
+      status: z.string(),
+      startAt: iso,
+      endAt: iso,
+      client: z.object({ name: z.string().openapi({ description: 'First name only.' }), phone: z.string() }),
+    }),
+  }),
+);
+
 export const ExcuseBody = registry.register('ExcuseBody', z.object({}).strict());
 
 export const QueueQuery = z
   .object({ limit: z.coerce.number().int().min(1).max(100).default(100) })
   .strict();
+export const BarberQueueDto = registry.register(
+  'BarberOutcomeQueue',
+  z.object({
+    count: z.number().int(),
+    items: z.array(
+      z.object({
+        id: z.string(),
+        startAt: iso,
+        endAt: iso,
+        service: z.object({ id: z.string(), name: z.string() }),
+        staff: z.object({ id: z.string(), displayName: z.string() }),
+        client: z.object({ name: z.string().openapi({ description: 'First name only.' }), phone: z.string() }),
+      }),
+    ),
+  }),
+);
 export const QueueDto = registry.register(
   'OutcomeQueue',
   z.object({
@@ -70,12 +99,15 @@ registry.registerPath({
   path: '/api/appointments/{id}/outcome',
   summary: 'Record attended / no-show / late cancel (and correct it later)',
   description:
-    'Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW is allowed from 10 minutes after the start (409 NO_SHOW_TOO_EARLY, with data.availableAt = the ISO instant it opens), so a client who is a few minutes late does not lose the slot to a walk-in; LATE_CANCEL is allowed once it started. The grace applies to every move into NO_SHOW: from BOOKED or CONFIRMED and also as a correction from a staff-recorded ATTENDED or LATE_CANCEL (otherwise a late cancel marked at +1 minute could be corrected to a no-show at once). Other corrections are never held back. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
+    'OWNER, STAFF and PRACTITIONER. A PRACTITIONER (barber login) can only mark appointments of the staff member the login is linked to: an id of another barber, of another business or an unknown id are the same 404; a barber login without an active linked staff member is 403. The rules below apply to everyone. Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW is allowed from 10 minutes after the start (409 NO_SHOW_TOO_EARLY, with data.availableAt = the ISO instant it opens), so a client who is a few minutes late does not lose the slot to a walk-in; LATE_CANCEL is allowed once it started. The grace applies to every move into NO_SHOW: from BOOKED or CONFIRMED and also as a correction from a staff-recorded ATTENDED or LATE_CANCEL (otherwise a late cancel marked at +1 minute could be corrected to a no-show at once). Other corrections are never held back. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
   tags: ['outcomes'],
   security: session,
   request: { params: OutcomeParams, body: { content: json(OutcomeBody) } },
   responses: {
-    200: { description: 'Updated', content: json(OutcomeResultDto) },
+    200: {
+      description: 'Updated (a barber login gets the barber shape: first name and phone, no counters)',
+      content: json(z.union([OutcomeResultDto, BarberOutcomeResultDto])),
+    },
     400: errorResponses[400],
     401: errorResponses[401],
     403: errorResponses[403],
@@ -105,11 +137,13 @@ registry.registerPath({
   method: 'get',
   path: '/api/outcomes/queue',
   summary: 'Past appointments still waiting for an outcome, newest first',
+  description:
+    'OWNER and STAFF: the whole business. PRACTITIONER (barber login): only the appointments of the linked staff member, in the barber shape (client first name and phone). 403 for a barber login without an active linked staff member.',
   tags: ['outcomes'],
   security: session,
   request: { query: QueueQuery },
   responses: {
-    200: { description: 'Queue', content: json(QueueDto) },
+    200: { description: 'Queue', content: json(z.union([QueueDto, BarberQueueDto])) },
     400: errorResponses[400],
     401: errorResponses[401],
     403: errorResponses[403],
@@ -414,6 +448,30 @@ export const TodayDto = registry.register(
   }),
 );
 
+/** The barber's day: own appointments only, first name and phone, one stat, no owner figures. */
+export const BarberTodayDto = registry.register(
+  'BarberDashboardToday',
+  z.object({
+    date: localDate,
+    timezone: z.string(),
+    stats: z.object({ appointments: z.number().int() }),
+    outcomesToMark: z.number().int(),
+    staff: z.array(z.object({ id: z.string(), displayName: z.string() })),
+    appointments: z.array(
+      z.object({
+        id: z.string(),
+        startAt: iso,
+        endAt: iso,
+        status: z.string(),
+        service: z.object({ id: z.string(), name: z.string(), durationMin: z.number().int() }),
+        staff: z.object({ id: z.string(), displayName: z.string() }),
+        client: z.object({ name: z.string().openapi({ description: 'First name only.' }), phone: z.string() }),
+        confirmedAt: iso.nullable(),
+      }),
+    ),
+  }),
+);
+
 registry.registerPath({
   method: 'get',
   path: '/api/dashboard/summary',
@@ -430,11 +488,13 @@ registry.registerPath({
   method: 'get',
   path: '/api/dashboard/today',
   summary: 'One local day for the dashboard: stats, staff columns and every appointment',
+  description:
+    'OWNER and STAFF: the whole business. PRACTITIONER (barber login): only the appointments of the linked staff member, their own column, the client first name and phone and one stat (appointments that day); no waitlist or reminder figures. 403 for a barber login without an active linked staff member.',
   tags: ['dashboard'],
   security: session,
   request: { query: TodayQuery },
   responses: {
-    200: { description: 'Day', content: json(TodayDto) },
+    200: { description: 'Day', content: json(z.union([TodayDto, BarberTodayDto])) },
     400: errorResponses[400],
     401: errorResponses[401],
     403: errorResponses[403],

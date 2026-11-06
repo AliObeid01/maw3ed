@@ -1,13 +1,13 @@
 import { POST as activate } from '@/app/api/activation/[token]/route';
 import { POST as giveLogin } from '@/app/api/staff/[id]/login/route';
 import { POST as createStaff } from '@/app/api/staff/route';
-import { call, type signup } from './api';
+import { call } from './api';
 
 export const FAKE_PHONE = '+96170000001';
 
 /** The owner creates a staff member, gives a login for a fake number and the barber activates it. */
 export async function activatedPractitioner(
-  owner: Awaited<ReturnType<typeof signup>>,
+  owner: { cookie: string },
   phone = FAKE_PHONE,
   name = 'Barber One',
 ) {

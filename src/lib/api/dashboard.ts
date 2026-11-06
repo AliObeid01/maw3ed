@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ApiError, request } from './auth';
+import { getOutcomeQueue } from './outcomes';
 
 // Typed client for the receptionist dashboard. Responses are validated but tolerant: unknown extra keys are
 // ignored (zod objects strip them). Errors are ApiError (see auth.ts).
@@ -21,23 +22,25 @@ export const KNOWN_STATUSES = [
 ] as const;
 export type KnownStatus = (typeof KNOWN_STATUSES)[number];
 
+// A barber's (PRACTITIONER) day has no client id, counters, no-show flag, source or reminder state: those default
+// here so the same agenda components render both shapes.
 export const todayAppointmentSchema = z.object({
   id: z.string(),
   startAt: z.string(),
   endAt: z.string(),
   status: z.string(),
-  source: z.string(),
+  source: z.string().default('PUBLIC'),
   service: z.object({ id: z.string(), name: z.string(), durationMin: z.number() }),
   staff: z.object({ id: z.string(), displayName: z.string() }),
   client: z.object({
-    id: z.string(),
+    id: z.string().default(''),
     name: z.string(),
     phone: z.string(),
-    noShows: z.number().int(),
-    repeatNoShow: z.boolean(),
+    noShows: z.number().int().default(0),
+    repeatNoShow: z.boolean().default(false),
   }),
   confirmedAt: z.string().nullable(),
-  reminders: z.object({ whatsappPending: z.boolean() }),
+  reminders: z.object({ whatsappPending: z.boolean() }).default({ whatsappPending: false }),
 });
 export type TodayAppointment = z.infer<typeof todayAppointmentSchema>;
 
@@ -46,11 +49,11 @@ export const todaySchema = z.object({
   timezone: z.string(),
   stats: z.object({
     appointments: z.number().int(),
-    confirmed: z.number().int(),
-    noReply: z.number().int(),
-    refilledFromWaitlist: z.number().int(),
+    confirmed: z.number().int().default(0),
+    noReply: z.number().int().default(0),
+    refilledFromWaitlist: z.number().int().default(0),
   }),
-  whatsappDue: z.number().int(),
+  whatsappDue: z.number().int().default(0),
   outcomesToMark: z.number().int(),
   staff: z.array(z.object({ id: z.string(), displayName: z.string() })),
   appointments: z.array(todayAppointmentSchema),
@@ -77,6 +80,13 @@ export type WaitlistActivity = z.infer<typeof waitlistActivitySchema>['items'][n
 
 export const getSummary = (signal?: AbortSignal) =>
   request('/api/dashboard/summary', summarySchema, { signal });
+
+/**
+ * The barber's nav badge. A PRACTITIONER may not call /api/dashboard/summary (owner routes stay closed), so the
+ * count comes from their own scoped queue.
+ */
+export const getBarberSummary = (signal?: AbortSignal): Promise<DashboardSummary> =>
+  getOutcomeQueue(1, signal).then((q) => ({ whatsappDue: 0, outcomesToMark: q.count }));
 
 export const getToday = (date: string, signal?: AbortSignal) =>
   request(`/api/dashboard/today?date=${encodeURIComponent(date)}`, todaySchema, { signal });

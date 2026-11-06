@@ -24,7 +24,7 @@ import { AppointmentSheet } from './AppointmentSheet';
 import { CalendarGrid } from './CalendarGrid';
 import { DoThisFirst, NeedsYou, WaitlistActivityCard } from './SideCards';
 
-function DayNav({
+export function DayNav({
   isToday,
   onShift,
   onToday,

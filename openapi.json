@@ -123,12 +123,15 @@
           "identifier": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 254
+            "maxLength": 254,
+            "description": "Primary field: an email address or a phone number (E.164 or a Lebanese national number). Send this or the legacy `email`, not both."
           },
           "email": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 254
+            "maxLength": 254,
+            "deprecated": true,
+            "description": "Legacy alias of `identifier`, kept for older clients. New clients send `identifier`."
           },
           "password": {
             "type": "string",
@@ -2194,6 +2197,100 @@
           "appointment"
         ]
       },
+      "BarberAppointment": {
+        "type": "object",
+        "properties": {
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "status": {
+                "type": "string"
+              },
+              "confirmedAt": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "date-time"
+              },
+              "client": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "First name only."
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone"
+                ]
+              },
+              "service": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "durationMin": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "durationMin"
+                ]
+              },
+              "staff": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "displayName": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "displayName"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "startAt",
+              "endAt",
+              "status",
+              "confirmedAt",
+              "client",
+              "service",
+              "staff"
+            ]
+          }
+        },
+        "required": [
+          "appointment"
+        ]
+      },
       "LinkActionBody": {
         "type": "object",
         "properties": {
@@ -2266,6 +2363,13 @@
           "invites": {
             "type": "integer"
           },
+          "emailTokens": {
+            "type": "integer"
+          },
+          "activationTokens": {
+            "type": "integer",
+            "description": "Staff activation links used or expired more than 7 days ago."
+          },
           "rateLimitBuckets": {
             "type": "integer"
           },
@@ -2276,6 +2380,8 @@
         "required": [
           "sessions",
           "invites",
+          "emailTokens",
+          "activationTokens",
           "rateLimitBuckets",
           "truncated"
         ]
@@ -2836,10 +2942,145 @@
           "appointment"
         ]
       },
+      "BarberOutcomeResult": {
+        "type": "object",
+        "properties": {
+          "appointment": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string"
+              },
+              "startAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "endAt": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "client": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "First name only."
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "phone"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "status",
+              "startAt",
+              "endAt",
+              "client"
+            ]
+          }
+        },
+        "required": [
+          "appointment"
+        ]
+      },
       "ExcuseBody": {
         "type": "object",
         "properties": {},
         "additionalProperties": false
+      },
+      "BarberOutcomeQueue": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "startAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "endAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name"
+                  ]
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "First name only."
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "phone"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "startAt",
+                "endAt",
+                "service",
+                "staff",
+                "client"
+              ]
+            }
+          }
+        },
+        "required": [
+          "count",
+          "items"
+        ]
       },
       "OutcomeQueue": {
         "type": "object",
@@ -3596,6 +3837,147 @@
           "timezone",
           "stats",
           "whatsappDue",
+          "outcomesToMark",
+          "staff",
+          "appointments"
+        ]
+      },
+      "BarberDashboardToday": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "appointments": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "appointments"
+            ]
+          },
+          "outcomesToMark": {
+            "type": "integer"
+          },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "displayName": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "displayName"
+              ]
+            }
+          },
+          "appointments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "startAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "endAt": {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "service": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "durationMin": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "durationMin"
+                  ]
+                },
+                "staff": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "displayName": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "displayName"
+                  ]
+                },
+                "client": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "description": "First name only."
+                    },
+                    "phone": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "phone"
+                  ]
+                },
+                "confirmedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                }
+              },
+              "required": [
+                "id",
+                "startAt",
+                "endAt",
+                "status",
+                "service",
+                "staff",
+                "client",
+                "confirmedAt"
+              ]
+            }
+          }
+        },
+        "required": [
+          "date",
+          "timezone",
+          "stats",
           "outcomesToMark",
           "staff",
           "appointments"
@@ -4491,7 +4873,7 @@
     "/api/auth/login": {
       "post": {
         "summary": "Sign in with email or phone number and password",
-        "description": "`identifier` is an email address or a phone number (E.164 or a Lebanese national number); the older `email` field is accepted as an alias. Wrong identifier, unknown phone and wrong password are the same 401. A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.",
+        "description": "`identifier` is the primary field: an email address or a phone number (E.164 or a Lebanese national number). The older `email` field is a legacy alias (deprecated) and is still accepted; send one of the two, never both. Wrong identifier, unknown phone and wrong password are the same 401. A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.",
         "tags": [
           "auth"
         ],
@@ -7248,6 +7630,7 @@
     "/api/appointments/{id}": {
       "get": {
         "summary": "One appointment",
+        "description": "OWNER and STAFF: any appointment of the business. PRACTITIONER (barber login): only an appointment of the staff member the login is linked to, in the barber shape (client first name and phone, service, time, status, confirmation; no e-mail, contact override, reminder details, counters or history). An id of another barber, of another business or unknown are the same 404; a barber login without an active linked staff member is 403.",
         "tags": [
           "appointments"
         ],
@@ -7273,7 +7656,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AppointmentDetail"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AppointmentDetail"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BarberAppointment"
+                    }
+                  ]
                 }
               }
             }
@@ -7970,7 +8360,7 @@
     "/api/appointments/{id}/outcome": {
       "patch": {
         "summary": "Record attended / no-show / late cancel (and correct it later)",
-        "description": "Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW is allowed from 10 minutes after the start (409 NO_SHOW_TOO_EARLY, with data.availableAt = the ISO instant it opens), so a client who is a few minutes late does not lose the slot to a walk-in; LATE_CANCEL is allowed once it started. The grace applies to every move into NO_SHOW: from BOOKED or CONFIRMED and also as a correction from a staff-recorded ATTENDED or LATE_CANCEL (otherwise a late cancel marked at +1 minute could be corrected to a no-show at once). Other corrections are never held back. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).",
+        "description": "OWNER, STAFF and PRACTITIONER. A PRACTITIONER (barber login) can only mark appointments of the staff member the login is linked to: an id of another barber, of another business or an unknown id are the same 404; a barber login without an active linked staff member is 403. The rules below apply to everyone. Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW is allowed from 10 minutes after the start (409 NO_SHOW_TOO_EARLY, with data.availableAt = the ISO instant it opens), so a client who is a few minutes late does not lose the slot to a walk-in; LATE_CANCEL is allowed once it started. The grace applies to every move into NO_SHOW: from BOOKED or CONFIRMED and also as a correction from a staff-recorded ATTENDED or LATE_CANCEL (otherwise a late cancel marked at +1 minute could be corrected to a no-show at once). Other corrections are never held back. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).",
         "tags": [
           "outcomes"
         ],
@@ -8001,11 +8391,18 @@
         },
         "responses": {
           "200": {
-            "description": "Updated",
+            "description": "Updated (a barber login gets the barber shape: first name and phone, no counters)",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutcomeResult"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OutcomeResult"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BarberOutcomeResult"
+                    }
+                  ]
                 }
               }
             }
@@ -8162,6 +8559,7 @@
     "/api/outcomes/queue": {
       "get": {
         "summary": "Past appointments still waiting for an outcome, newest first",
+        "description": "OWNER and STAFF: the whole business. PRACTITIONER (barber login): only the appointments of the linked staff member, in the barber shape (client first name and phone). 403 for a barber login without an active linked staff member.",
         "tags": [
           "outcomes"
         ],
@@ -8189,7 +8587,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OutcomeQueue"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/OutcomeQueue"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BarberOutcomeQueue"
+                    }
+                  ]
                 }
               }
             }
@@ -8769,6 +9174,7 @@
     "/api/dashboard/today": {
       "get": {
         "summary": "One local day for the dashboard: stats, staff columns and every appointment",
+        "description": "OWNER and STAFF: the whole business. PRACTITIONER (barber login): only the appointments of the linked staff member, their own column, the client first name and phone and one stat (appointments that day); no waitlist or reminder figures. 403 for a barber login without an active linked staff member.",
         "tags": [
           "dashboard"
         ],
@@ -8794,7 +9200,14 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DashboardToday"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/DashboardToday"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BarberDashboardToday"
+                    }
+                  ]
                 }
               }
             }

@@ -42,6 +42,15 @@ async function openTeam(page: Page) {
 }
 
 test.describe('Staff > Team access', () => {
+  test('says where barber logins are managed, with a link to Staff', async ({ page }) => {
+    await mockSetupApi(page, { state: state() });
+    await page.goto('/app/staff');
+    const section = page.getByRole('region', { name: 'Team access' });
+    await expect(section).toContainText('Barber logins are managed under Staff.');
+    const link = section.getByRole('link', { name: 'Staff' });
+    await expect(link).toHaveAttribute('href', '/app/staff');
+  });
+
   test('lists people with role and verified marker; the own row has no remove action', async ({
     page,
   }) => {

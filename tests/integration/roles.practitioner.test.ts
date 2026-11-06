@@ -16,12 +16,17 @@ import { signup } from './helpers/api';
 const modules = import.meta.glob('../../src/app/api/**/route.ts');
 const API = path.resolve(import.meta.dirname, '../../src/app/api');
 
+/** Self-service routes (own account) and, since PR-5, the four scoped schedule routes. Nothing else. */
 const ALLOWED = new Set([
-  'auth/change-password',
-  'auth/logout',
-  'auth/resend-verification',
-  'auth/sign-out-others',
-  'me',
+  'POST auth/change-password',
+  'POST auth/logout',
+  'POST auth/resend-verification',
+  'POST auth/sign-out-others',
+  'GET me',
+  'GET appointments/[id]',
+  'PATCH appointments/[id]/outcome',
+  'GET dashboard/today',
+  'GET outcomes/queue',
 ]);
 
 let pg: Client;
@@ -40,7 +45,7 @@ beforeEach(async () => {
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
 
 describe('PRACTITIONER route matrix', () => {
-  it('is 403 on every session route except the self-service allow-list, which still works', async () => {
+  it('is 403 on every session route except the self-service and scoped allow-list, which still work', async () => {
     const owner = await signup();
     const barber = await activatedPractitioner(owner);
     const userId = barber.userId as string;
@@ -100,15 +105,15 @@ describe('PRACTITIONER route matrix', () => {
 
     const session = results.filter((r) => r.mode === 'session');
     expect(session.length).toBeGreaterThan(40);
-    const leaked = session.filter((r) => !ALLOWED.has(r.route) && r.status !== 403);
+    const leaked = session.filter((r) => !ALLOWED.has(`${r.method} ${r.route}`) && r.status !== 403);
     expect(leaked).toEqual([]);
-    const allowed = session.filter((r) => ALLOWED.has(r.route));
-    expect(allowed.map((r) => r.route).sort()).toEqual([...ALLOWED].sort());
+    const allowed = session.filter((r) => ALLOWED.has(`${r.method} ${r.route}`));
+    expect(allowed.map((r) => `${r.method} ${r.route}`).sort()).toEqual([...ALLOWED].sort());
     for (const r of allowed) expect(r.status, `${r.method} ${r.route}`).not.toBe(403);
     // Unknown modes would mean the scan missed a handler.
     expect(results.filter((r) => r.mode === '?')).toEqual([]);
     console.log(
-      `route matrix: ${session.length} session handlers checked, ${session.length - allowed.length} refused with 403, ${allowed.length} self-service allowed`,
+      `route matrix: ${session.length} session handlers checked, ${session.length - allowed.length} refused with 403, ${allowed.length} allowed (self-service + scoped)`,
     );
   });
 });

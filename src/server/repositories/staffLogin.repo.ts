@@ -21,6 +21,22 @@ export interface IssuedLink {
 
 export const staffLoginRepo = {
   /**
+   * Maintenance (all tenants, cron only): delete up to `limit` links that were used, or expired unused, before
+   * `cutoff`. A link carries the person's E.164 phone, so it must not be kept for ever; the login itself lives in
+   * User / Membership, and the 7 days leave time to see what happened to a link that did not work.
+   */
+  async deleteStale(cutoff: Date, limit: number): Promise<number> {
+    const rows = await db.activationToken.findMany({
+      where: { OR: [{ usedAt: { lt: cutoff } }, { usedAt: null, expiresAt: { lt: cutoff } }] },
+      select: { id: true },
+      take: limit,
+    });
+    if (!rows.length) return 0;
+    const { count } = await db.activationToken.deleteMany({ where: { id: { in: rows.map((r) => r.id) } } });
+    return count;
+  },
+
+  /**
    * Replace the open link of one staff member (at most one open link: unique partial index) in one
    * transaction. When a practitioner login already exists the link belongs to THAT phone (the phone is not
    * changed here) and their sessions are revoked at once.
@@ -101,8 +117,8 @@ export const staffLoginRepo = {
     })) === 1,
 
   /**
-   * Single use. The conditional UPDATE (usedAt IS NULL, not expired) decides the winner; any later failure
-   * rolls the claim back. Creates or re-uses the phone User, sets the password, grants the PRACTITIONER
+   * Single use. The staff row is locked first (see the lock order below), then the conditional UPDATE (usedAt IS
+   * NULL, not expired) decides the winner; any later failure rolls the claim back. Creates or re-uses the phone User, sets the password, grants the PRACTITIONER
    * membership, links the StaffMember and inserts the session.
    */
   activate: (input: {
@@ -113,14 +129,11 @@ export const staffLoginRepo = {
     sessionExpiresAt: Date;
   }) =>
     db.$transaction(async (tx) => {
-      const claimed = await tx.activationToken.updateMany({
-        where: { tokenHash: input.tokenHash, usedAt: null, expiresAt: { gt: input.now } },
-        data: { usedAt: input.now },
-      });
-      if (claimed.count !== 1) throw new ActivationGoneError();
-      const token = await tx.activationToken.findUniqueOrThrow({
-        where: { tokenHash: input.tokenHash },
-      });
+      // LOCK ORDER: staff row first, token rows second, the same as issueLink and turnOff. So the token is read
+      // WITHOUT a lock, the staff row is locked, and only then is the token claimed (otherwise this transaction
+      // would hold a token row while waiting for a staff row that another transaction holds: a deadlock).
+      const token = await tx.activationToken.findUnique({ where: { tokenHash: input.tokenHash } });
+      if (!token || token.usedAt || token.expiresAt <= input.now) throw new ActivationGoneError();
       const { businessId } = token;
       try {
         await lockStaff(tx, businessId, token.staffMemberId);
@@ -128,6 +141,12 @@ export const staffLoginRepo = {
         if (e instanceof StaffNotFoundError) throw new ActivationGoneError();
         throw e;
       }
+      // The conditional UPDATE decides the winner; the link may have been replaced or removed while we waited.
+      const claimed = await tx.activationToken.updateMany({
+        where: { id: token.id, usedAt: null, expiresAt: { gt: input.now } },
+        data: { usedAt: input.now },
+      });
+      if (claimed.count !== 1) throw new ActivationGoneError();
       const staff = await tx.staffMember.findFirstOrThrow({
         where: { id: token.staffMemberId, businessId },
         select: {

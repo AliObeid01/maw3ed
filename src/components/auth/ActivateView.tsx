@@ -62,7 +62,7 @@ export function ActivateView({ token }: { token: string }) {
     setPending(true);
     try {
       await activateAccount(token, password);
-      router.replace('/app/welcome');
+      router.replace('/app/today');
     } catch (error) {
       guard.current.release();
       setPending(false);

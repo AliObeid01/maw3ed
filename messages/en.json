@@ -123,7 +123,8 @@
       "reminders": "Reminders",
       "outcomes": "Outcomes",
       "clients": "Clients",
-      "more": "More"
+      "more": "More",
+      "account": "Account"
     },
     "more": {
       "title": "More",
@@ -1031,10 +1032,17 @@
     },
     "practitioner": {
       "nav": "Your pages",
-      "welcomeLink": "Home",
       "accountLink": "Account",
-      "welcomeTitle": "Welcome, {name}",
-      "welcomeBody": "Your schedule is coming soon. For now you can change your password and sign out here."
+      "todayLink": "Your schedule",
+      "forbiddenTitle": "This page is not available",
+      "forbiddenBody": "Go back to your schedule.",
+      "noScheduleTitle": "Your schedule is not set up yet",
+      "noScheduleBody": "Your login is not linked to a team member right now. Ask the owner to give you access again.",
+      "empty": {
+        "titleToday": "No appointments today",
+        "title": "No appointments this day",
+        "body": "When a client books with you, it shows up here."
+      }
     }
   },
   "team": {
@@ -1077,7 +1085,8 @@
       "self": "You cannot remove your own access."
     },
     "remainingNote": "{name} is hidden from your booking page. {count, plural, one {# upcoming appointment remains} other {# upcoming appointments remain}} on their calendar: move or cancel them from Today, or make them bookable again in the staff list above.",
-    "purpose": "Invite someone to run the calendar. They join as Staff."
+    "purpose": "Invite someone to run the calendar. They join as Staff.",
+    "barberHint": "Barber logins are managed under <link>Staff</link>."
   },
   "auth": {
     "tabs": {
@@ -1176,7 +1185,8 @@
       "invalidField": "This doesn't look right.",
       "alreadyMember": "You are already a member of this business.",
       "inviteWrongPassword": "Incorrect password. If you already have a Maw3ed account, enter that account's password.",
-      "identifier": "Enter an email address or a phone number."
+      "identifier": "Enter an email address or a phone number.",
+      "identifierRequired": "Enter your email address or phone number."
     }
   },
   "email": {

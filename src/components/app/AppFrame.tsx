@@ -7,11 +7,12 @@ import { useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { ToastProvider } from '@/components/ui/Toast';
+import { getBarberSummary, getSummary } from '@/lib/api/dashboard';
+import { PRACTITIONER_HOME } from '@/lib/auth/practitionerPaths';
 import { greetingFor } from '@/lib/dashboard/agenda';
 import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
-import { PractitionerFrame } from './PractitionerFrame';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
@@ -70,14 +71,19 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   const { viewedDay, now } = useViewedDay();
   // The header follows the day the agenda shows; the greeting is only for the real today (business timezone).
   const header = headerDayFor(viewedDay, session.timezone, now);
-  const badges = { reminders: summary?.whatsappDue ?? 0, outcomes: summary?.outcomesToMark ?? 0 };
+  // The barber shell (PRACTITIONER): their own three destinations, only the outcomes badge, no business navigation.
+  const practitioner = session.role === 'PRACTITIONER';
+  const badges = {
+    reminders: practitioner ? 0 : (summary?.whatsappDue ?? 0),
+    outcomes: summary?.outcomesToMark ?? 0,
+  };
   // Detail pages keep their parent's nav item but carry their own title (board 4.5, 4.7).
   const isAppointment = pathname.startsWith('/app/appointments/');
   const isClient = pathname.startsWith('/app/clients/');
   const isToday = activeId === 'today' && !isAppointment;
   const announcement = summary
     ? [
-        tn('badge.reminders', { count: badges.reminders }),
+        ...(practitioner ? [] : [tn('badge.reminders', { count: badges.reminders })]),
         tn('badge.outcomes', { count: badges.outcomes }),
       ].join('. ')
     : '';
@@ -93,6 +99,8 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       }}
       activeId={activeId}
       badges={badges}
+      hrefs={practitioner ? { today: PRACTITIONER_HOME } : undefined}
+      practitioner={practitioner}
       eyebrow={
         isToday
           ? format.dateTime(header.instant, {
@@ -141,19 +149,12 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
 
 /** Client frame for the protected dashboard: shell, toasts and the session context. */
 export function AppFrame({ session, children }: { session: AppSession; children: ReactNode }) {
-  // A barber with a phone login gets the minimal frame: no navigation, no summary requests (default-deny).
-  if (session.role === 'PRACTITIONER')
-    return (
-      <SessionProvider value={session}>
-        <ToastProvider>
-          <PractitionerFrame session={session}>{children}</PractitionerFrame>
-        </ToastProvider>
-      </SessionProvider>
-    );
+  // A barber with a phone login gets the same shell with three destinations; their badge comes from their own queue.
+  const fetcher = session.role === 'PRACTITIONER' ? getBarberSummary : getSummary;
   return (
     <SessionProvider value={session}>
       <ToastProvider>
-        <SummaryProvider>
+        <SummaryProvider fetcher={fetcher}>
           <ViewedDayProvider timezone={session.timezone}>
             <Frame session={session}>{children}</Frame>
           </ViewedDayProvider>

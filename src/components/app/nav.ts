@@ -36,8 +36,12 @@ export type ActiveId = NavId | 'book';
 export const mainNav: NavId[] = ['today', 'reminders', 'outcomes', 'clients', 'waitlist', 'pilot'];
 export const businessNav: NavId[] = ['setup', 'services', 'staff', 'hours', 'settings', 'share'];
 /** Bottom tab bar (the fifth tab is More). */
-export type TabId = 'today' | 'reminders' | 'outcomes' | 'clients';
+export type TabId = 'today' | 'reminders' | 'outcomes' | 'clients' | 'account';
 export const tabNav: TabId[] = ['today', 'reminders', 'outcomes', 'clients'];
+/** The barber (PRACTITIONER) shell: three destinations, no More sheet, no business navigation, no New booking. */
+export const practitionerNav: TabId[] = ['today', 'outcomes', 'account'];
+/** The barber sidebar's main list (Account sits in its footer, as for everyone). */
+export const practitionerMainNav: NavId[] = ['today', 'outcomes'];
 /** Everything that lives in the More sheet. */
 export const moreNav: NavId[] = ['waitlist', 'pilot', 'account', ...businessNav];
 

@@ -15,7 +15,7 @@ const session = {
 };
 
 test.describe('activation page', () => {
-  test('360 px: choose a password, weak one is refused inline, then signed in and sent to the welcome page', async ({
+  test('360 px: choose a password, weak one is refused inline, then signed in and sent to their schedule', async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 740 });
@@ -43,7 +43,7 @@ test.describe('activation page', () => {
 
     await password.fill('a brand new password');
     await page.locator('button[type=submit]').click();
-    await page.waitForURL('**/app/welcome');
+    await page.waitForURL('**/app/today');
     expect(posted).toEqual({ password: 'a brand new password' });
   });
 
@@ -114,6 +114,19 @@ test.describe('login form accepts email or phone', () => {
     await page.fill('input[name=password]', 'whatever password');
     await page.locator('button[type=submit]').click();
     await expect(page.getByText('Enter an email address or a phone number.')).toBeVisible();
+    expect(calls).toBe(0);
+  });
+
+  test('an empty sign-in box asks for an email or phone number before any request', async ({ page }) => {
+    let calls = 0;
+    await page.route('**/api/auth/login', (route) => {
+      calls++;
+      return json(route, 200, session);
+    });
+    await page.goto('/login');
+    await page.fill('input[name=password]', 'whatever password');
+    await page.locator('button[type=submit]').click();
+    await expect(page.getByText('Enter your email address or phone number.')).toBeVisible();
     expect(calls).toBe(0);
   });
 });

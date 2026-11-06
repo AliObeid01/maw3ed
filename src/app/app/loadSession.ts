@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 import { requireSession, type CurrentSession } from '@/server/http/session';
 
 /**
@@ -10,7 +11,8 @@ import { requireSession, type CurrentSession } from '@/server/http/session';
  * shared dev, staging or preview server, and the app refuses to render if it is set where NODE_ENV is
  * "production" or on Vercel, instead of silently ignoring it.
  */
-export async function loadSession(): Promise<CurrentSession> {
+/** `cache` shares one read between the layout and the page guard of the same request. */
+export const loadSession = cache(async function loadSession(): Promise<CurrentSession> {
   if (process.env.E2E_FAKE_SESSION) {
     if (process.env.NODE_ENV === 'production' || process.env.VERCEL) {
       throw new Error(
@@ -37,4 +39,4 @@ export async function loadSession(): Promise<CurrentSession> {
     }
   }
   return requireSession();
-}
+});

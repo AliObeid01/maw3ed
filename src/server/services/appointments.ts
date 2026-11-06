@@ -8,6 +8,8 @@ import { appointmentRepo } from '@/server/repositories/appointment.repo';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { book, defaultBookDeps, type BookDeps } from './booking';
+import { barberClient } from './barberView';
+import { resolveScope } from './scope';
 import { onSlotFreed } from './slotFreed';
 
 type Row = NonNullable<Awaited<ReturnType<typeof appointmentRepo.findById>>>;
@@ -25,6 +27,22 @@ const toItem = (a: Row) => ({
     durationMin: a.service.durationMin,
     price: Number(a.service.price.toString()),
   },
+  staff: a.staff,
+});
+
+/**
+ * The barber's view of their own appointment: time, service, status, the confirmation, and the client's first name
+ * and phone. No client id, e-mail, counters or no-show flag, no booking contact override, no reminder details, no
+ * price, no source.
+ */
+const toBarberItem = (a: Row) => ({
+  id: a.id,
+  startAt: a.startAt,
+  endAt: a.endAt,
+  status: a.status,
+  confirmedAt: a.confirmedAt,
+  client: barberClient(a.client),
+  service: { id: a.service.id, name: a.service.name, durationMin: a.service.durationMin },
   staff: a.staff,
 });
 
@@ -74,9 +92,12 @@ export const appointmentsService = {
   },
 
   async get(ctx: SessionContext, id: string) {
-    requireRole(ctx, 'OWNER', 'STAFF');
-    const row = await appointmentRepo.findById(ctx.businessId, id);
+    requireRole(ctx, 'OWNER', 'STAFF', 'PRACTITIONER');
+    const scope = await resolveScope(ctx);
+    // Outside the scope (another barber's, another business's, unknown) is the same 404.
+    const row = await appointmentRepo.findByIdInScope(ctx.businessId, scope, id);
     if (!row) throw AppError.notFound();
+    if (scope.kind === 'own') return { appointment: toBarberItem(row) };
     return { appointment: await withReminderEmail(ctx, row) };
   },
 

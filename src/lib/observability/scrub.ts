@@ -34,7 +34,7 @@ const PHONE_LINK =
 
 // Link pages whose last-but-one path segment is a bearer token (`/o/[token]/leave` keeps `/leave`).
 const TOKEN_ROUTE =
-  /(\/(?:l|o|pay|invite|verify-email|reset-password|api\/(?:links|offers|invites|pay))\/)(?![[\]])[^/\s?#"'<>)\]]+/g;
+  /(\/(?:l|o|pay|invite|verify-email|reset-password|activate|api\/(?:links|offers|invites|pay|activation))\/)(?![[\]])[^/\s?#"'<>)\]]+/g;
 
 // A path or absolute URL followed by a query string: keep the path, drop `?...`.
 const URL_WITH_QUERY = /(https?:\/\/[^\s?#"'<>]+|\/[^\s?#"'<>]*)\?[^\s#"'<>]*/g;

@@ -4,6 +4,7 @@ import {
   type CounterField,
   type OutcomeTarget,
 } from '@/server/domain/outcomes';
+import { scopeWhere, type Scope } from '@/server/domain/scope';
 import { db } from './db';
 import { reminderJobRepo } from './reminderJob.repo';
 
@@ -34,8 +35,9 @@ export type ExcuseResult =
   | { kind: 'applied'; drift: boolean; row: OutcomeRow };
 
 /** Past appointments with no outcome yet: ended, still BOOKED or CONFIRMED. */
-const queueWhere = (businessId: string, now: Date) => ({
+const queueWhere = (businessId: string, scope: Scope, now: Date) => ({
   businessId,
+  ...scopeWhere(scope),
   startAt: { lte: now },
   endAt: { lte: now },
   status: { in: ['BOOKED', 'CONFIRMED'] as ('BOOKED' | 'CONFIRMED')[] },
@@ -56,15 +58,17 @@ export const outcomeRepo = {
     userId: string,
     target: OutcomeTarget,
     now: Date,
+    scope: Scope,
   ): Promise<MarkOutcomeResult> =>
     db.$transaction(async (tx) => {
+      // A row outside the scope is "not found", exactly like another business's id.
+      const own = { id, businessId, ...scopeWhere(scope) };
       const current = await tx.appointment.findFirst({
-        where: { id, businessId },
+        where: own,
         select: { status: true, cancelledVia: true, startAt: true, endAt: true, clientId: true },
       });
       if (!current) return { kind: 'not_found' } as const;
-      const load = () =>
-        tx.appointment.findFirstOrThrow({ where: { id, businessId }, select: outcomeSelect });
+      const load = () => tx.appointment.findFirstOrThrow({ where: own, select: outcomeSelect });
 
       const plan = planOutcome({
         status: current.status,
@@ -79,7 +83,7 @@ export const outcomeRepo = {
       if (plan.kind !== 'apply') return { kind: plan.kind, row: await load() } as const;
 
       const res = await tx.appointment.updateMany({
-        where: { id, businessId, status: current.status },
+        where: { ...own, status: current.status },
         data: { status: target, outcomeMarkedById: userId, outcomeMarkedAt: now },
       });
       if (res.count !== 1) return { kind: 'raced' } as const;
@@ -140,9 +144,9 @@ export const outcomeRepo = {
       return { kind: 'applied', drift: dec.count === 0, row: await load() } as const;
     }),
 
-  listQueue: (businessId: string, now: Date, limit: number) =>
+  listQueue: (businessId: string, scope: Scope, now: Date, limit: number) =>
     db.appointment.findMany({
-      where: queueWhere(businessId, now),
+      where: queueWhere(businessId, scope, now),
       orderBy: [{ startAt: 'desc' }, { id: 'asc' }],
       take: limit,
       select: {
@@ -155,8 +159,8 @@ export const outcomeRepo = {
       },
     }),
 
-  countQueue: (businessId: string, now: Date) =>
-    db.appointment.count({ where: queueWhere(businessId, now) }),
+  countQueue: (businessId: string, scope: Scope, now: Date) =>
+    db.appointment.count({ where: queueWhere(businessId, scope, now) }),
 
   /**
    * Waitlist refills CLAIMED in [startUtc, endUtc): replacement bookings (source WAITLIST) created in the
@@ -174,9 +178,9 @@ export const outcomeRepo = {
     }),
 
   /** Every appointment of the local day (any status) with what the dashboard timeline needs. */
-  listForDay: (businessId: string, startUtc: Date, endUtc: Date, now: Date) =>
+  listForDay: (businessId: string, scope: Scope, startUtc: Date, endUtc: Date, now: Date) =>
     db.appointment.findMany({
-      where: { businessId, startAt: { gte: startUtc, lt: endUtc } },
+      where: { businessId, ...scopeWhere(scope), startAt: { gte: startUtc, lt: endUtc } },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       select: {
         id: true,
@@ -197,10 +201,14 @@ export const outcomeRepo = {
       },
     }),
 
-  /** Active, bookable staff for the day columns. */
-  listColumns: (businessId: string) =>
+  /** Active, bookable staff for the day columns (a scoped session: only its own column). */
+  listColumns: (businessId: string, scope: Scope) =>
     db.staffMember.findMany({
-      where: { businessId, active: true, bookable: true },
+      // A barber's own column shows whether or not they take public bookings.
+      where:
+        scope.kind === 'own'
+          ? { businessId, active: true, id: scope.staffId }
+          : { businessId, active: true, bookable: true },
       orderBy: [{ displayName: 'asc' }, { id: 'asc' }],
       select: { id: true, displayName: true },
     }),

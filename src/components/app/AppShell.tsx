@@ -23,6 +23,8 @@ export type AppShellProps = {
   signingOut?: boolean;
   /** Hide the Business section (setup pages are owner-only; receptionists do not see it). */
   hideBusiness?: boolean;
+  /** The barber shell: three tabs, no More sheet, no floating New booking. */
+  practitioner?: boolean;
   children: ReactNode;
 };
 
@@ -41,6 +43,7 @@ export function AppShell({
   onSignOut,
   signingOut,
   hideBusiness,
+  practitioner,
   children,
 }: AppShellProps) {
   const [moreOpen, setMoreOpen] = useState(false);
@@ -54,6 +57,7 @@ export function AppShell({
         badges={badges}
         hrefs={hrefs}
         hideBusiness={hideBusiness}
+        practitioner={practitioner}
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-divider bg-surface px-4 py-3.5 md:px-8">
@@ -66,7 +70,7 @@ export function AppShell({
         <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col gap-[18px] px-4 pt-4 pb-[calc(64px+env(safe-area-inset-bottom)+88px)] md:px-8 md:pt-6 lg:pb-8">
           {children}
           {/* Fixed-position, but kept inside the main landmark so it is not orphaned content. */}
-          <NewBookingFab href={hrefs.book} active={activeId === 'book'} />
+          {practitioner ? null : <NewBookingFab href={hrefs.book} active={activeId === 'book'} />}
         </main>
       </div>
       <AppTabBar
@@ -75,17 +79,20 @@ export function AppShell({
         hrefs={hrefs}
         moreOpen={moreOpen}
         onMore={() => setMoreOpen(true)}
+        practitioner={practitioner}
       />
-      <MoreSheet
-        open={moreOpen}
-        onOpenChange={setMoreOpen}
-        activeId={activeId}
-        badges={badges}
-        hrefs={hrefs}
-        onSignOut={onSignOut}
-        signingOut={signingOut}
-        hideBusiness={hideBusiness}
-      />
+      {practitioner ? null : (
+        <MoreSheet
+          open={moreOpen}
+          onOpenChange={setMoreOpen}
+          activeId={activeId}
+          badges={badges}
+          hrefs={hrefs}
+          onSignOut={onSignOut}
+          signingOut={signingOut}
+          hideBusiness={hideBusiness}
+        />
+      )}
     </div>
   );
 }

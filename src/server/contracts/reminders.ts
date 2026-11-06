@@ -36,6 +36,8 @@ export const CleanupSummaryDto = registry.register(
   z.object({
     sessions: z.number().int(),
     invites: z.number().int(),
+    emailTokens: z.number().int(),
+    activationTokens: z.number().int().openapi({ description: 'Staff activation links used or expired more than 7 days ago.' }),
     rateLimitBuckets: z.number().int(),
     truncated: z.boolean(),
   }),
