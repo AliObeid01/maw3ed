@@ -83,27 +83,31 @@ export const businessService = {
           'Add a service, a bookable team member and working hours before listing.',
         );
       // PR-1: a listing needs a category and an area. A business that is already listed is grandfathered,
-      // and the same request may set them. Checked before anything is written.
-      const current = await businessRepo.findById(ctx.businessId);
-      if (!current) throw AppError.notFound();
-      if (!current.listed) {
-        const missingProfile = profileMissing({
-          category: data.category !== undefined ? data.category : current.category,
-          area: data.area !== undefined ? data.area : current.area,
-        });
-        if (missingProfile.length > 0)
-          throw AppError.validation(
-            Object.fromEntries(
-              missingProfile.map((f) => [
-                f,
-                f === 'category'
-                  ? 'Choose a category before listing in the directory.'
-                  : 'Choose an area before listing in the directory.',
-              ]),
-            ),
-            'Choose a category and an area before listing in the directory.',
-          );
-      }
+      // and the same request may set them. Checked and written in ONE transaction with the business row locked
+      // (updateGuarded), so a concurrent change to category / area cannot slip in between check and write.
+      if (
+        !(await businessRepo.updateGuarded(ctx.businessId, data, (current) => {
+          if (current.listed) return;
+          const missingProfile = profileMissing({
+            category: data.category !== undefined ? data.category : current.category,
+            area: data.area !== undefined ? data.area : current.area,
+          });
+          if (missingProfile.length > 0)
+            throw AppError.validation(
+              Object.fromEntries(
+                missingProfile.map((f) => [
+                  f,
+                  f === 'category'
+                    ? 'Choose a category before listing in the directory.'
+                    : 'Choose an area before listing in the directory.',
+                ]),
+              ),
+              'Choose a category and an area before listing in the directory.',
+            );
+        }))
+      )
+        throw AppError.notFound();
+      return load(ctx);
     }
     if (Object.keys(data).length > 0 && !(await businessRepo.update(ctx.businessId, data)))
       throw AppError.notFound();

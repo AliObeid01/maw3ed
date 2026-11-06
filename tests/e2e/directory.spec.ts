@@ -102,6 +102,43 @@ async function mockFilteredDirectory(page: Page, all: Record<string, unknown>[])
 test.describe('public directory: category and area filters (PR-1)', () => {
   const all = [sidonBarber, beirutSalon, noAreaClinic];
 
+  test('an over-long or NUL-like ?category= / ?search= is cleaned before the request: no error page', async ({
+    page,
+  }) => {
+    const queries: string[] = [];
+    // Like the real API: category over 40 characters, search over 80 or a NUL answer 400.
+    await page.route('**/api/public/directory**', (route) => {
+      const url = new URL(route.request().url());
+      queries.push(url.search);
+      const bad =
+        (url.searchParams.get('category') ?? '').length > 40 ||
+        (url.searchParams.get('search') ?? '').length > 80 ||
+        url.search.includes('%00');
+      return route.fulfill({
+        status: bad ? 400 : 200,
+        contentType: 'application/json',
+        body: JSON.stringify(
+          bad
+            ? { error: { code: 'VALIDATION_FAILED', message: 'x', fields: { category: 'too long' } } }
+            : { businesses: all, nextCursor: null },
+        ),
+      });
+    });
+    for (const query of [
+      `category=${'x'.repeat(60)}`,
+      'category=%00%00',
+      'category=barb%00ers',
+      `search=${'s'.repeat(200)}`,
+      'search=%00',
+    ]) {
+      await page.goto(`/directory?${query}`);
+      await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+      await expect(page.getByRole('alert')).toHaveCount(0);
+    }
+    expect(queries.some((q) => q.includes('%00'))).toBe(false);
+    expect(queries.every((q) => !/category=x{41}/.test(q))).toBe(true);
+  });
+
   test('cards show Category · Area and the street address with translated labels', async ({ page }) => {
     await mockFilteredDirectory(page, all);
     await page.goto('/directory');

@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { getDirectory, type DirectoryBusiness } from '@/lib/api/directory';
 import { AREA_KEYS, CATEGORY_KEYS, isAreaKey } from '@/lib/business/profile';
 import { useAppFormat } from '@/lib/useAppFormat';
+import { cleanCategoryParam, cleanSearchParam } from '@/lib/directory/params';
 import { profileLine, useAreaLabel } from './areaLabel';
 import { useCategoryLabel } from './categoryLabel';
 import { monogram } from './monogram';
@@ -118,8 +119,9 @@ export function DirectoryView() {
   const pathname = usePathname();
   const params = useSearchParams();
   // The URL is the source of truth for the filters (shareable, survives reload and back); the text box is debounced.
-  const initialSearch = params.get('search')?.trim() ?? '';
-  const category = params.get('category') ?? '';
+  // Values from the URL are cleaned like `area`: what the API would refuse (too long, NUL) never reaches it.
+  const initialSearch = cleanSearchParam(params.get('search'));
+  const category = cleanCategoryParam(params.get('category'));
   const areaParam = params.get('area') ?? '';
   const area = isAreaKey(areaParam) ? areaParam : '';
   const [text, setText] = useState(initialSearch);

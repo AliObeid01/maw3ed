@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslations } from 'next-intl';
+import { ConfirmSheet } from '@/components/app/ConfirmSheet';
 import { NoShowBadge } from '@/components/app/NoShowBadge';
 import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError, useErrorMessage } from '@/components/app/states';
@@ -13,7 +14,7 @@ import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { EditContactSheet } from './EditContactSheet';
 import { OutcomeButtons } from '@/components/outcomes/OutcomeButtons';
 import { useFailureText } from '@/components/outcomes/useFailureText';
-import { Bidi, MetaLine, TimeRange, isolate } from '@/components/ui/Bidi';
+import { Bidi, MetaLine, TimeRange, isolate, ltr } from '@/components/ui/Bidi';
 import { Button, buttonClasses, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
@@ -21,7 +22,14 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { cancelAppointment } from '@/lib/api/dashboard';
-import { getAppointment, markOutcome, type AppointmentDetail, type Outcome } from '@/lib/api/outcomes';
+import {
+  excuseAppointment,
+  getAppointment,
+  markOutcome,
+  type AppointmentDetail,
+  type Outcome,
+} from '@/lib/api/outcomes';
+import { ApiError } from '@/lib/api/auth';
 import { errorKey } from '@/lib/setup/errors';
 import { useResource } from '@/lib/api/useResource';
 import { apptTone, dayRelation } from '@/lib/dashboard/agenda';
@@ -105,6 +113,38 @@ function OutcomeCard({
   const [pending, setPending] = useState<Outcome | null>(null);
   const [failure, setFailure] = useState<OutcomeFailure>();
   const busy = useRef(false);
+  const errorMessage = useErrorMessage();
+  const te = useTranslations('app.appointment.excuse');
+  const [excusing, setExcusing] = useState(false);
+  const [excusePending, setExcusePending] = useState(false);
+  const [excuseError, setExcuseError] = useState<string>();
+  const excuseBusy = useRef(false);
+
+  // Only a recorded no-show or late cancel (staff-marked or written by the cancel link) can be excused.
+  const excusable = options.current === 'NO_SHOW' || options.current === 'LATE_CANCEL';
+  const excuse = async () => {
+    if (excuseBusy.current) return;
+    excuseBusy.current = true;
+    setExcusePending(true);
+    setExcuseError(undefined);
+    try {
+      const result = await excuseAppointment(appt.id);
+      setExcusing(false);
+      toast.show(te('done', { name: clientName }));
+      onMarked(result.appointment.status);
+    } catch (error) {
+      setExcusing(false);
+      const stale = error instanceof ApiError && error.status === 409;
+      const text = stale ? te('conflict') : errorMessage(error);
+      setExcuseError(text);
+      toast.show(text, 'error');
+      if (stale) onStale();
+    } finally {
+      excuseBusy.current = false;
+      setExcusePending(false);
+      refresh();
+    }
+  };
 
   const pick = async (outcome: Outcome) => {
     if (busy.current) return;
@@ -128,6 +168,18 @@ function OutcomeCard({
   };
 
   const hintId = 'outcome-hint';
+  const graceHintId = 'noshow-grace-hint';
+  const frees = options.current === null && options.window !== 'upcoming';
+  // Plain strings, so the JSX below holds no calls with literal arguments.
+  const text = {
+    noShowFrom: options.noShowAvailableAt
+      ? to('noShowFrom', { time: ltr(f.time(options.noShowAvailableAt)) })
+      : '',
+    freesTime: to('freesTime'),
+    excuseButton: te('button'),
+    excuseNote: te('note'),
+    excuseTitle: te('title'),
+  };
   const hint =
     options.window === 'upcoming'
       ? t('upcoming', { time: f.time(appt.startAt) })
@@ -152,12 +204,52 @@ function OutcomeCard({
         pending={pending}
         onPick={pick}
         describedBy={hintId}
+        graceHintId={graceHintId}
       />
+      {options.noShowAvailableAt ? (
+        <p id={graceHintId} className="m-0 text-sm leading-normal font-medium text-warning">
+          {text.noShowFrom}
+        </p>
+      ) : null}
+      {frees ? <p className="m-0 text-[13px] leading-normal text-muted">{text.freesTime}</p> : null}
       {failure ? (
         <p role="alert" className="m-0 text-sm font-medium text-danger">
           {failureText(failure)}
         </p>
       ) : null}
+      {excusable ? (
+        <div className="flex flex-col gap-2 border-t border-line pt-3">
+          <Button
+            variant="secondary"
+            size="row"
+            className="w-full"
+            disabled={pending !== null}
+            onClick={() => setExcusing(true)}
+          >
+            {text.excuseButton}
+          </Button>
+          <p className="m-0 text-[13px] leading-normal text-muted">{text.excuseNote}</p>
+          {excuseError ? (
+            <p role="alert" className="m-0 text-sm font-medium text-danger">
+              {excuseError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+      <ConfirmSheet
+        open={excusing && excusable}
+        onOpenChange={(open) => {
+          if (!excusePending) setExcusing(open);
+        }}
+        title={text.excuseTitle}
+        description={te('body')}
+        confirmLabel={te('confirm')}
+        cancelLabel={te('keep')}
+        closeLabel={te('close')}
+        confirmVariant="primary"
+        pending={excusePending}
+        onConfirm={excuse}
+      />
     </Card>
   );
 }

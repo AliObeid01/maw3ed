@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isRepeatNoShow, REPEAT_NO_SHOW_THRESHOLD } from '@/server/domain/clientFlags';
-import { planOutcome, type PlanInput } from '@/server/domain/outcomes';
+import { NO_SHOW_GRACE_MIN, planOutcome, type PlanInput } from '@/server/domain/outcomes';
 
 const NOW = new Date('2026-11-04T12:00:00Z');
 const past = new Date('2026-11-04T08:00:00Z');
@@ -93,6 +93,76 @@ describe('planOutcome', () => {
   it('cancelled and unpaid appointments cannot get an outcome', () => {
     expect(planOutcome({ ...base, status: 'CANCELLED' })).toEqual({ kind: 'conflict' });
     expect(planOutcome({ ...base, status: 'PENDING_PAYMENT' })).toEqual({ kind: 'conflict' });
+  });
+});
+
+describe('no-show grace period', () => {
+  const start = new Date('2026-11-04T12:00:00Z');
+  const long = new Date('2026-11-04T13:00:00Z');
+  const grace = { ...base, startAt: start, endAt: long, target: 'NO_SHOW' as const };
+  const at = (iso: string) => new Date(iso);
+
+  it('is fixed at 10 minutes', () => {
+    expect(NO_SHOW_GRACE_MIN).toBe(10);
+  });
+  it('blocks NO_SHOW at start+9:59.999 and reports when it opens', () => {
+    expect(planOutcome({ ...grace, now: at('2026-11-04T12:09:59.999Z') })).toEqual({
+      kind: 'grace_period',
+      availableAt: at('2026-11-04T12:10:00.000Z'),
+    });
+    expect(planOutcome({ ...grace, now: at('2026-11-04T12:00:00.000Z') }).kind).toBe(
+      'grace_period',
+    );
+  });
+  it('allows NO_SHOW exactly at start+10:00 from BOOKED and CONFIRMED', () => {
+    for (const status of ['BOOKED', 'CONFIRMED'])
+      expect(planOutcome({ ...grace, status, now: at('2026-11-04T12:10:00.000Z') })).toEqual({
+        kind: 'apply',
+        decrement: null,
+        increment: 'noShows',
+      });
+  });
+  it('still reports not_started before the start (not the grace period)', () => {
+    expect(planOutcome({ ...grace, now: at('2026-11-04T11:59:59Z') })).toEqual({
+      kind: 'not_started',
+    });
+  });
+  it('LATE_CANCEL stays allowed from the start', () => {
+    expect(
+      planOutcome({ ...grace, target: 'LATE_CANCEL', now: at('2026-11-04T12:00:00Z') }).kind,
+    ).toBe('apply');
+  });
+  it('ATTENDED rule is unchanged (needs the end, not the grace)', () => {
+    expect(planOutcome({ ...grace, target: 'ATTENDED', now: at('2026-11-04T12:30:00Z') })).toEqual({
+      kind: 'not_ended',
+    });
+    expect(planOutcome({ ...grace, target: 'ATTENDED', now: long }).kind).toBe('apply');
+  });
+  it('a correction INTO no-show from an outcome already set is not held back', () => {
+    const early = at('2026-11-04T12:02:00Z');
+    expect(planOutcome({ ...grace, status: 'LATE_CANCEL', now: early })).toEqual({
+      kind: 'apply',
+      decrement: 'lateCancels',
+      increment: 'noShows',
+    });
+    expect(
+      planOutcome({ ...grace, status: 'ATTENDED', endAt: at('2026-11-04T12:05:00Z'), now: early }),
+    ).toEqual({ kind: 'apply', decrement: 'attended', increment: 'noShows' });
+  });
+  it('a no-show again is a no-op even inside the window', () => {
+    expect(planOutcome({ ...grace, status: 'NO_SHOW', now: at('2026-11-04T12:01:00Z') })).toEqual({
+      kind: 'noop',
+    });
+  });
+  it('a link-cancelled late cancel stays a conflict, not a grace error', () => {
+    expect(
+      planOutcome({
+        ...grace,
+        status: 'LATE_CANCEL',
+        cancelledVia: 'LINK',
+        now: at('2026-11-04T12:01:00Z'),
+      }),
+    ).toEqual({ kind: 'conflict' });
   });
 });
 

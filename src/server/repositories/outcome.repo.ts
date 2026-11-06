@@ -1,4 +1,9 @@
-import { planOutcome, type CounterField, type OutcomeTarget } from '@/server/domain/outcomes';
+import {
+  planExcuse,
+  planOutcome,
+  type CounterField,
+  type OutcomeTarget,
+} from '@/server/domain/outcomes';
 import { db } from './db';
 import { reminderJobRepo } from './reminderJob.repo';
 
@@ -19,6 +24,13 @@ export type MarkOutcomeResult =
   /** The status changed between the read and the conditional update: the caller re-evaluates. */
   | { kind: 'raced' }
   | { kind: 'not_started' | 'not_ended' | 'conflict' | 'noop'; row: OutcomeRow }
+  /** Inside the no-show grace period; `availableAt` is when NO_SHOW opens. */
+  | { kind: 'grace_period'; availableAt: Date; row: OutcomeRow }
+  | { kind: 'applied'; drift: boolean; row: OutcomeRow };
+
+export type ExcuseResult =
+  | { kind: 'not_found' }
+  | { kind: 'conflict' | 'noop'; row: OutcomeRow }
   | { kind: 'applied'; drift: boolean; row: OutcomeRow };
 
 /** Past appointments with no outcome yet: ended, still BOOKED or CONFIRMED. */
@@ -62,6 +74,8 @@ export const outcomeRepo = {
         now,
         target,
       });
+      if (plan.kind === 'grace_period')
+        return { kind: 'grace_period', availableAt: plan.availableAt, row: await load() } as const;
       if (plan.kind !== 'apply') return { kind: plan.kind, row: await load() } as const;
 
       const res = await tx.appointment.updateMany({
@@ -86,6 +100,44 @@ export const outcomeRepo = {
       // A client who called too late will not receive the reminders that were still pending.
       if (target === 'LATE_CANCEL') await reminderJobRepo.skipPending(businessId, tx, id);
       return { kind: 'applied', drift, row: await load() } as const;
+    }),
+
+  /**
+   * Excuse a NO_SHOW / LATE_CANCEL in ONE transaction. The appointment row is locked FOR UPDATE first, so two
+   * concurrent excuses (or an excuse racing a correction) queue and the loser re-reads the new status: the
+   * counter goes down once. cancelledAt / cancelledVia written by the cancel link are kept; a staff-marked
+   * outcome gets cancelledVia STAFF. outcomeMarkedById / At stay as the audit trail of the original mark.
+   */
+  excuse: (businessId: string, id: string, now: Date): Promise<ExcuseResult> =>
+    db.$transaction(async (tx) => {
+      const locked = await tx.$queryRaw<{ id: string }[]>`
+        SELECT "id" FROM "Appointment" WHERE "id" = ${id} AND "businessId" = ${businessId} FOR UPDATE`;
+      if (locked.length === 0) return { kind: 'not_found' } as const;
+      const current = await tx.appointment.findFirstOrThrow({
+        where: { id, businessId },
+        select: { status: true, cancelledAt: true, cancelledVia: true, clientId: true },
+      });
+      const load = () =>
+        tx.appointment.findFirstOrThrow({ where: { id, businessId }, select: outcomeSelect });
+      const plan = planExcuse({ status: current.status });
+      if (plan.kind !== 'apply') return { kind: plan.kind, row: await load() } as const;
+
+      const moved = await tx.appointment.updateMany({
+        where: { id, businessId, status: current.status },
+        data: {
+          status: 'CANCELLED',
+          cancelledAt: current.cancelledAt ?? now,
+          cancelledVia: current.cancelledVia ?? 'STAFF',
+        },
+      });
+      // The row is locked, so this cannot fail; the guard keeps the counter honest if that ever changes.
+      if (moved.count !== 1) return { kind: 'noop', row: await load() } as const;
+      const field: CounterField = plan.decrement;
+      const dec = await tx.client.updateMany({
+        where: { id: current.clientId, businessId, [field]: { gt: 0 } },
+        data: { [field]: { decrement: 1 } },
+      });
+      return { kind: 'applied', drift: dec.count === 0, row: await load() } as const;
     }),
 
   listQueue: (businessId: string, now: Date, limit: number) =>

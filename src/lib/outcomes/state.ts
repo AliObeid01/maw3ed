@@ -5,9 +5,16 @@ import type { Outcome, QueueItem } from '@/lib/api/outcomes';
 export type OutcomeFailure =
   | { kind: 'notEnded' }
   | { kind: 'notStarted' }
+  /** No-show inside the 10 minute grace period; `availableAt` is the ISO instant it opens (null if unknown). */
+  | { kind: 'tooEarly'; availableAt: string | null }
   | { kind: 'conflict' }
   | { kind: 'notFound' }
   | { kind: 'other'; error: unknown };
+
+function availableAtOf(data: unknown): string | null {
+  const v = (data as { availableAt?: unknown } | null | undefined)?.availableAt;
+  return typeof v === 'string' && !Number.isNaN(Date.parse(v)) ? v : null;
+}
 
 export function outcomeFailure(error: unknown): OutcomeFailure {
   if (error instanceof ApiError) {
@@ -15,6 +22,7 @@ export function outcomeFailure(error: unknown): OutcomeFailure {
     if (error.status === 409) {
       if (error.code === 'NOT_ENDED') return { kind: 'notEnded' };
       if (error.code === 'NOT_STARTED') return { kind: 'notStarted' };
+      if (error.code === 'NO_SHOW_TOO_EARLY') return { kind: 'tooEarly', availableAt: availableAtOf(error.data) };
       return { kind: 'conflict' };
     }
   }

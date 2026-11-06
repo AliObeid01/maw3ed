@@ -33,6 +33,26 @@ describe('outcomeOptions', () => {
       options: { ATTENDED: 'notEnded', NO_SHOW: 'enabled', LATE_CANCEL: 'enabled' },
     });
   });
+  it('No-show waits for the 10 minute grace period, then works; the time it opens is reported', () => {
+    const early = outcomeOptions(appt('BOOKED'), at('2026-10-29T08:09:59.999Z'));
+    expect(early).toMatchObject({
+      noShowAvailableAt: '2026-10-29T08:10:00.000Z',
+      options: { ATTENDED: 'notEnded', NO_SHOW: 'grace', LATE_CANCEL: 'enabled' },
+    });
+    const on = outcomeOptions(appt('BOOKED'), at('2026-10-29T08:10:00.000Z'));
+    expect(on).toMatchObject({ noShowAvailableAt: null, options: { NO_SHOW: 'enabled' } });
+  });
+  it('before the start No-show is notStarted, not grace', () => {
+    const r = outcomeOptions(appt('CONFIRMED'), at('2026-10-29T07:00:00Z'));
+    expect(r).toMatchObject({ options: { NO_SHOW: 'notStarted' } });
+  });
+  it('a correction INTO No-show from Attended is not held back by the grace period', () => {
+    const r = outcomeOptions(
+      { status: 'ATTENDED', startAt: START, endAt: '2026-10-29T08:05:00Z' },
+      at('2026-10-29T08:06:00Z'),
+    );
+    expect(r).toMatchObject({ noShowAvailableAt: null, options: { NO_SHOW: 'enabled' } });
+  });
   it('once ended all three work', () => {
     const r = outcomeOptions(appt('BOOKED'), at('2026-10-29T08:30:00Z'));
     expect(r).toMatchObject({

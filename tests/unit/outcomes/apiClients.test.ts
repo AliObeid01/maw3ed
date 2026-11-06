@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   deleteClient,
+  excuseAppointment,
   getAppointment,
   getClient,
   getClients,
@@ -53,6 +54,25 @@ describe('outcomes client', () => {
   it('surfaces 409 NOT_ENDED with its code', async () => {
     vi.stubGlobal('fetch', reply(409, { error: { code: 'NOT_ENDED', message: 'x' } }));
     await expect(markOutcome('a1', 'ATTENDED')).rejects.toMatchObject({ status: 409, code: 'NOT_ENDED' });
+  });
+
+  it('excuses with a POST and an empty JSON body', async () => {
+    const f = reply(200, {
+      appointment: {
+        id: 'a1',
+        status: 'CANCELLED',
+        startAt: '2026-11-04T10:00:00Z',
+        endAt: '2026-11-04T10:30:00Z',
+        client: { id: 'c1', name: 'Test Client', phone: '+96170000000', attended: 0, noShows: 0, lateCancels: 0 },
+      },
+    });
+    vi.stubGlobal('fetch', f);
+    const r = await excuseAppointment('a1');
+    expect(r.appointment.status).toBe('CANCELLED');
+    const [url, init] = f.mock.calls[0]!;
+    expect(url).toBe('/api/appointments/a1/excuse');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body)).toEqual({});
   });
 
   it('reads the queue', async () => {

@@ -56,5 +56,7 @@ Details for each step:
 | Change | absolute points and relative % |
 | Supporting | confirm rate, cancellations via link, waitlist refills (freed slots rebooked from the waitlist / freed slots offered) |
 
+A no-show can be recorded from 10 minutes after the start (a late client is not lost), and staff can **Excuse** a no-show or late cancel from the appointment page when the client had a good reason. An excused no-show becomes a normal cancellation and **leaves the no-show count of the week it happened in**, so a past week's rate can change after the fact. Re-export the CSV after an excuse.
+
 With a few dozen appointments, one no-show moves the rate by several points. Always show the raw counts next to the rate,
 and claim a **direction**, not statistical significance.

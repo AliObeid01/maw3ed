@@ -516,7 +516,10 @@
         "noticeHint": "No bookings closer than this",
         "cutoff": "Cancellation cutoff",
         "cutoffHint": "Later cancels count as late",
-        "noticeHelp": "A lower value fills more last-minute slots but leaves less time to prepare; a higher value protects it. Front-desk bookings always ignore it."
+        "noticeHelp": "A lower value fills more last-minute slots but leaves less time to prepare; a higher value protects it. Front-desk bookings always ignore it.",
+        "notSet": "Not set",
+        "categoryLegacyHint": "Pick a listed category to appear in the category filters.",
+        "listedClearedHint": "Your business is listed. Without this, it shows only under “All” in the directory filters."
       },
       "units": {
         "days": "days",
@@ -723,8 +726,12 @@
         "notEnded": "You can mark Attended once the appointment has ended.",
         "notStarted": "This appointment has not started yet.",
         "conflict": "This appointment can no longer be marked. It was cancelled or is already closed.",
-        "notFound": "We could not find this appointment. It may have been removed."
-      }
+        "notFound": "We could not find this appointment. It may have been removed.",
+        "tooEarly": "No-show is available from {time}. The client may still be on the way.",
+        "tooEarlyUnknown": "No-show is available 10 minutes after the start. The client may still be on the way."
+      },
+      "noShowFrom": "No-show is available from {time}",
+      "freesTime": "No-show and Late cancel free the time from now."
     },
     "appointment": {
       "loading": "Loading the appointment",
@@ -756,10 +763,10 @@
       "outcome": {
         "title": "Outcome",
         "upcoming": "You can mark the outcome once the appointment starts, at {time}.",
-        "inProgress": "Attended can be marked after {time}, when the appointment ends. No-show and Late cancel are available now.",
+        "inProgress": "Attended can be marked after {time}, when the appointment ends.",
         "ended": "Did {name} come? Mark it so the history stays accurate.",
         "recorded": "Recorded as {outcome}. You can change it if it was a mistake.",
-        "lateCancelFinal": "A late cancel is final. It cannot be changed to Attended or No-show."
+        "lateCancelFinal": "A late cancel cannot be changed to Attended or No-show. If it was a mistake or the client had a good reason, excuse it."
       },
       "contact": {
         "edit": "Edit contact details",
@@ -782,6 +789,17 @@
         "cancel": "Cancel",
         "saved": "Contact details updated",
         "notEditable": "This appointment can no longer be edited."
+      },
+      "excuse": {
+        "button": "Excuse",
+        "title": "Excuse this mark?",
+        "body": "This removes the mark from the client's history. The booking becomes a normal cancellation.",
+        "confirm": "Yes, excuse it",
+        "keep": "Keep the mark",
+        "close": "Close",
+        "done": "Excused. {name} no longer has this mark.",
+        "note": "For a client who had a good reason. It cannot be undone.",
+        "conflict": "This appointment can no longer be excused. Refresh the page."
       }
     },
     "clients": {
@@ -861,7 +879,7 @@
         "withMaw3ed": "With Maw3ed",
         "before": "Your book before",
         "noBaseline": "Enter your numbers from before the pilot to compare.",
-        "definition": "Rate = no-shows divided by (attended + no-shows). Cancellations and late cancels are not counted.",
+        "definition": "Rate = no-shows divided by (attended + no-shows). Cancellations and late cancels are not counted. A no-show that staff excused counts as a cancellation.",
         "unmarked": "{count, plural, one {# appointment still needs an outcome} other {# appointments still need an outcome}}"
       },
       "signals": {

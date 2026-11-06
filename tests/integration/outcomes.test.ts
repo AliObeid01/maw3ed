@@ -318,6 +318,79 @@ describe('PATCH /api/appointments/{id}/outcome: transitions and counters', () =>
   });
 });
 
+describe('PATCH /api/appointments/{id}/outcome: no-show grace period (10 minutes)', () => {
+  // NOW is 08:00Z. JUST_STARTED began 07:55Z (5 min ago); TEN_AGO began 07:50Z (exactly 10 min ago).
+  const JUST_STARTED = '2026-11-02T07:55:00.000Z';
+  const TEN_AGO = '2026-11-02T07:50:00.000Z';
+
+  it('refuses NO_SHOW inside the window with 409 NO_SHOW_TOO_EARLY and the time it opens; nothing changes', async () => {
+    const { client, appt } = await fixture({ startAt: JUST_STARTED });
+    const res = await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' });
+    expect(res.status).toBe(409);
+    expect(res.body!.error.code).toBe('NO_SHOW_TOO_EARLY');
+    expect(res.body!.error.data).toEqual({ availableAt: '2026-11-02T08:05:00.000Z' });
+    expect(res.body!.error.fields).toEqual({});
+    expect((await apptRow(appt.id)).status).toBe('BOOKED');
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 0 });
+    // the slot stays held: a walk-in cannot take it
+    const other = await seedClient(prisma, a.businessId);
+    await expect(
+      seedAppointment(prisma, {
+        businessId: a.businessId,
+        clientId: other.id,
+        staffId: aScn.staffIds[0]!,
+        serviceId: aScn.serviceId,
+        startAt: '2026-11-02T08:00:00.000Z',
+      }),
+    ).rejects.toThrow(/appointment_no_overlap/);
+  });
+
+  it('allows NO_SHOW from exactly start + 10 min, and one millisecond earlier is still refused', async () => {
+    const { client, appt } = await fixture({ startAt: TEN_AGO });
+    vi.setSystemTime(new Date('2026-11-02T07:59:59.999Z'));
+    expect((await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' })).status).toBe(409);
+    vi.setSystemTime(NOW);
+    expect((await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' })).status).toBe(200);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+  });
+
+  it('LATE_CANCEL is allowed from the start (no grace)', async () => {
+    const { client, appt } = await fixture({ startAt: JUST_STARTED });
+    expect((await mark(a.cookie, appt.id, { outcome: 'LATE_CANCEL' })).status).toBe(200);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 1 });
+  });
+
+  it('a correction from LATE_CANCEL to NO_SHOW inside the window is allowed (the mark already exists)', async () => {
+    const { client, appt } = await fixture({ startAt: JUST_STARTED });
+    await mark(a.cookie, appt.id, { outcome: 'LATE_CANCEL' });
+    expect((await mark(a.cookie, appt.id, { outcome: 'NO_SHOW' })).status).toBe(200);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+  });
+
+  it('refused attempts never touch the counters, even many concurrent ones; the later success counts once', async () => {
+    const { client, appt } = await fixture({ startAt: JUST_STARTED });
+    const early = await Promise.all([
+      mark(a.cookie, appt.id, { outcome: 'NO_SHOW' }),
+      mark(staffCookie, appt.id, { outcome: 'NO_SHOW' }),
+    ]);
+    expect(early.map((r) => r.status)).toEqual([409, 409]);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 0, lateCancels: 0 });
+    vi.setSystemTime(new Date('2026-11-02T08:06:00Z'));
+    const late = await Promise.all([
+      mark(a.cookie, appt.id, { outcome: 'NO_SHOW' }),
+      mark(staffCookie, appt.id, { outcome: 'NO_SHOW' }),
+    ]);
+    expect(late.map((r) => r.status)).toEqual([200, 200]);
+    expect(await counters(client.id)).toEqual({ attended: 0, noShows: 1, lateCancels: 0 });
+  });
+
+  it('the Mark outcome queue keeps its meaning: an appointment still in progress is not queued', async () => {
+    await fixture({ startAt: JUST_STARTED });
+    const res = await queue(a.cookie);
+    expect(res.body!.count).toBe(0);
+  });
+});
+
 describe('PATCH /api/appointments/{id}/outcome: validation, roles, tenancy', () => {
   it('400 for a bad outcome, a missing outcome and unknown fields', async () => {
     const { appt } = await fixture();
