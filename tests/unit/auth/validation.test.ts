@@ -46,6 +46,13 @@ describe('validateLogin', () => {
     });
     expect(validateLogin({ email: 'a@b.co', password: 'x' })).toEqual({});
   });
+
+  it('accepts a phone number in the same box and rejects other text', () => {
+    for (const phone of ['70 000 001', '+961 70 000 001', '00961 70 000 001', '٧٠ ٠٠٠ ٠٠١'])
+      expect(validateLogin({ email: phone, password: 'x' })).toEqual({});
+    for (const bad of ['barber', '123', 'a@b'])
+      expect(validateLogin({ email: bad, password: 'x' })).toEqual({ email: 'identifier' });
+  });
 });
 
 describe('validateAccept', () => {

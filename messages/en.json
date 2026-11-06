@@ -368,7 +368,8 @@
       "emptyBody": "Add the people clients can book. You can give them working hours next.",
       "role": {
         "owner": "Owner",
-        "login": "Has a login"
+        "login": "Has a login",
+        "barber": "Barber login"
       },
       "serviceCount": "{count, plural, =0 {No services} one {# service} other {# services}}",
       "status": {
@@ -408,6 +409,55 @@
         "copyLink": "Copy invite link",
         "copied": "Link copied",
         "copyFailed": "Could not copy. Select the link and copy it manually."
+      },
+      "login": {
+        "title": "Staff login",
+        "intro": "Give {name} their own login so they can see their own appointments. We never send a password: you send a one-time link on WhatsApp and they choose their own.",
+        "phone": "Login phone number",
+        "phonePlaceholder": "70 000 001",
+        "phoneHint": "This is what they sign in with. Lebanese numbers work without +961.",
+        "give": "Give this person a login",
+        "status": {
+          "notActivated": "Not activated",
+          "active": "Active",
+          "off": "Off"
+        },
+        "activeBody": "Signs in with",
+        "pendingBody": "The link works once and expires {date}.",
+        "offBody": "Login is off. Appointments are kept.",
+        "linkHidden": "For safety the link is only shown when it is made. Send a new link if it was not sent.",
+        "newLink": "Send a new link",
+        "reset": "Reset access",
+        "turnOff": "Turn off login",
+        "keep": "Keep it",
+        "turnedOff": "Login turned off for {name}",
+        "send": {
+          "title": "Send the link",
+          "body": "Open WhatsApp and send the message to {phone}. The link works once and expires {date}.",
+          "whatsapp": "Send via WhatsApp",
+          "copy": "Copy link",
+          "copied": "Link copied",
+          "copyFailed": "Could not copy. Try again.",
+          "once": "The earlier link no longer works. Nothing else is sent: no password.",
+          "resetNote": "{name} was signed out. They choose a new password with this link."
+        },
+        "confirmReset": {
+          "title": "Reset access?",
+          "body": "{name} is signed out now and gets a new one-time link to choose a new password.",
+          "confirm": "Reset and make a link"
+        },
+        "confirmOff": {
+          "title": "Turn off this login?",
+          "body": "{name} is signed out and cannot sign in. The person and their appointments stay.",
+          "confirm": "Turn off login"
+        },
+        "errors": {
+          "phoneRequired": "Enter their phone number.",
+          "phoneInvalid": "Enter a valid phone number.",
+          "phoneInUse": "This phone number already belongs to another account.",
+          "notAllowed": "This person signs in with their own account.",
+          "inactive": "Reactivate this person first."
+        }
       }
     },
     "hours": {
@@ -1059,8 +1109,8 @@
     "login": {
       "title": "Welcome back",
       "subtitle": "Sign in to your business.",
-      "email": "Email",
-      "emailPlaceholder": "you@example.com",
+      "email": "Email or phone",
+      "emailPlaceholder": "you@example.com or 70 000 001",
       "password": "Password",
       "passwordPlaceholder": "Your password",
       "submit": "Sign in"
@@ -1116,7 +1166,7 @@
       "slugFormat": "Use {slugMin} to {slugMax} letters, numbers or hyphens.",
       "slugTaken": "That link is already taken.",
       "emailTaken": "An account with this email already exists.",
-      "invalidCredentials": "That email or password is not right. Please try again.",
+      "invalidCredentials": "That email, phone or password is not right. Please try again.",
       "tooManyAttempts": "Too many attempts. Wait a few minutes and try again.",
       "network": "We can't reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again.",
@@ -1125,7 +1175,8 @@
       "passwordLong": "Use at most {max} characters.",
       "invalidField": "This doesn't look right.",
       "alreadyMember": "You are already a member of this business.",
-      "inviteWrongPassword": "Incorrect password. If you already have a Maw3ed account, enter that account's password."
+      "inviteWrongPassword": "Incorrect password. If you already have a Maw3ed account, enter that account's password.",
+      "identifier": "Enter an email address or a phone number."
     }
   },
   "email": {
@@ -1959,6 +2010,25 @@
         "network": "We can't reach the server. Check your connection and try again.",
         "generic": "Something went wrong. Please try again."
       }
+    }
+  },
+  "activation": {
+    "title": "Choose your password",
+    "subtitle": "You will sign in with your phone number and this password. Use at least {min} characters.",
+    "password": "Password",
+    "passwordPlaceholder": "{min}+ characters",
+    "submit": "Save and sign in",
+    "checking": "Checking your link...",
+    "invalidTitle": "This link is not valid or has expired",
+    "invalidBody": "Ask the person who manages your schedule to send you a new link.",
+    "invalidAction": "Go to sign in",
+    "errors": {
+      "required": "Choose a password.",
+      "short": "Use at least {min} characters.",
+      "long": "Use at most {max} characters.",
+      "rateLimited": "Too many attempts. Wait a few minutes and try again.",
+      "network": "We can't reach the server. Check your connection and try again.",
+      "generic": "Something went wrong. Please try again."
     }
   }
 }

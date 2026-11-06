@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any -- response bodies are untyped JSON */
 import { POST as activate } from '@/app/api/activation/[token]/route';
 import { POST as giveLogin } from '@/app/api/staff/[id]/login/route';
 import { POST as createStaff } from '@/app/api/staff/route';

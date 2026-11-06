@@ -3,7 +3,7 @@ import { isReservedSlug, isValidSlugFormat } from './slug';
 
 /** Message keys under `auth.errors`; the form turns them into translated text. */
 export type FieldErrorKey =
-  'required' | 'email' | 'passwordShort' | 'passwordLong' | 'slugFormat' | 'slugReserved';
+  'required' | 'email' | 'identifier' | 'passwordShort' | 'passwordLong' | 'slugFormat' | 'slugReserved';
 export type FieldErrors<F extends string> = Partial<Record<F, FieldErrorKey>>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -43,13 +43,20 @@ export function validateSignup(v: SignupValues): FieldErrors<SignupField> {
   return e;
 }
 
+/** The sign-in box takes an email address or a phone number (the server decides which). */
+const PHONE_RE = /^\+?[\d\s().٠-٩۰-۹-]{6,}$/;
+export const isLoginIdentifier = (value: string) => {
+  const v = value.trim();
+  return v.includes('@') ? isEmail(v) : PHONE_RE.test(v);
+};
+
 export type LoginValues = { email: string; password: string };
 export type LoginField = keyof LoginValues;
 
 export function validateLogin(v: LoginValues): FieldErrors<LoginField> {
   const e: FieldErrors<LoginField> = {};
   if (!v.email.trim()) e.email = 'required';
-  else if (!isEmail(v.email)) e.email = 'email';
+  else if (!isLoginIdentifier(v.email)) e.email = 'identifier';
   if (!v.password) e.password = 'required';
   else if (tooLong(v.password)) e.password = 'passwordLong';
   return e;

@@ -50,7 +50,7 @@ export function LoginForm() {
     setPending(true);
     setErrors({});
     try {
-      await login({ email: email.trim(), password });
+      await login({ identifier: email.trim(), password });
       router.replace('/app');
     } catch (error) {
       const result = classifyAuthError(error, FIELDS);
@@ -69,7 +69,7 @@ export function LoginForm() {
       <Input
         label={t('email')}
         name="email"
-        type="email"
+        type="text"
         dir="ltr"
         inputMode="email"
         value={email}

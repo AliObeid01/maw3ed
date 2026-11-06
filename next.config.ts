@@ -54,6 +54,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // The activation link carries a one-time bearer token: no Referer, never cached.
+        source: '/activate/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
         source: '/reset-password/:path*',
         headers: [
           { key: 'Referrer-Policy', value: 'no-referrer' },

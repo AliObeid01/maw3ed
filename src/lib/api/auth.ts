@@ -139,7 +139,8 @@ export type SignupBody = {
 export const signup = (body: SignupBody) =>
   request('/api/auth/signup', sessionSchema, { method: 'POST', body });
 
-export const login = (body: { email: string; password: string }) =>
+/** `identifier` is an email address or a phone number. */
+export const login = (body: { identifier: string; password: string }) =>
   request('/api/auth/login', sessionSchema, { method: 'POST', body });
 
 export const checkSlug = (slug: string, signal?: AbortSignal) =>
@@ -152,6 +153,15 @@ export const acceptInvite = (token: string, body: { name: string; password: stri
   request(`/api/invites/${encodeURIComponent(token)}/accept`, sessionSchema, {
     method: 'POST',
     body,
+  });
+
+export const checkActivation = (token: string, signal?: AbortSignal) =>
+  request(`/api/activation/${encodeURIComponent(token)}`, z.object({ ok: z.literal(true) }), { signal });
+
+export const activateAccount = (token: string, password: string) =>
+  request(`/api/activation/${encodeURIComponent(token)}`, sessionSchema, {
+    method: 'POST',
+    body: { password },
   });
 
 export const verifyEmail = (token: string) =>
