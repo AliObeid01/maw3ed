@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { MAX_INTERVALS_TOTAL } from '../domain/hours';
 import { isCents } from '../domain/money';
 import { ErrorResponse, errorResponses, registry } from './registry';
+import { ADDRESS_MAX, AREA_KEYS, CATEGORY_KEYS } from '../../lib/business/profile';
 import { isValidTimezone } from './slug';
 
 /* ---------- shared pieces ---------- */
@@ -15,11 +16,14 @@ export const StaffParams = IdParams;
 export const TimeOffParams = z.object({ id, timeOffId: id }).strict();
 
 /* ---------- business ---------- */
+/** Postgres text cannot hold NUL. */
+const noNul = (v: string) => !v.includes(String.fromCharCode(0));
 const nullableText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .refine(noNul, 'Remove the NUL character.')
     .nullable()
     .transform((v) => (v === '' ? null : v));
 
@@ -43,8 +47,12 @@ export const UpdateBusinessBody = registry.register(
       bookingWindowDays: z.number().int().min(1).max(365),
       minNoticeMin: z.number().int().min(0).max(10080),
       cancelCutoffMin: z.number().int().min(0).max(10080),
-      category: nullableText(40),
-      address: nullableText(120),
+      category: z.enum(CATEGORY_KEYS).nullable().openapi({
+        description:
+          'Business category key. New writes must use a listed key; legacy free text already stored is still returned unchanged.',
+      }),
+      area: z.enum(AREA_KEYS).nullable().openapi({ description: 'Area key (Sidon, Beirut, ...). null clears it.' }),
+      address: nullableText(ADDRESS_MAX),
       depositEnabled: z.boolean().openapi({
         description: 'Ask clients with past no-shows for a deposit to confirm a public booking (owner).',
       }),
@@ -59,7 +67,7 @@ export const UpdateBusinessBody = registry.register(
         .openapi({ description: 'Deposit in the business currency (USD placeholder).' }),
       listed: z.boolean().openapi({
         description:
-          'Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED) and a ready business (409 NOT_READY).',
+          'Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED), a ready business (409 NOT_READY) and a category and an area (400 with fields.category / fields.area). A business that is already listed stays listed without an area.',
       }),
     })
     .partial()
@@ -78,7 +86,8 @@ export const BusinessDto = registry.register(
     bookingWindowDays: z.number().int(),
     minNoticeMin: z.number().int(),
     cancelCutoffMin: z.number().int(),
-    category: z.string().nullable(),
+    category: z.string().nullable().openapi({ description: 'A category key, or legacy free text.' }),
+    area: z.string().nullable(),
     address: z.string().nullable(),
     listed: z.boolean(),
     deposit: z.object({

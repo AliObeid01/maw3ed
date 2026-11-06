@@ -26,6 +26,7 @@ export const publicBusinessSchema = z.object({
     bookingWindowDays: z.number().int().min(1).default(14),
     cancelCutoffMin: z.number().int().min(0).default(0),
     category: z.string().nullish(),
+    area: z.string().nullish(),
     address: z.string().nullish(),
   }),
   services: z.array(publicServiceSchema),

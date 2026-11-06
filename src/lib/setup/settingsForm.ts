@@ -9,6 +9,9 @@ export type SettingsSource = {
   bookingWindowDays: number;
   minNoticeMin: number;
   cancelCutoffMin: number;
+  category?: string | null;
+  area?: string | null;
+  address?: string | null;
 };
 
 export type SettingsValues = {
@@ -18,6 +21,11 @@ export type SettingsValues = {
   window: string;
   notice: string;
   cutoff: string;
+  /** Category key or legacy free text; '' when not set. */
+  category: string;
+  /** Area key; '' when not set. */
+  area: string;
+  address: string;
 };
 
 /**
@@ -33,6 +41,9 @@ export function toSettingsValues(business: SettingsSource, unit: CutoffUnit): Se
     window: String(business.bookingWindowDays),
     notice: String(business.minNoticeMin),
     cutoff: String(cutoffToDisplay(business.cancelCutoffMin, unit)),
+    category: business.category ?? '',
+    area: business.area ?? '',
+    address: business.address ?? '',
   };
 }
 

@@ -28,6 +28,7 @@ export const PublicBusinessDto = registry.register(
       /** Clients can cancel for free until this many minutes before the start. */
       cancelCutoffMin: z.number().int(),
       category: z.string().optional(),
+      area: z.string().optional(),
       address: z.string().optional(),
     }),
     services: z.array(

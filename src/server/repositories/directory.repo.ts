@@ -5,6 +5,7 @@ export interface DirectoryRow {
   slug: string;
   name: string;
   category: string | null;
+  area: string | null;
   address: string | null;
   serviceCount: number;
   fromPrice: number | null;
@@ -32,6 +33,7 @@ export const directoryRepo = {
   async list(input: {
     search?: string;
     category?: string;
+    area?: string;
     after?: { name: string; id: string };
     take: number;
   }): Promise<DirectoryRow[]> {
@@ -42,6 +44,7 @@ export const directoryRepo = {
     const categorySql = input.category
       ? Prisma.sql`AND lower(b."category") = lower(${input.category})`
       : Prisma.empty;
+    const areaSql = input.area ? Prisma.sql`AND b."area" = ${input.area}` : Prisma.empty;
     const cursorSql = input.after
       ? Prisma.sql`AND (b."name", b."id") > (${input.after.name}, ${input.after.id})`
       : Prisma.empty;
@@ -52,16 +55,17 @@ export const directoryRepo = {
         slug: string;
         name: string;
         category: string | null;
+        area: string | null;
         address: string | null;
         serviceCount: bigint | number;
         fromPrice: Prisma.Decimal | string | number | null;
       }[]
     >`
-      SELECT b."id", b."slug", b."name", b."category", b."address",
+      SELECT b."id", b."slug", b."name", b."category", b."area", b."address",
         (SELECT count(*) FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "serviceCount",
         (SELECT min(s."price") FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "fromPrice"
       FROM "Business" b
-      WHERE b."listed" AND ${READY} ${searchSql} ${categorySql} ${cursorSql}
+      WHERE b."listed" AND ${READY} ${searchSql} ${categorySql} ${areaSql} ${cursorSql}
       ORDER BY b."name" ASC, b."id" ASC
       LIMIT ${input.take}`;
     return rows.map((r) => ({
@@ -69,6 +73,7 @@ export const directoryRepo = {
       slug: r.slug,
       name: r.name,
       category: r.category,
+      area: r.area,
       address: r.address,
       serviceCount: Number(r.serviceCount),
       fromPrice: r.fromPrice === null ? null : Number(r.fromPrice),

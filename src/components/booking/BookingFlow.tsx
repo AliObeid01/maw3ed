@@ -8,6 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { FormBanner } from '@/components/auth/formKit';
 import { BookingSummary, type SummaryRow } from '@/components/public/BookingSummary';
 import { BusinessHero } from '@/components/public/BusinessHero';
+import { useAreaLabel } from '@/components/public/areaLabel';
 import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { PageState } from '@/components/public/PageState';
 import { StepRail, type Step } from '@/components/public/StepRail';
@@ -71,6 +72,7 @@ const NO_FRESH: FreshDays = { key: '', days: {} };
 /** The public booking flow (boards 1.1 to 1.6) at /b/[slug]. State lives in the URL so Back works and links are shareable. */
 export function BookingFlow({ slug }: { slug: string }) {
   const categoryLabel = useCategoryLabel();
+  const areaLabel = useAreaLabel();
   const t = useTranslations('booking');
   const tSum = useTranslations('booking.summary');
   const tEmpty = useTranslations('public.summary')('empty');
@@ -545,6 +547,7 @@ export function BookingFlow({ slug }: { slug: string }) {
         <MetaLine
           items={[
             categoryLabel(data.business.category),
+            areaLabel(data.business.area),
             data.business.address ? <Bidi>{data.business.address}</Bidi> : null,
           ]}
         />

@@ -30,6 +30,7 @@ export const publicBookingService = {
         bookingWindowDays: business.bookingWindowDays,
         cancelCutoffMin: business.cancelCutoffMin,
         ...(business.category ? { category: business.category } : {}),
+        ...(business.area ? { area: business.area } : {}),
         ...(business.address ? { address: business.address } : {}),
       },
       services: services.map((s) => ({ ...s, price: num(s.price) })),

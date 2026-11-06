@@ -101,9 +101,12 @@ model Business {
   id                String   @id @default(cuid(2))
   slug              String   @unique
   name              String
+  /// A key of src/lib/business/profile.ts CATEGORY_KEYS; legacy rows hold the free text typed before keys existed.
   category          String?
+  /// A key of AREA_KEYS. NULL = not set (every row before PR-1).
+  area              String?
   address           String?
-  timezone          String   @default("Asia/Beirut")
+  timezone         String   @default("Asia/Beirut")
   locale            String   @default("en")
   currency          String   @default("USD")
   slotStepMin       Int      @default(15)
@@ -133,6 +136,9 @@ model Business {
   offers        WaitlistOffer[]
   baseline      PilotBaseline?
   payments      Payment[]
+
+  /// Public directory filters (listed first: only opted-in businesses are read).
+  @@index([listed, area, category])
 }
 
 model User {

@@ -28,6 +28,7 @@ export const directoryService = {
     const rows = await directoryRepo.list({
       search: query.search,
       category: query.category,
+      area: query.area,
       after,
       take: query.limit + 1,
     });
@@ -38,6 +39,7 @@ export const directoryService = {
         slug: b.slug,
         name: b.name,
         category: b.category,
+        area: b.area,
         address: b.address,
         serviceCount: b.serviceCount,
         fromPrice: b.fromPrice,

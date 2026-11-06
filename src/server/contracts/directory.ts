@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AREA_KEYS } from '../../lib/business/profile';
 import { errorResponses, registry } from './registry';
 
 /** `search` and `category` are optional; an empty string means "not set". */
@@ -17,7 +18,15 @@ const optionalText = (max: number) =>
 export const DirectoryQuery = z
   .object({
     search: optionalText(80),
-    category: optionalText(40),
+    category: optionalText(40).openapi({
+      description:
+        'A category key (barbers, hair-salons, ...) or, for legacy listings, the free text they were saved with. Case-insensitive equality.',
+    }),
+    area: z
+      .enum(AREA_KEYS)
+      .optional()
+      .or(z.literal('').transform(() => undefined))
+      .openapi({ description: 'Area key. Empty means unset. Businesses without an area match only when this is unset.' }),
     limit: z.coerce.number().int().min(1).max(50).default(24),
     cursor: z
       .string()
@@ -47,6 +56,7 @@ export const DirectoryDto = registry.register(
         slug: z.string(),
         name: z.string(),
         category: z.string().nullable(),
+        area: z.string().nullable(),
         address: z.string().nullable(),
         serviceCount: z.number().int(),
         fromPrice: z.number().nullable().openapi({ description: 'Cheapest active service price.' }),

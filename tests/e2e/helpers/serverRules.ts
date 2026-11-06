@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ADDRESS_MAX, AREA_KEYS, CATEGORY_KEYS } from '../../../src/lib/business/profile';
 
 /**
  * Request rules copied from the real API so the page.route mock rejects what the server rejects.
@@ -32,8 +33,10 @@ export const rules = {
       bookingWindowDays: z.number().int().min(1).max(365),
       minNoticeMin: z.number().int().min(0).max(10080),
       cancelCutoffMin: z.number().int().min(0).max(10080),
-      category: nullableText(40),
-      address: nullableText(120),
+      category: z.enum(CATEGORY_KEYS).nullable(),
+      area: z.enum(AREA_KEYS).nullable(),
+      address: nullableText(ADDRESS_MAX).refine((v) => v === null || !v.includes('\u0000'), 'Remove the NUL character.'),
+      listed: z.boolean(),
     })
     .partial()
     .strict(),

@@ -1,15 +1,20 @@
 'use client';
 
 import { CloudOff, Search, SearchX } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Field';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { getDirectory, type DirectoryBusiness } from '@/lib/api/directory';
+import { AREA_KEYS, CATEGORY_KEYS, isAreaKey } from '@/lib/business/profile';
 import { useAppFormat } from '@/lib/useAppFormat';
+import { profileLine, useAreaLabel } from './areaLabel';
+import { useCategoryLabel } from './categoryLabel';
 import { monogram } from './monogram';
 import { PageState } from './PageState';
 
@@ -30,6 +35,9 @@ function BusinessCard({ business }: { business: DirectoryBusiness }) {
   const t = useTranslations('directory');
   const { money } = useAppFormat();
   const price = business.fromPrice === null ? null : ltr(money(business.fromPrice));
+  const categoryLabel = useCategoryLabel();
+  const areaLabel = useAreaLabel();
+  const line = profileLine(categoryLabel(business.category), areaLabel(business.area));
   return (
     <Card as="li" size="sm" padding="compact" className="flex flex-col gap-4 list-none">
       <div className="flex items-center gap-3.5">
@@ -41,9 +49,7 @@ function BusinessCard({ business }: { business: DirectoryBusiness }) {
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-0.5">
           <h2 className="m-0 truncate text-[17px] font-semibold">{business.name}</h2>
-          {business.category ? (
-            <span className="truncate text-sm text-muted">{business.category}</span>
-          ) : null}
+          {line ? <span className="truncate text-sm text-muted">{line}</span> : null}
           {business.address ? (
             <span className="truncate text-sm text-muted">{business.address}</span>
           ) : null}
@@ -106,23 +112,72 @@ function ListSkeleton() {
 /** Public directory: search by name, cards linking to each booking page. Opt-in listings only. */
 export function DirectoryView() {
   const t = useTranslations('directory');
-  const [text, setText] = useState('');
-  const [search, setSearch] = useState('');
+  const categoryLabel = useCategoryLabel();
+  const areaLabel = useAreaLabel();
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  // The URL is the source of truth for the filters (shareable, survives reload and back); the text box is debounced.
+  const initialSearch = params.get('search')?.trim() ?? '';
+  const category = params.get('category') ?? '';
+  const areaParam = params.get('area') ?? '';
+  const area = isAreaKey(areaParam) ? areaParam : '';
+  const [text, setText] = useState(initialSearch);
+  const [search, setSearch] = useState(initialSearch);
   const [fetched, setState] = useState<State>(initial);
   const [attempt, setAttempt] = useState(0);
 
+  /** Write one or more query parameters (empty removes them) without adding history entries or scrolling. */
+  const writeParams = useCallback(
+    (next: Record<string, string>) => {
+      const q = new URLSearchParams(window.location.search);
+      for (const [name, value] of Object.entries(next)) {
+        if (value) q.set(name, value);
+        else q.delete(name);
+      }
+      const qs = q.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname],
+  );
+
   useEffect(() => {
-    const id = setTimeout(() => setSearch(text.trim()), DEBOUNCE_MS);
+    const id = setTimeout(() => {
+      const value = text.trim();
+      setSearch(value);
+      if (value !== (new URLSearchParams(window.location.search).get('search') ?? ''))
+        writeParams({ search: value });
+    }, DEBOUNCE_MS);
     return () => clearTimeout(id);
-  }, [text]);
+  }, [text, writeParams]);
+
+  const categoryOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: '', label: t('filters.categoryAll') },
+      // A legacy free-text value in the URL stays selectable so the closed field shows what is applied.
+      ...(category && !(CATEGORY_KEYS as readonly string[]).includes(category)
+        ? [{ value: category, label: categoryLabel(category) ?? category }]
+        : []),
+      ...CATEGORY_KEYS.map((key) => ({ value: key, label: categoryLabel(key) ?? key })),
+    ],
+    [category, categoryLabel, t],
+  );
+  const areaOptions = useMemo<SelectOption[]>(
+    () => [
+      { value: '', label: t('filters.areaAll') },
+      ...AREA_KEYS.map((key) => ({ value: key, label: areaLabel(key) ?? key })),
+    ],
+    [areaLabel, t],
+  );
+  const filtered = Boolean(category || area);
 
   // The result is tagged with the query that produced it; a different current key means "loading".
-  const key = `${attempt}:${search}`;
+  const key = `${attempt}:${search}:${category}:${area}`;
   const state: State = fetched.key === key ? fetched : { ...initial, key };
   const moreAbort = useRef<AbortController | null>(null);
   useEffect(() => {
     const controller = new AbortController();
-    getDirectory({ search, limit: PAGE_SIZE }, controller.signal)
+    getDirectory({ search, category, area, limit: PAGE_SIZE }, controller.signal)
       .then((page) =>
         setState({
           key,
@@ -141,7 +196,7 @@ export function DirectoryView() {
       controller.abort();
       moreAbort.current?.abort(); // a "Show more" of the old query must never land in the new one
     };
-  }, [key, search]);
+  }, [key, search, category, area]);
 
   const loadMore = useCallback(async () => {
     if (!state.cursor) return;
@@ -151,7 +206,10 @@ export function DirectoryView() {
     moreAbort.current = controller;
     setState((s) => (s.key === requestKey ? { ...s, more: 'loading' } : s));
     try {
-      const page = await getDirectory({ search, cursor, limit: PAGE_SIZE }, controller.signal);
+      const page = await getDirectory(
+        { search, category, area, cursor, limit: PAGE_SIZE },
+        controller.signal,
+      );
       if (controller.signal.aborted) return;
       setState((s) =>
         s.key !== requestKey
@@ -168,7 +226,7 @@ export function DirectoryView() {
       if (controller.signal.aborted) return;
       setState((s) => (s.key === requestKey ? { ...s, more: 'error' } : s));
     }
-  }, [state.cursor, search, key]);
+  }, [state.cursor, search, category, area, key]);
 
   if (state.status === 'error')
     return (
@@ -191,22 +249,36 @@ export function DirectoryView() {
         <p className="m-0 max-w-xl text-[15px] text-muted md:text-base">{t('subtitle')}</p>
       </header>
 
-      <div className="relative max-w-xl">
-        <Input
-          type="search"
-          label={t('searchLabel')}
-          placeholder={t('searchPlaceholder')}
-          autoComplete="off"
-          enterKeyHint="search"
-          maxLength={80}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="ps-11"
+      <div className="grid max-w-4xl grid-cols-2 gap-3 md:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="relative col-span-2 md:col-span-1">
+          <Input
+            type="search"
+            label={t('searchLabel')}
+            placeholder={t('searchPlaceholder')}
+            autoComplete="off"
+            enterKeyHint="search"
+            maxLength={80}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="ps-11"
+          />
+          <Search
+            size={18}
+            aria-hidden="true"
+            className="pointer-events-none absolute start-4 bottom-[15px] text-muted"
+          />
+        </div>
+        <Select
+          label={t('filters.category')}
+          value={category}
+          options={categoryOptions}
+          onChange={(value) => writeParams({ category: value })}
         />
-        <Search
-          size={18}
-          aria-hidden="true"
-          className="pointer-events-none absolute start-4 bottom-[15px] text-muted"
+        <Select
+          label={t('filters.area')}
+          value={area}
+          options={areaOptions}
+          onChange={(value) => writeParams({ area: value })}
         />
       </div>
 
@@ -228,12 +300,31 @@ export function DirectoryView() {
               <SearchX size={26} />
             </span>
             <h2 className="m-0 text-xl font-semibold">
-              {search ? t('empty.searchTitle') : t('empty.title')}
+              {filtered
+                ? t('empty.filterTitle')
+                : search
+                  ? t('empty.searchTitle')
+                  : t('empty.title')}
             </h2>
             <p className="m-0 max-w-sm text-[15px] text-muted">
-              {search ? t('empty.searchBody', { search }) : t('empty.body')}
+              {filtered
+                ? t('empty.filterBody')
+                : search
+                  ? t('empty.searchBody', { search })
+                  : t('empty.body')}
             </p>
-            {search ? (
+            {filtered ? (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setText('');
+                  setSearch('');
+                  writeParams({ search: '', category: '', area: '' });
+                }}
+              >
+                {t('empty.clearFilters')}
+              </Button>
+            ) : search ? (
               <Button variant="secondary" onClick={() => setText('')}>
                 {t('empty.clear')}
               </Button>

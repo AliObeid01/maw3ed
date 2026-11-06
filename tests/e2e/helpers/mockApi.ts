@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { freezeClock, nowMs } from './clock';
+import { profileMissing } from '../../../src/lib/business/profile';
 import { rules, validate, validateHours } from './serverRules';
 
 /**
@@ -41,7 +42,9 @@ export function defaultState(): MockState {
       minNoticeMin: 60,
       cancelCutoffMin: 1440,
       category: null,
+      area: null,
       address: null,
+      listed: false,
       setup: { hasServices: true, hasBookableStaff: false, hasHours: false },
     },
     services: [
@@ -258,6 +261,18 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
       if (method === 'PATCH') {
         const v = validate(rules.updateBusiness, body);
         if ('fields' in v) return error(route, 400, 'VALIDATION_ERROR', v.fields);
+        // Same rule as businessService: a NEW listing needs a category and an area (grandfathered when already listed).
+        if (v.data.listed === true && state.business.listed !== true) {
+          const merged = { ...state.business, ...v.data } as { category?: string | null; area?: string | null };
+          const missing = profileMissing({ category: merged.category, area: merged.area });
+          if (missing.length > 0)
+            return error(
+              route,
+              400,
+              'VALIDATION_FAILED',
+              Object.fromEntries(missing.map((f) => [f, `Choose a ${f} before listing.`])),
+            );
+        }
         Object.assign(state.business, v.data);
       }
       return json(route, 200, state.business);

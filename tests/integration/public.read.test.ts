@@ -45,7 +45,7 @@ describe('GET /api/public/{slug}', () => {
   it('returns the business, active services and bookable active staff only', async () => {
     await prisma.business.update({
       where: { id: t.businessId },
-      data: { category: 'Salon', address: 'Hamra, Beirut' },
+      data: { category: 'Salon', area: 'sidon', address: 'Hamra, Beirut' },
     });
     const { serviceId, staffIds } = await newScenario(prisma, t, { staff: 2 });
     const hiddenService = await prisma.service.create({
@@ -71,6 +71,7 @@ describe('GET /api/public/{slug}', () => {
       bookingWindowDays: 30,
       cancelCutoffMin: 1440,
       category: 'Salon',
+      area: 'sidon',
       address: 'Hamra, Beirut',
     });
     const serviceIds = res.body!.services.map((s: any) => s.id);
@@ -97,6 +98,7 @@ describe('GET /api/public/{slug}', () => {
     const res = await getBusiness('studio-other');
     expect(res.status).toBe(200);
     expect(res.body!.business).not.toHaveProperty('category');
+    expect(res.body!.business).not.toHaveProperty('area');
     expect(res.body!.business).not.toHaveProperty('address');
     const missing = await getBusiness('no-such-business');
     expect(missing.status).toBe(404);

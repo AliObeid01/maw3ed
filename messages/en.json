@@ -75,7 +75,22 @@
       "physiotherapy": "Physiotherapy",
       "spa": "Spa",
       "dentist": "Dentist",
-      "dental": "Dental clinic"
+      "dental": "Dental clinic",
+      "barbers": "Barbers",
+      "hairsalons": "Hair salons",
+      "dentalclinics": "Dental clinics",
+      "beautyclinics": "Beauty clinics",
+      "spamassage": "Spa & massage",
+      "other": "Other"
+    },
+    "area": {
+      "sidon": "Sidon",
+      "beirut": "Beirut",
+      "tripoli": "Tripoli",
+      "jounieh": "Jounieh",
+      "tyre": "Tyre",
+      "zahle": "Zahle",
+      "other": "Other"
     }
   },
   "app": {
@@ -479,6 +494,15 @@
       "equals": "{value}",
       "field": {
         "name": "Name",
+        "category": "Category",
+        "categoryPlaceholder": "Choose a category",
+        "categoryCurrent": "Current: {value}",
+        "categoryHint": "Shown on your booking page and in the directory.",
+        "area": "Area",
+        "areaPlaceholder": "Choose an area",
+        "areaHint": "Where clients find you in the directory.",
+        "address": "Address",
+        "addressHint": "Street and building, e.g. Riad El Solh St",
         "link": "Booking page link",
         "linkHint": "Your link is fixed so shared links keep working.",
         "timezone": "Timezone",
@@ -510,6 +534,7 @@
         "nameTooLong": "Keep the name under {max} characters.",
         "range": "Enter a whole number from {min} to {max}.",
         "fieldInvalid": "Please check this value.",
+        "addressTooLong": "Keep the address under {max} characters.",
         "checkFields": "Some details need another look. Check the highlighted fields."
       },
       "deposit": {
@@ -1680,6 +1705,12 @@
     "nav": "Find a business",
     "searchLabel": "Search by name",
     "searchPlaceholder": "Business name",
+    "filters": {
+      "category": "Category",
+      "categoryAll": "All categories",
+      "area": "Area",
+      "areaAll": "All areas"
+    },
     "from": "From {price}",
     "servicesCount": "{count, plural, one {# service} other {# services}}",
     "book": "Book",
@@ -1692,7 +1723,10 @@
       "body": "Businesses appear here when they choose to be listed. Check back soon.",
       "searchTitle": "No matches",
       "searchBody": "No business matches \"{search}\". Try a different name.",
-      "clear": "Clear search"
+      "clear": "Clear search",
+      "filterTitle": "No matches here",
+      "filterBody": "No business matches these filters yet. Try another area or category.",
+      "clearFilters": "Clear filters"
     },
     "error": {
       "title": "Could not load the directory",
@@ -1717,6 +1751,9 @@
         "staff": "Add a bookable team member",
         "hours": "Set working hours"
       },
+      "profileNeeded": "Choose a category and an area in your business settings before listing.",
+      "profileError": "Choose a category and an area first. Clients filter the directory by them.",
+      "profileLink": "Open business settings",
       "done": "(done)",
       "todo": "(to do)",
       "fix": "Fix",

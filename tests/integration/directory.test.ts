@@ -38,6 +38,7 @@ async function tenant(
     hours?: boolean;
     listed?: boolean;
     category?: string | null;
+    area?: string | null;
     address?: string | null;
   } = {},
 ): Promise<Tenant> {
@@ -61,12 +62,10 @@ async function tenant(
        VALUES ($1, $2, $3, 1, '09:00', '17:00')`,
       [`wh-${businessId}`, businessId, staffId],
     );
-  await pg.query(`UPDATE "Business" SET listed = $2, category = $3, address = $4 WHERE id = $1`, [
-    businessId,
-    opts.listed ?? true,
-    opts.category ?? null,
-    opts.address ?? null,
-  ]);
+  await pg.query(
+    `UPDATE "Business" SET listed = $2, category = $3, address = $4, area = $5 WHERE id = $1`,
+    [businessId, opts.listed ?? true, opts.category ?? null, opts.address ?? null, opts.area ?? null],
+  );
   return { cookie, businessId, slug: body.slug as string, staffId };
 }
 
@@ -80,6 +79,7 @@ describe('GET /api/public/directory', () => {
     await tenant('Studio Nour', {
       prices: [25, 12.5, 40],
       category: 'Salon',
+      area: 'beirut',
       address: 'Hamra, Beirut',
     });
     const res = await list();
@@ -93,6 +93,7 @@ describe('GET /api/public/directory', () => {
           slug: expect.any(String),
           name: 'Studio Nour',
           category: 'Salon',
+          area: 'beirut',
           address: 'Hamra, Beirut',
           serviceCount: 3,
           fromPrice: 12.5,
@@ -178,6 +179,9 @@ describe('GET /api/public/directory', () => {
       { cursor: '%%%not-a-cursor' },
       { search: 'a\u0000b' },
       { category: '\u0000' },
+      { area: 'atlantis' },
+      { area: 'Sidon' },
+      { area: 'sidon\u0000' },
       { cursor: Buffer.from(JSON.stringify(['a\u0000', 'id'])).toString('base64url') },
       { cursor: Buffer.from('{"a":1}').toString('base64url') },
     ]) {
@@ -194,6 +198,7 @@ describe('GET /api/public/directory', () => {
     const text = JSON.stringify(res.body);
     expect(Object.keys(res.body!.businesses[0]).sort()).toEqual([
       'address',
+      'area',
       'category',
       'fromPrice',
       'name',
@@ -212,6 +217,154 @@ describe('GET /api/public/directory', () => {
     const asA = await call(directory, '/api/public/directory', { cookie: a.cookie });
     expect(names(asA)).toEqual(names(anonymous));
     expect(names(anonymous)).toEqual(['Tenant A', 'Tenant B']);
+  });
+});
+
+describe('GET /api/public/directory: category and area filters (PR-1)', () => {
+  async function seedFilters() {
+    await tenant('Sidon Barber', { category: 'barbers', area: 'sidon', address: 'Riad El Solh St' });
+    await tenant('Sidon Salon', { category: 'hair-salons', area: 'sidon' });
+    await tenant('Beirut Barber', { category: 'barbers', area: 'beirut' });
+    await tenant('Legacy Salon', { category: 'Salon', area: 'sidon' });
+    await tenant('No Area Barber', { category: 'barbers', area: null });
+    await tenant('Hidden Barber', { category: 'barbers', area: 'sidon', listed: false });
+  }
+
+  it('filters by area, by category, by both, and with search (AND semantics)', async () => {
+    await seedFilters();
+    expect(names(await list({ area: 'sidon' }))).toEqual([
+      'Legacy Salon',
+      'Sidon Barber',
+      'Sidon Salon',
+    ]);
+    expect(names(await list({ area: 'beirut' }))).toEqual(['Beirut Barber']);
+    expect(names(await list({ category: 'barbers' }))).toEqual([
+      'Beirut Barber',
+      'No Area Barber',
+      'Sidon Barber',
+    ]);
+    expect(names(await list({ category: 'barbers', area: 'sidon' }))).toEqual(['Sidon Barber']);
+    expect(names(await list({ category: 'barbers', area: 'sidon', search: 'salon' }))).toEqual([]);
+    expect(names(await list({ area: 'sidon', search: 'sal' }))).toEqual([
+      'Legacy Salon',
+      'Sidon Salon',
+    ]);
+    expect(names(await list({ area: 'tyre' }))).toEqual([]);
+  });
+
+  it('an empty area or category means unset', async () => {
+    await seedFilters();
+    expect(names(await list({ area: '', category: '' }))).toHaveLength(5);
+  });
+
+  it('a business without an area shows in the unfiltered list only, never under an area', async () => {
+    await seedFilters();
+    expect(names(await list())).toContain('No Area Barber');
+    for (const area of ['sidon', 'beirut', 'tripoli', 'jounieh', 'tyre', 'zahle', 'other'])
+      expect(names(await list({ area }))).not.toContain('No Area Barber');
+  });
+
+  it('a legacy free-text category stays listed and filterable by the old value', async () => {
+    await seedFilters();
+    expect(names(await list({ category: 'Salon' }))).toEqual(['Legacy Salon']);
+    expect(names(await list({ category: 'salon' }))).toEqual(['Legacy Salon']);
+    expect(names(await list({ category: 'salon', area: 'sidon' }))).toEqual(['Legacy Salon']);
+    const all = await list();
+    expect(
+      (all.body!.businesses as { name: string; category: string }[]).find(
+        (b) => b.name === 'Legacy Salon',
+      )!.category,
+    ).toBe('Salon');
+  });
+
+  it('returns area and address on each item and nothing private', async () => {
+    await seedFilters();
+    const res = await list({ area: 'sidon', category: 'barbers' });
+    expect(res.body!.businesses).toEqual([
+      {
+        slug: expect.any(String),
+        name: 'Sidon Barber',
+        category: 'barbers',
+        area: 'sidon',
+        address: 'Riad El Solh St',
+        serviceCount: 1,
+        fromPrice: 10,
+      },
+    ]);
+    expect(JSON.stringify(res.body)).not.toMatch(/@|phone|owner/i);
+  });
+
+  it('keeps cursor pagination under a filter', async () => {
+    for (const n of ['D', 'B', 'E', 'A', 'C']) await tenant(`Sidon ${n}`, { area: 'sidon' });
+    await tenant('Elsewhere', { area: 'beirut' });
+    const p1 = await list({ area: 'sidon', limit: '2' });
+    expect(names(p1)).toEqual(['Sidon A', 'Sidon B']);
+    const p2 = await list({ area: 'sidon', limit: '2', cursor: p1.body!.nextCursor });
+    expect(names(p2)).toEqual(['Sidon C', 'Sidon D']);
+    const p3 = await list({ area: 'sidon', limit: '2', cursor: p2.body!.nextCursor });
+    expect(names(p3)).toEqual(['Sidon E']);
+    expect(p3.body!.nextCursor).toBeNull();
+  });
+
+  it('only listed and ready businesses are filtered', async () => {
+    await seedFilters();
+    await tenant('Sidon No Hours', { area: 'sidon', hours: false });
+    expect(names(await list({ area: 'sidon', category: 'barbers' }))).toEqual(['Sidon Barber']);
+  });
+});
+
+describe('PATCH /api/business { listed } needs category and area (PR-1)', () => {
+  const patch = (cookie: string, body: unknown) =>
+    call(patchBusiness, '/api/business', { method: 'PATCH', cookie, body });
+
+  it('400 with fields.category and fields.area when both are missing; nothing is written', async () => {
+    const t = await tenant('No Profile', { listed: false });
+    const res = await patch(t.cookie, { listed: true, name: 'Renamed' });
+    expect(res.status).toBe(400);
+    expect(res.body!.error.code).toBe('VALIDATION_FAILED');
+    expect(Object.keys(res.body!.error.fields).sort()).toEqual(['area', 'category']);
+    const row = await pg.query(`SELECT listed, name FROM "Business" WHERE id = $1`, [t.businessId]);
+    expect(row.rows[0]).toEqual({ listed: false, name: 'No Profile' });
+  });
+
+  it('only the missing field is reported', async () => {
+    const t = await tenant('Half Profile', { listed: false, category: 'barbers' });
+    const res = await patch(t.cookie, { listed: true });
+    expect(Object.keys(res.body!.error.fields)).toEqual(['area']);
+  });
+
+  it('the same request may set them and list at once', async () => {
+    const t = await tenant('One Shot', { listed: false });
+    const res = await patch(t.cookie, { listed: true, category: 'spa-massage', area: 'tyre' });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ listed: true, category: 'spa-massage', area: 'tyre' });
+    expect(names(await list({ area: 'tyre' }))).toEqual(['One Shot']);
+  });
+
+  it('a legacy free-text category counts as a category', async () => {
+    const t = await tenant('Legacy Cat', { listed: false, category: 'Salon', area: 'zahle' });
+    expect((await patch(t.cookie, { listed: true })).status).toBe(200);
+  });
+
+  it('a business already listed without an area stays listed and can still change other fields', async () => {
+    const t = await tenant('Grandfathered', { listed: true, category: 'Salon' });
+    expect((await patch(t.cookie, { name: 'Grandfathered 2' })).status).toBe(200);
+    expect((await patch(t.cookie, { listed: true })).status).toBe(200);
+    expect(names(await list())).toEqual(['Grandfathered 2']);
+    expect(names(await list({ area: 'sidon' }))).toEqual([]);
+  });
+
+  it('changing or clearing category and area never unlists', async () => {
+    const t = await tenant('Stays Listed', { category: 'barbers', area: 'sidon' });
+    const res = await patch(t.cookie, { category: null, area: null });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ listed: true, category: null, area: null });
+    expect((await patch(t.cookie, { area: 'beirut' })).body).toMatchObject({ listed: true });
+  });
+
+  it('turning listing off needs no profile', async () => {
+    const t = await tenant('Off', { category: null, area: null });
+    expect((await patch(t.cookie, { listed: false })).status).toBe(200);
   });
 });
 
@@ -244,7 +397,7 @@ describe('PATCH /api/business { listed }', () => {
   });
 
   it('turning ON when ready works, appears in the directory, and shows in GET /api/business', async () => {
-    const t = await tenant('Ready Biz', { listed: false });
+    const t = await tenant('Ready Biz', { listed: false, category: 'barbers', area: 'sidon' });
     const got = await call(getBusiness, '/api/business', { cookie: t.cookie });
     expect(got.body).toMatchObject({
       listed: false,
@@ -289,7 +442,7 @@ describe('PATCH /api/business { listed }', () => {
   });
 
   it('tenant isolation: owner A toggling listed never touches business B', async () => {
-    const a = await tenant('Iso A', { listed: false });
+    const a = await tenant('Iso A', { listed: false, category: 'barbers', area: 'sidon' });
     const b = await tenant('Iso B', { listed: false });
     expect((await patch(a.cookie, { listed: true })).status).toBe(200);
     const rows = await pg.query(`SELECT name, listed FROM "Business" ORDER BY name`);

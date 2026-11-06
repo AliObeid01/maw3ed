@@ -53,6 +53,7 @@ type SeedBusiness = {
   slug: string;
   name: string;
   category: string;
+  area: string;
   address: string;
   plan: 'FREE' | 'PRO';
   users: SeedUser[];
@@ -65,7 +66,8 @@ type SeedBusiness = {
 const studioNour: SeedBusiness = {
   slug: 'studio-nour',
   name: 'Studio Nour',
-  category: 'salon',
+  category: 'hair-salons',
+  area: 'beirut',
   address: 'Hamra Street, Beirut',
   plan: 'PRO',
   users: [
@@ -125,7 +127,8 @@ const studioNour: SeedBusiness = {
 const clinicRida: SeedBusiness = {
   slug: 'clinic-rida',
   name: 'Clinic Rida',
-  category: 'clinic',
+  category: 'beauty-clinics',
+  area: 'beirut',
   address: 'Verdun, Beirut',
   plan: 'FREE',
   users: [{ email: 'rida@clinicrida.test', name: 'Dr. Rida', role: 'OWNER' }],
@@ -155,6 +158,7 @@ async function seedBusiness(
     update: {
       name: spec.name,
       category: spec.category,
+      area: spec.area,
       address: spec.address,
       plan: spec.plan,
       timezone: 'Asia/Beirut',
@@ -163,6 +167,7 @@ async function seedBusiness(
       slug: spec.slug,
       name: spec.name,
       category: spec.category,
+      area: spec.area,
       address: spec.address,
       plan: spec.plan,
       timezone: 'Asia/Beirut',
