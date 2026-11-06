@@ -164,7 +164,16 @@ export const putStaffHours = (id: string, intervals: HoursInterval[]) =>
     method: 'PUT',
     body: { intervals },
   }).then((r) => r.intervals);
-export const listTimeOff = (id: string, signal?: AbortSignal) =>
+const copyHoursSchema = z.object({
+  staff: z.array(z.object({ staffId: z.string(), intervals: z.array(intervalSchema) })),
+});
+/** Owner: replace the weekly hours of the targets with this person's saved hours (time off is untouched). */
+export const copyStaffHours = (id: string, targetStaffIds: string[]) =>
+  request(`/api/staff/${seg(id)}/hours/copy`, copyHoursSchema, {
+    method: 'POST',
+    body: { targetStaffIds },
+  }).then((r) => r.staff);
+export const listTimeOff =(id: string, signal?: AbortSignal) =>
   request(`/api/staff/${seg(id)}/time-off`, timeOffListSchema, { signal }).then((r) => r.items);
 export const createTimeOff = (
   id: string,

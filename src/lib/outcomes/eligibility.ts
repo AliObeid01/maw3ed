@@ -47,9 +47,10 @@ export function outcomeOptions(
   if (!isOutcome && !OPEN_STATUSES.has(appt.status)) return { open: false };
   const window = outcomeWindow(appt.startAt, appt.endAt, now);
   const current = isOutcome ? (appt.status as Outcome) : null;
-  // The server holds back only a move INTO no-show from an unmarked booking (corrections are never re-blocked).
+  // The server holds back every move INTO no-show during the first minutes: from an unmarked booking and as a
+  // correction from a staff-set Attended (a late cancel is locked below).
   const graceEnds = Date.parse(appt.startAt) + NO_SHOW_GRACE_MIN * 60_000;
-  const inGrace = current === null && window !== 'upcoming' && graceEnds > now.getTime();
+  const inGrace = current !== 'NO_SHOW' && window !== 'upcoming' && graceEnds > now.getTime();
   const stateFor = (outcome: Outcome): OptionState => {
     if (outcome === current) return 'current';
     if (window === 'upcoming') return 'notStarted';

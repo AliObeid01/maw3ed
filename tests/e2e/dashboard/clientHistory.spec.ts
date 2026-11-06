@@ -77,6 +77,10 @@ test('owner: Delete client data explains what happens, then deletes, returns to 
   page,
 }) => {
   const { calls, appointments } = await mockOutcomesApi(page, setup());
+  // Warm the list route first: `next dev` compiles a route on its first visit, and on a cold CI server that compile
+  // (several seconds) would otherwise happen inside the delete flow, after the 4 s toast has already come and gone.
+  await page.goto('/app/clients');
+  await expect(page.getByRole('link', { name: 'Open the history of Nadine Aoun' })).toBeVisible();
   await page.goto('/app/clients/clnadine');
   await page.getByRole('button', { name: 'Delete client data' }).click();
   const dialog = page.getByRole('dialog', { name: "Delete Nadine Aoun's data?" });
@@ -85,8 +89,10 @@ test('owner: Delete client data explains what happens, then deletes, returns to 
   await expect(dialog).toContainText('cannot be undone');
   await dialog.getByRole('button', { name: 'Delete client data' }).dblclick();
 
-  await expect(page).toHaveURL(/\/app\/clients$/);
+  // The toast appears the moment the delete succeeds and hides itself after 4 s, so check it BEFORE waiting for the
+  // navigation (a slow navigation used to outlive the toast; PR-3 part E).
   await expect(page.getByRole('status').filter({ hasText: 'Deleted the data of Nadine Aoun' })).toBeVisible();
+  await expect(page).toHaveURL(/\/app\/clients$/);
   await expect(page.getByRole('link', { name: 'Open the history of Nadine Aoun' })).toHaveCount(0);
   await expect(page.getByRole('link', { name: 'Open the history of Maya Khoury' })).toBeVisible();
   const deletes = calls.filter((c) => c.method === 'DELETE');

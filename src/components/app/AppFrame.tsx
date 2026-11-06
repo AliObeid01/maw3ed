@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { ToastProvider } from '@/components/ui/Toast';
 import { greetingFor } from '@/lib/dashboard/agenda';
+import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
+import { ViewedDayProvider, useViewedDay } from './ViewedDayContext';
 import { defaultHrefs, type ActiveId } from './nav';
 import { useSignOut } from './useSignOut';
 
@@ -64,6 +66,9 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   const activeId = activeIdFor(pathname);
   const { signOut, signingOut } = useSignOut();
   const { summary } = useSummary();
+  const { viewedDay, now } = useViewedDay();
+  // The header follows the day the agenda shows; the greeting is only for the real today (business timezone).
+  const header = headerDayFor(viewedDay, session.timezone, now);
   const badges = { reminders: summary?.whatsappDue ?? 0, outcomes: summary?.outcomesToMark ?? 0 };
   // Detail pages keep their parent's nav item but carry their own title (board 4.5, 4.7).
   const isAppointment = pathname.startsWith('/app/appointments/');
@@ -89,7 +94,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       badges={badges}
       eyebrow={
         isToday
-          ? format.dateTime(new Date(), {
+          ? format.dateTime(header.instant, {
               timeZone: session.timezone,
               weekday: 'long',
               day: 'numeric',
@@ -100,7 +105,12 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       }
       title={
         isToday
-          ? t('today.greeting', { name: session.userName, part: greetingFor(session.timezone) })
+          ? header.isToday
+            ? t('today.greeting', {
+                name: session.userName,
+                part: greetingFor(session.timezone, now),
+              })
+            : t('today.agendaTitle')
           : isAppointment
             ? t('titles.appointment')
             : isClient
@@ -134,7 +144,9 @@ export function AppFrame({ session, children }: { session: AppSession; children:
     <SessionProvider value={session}>
       <ToastProvider>
         <SummaryProvider>
-          <Frame session={session}>{children}</Frame>
+          <ViewedDayProvider timezone={session.timezone}>
+            <Frame session={session}>{children}</Frame>
+          </ViewedDayProvider>
         </SummaryProvider>
       </ToastProvider>
     </SessionProvider>

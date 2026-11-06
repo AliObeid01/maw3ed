@@ -12,6 +12,7 @@ import {
   MAX_INTERVALS_PER_DAY,
   WEEK_ORDER,
   copyDay,
+  mergeWeek,
   endFromInput,
   nextWeekday,
   openPastMidnight,
@@ -155,7 +156,8 @@ function DayEditorBody({
   const apply = () => {
     if (problems.length > 0 || offerOvernight) return;
     const next = week.map((day, index) => (index === weekday ? sortDay(draft) : day));
-    onApply(copyDay(next, weekday, copyTo));
+    // Touching blocks (09:00-17:00 + 17:00-22:00) become one, so a service can run across the join.
+    onApply(mergeWeek(copyDay(next, weekday, copyTo)));
     onClose();
   };
 
@@ -172,7 +174,7 @@ function DayEditorBody({
       );
       return;
     }
-    onApply(result.week);
+    onApply(mergeWeek(result.week));
     onClose();
   };
 

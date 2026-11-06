@@ -1,13 +1,13 @@
 'use client';
 
-import { CircleAlert } from 'lucide-react';
+import { CircleAlert, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
-import { putStaffHours, type HoursInterval } from '@/lib/api/setup';
+import { putStaffHours, type HoursInterval, type StaffMember } from '@/lib/api/setup';
 import { cn } from '@/lib/cn';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@/lib/setup/hours';
 import { StickySaveBar } from '../StickySaveBar';
 import { useErrorMessage, useSharedText } from '../states';
+import { CopyHoursSheet } from './CopyHoursSheet';
 import { DayEditor, useWeekdayName } from './DayEditor';
 
 const sameWeek = (a: Week, b: Week) => JSON.stringify(a) === JSON.stringify(b);
@@ -27,10 +28,15 @@ const sameWeek = (a: Week, b: Week) => JSON.stringify(a) === JSON.stringify(b);
 /** Board 3.7 "Weekly hours": one row per day with interval chips, "+ Add", and a save button. */
 export function WeeklyHours({
   staffId,
+  source,
+  others,
   initial,
   onSaved,
 }: {
   staffId: string;
+  /** The person whose hours are shown, and the other schedulable staff the owner can copy them to. */
+  source: StaffMember;
+  others: StaffMember[];
   initial: HoursInterval[];
   onSaved: (intervals: HoursInterval[]) => void;
 }) {
@@ -45,6 +51,7 @@ export function WeeklyHours({
   const [editingDay, setEditingDay] = useState<number | null>(null);
   const [pending, setPending] = useState(false);
   const [banner, setBanner] = useState<string>();
+  const [copyOpen, setCopyOpen] = useState(false);
 
   const problems = validateWeek(week);
   const dirty = !sameWeek(week, baseline);
@@ -91,9 +98,27 @@ export function WeeklyHours({
       padding="none"
       className="flex min-w-0 flex-[999_1_480px] flex-col px-4 pt-2 pb-4 md:px-[22px]"
     >
-      <h2 id="weekly-hours-title" className="mt-3.5 mb-2 text-lg font-semibold">
-        {t('weekly')}
-      </h2>
+      <div className="mt-3.5 mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <h2 id="weekly-hours-title" className="m-0 text-lg font-semibold">
+          {t('weekly')}
+        </h2>
+        {others.length > 0 ? (
+          <Button
+            variant="secondary"
+            onClick={() => setCopyOpen(true)}
+            disabled={dirty}
+            aria-describedby={dirty ? 'copy-hours-hint' : undefined}
+          >
+            <Copy size={18} aria-hidden="true" />
+            {t('copy.button')}
+          </Button>
+        ) : null}
+        {others.length > 0 && dirty ? (
+          <p id="copy-hours-hint" className="m-0 basis-full text-[13px] text-muted">
+            {t('copy.saveFirst')}
+          </p>
+        ) : null}
+      </div>
       {banner ? (
         <div role="alert" className="mb-2">
           <Callout tone="danger" icon={<CircleAlert />}>
@@ -177,6 +202,7 @@ export function WeeklyHours({
       <div className="mt-3.5 hidden justify-end md:flex">{saveButton(false)}</div>
       {dirty ? <StickySaveBar>{saveButton(true)}</StickySaveBar> : null}
 
+      <CopyHoursSheet source={source} others={others} open={copyOpen} onOpenChange={setCopyOpen} />
       <DayEditor
         weekday={editingDay}
         week={week}

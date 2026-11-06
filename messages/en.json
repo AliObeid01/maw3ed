@@ -193,6 +193,7 @@
     },
     "today": {
       "greeting": "{part, select, morning {Good morning, {name}} afternoon {Good afternoon, {name}} other {Good evening, {name}}}",
+      "agendaTitle": "Agenda",
       "loading": "Loading your day",
       "staffFilter": "Filter by team member",
       "all": "All",
@@ -423,6 +424,19 @@
         "endBeforeStart": "Closing time must be after opening time.",
         "overlap": "These hours overlap.",
         "tooMany": "At most {max} blocks per day."
+      },
+      "copy": {
+        "button": "Copy this week to other staff",
+        "title": "Copy this week to other staff",
+        "intro": "Copy {name}'s weekly hours to other team members.",
+        "close": "Close",
+        "who": "Copy to",
+        "selectAll": "Select all",
+        "warning": "This replaces the weekly hours of the selected people. Their time off is not changed.",
+        "savedOnly": "Only saved hours are copied.",
+        "saveFirst": "Save your changes first. Only saved hours are copied.",
+        "apply": "Copy hours",
+        "done": "{count, plural, one {Hours copied to # person} other {Hours copied to # people}}"
       },
       "emptyTitle": "Add a bookable staff member first",
       "emptyBody": "Working hours are set per person. Add someone clients can book, then come back.",
