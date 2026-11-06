@@ -3,13 +3,21 @@ import { ACTIVE_APPOINTMENT_STATUSES } from '@/server/domain/appointmentStatus';
 import { assertRoomForBookable } from './billing.repo';
 import { db } from './db';
 
+/** Login state shown to the owner: no login yet / link sent / signed up / turned off. `null` = not applicable (owner, receptionist). */
+export type StaffLoginStatus = 'NONE' | 'NOT_ACTIVATED' | 'ACTIVE' | 'OFF';
+
 export interface StaffRow {
   id: string;
   displayName: string;
   bookable: boolean;
   active: boolean;
-  role: 'OWNER' | 'STAFF' | null;
+  role: 'OWNER' | 'STAFF' | 'PRACTITIONER' | null;
   serviceIds: string[];
+  /** null when this person is signed in as the owner or a receptionist (their own login). */
+  loginStatus: StaffLoginStatus | null;
+  /** The practitioner's login phone (ACTIVE), or the phone a pending link was made for. Owner-only in the API. */
+  loginPhone: string | null;
+  linkExpiresAt: Date | null;
 }
 
 /** The staff member does not exist in this business (also: belongs to another business). */
@@ -32,6 +40,39 @@ export async function lockStaff(tx: Tx, businessId: string, staffId: string): Pr
   if (rows.length !== 1) throw new StaffNotFoundError();
 }
 
+/**
+ * Take a practitioner's login away inside the caller's transaction (staff row already locked): open links,
+ * this business's sessions, the PRACTITIONER membership; the StaffMember and its appointments stay, unlinked
+ * and marked `loginOffAt`. Never touches an owner or receptionist login. Returns whether a login was removed.
+ */
+export async function revokeStaffLogin(
+  tx: Tx,
+  businessId: string,
+  staffId: string,
+  now: Date,
+): Promise<boolean> {
+  await tx.activationToken.deleteMany({
+    where: { businessId, staffMemberId: staffId, usedAt: null },
+  });
+  const staff = await tx.staffMember.findFirst({
+    where: { id: staffId, businessId },
+    select: { userId: true },
+  });
+  if (!staff?.userId) return false;
+  const membership = await tx.membership.findUnique({
+    where: { userId_businessId: { userId: staff.userId, businessId } },
+    select: { id: true, role: true },
+  });
+  if (membership?.role !== 'PRACTITIONER') return false;
+  await tx.session.deleteMany({ where: { businessId, userId: staff.userId } });
+  await tx.membership.deleteMany({ where: { id: membership.id, businessId } });
+  await tx.staffMember.updateMany({
+    where: { id: staffId, businessId },
+    data: { userId: null, loginOffAt: now },
+  });
+  return true;
+}
+
 /** Every id must be a service of this business, checked inside the caller's transaction. */
 async function assertServicesOwned(tx: Tx, businessId: string, serviceIds: string[]) {
   if (serviceIds.length === 0) return;
@@ -42,12 +83,34 @@ async function assertServicesOwned(tx: Tx, businessId: string, serviceIds: strin
 const staffInclude = (businessId: string) =>
   ({
     services: { where: { businessId }, select: { serviceId: true } },
-    user: { select: { memberships: { where: { businessId }, select: { role: true } } } },
+    user: {
+      select: { phone: true, memberships: { where: { businessId }, select: { role: true } } },
+    },
+    activations: {
+      where: { businessId, usedAt: null },
+      select: { phone: true, expiresAt: true },
+      take: 1,
+    },
   }) satisfies Prisma.StaffMemberInclude;
 
 type StaffWithRels = Prisma.StaffMemberGetPayload<{ include: ReturnType<typeof staffInclude> }>;
 
+function loginOf(s: StaffWithRels): Pick<StaffRow, 'loginStatus' | 'loginPhone' | 'linkExpiresAt'> {
+  const role = s.user?.memberships[0]?.role ?? null;
+  if (s.userId && role === 'PRACTITIONER')
+    return { loginStatus: 'ACTIVE', loginPhone: s.user?.phone ?? null, linkExpiresAt: null };
+  if (s.userId) return { loginStatus: null, loginPhone: null, linkExpiresAt: null };
+  const open = s.activations[0];
+  if (open) return { loginStatus: 'NOT_ACTIVATED', loginPhone: open.phone, linkExpiresAt: open.expiresAt };
+  return {
+    loginStatus: s.loginOffAt ? 'OFF' : 'NONE',
+    loginPhone: null,
+    linkExpiresAt: null,
+  };
+}
+
 const toRow = (s: StaffWithRels): StaffRow => ({
+  ...loginOf(s),
   id: s.id,
   displayName: s.displayName,
   bookable: s.bookable,
@@ -133,6 +196,8 @@ export const staffRepo = {
           });
           if (blocking > 0) throw new HasFutureAppointmentsError();
         }
+        // A deactivated person cannot keep a way in: the practitioner login goes with it.
+        await revokeStaffLogin(tx, businessId, id, now);
       }
       const result = await tx.staffMember.updateMany({ where: { id, businessId }, data: patch });
       if (result.count !== 1) throw new StaffNotFoundError();

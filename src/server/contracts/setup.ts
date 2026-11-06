@@ -8,7 +8,7 @@ import { isValidTimezone } from './slug';
 /* ---------- shared pieces ---------- */
 const id = z.string().cuid2();
 const iso = z.iso.datetime();
-const RoleEnum = z.enum(['OWNER', 'STAFF']);
+const RoleEnum = z.enum(['OWNER', 'STAFF', 'PRACTITIONER']);
 const flag = z.enum(['1', '0', 'true', 'false']).transform((v) => v === '1' || v === 'true');
 
 export const IdParams = z.object({ id }).strict();
@@ -176,6 +176,14 @@ export const StaffDto = registry.register(
     active: z.boolean(),
     role: RoleEnum.nullable(),
     serviceIds: z.array(z.string()),
+    loginStatus: z.enum(['NONE', 'NOT_ACTIVATED', 'ACTIVE', 'OFF']).nullable().openapi({
+      description: 'Staff login state. null = this person signs in as the owner or a receptionist.',
+    }),
+    loginPhone: z
+      .string()
+      .nullable()
+      .openapi({ description: 'OWNER only: the login phone (E.164).' }),
+    linkExpiresAt: z.string().datetime().nullable(),
   }),
 );
 export type StaffDtoT = z.infer<typeof StaffDto>;

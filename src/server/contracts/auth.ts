@@ -25,7 +25,17 @@ export const SignupBody = registry.register(
 
 export const LoginBody = registry.register(
   'LoginBody',
-  z.object({ email, password: z.string().min(1).max(128) }).strict(),
+  z
+    .object({
+      identifier: z.string().trim().min(1).max(254).optional(),
+      email: z.string().trim().min(1).max(254).optional(),
+      password: z.string().min(1).max(128),
+    })
+    .strict()
+    .refine((b) => (b.identifier === undefined) !== (b.email === undefined), {
+      message: 'Send either identifier or email.',
+      path: ['identifier'],
+    }),
 );
 
 export const SlugCheckQuery = z.object({ slug: z.string().trim().toLowerCase().max(80) }).strict();
@@ -77,7 +87,7 @@ export const ResendVerificationDto = registry.register(
   z.object({ ok: z.literal(true), alreadyVerified: z.boolean() }),
 );
 
-const RoleEnum = z.enum(['OWNER', 'STAFF']);
+const RoleEnum = z.enum(['OWNER', 'STAFF', 'PRACTITIONER']);
 
 export const SessionDto = registry.register(
   'SessionInfo',
@@ -85,7 +95,8 @@ export const SessionDto = registry.register(
     user: z.object({
       id: z.string(),
       name: z.string(),
-      email: z.string(),
+      email: z.string().nullable().openapi({ description: 'Null for phone-only staff logins.' }),
+      phone: z.string().nullable().openapi({ description: 'E.164. Set for staff (barber) logins.' }),
       emailVerified: z.boolean().openapi({
         description:
           'False until the address is confirmed (verify link, password reset or accepted staff invite). An unverified owner cannot invite staff or list the business in the directory (409 EMAIL_NOT_VERIFIED).',
@@ -156,9 +167,9 @@ registry.registerPath({
 registry.registerPath({
   method: 'post',
   path: '/api/auth/login',
-  summary: 'Sign in with email and password',
+  summary: 'Sign in with email or phone number and password',
   description:
-    'A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.',
+    '`identifier` is an email address or a phone number (E.164 or a Lebanese national number); the older `email` field is accepted as an alias. Wrong identifier, unknown phone and wrong password are the same 401. A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.',
   tags: ['auth'],
   request: { body: { content: json(LoginBody) } },
   responses: {

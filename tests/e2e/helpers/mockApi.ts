@@ -440,7 +440,11 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
 }
 
 /** Marks the browser session as OWNER or STAFF (read by the fake-session switch in the dev server). */
-export async function setRole(page: Page, role: 'OWNER' | 'STAFF', baseURL: string) {
+export async function setRole(
+  page: Page,
+  role: 'OWNER' | 'STAFF' | 'PRACTITIONER',
+  baseURL: string,
+) {
   await freezeClock(page);
   await page.context().addCookies([{ name: 'e2e_role', value: role, url: baseURL }]);
 }

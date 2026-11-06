@@ -69,7 +69,7 @@ describe('requests', () => {
 
   it('throws the server error envelope for a non-2xx response', async () => {
     mockFetch(401, { error: { code: 'INVALID_CREDENTIALS', message: 'No' } });
-    await expect(login({ email: 'a@b.co', password: 'x' })).rejects.toMatchObject({
+    await expect(login({ identifier: 'a@b.co', password: 'x' })).rejects.toMatchObject({
       status: 401,
       code: 'INVALID_CREDENTIALS',
     });
@@ -77,14 +77,14 @@ describe('requests', () => {
 
   it('rejects a 2xx response that does not match the contract', async () => {
     mockFetch(200, { user: { id: 'u1' } });
-    await expect(login({ email: 'a@b.co', password: 'x' })).rejects.toMatchObject({
+    await expect(login({ identifier: 'a@b.co', password: 'x' })).rejects.toMatchObject({
       code: 'BAD_RESPONSE',
     });
   });
 
   it('maps a failed fetch to a NETWORK error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')));
-    await expect(login({ email: 'a@b.co', password: 'x' })).rejects.toMatchObject({
+    await expect(login({ identifier: 'a@b.co', password: 'x' })).rejects.toMatchObject({
       code: 'NETWORK',
       status: 0,
     });

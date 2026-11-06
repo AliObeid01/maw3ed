@@ -7,7 +7,7 @@ import { sessionService } from '@/server/services/session';
 import { readSessionToken } from './cookies';
 import { AppError } from './errors';
 
-export type RoleName = 'OWNER' | 'STAFF';
+export type RoleName = 'OWNER' | 'STAFF' | 'PRACTITIONER';
 
 export interface SessionIdentity {
   userId: string;

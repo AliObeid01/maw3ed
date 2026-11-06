@@ -96,6 +96,9 @@ export const emailVerificationService = {
   ): Promise<{ ok: true; alreadyVerified: boolean }> {
     const user = await userRepo.findById(ctx.userId);
     if (!user) throw AppError.unauthenticated();
+    // Phone-only accounts (staff logins) have no address to verify: a clean refusal, nothing is sent.
+    if (!user.email)
+      throw AppError.conflict('NO_EMAIL', undefined, 'This account has no email address.');
     if (user.emailVerifiedAt) return { ok: true, alreadyVerified: true };
 
     const decision = await deps.limiter.consume('resendVerificationUser', user.id);
@@ -104,7 +107,7 @@ export const emailVerificationService = {
     const business = await businessRepo.findById(ctx.businessId);
     if (!business) throw AppError.notFound();
     try {
-      await sendVerificationEmail(ctx.logger, user, business, deps.now());
+      await sendVerificationEmail(ctx.logger, { id: user.id, email: user.email }, business, deps.now());
     } catch (error) {
       ctx.logger.error({ userId: user.id, err: safeError(error) }, 'verification email failed');
       throw AppError.unavailable('The email could not be sent. Try again.');

@@ -120,8 +120,15 @@
       "LoginBody": {
         "type": "object",
         "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254
+          },
           "email": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 254
           },
           "password": {
             "type": "string",
@@ -130,7 +137,6 @@
           }
         },
         "required": [
-          "email",
           "password"
         ],
         "additionalProperties": false
@@ -304,7 +310,18 @@
                 "type": "string"
               },
               "email": {
-                "type": "string"
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Null for phone-only staff logins."
+              },
+              "phone": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "E.164. Set for staff (barber) logins."
               },
               "emailVerified": {
                 "type": "boolean",
@@ -315,6 +332,7 @@
               "id",
               "name",
               "email",
+              "phone",
               "emailVerified"
             ]
           },
@@ -345,7 +363,8 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "STAFF"
+              "STAFF",
+              "PRACTITIONER"
             ]
           }
         },
@@ -368,7 +387,8 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "STAFF"
+              "STAFF",
+              "PRACTITIONER"
             ]
           },
           "expiresAt": {
@@ -400,7 +420,8 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "STAFF"
+              "STAFF",
+              "PRACTITIONER"
             ]
           },
           "expiresAt": {
@@ -877,6 +898,7 @@
             "enum": [
               "OWNER",
               "STAFF",
+              "PRACTITIONER",
               null
             ]
           },
@@ -885,6 +907,34 @@
             "items": {
               "type": "string"
             }
+          },
+          "loginStatus": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "NONE",
+              "NOT_ACTIVATED",
+              "ACTIVE",
+              "OFF",
+              null
+            ],
+            "description": "Staff login state. null = this person signs in as the owner or a receptionist."
+          },
+          "loginPhone": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "OWNER only: the login phone (E.164)."
+          },
+          "linkExpiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
           }
         },
         "required": [
@@ -893,7 +943,10 @@
           "bookable",
           "active",
           "role",
-          "serviceIds"
+          "serviceIds",
+          "loginStatus",
+          "loginPhone",
+          "linkExpiresAt"
         ]
       },
       "StaffList": {
@@ -1151,7 +1204,8 @@
                   "type": "string",
                   "enum": [
                     "OWNER",
-                    "STAFF"
+                    "STAFF",
+                    "PRACTITIONER"
                   ]
                 },
                 "expiresAt": {
@@ -1181,13 +1235,17 @@
             "type": "string"
           },
           "email": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "role": {
             "type": "string",
             "enum": [
               "OWNER",
-              "STAFF"
+              "STAFF",
+              "PRACTITIONER"
             ]
           },
           "emailVerified": {
@@ -1220,7 +1278,8 @@
             "type": "string",
             "enum": [
               "OWNER",
-              "STAFF"
+              "STAFF",
+              "PRACTITIONER"
             ]
           },
           "expiresAt": {
@@ -1308,6 +1367,62 @@
         "required": [
           "ok"
         ]
+      },
+      "StaffLoginBody": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          }
+        },
+        "additionalProperties": false
+      },
+      "StaffLoginLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "The one-time activation link. Shown once; only its hash is stored."
+          },
+          "whatsappUrl": {
+            "type": "string",
+            "description": "wa.me link with the prefilled message; opened on the owner phone."
+          },
+          "phone": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reset": {
+            "type": "boolean",
+            "description": "True when the person already had a login: their sessions were revoked."
+          }
+        },
+        "required": [
+          "url",
+          "whatsappUrl",
+          "phone",
+          "expiresAt",
+          "reset"
+        ]
+      },
+      "ActivateBody": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "additionalProperties": false
       },
       "PublicBusiness": {
         "type": "object",
@@ -4375,8 +4490,8 @@
     },
     "/api/auth/login": {
       "post": {
-        "summary": "Sign in with email and password",
-        "description": "A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.",
+        "summary": "Sign in with email or phone number and password",
+        "description": "`identifier` is an email address or a phone number (E.164 or a Lebanese national number); the older `email` field is accepted as an alias. Wrong identifier, unknown phone and wrong password are the same 401. A user with several memberships is signed into the most recently created one. Attempts are counted before the password is checked: 5 per email+IP per 15 minutes, 20 per IP per 15 minutes (all emails) and 30 per email per hour (all IPs); a success refunds its hits. Over a limit -> 429 TOO_MANY_ATTEMPTS with Retry-After. IPv6 addresses are limited per /64. Password checks are capped per server instance: 503 SERVICE_BUSY with Retry-After when saturated.",
         "tags": [
           "auth"
         ],
@@ -6372,6 +6487,300 @@
           },
           "401": {
             "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/staff/{id}/login": {
+      "post": {
+        "summary": "Give a staff member a login, or reset their access (OWNER only)",
+        "description": "Creates a one-time activation link (valid 72 hours, single use) for the phone number; the previous link dies. If the person already has a login, this resets it: sessions are revoked and the next use of the link sets a new password. The link is returned once and sent by the owner (WhatsApp, one tap). 409 PHONE_IN_USE when the number belongs to another account; 409 LOGIN_NOT_ALLOWED for the owner and receptionists.",
+        "tags": [
+          "staff"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StaffLoginBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Link created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffLoginLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "PHONE_IN_USE, LOGIN_NOT_ALLOWED or STAFF_INACTIVE",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Turn a staff login off (OWNER only)",
+        "description": "Revokes the open link and the sessions, removes the PRACTITIONER membership and unlinks the user. The staff member and every appointment stay. Idempotent.",
+        "tags": [
+          "staff"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "cuid2"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Done",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activation/{token}": {
+      "get": {
+        "summary": "Is this activation link usable? (public)",
+        "description": "Answers 200 {ok:true} or the same 404 for unknown, used, expired, replaced and revoked links. Reveals nothing else.",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Choose a password with an activation link and sign in (public, single use)",
+        "description": "Sets the password (10 to 128 characters), grants the PRACTITIONER role, links the staff member and signs the person in. Unknown, used, expired and replaced links are the same 404. Limited to 20 per 10 minutes per IP.",
+        "tags": [
+          "staff"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; session cookie set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
             "content": {
               "application/json": {
                 "schema": {

@@ -18,11 +18,14 @@ export async function loadSession(): Promise<CurrentSession> {
       );
     }
     if (process.env.E2E_FAKE_SESSION === '1') {
-      const role = (await cookies()).get('e2e_role')?.value === 'STAFF' ? 'STAFF' : 'OWNER';
+      const roleCookie = (await cookies()).get('e2e_role')?.value;
+      const role =
+        roleCookie === 'STAFF' ? 'STAFF' : roleCookie === 'PRACTITIONER' ? 'PRACTITIONER' : 'OWNER';
       return {
         userId: 'e2e-user',
         userName: 'Lina',
         email: 'lina@studio-nour.test',
+        phone: role === 'PRACTITIONER' ? '+961 70 000 001' : null,
         // `e2e_unverified` cookie: show the unverified-email banner and disable inviting / listing.
         emailVerified: (await cookies()).get('e2e_unverified')?.value !== '1',
         businessId: 'e2e-business',

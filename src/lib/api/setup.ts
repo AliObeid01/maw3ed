@@ -85,8 +85,13 @@ export const staffSchema = z.object({
   displayName: z.string(),
   bookable: z.boolean(),
   active: z.boolean(),
-  role: z.enum(['OWNER', 'STAFF']).nullable(),
+  role: z.enum(['OWNER', 'STAFF', 'PRACTITIONER']).nullable(),
   serviceIds: z.array(z.string()),
+  /** Staff login state; null = this person signs in as the owner or a receptionist. */
+  loginStatus: z.enum(['NONE', 'NOT_ACTIVATED', 'ACTIVE', 'OFF']).nullable().default(null),
+  /** Owner only. */
+  loginPhone: z.string().nullable().default(null),
+  linkExpiresAt: z.string().nullable().default(null),
 });
 export type StaffMember = z.infer<typeof staffSchema>;
 const staffListSchema = z.object({ staff: z.array(staffSchema) });
@@ -156,6 +161,23 @@ export const setStaffServices = (id: string, serviceIds: string[]) =>
     body: { serviceIds },
   }).then((r) => r.serviceIds);
 
+const staffLoginLinkSchema = z.object({
+  url: z.string(),
+  whatsappUrl: z.string(),
+  phone: z.string(),
+  expiresAt: z.string(),
+  reset: z.boolean(),
+});
+export type StaffLoginLink = z.infer<typeof staffLoginLinkSchema>;
+/** Owner: make (or replace) the one-time activation link. Without a phone it resets an existing login. */
+export const giveStaffLogin = (id: string, phone?: string) =>
+  request(`/api/staff/${seg(id)}/login`, staffLoginLinkSchema, {
+    method: 'POST',
+    body: phone ? { phone } : {},
+  });
+export const turnOffStaffLogin = (id: string) =>
+  request(`/api/staff/${seg(id)}/login`, z.unknown(), { method: 'DELETE' });
+
 // ---- Hours and time off ----
 export const getStaffHours = (id: string, signal?: AbortSignal) =>
   request(`/api/staff/${seg(id)}/hours`, hoursSchema, { signal }).then((r) => r.intervals);
@@ -173,7 +195,7 @@ export const copyStaffHours = (id: string, targetStaffIds: string[]) =>
     method: 'POST',
     body: { targetStaffIds },
   }).then((r) => r.staff);
-export const listTimeOff =(id: string, signal?: AbortSignal) =>
+export const listTimeOff = (id: string, signal?: AbortSignal) =>
   request(`/api/staff/${seg(id)}/time-off`, timeOffListSchema, { signal }).then((r) => r.items);
 export const createTimeOff = (
   id: string,

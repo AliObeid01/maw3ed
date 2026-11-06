@@ -19,6 +19,7 @@ import { ApiError } from '@/lib/api/auth';
 import { cn } from '@/lib/cn';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
+import { StaffLoginSection } from './StaffLoginSection';
 
 const NAME_MAX = 60;
 
@@ -232,6 +233,8 @@ export function StaffForm({
           </div>
         )}
       </fieldset>
+
+      {member ? <StaffLoginSection member={member} onChanged={onPartialSave} /> : null}
 
       <div className="flex flex-col gap-2.5 md:flex-row md:flex-wrap md:items-center md:justify-end">
         {member ? (

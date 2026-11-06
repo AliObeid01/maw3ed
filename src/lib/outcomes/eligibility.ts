@@ -50,12 +50,15 @@ export function outcomeOptions(
   // The server holds back every move INTO no-show during the first minutes: from an unmarked booking and as a
   // correction from a staff-set Attended (a late cancel is locked below).
   const graceEnds = Date.parse(appt.startAt) + NO_SHOW_GRACE_MIN * 60_000;
-  const inGrace = current !== 'NO_SHOW' && window !== 'upcoming' && graceEnds > now.getTime();
+  // A locked late cancel has no grace to wait for: the options are final, so no "available at" time is offered.
+  const locked = current === 'LATE_CANCEL';
+  const inGrace =
+    !locked && current !== 'NO_SHOW' && window !== 'upcoming' && graceEnds > now.getTime();
   const stateFor = (outcome: Outcome): OptionState => {
     if (outcome === current) return 'current';
     if (window === 'upcoming') return 'notStarted';
     // A late cancel is final for Attended and No-show (the cancel flow records it and the server answers 409 CONFLICT).
-    if (current === 'LATE_CANCEL') return 'locked';
+    if (locked) return 'locked';
     if (outcome === 'ATTENDED' && window === 'inProgress') return 'notEnded';
     if (outcome === 'NO_SHOW' && inGrace) return 'grace';
     return 'enabled';

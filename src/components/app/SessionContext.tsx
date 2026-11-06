@@ -5,10 +5,11 @@ import { createContext, useContext } from 'react';
 /** What every dashboard page needs to know about the signed-in user and their business. */
 export type AppSession = {
   userName: string;
-  email: string;
+  email: string | null;
+  phone?: string | null;
   /** False until the owner confirms their address: shows the banner and disables inviting and listing. */
   emailVerified: boolean;
-  role: 'OWNER' | 'STAFF';
+  role: 'OWNER' | 'STAFF' | 'PRACTITIONER';
   businessName: string;
   slug: string;
   timezone: string;

@@ -14,12 +14,12 @@ import { useAppSession } from './SessionContext';
  * only inviting staff and listing in the directory wait). "Resend email" is rate limited server-side.
  */
 export function VerifyBanner() {
-  const { emailVerified } = useAppSession();
+  const { emailVerified, email } = useAppSession();
   const t = useTranslations('verify.banner');
   const toast = useToast();
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  if (emailVerified) return null;
+  if (emailVerified || !email) return null; // phone-only logins have no address to confirm
 
   async function resend() {
     if (pending) return;

@@ -21,6 +21,8 @@ enum Plan {
 enum Role {
   OWNER
   STAFF
+  /// A barber/practitioner with a phone login who sees only their own appointments (scoped routes arrive in PR-5).
+  PRACTITIONER
 }
 
 enum TimeOffReason {
@@ -124,6 +126,7 @@ model Business {
   memberships   Membership[]
   sessions      Session[]
   invites       Invite[]
+  activations   ActivationToken[]
   staff         StaffMember[]
   services      Service[]
   staffServices StaffService[]
@@ -143,7 +146,10 @@ model Business {
 
 model User {
   id              String    @id @default(cuid(2))
-  email           String    @unique // stored lowercased
+  /// Stored lowercased. NULL for phone-only accounts (CHECK: email or phone is set).
+  email           String?   @unique
+  /// E.164. NULL for e-mail-only accounts. Set when a staff activation link is used.
+  phone           String?   @unique
   passwordHash    String?
   name            String
   /// When the address was proven (verify link, password reset, or accepted staff invite). NULL = unverified.
@@ -157,6 +163,7 @@ model User {
   outcomes    Appointment[] @relation("OutcomeMarkedBy")
   sentJobs    ReminderJob[] @relation("ReminderSentBy")
   emailTokens EmailToken[]
+  activations ActivationToken[]
 }
 
 enum EmailTokenKind {
@@ -233,11 +240,14 @@ model StaffMember {
   bookable    Boolean  @default(true)
   active      Boolean  @default(true)
   colour      String   @default("#0E7C66")
+  /// Set when the owner turns the staff login off (userId is cleared); cleared again by a new activation link.
+  loginOffAt  DateTime? @db.Timestamptz(3)
   createdAt   DateTime @default(now()) @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @db.Timestamptz(3)
 
   business     Business        @relation(fields: [businessId], references: [id])
   user         User?           @relation(fields: [userId], references: [id])
+  activations  ActivationToken[]
   services     StaffService[]
   workingHours WorkingHours[]
   timeOff      TimeOff[]
@@ -247,6 +257,27 @@ model StaffMember {
 
   @@index([businessId, active, bookable])
   @@index([businessId, userId])
+}
+
+/// One-time staff activation link (hash only). One OPEN token per staff member (partial unique index in the migration).
+model ActivationToken {
+  id            String    @id @default(cuid(2))
+  businessId    String
+  staffMemberId String
+  /// Set once used: the User who activated.
+  userId        String?
+  /// E.164 the owner entered; becomes User.phone on activation.
+  phone         String
+  tokenHash     String    @unique
+  expiresAt     DateTime  @db.Timestamptz(3)
+  usedAt        DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  business    Business    @relation(fields: [businessId], references: [id])
+  staffMember StaffMember @relation(fields: [staffMemberId], references: [id], onDelete: Cascade)
+  user        User?       @relation(fields: [userId], references: [id])
+
+  @@index([businessId, staffMemberId])
 }
 
 model Service {

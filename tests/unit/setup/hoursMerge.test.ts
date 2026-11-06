@@ -86,3 +86,59 @@ describe('mergeWeekIntervals', () => {
     expect(mergeWeekIntervals(once)).toEqual(once);
   });
 });
+
+/** Small seeded PRNG (mulberry32): the same seed always draws the same cases, so a failure is reproducible. */
+function mulberry32(seed: number) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const toMin = (v: string) => Number(v.slice(0, 2)) * 60 + Number(v.slice(3));
+const covered = (blocks: { start: string; end: string }[]) => {
+  const set = new Set<number>();
+  for (const b of blocks) for (let m = toMin(b.start); m < toMin(b.end); m++) set.add(m);
+  return [...set].sort((x, y) => x - y);
+};
+
+describe('mergeDayIntervals, seeded random cases', () => {
+  it('keeps the covered minutes unchanged, is idempotent, sorted and never touching', () => {
+    const rand = mulberry32(20261107);
+    for (let run = 0; run < 400; run++) {
+      const count = 1 + Math.floor(rand() * 6);
+      const day = Array.from({ length: count }, () => {
+        const s = Math.floor(rand() * 287) * 5; // 00:00 .. 23:50 in 5 min steps
+        const e = Math.min(1440, s + 5 * (1 + Math.floor(rand() * 60)));
+        return d(hhmm(s), hhmm(e));
+      });
+      const once = mergeDayIntervals(day);
+      expect(once.length, `run ${run}`).toBeLessThanOrEqual(day.length);
+      expect(covered(once), `run ${run}: covered minutes`).toEqual(covered(day));
+      expect(mergeDayIntervals(once), `run ${run}: idempotent`).toEqual(once);
+      for (let i = 1; i < once.length; i++)
+        expect(toMin(once[i]!.start), `run ${run}: gap between blocks`).toBeGreaterThan(toMin(once[i - 1]!.end));
+    }
+  });
+
+  it('weekly merge keeps every weekday separate and idempotent', () => {
+    const rand = mulberry32(48);
+    for (let run = 0; run < 200; run++) {
+      const week = Array.from({ length: 1 + Math.floor(rand() * 8) }, () => {
+        const s = Math.floor(rand() * 280) * 5;
+        return iv(Math.floor(rand() * 7), hhmm(s), hhmm(Math.min(1440, s + 5 * (1 + Math.floor(rand() * 40)))));
+      });
+      const once = mergeWeekIntervals(week);
+      expect(mergeWeekIntervals(once), `run ${run}`).toEqual(once);
+      for (let wd = 0; wd < 7; wd++)
+        expect(
+          covered(once.filter((i) => i.weekday === wd).map((i) => d(i.startLocal, i.endLocal))),
+          `run ${run} day ${wd}`,
+        ).toEqual(covered(week.filter((i) => i.weekday === wd).map((i) => d(i.startLocal, i.endLocal))));
+    }
+  });
+});

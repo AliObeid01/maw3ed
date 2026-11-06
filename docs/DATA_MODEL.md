@@ -7,10 +7,11 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 | Entity | Key fields | Belongs to | Constraints / notes |
 |---|---|---|---|
 | Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, area, address | none | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; `category` is a key of `src/lib/business/profile.ts` (`barbers`, `hair-salons`, `dental-clinics`, `beauty-clinics`, `spa-massage`, `physiotherapy`, `other`) or, on rows saved before PR-1, the free text the owner typed (still read and shown as typed; it matches no category key, so such a business appears only under "All categories" in the directory until the owner picks a listed one; no backfill); `area` (nullable text, no default, PR-1) is one of `sidon`, `beirut`, `tripoli`, `jounieh`, `tyre`, `zahle`, `other`, NULL on every older row; index `Business_listed_area_category_idx (listed, area, category)` serves the area filters (EXPLAIN-checked in PR-2: used for area and area + category, not for the category-only filter or the search, which scan sequentially at pilot scale); deposits are off until `depositEnabled` |
-| User | email, passwordHash (nullable), name, emailVerifiedAt | none | email unique (lowercased); can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
+| User | email (nullable), phone (nullable, E.164), passwordHash (nullable), name, emailVerifiedAt | none | CHECK `user_has_identity` (email or phone is set); email unique (lowercased); phone unique (a staff login, set when an activation link is used; NULLs are distinct); phone-only users have no email and no verification; can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
 | EmailToken | userId, kind (VERIFY, RESET), tokenHash, expiresAt, usedAt | User | tokenHash unique (only sha256 is stored); single use; VERIFY 24 h, RESET 1 h; at most 5 live unused tokens per user and kind (oldest deleted); a successful use deletes all the user's unused tokens of that kind; cleanup purges used or expired rows |
 | Session | tokenHash, userId, businessId, expiresAt, lastSeenAt | User, Business | tokenHash unique; 30-day sliding expiry |
-| Membership | role (OWNER, STAFF) | User, Business | unique (userId, businessId) |
+| ActivationToken | businessId, staffMemberId, userId (set when used), phone, tokenHash, expiresAt, usedAt | Business, StaffMember, User | tokenHash unique (only sha256 stored); single use; 72 h; partial unique `ActivationToken_open_staff_key` on (staffMemberId) WHERE usedAt IS NULL = one open link per staff member |
+| Membership | role (OWNER, STAFF, PRACTITIONER) | User, Business | unique (userId, businessId) |
 | Invite | email, role, tokenHash, expiresAt, acceptedAt | Business | single use; 72 h expiry |
 | StaffMember | displayName, bookable, active, colour | Business, optional User | a receptionist has a User but is not bookable; owners may be bookable |
 | Service | name, durationMin, bufferMin, price, active, sortOrder | Business | soft-deactivate, never delete |
@@ -266,7 +267,7 @@ RateLimitBucket has no relations on purpose: its keys are hashed or HMAC-ed emai
 | Enum | Values |
 |---|---|
 | Plan | FREE, PRO |
-| Role | OWNER, STAFF |
+| Role | OWNER, STAFF, PRACTITIONER |
 | TimeOffReason | VACATION, SICK, OTHER |
 | AppointmentStatus | BOOKED, CONFIRMED, PENDING_PAYMENT, ATTENDED, NO_SHOW, CANCELLED, LATE_CANCEL |
 | AppointmentSource | PUBLIC, FRONT_DESK, WAITLIST |
@@ -287,4 +288,5 @@ Prisma cannot express these, so they live in raw SQL migrations. Never remove, r
 - **Partial index `ReminderJob_pending_due_idx`** on `(status, dueAt)` where `status = 'PENDING'`: serves the `FOR UPDATE SKIP LOCKED` claim.
 - **Partial index `Appointment_pending_hold_idx`** on `(holdExpiresAt)` where `status = 'PENDING_PAYMENT'`: serves the lapsed-hold sweep.
 - **CHECKs**: `appointment_end_after_start`, `appointment_blocked_after_end` (`blockedUntil >= endAt`), `workinghours_weekday_range` (0 to 6), `workinghours_end_after_start`, `timeoff_end_after_start`, `client_counters_non_negative`.
+- **Partial unique `StaffMember_userId_businessId_key`** on `(userId, businessId)` WHERE `userId IS NOT NULL` (PR-4): one StaffMember per user per business. **Partial unique `ActivationToken_open_staff_key`** and **CHECK `user_has_identity`** (see the User and ActivationToken rows).
 - **Prisma-level uniques worth knowing**: `Client (businessId, phone)`, `Appointment (businessId, idempotencyKey)`, `WaitlistOffer (entryId, freedFromAppointmentId)`, `Payment (provider, externalId)`, `Membership (userId, businessId)`, `PilotBaseline (businessId)`.

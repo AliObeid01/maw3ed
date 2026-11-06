@@ -166,6 +166,32 @@ describe('POST /api/staff/{id}/hours/copy', () => {
     expect(await prisma.staffService.count({ where: { staffId: t1 } })).toBe(1);
   });
 
+  it('skips legacy source rows whose end is not after the start instead of failing with a 500', async () => {
+    const src = await newStaff(a, 'Source');
+    const t1 = await newStaff(a, 'T1');
+    await prisma.workingHours.createMany({
+      data: [{ businessId: a.businessId, staffId: src, weekday: 2, startLocal: '09:00', endLocal: '12:00' }],
+    });
+    // Old data from before the CHECK existed: only possible while the constraint is off.
+    await pg.query('ALTER TABLE "WorkingHours" DROP CONSTRAINT workinghours_end_after_start');
+    try {
+      await pg.query(
+        `INSERT INTO "WorkingHours" (id, "businessId", "staffId", weekday, "startLocal", "endLocal")
+         VALUES ('legacy1', $1, $2, 2, '15:00', '15:00'), ('legacy2', $1, $2, 3, '18:00', '09:00')`,
+        [a.businessId, src],
+      );
+      const res = await copy(a.cookie, src, { targetStaffIds: [t1] });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ staff: [{ staffId: t1, intervals: [iv(2, '09:00', '12:00')] }] });
+      expect(await rows(t1)).toEqual([iv(2, '09:00', '12:00')]);
+    } finally {
+      await pg.query("DELETE FROM \"WorkingHours\" WHERE id IN ('legacy1', 'legacy2')");
+      await pg.query(
+        'ALTER TABLE "WorkingHours" ADD CONSTRAINT workinghours_end_after_start CHECK ("endLocal" > "startLocal")',
+      );
+    }
+  });
+
   it('an empty source clears the targets', async () => {
     const src = await newStaff(a, 'Source');
     const t1 = await newStaff(a, 'T1');

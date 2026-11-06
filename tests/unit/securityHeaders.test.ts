@@ -40,7 +40,7 @@ describe('next.config headers()', async () => {
   });
 
   it('keeps no-referrer (and no-store) winning on the token routes', () => {
-    for (const path of ['/invite/x', '/l/a.b', '/o/x', '/pay/x', '/verify-email/x', '/reset-password/x']) {
+    for (const path of ['/invite/x', '/l/a.b', '/o/x', '/pay/x', '/verify-email/x', '/reset-password/x', '/activate/x']) {
       expect(effective(rules, path)['Referrer-Policy'], path).toBe('no-referrer');
     }
     expect(effective(rules, '/l/a.b')['Cache-Control']).toBe('no-store');

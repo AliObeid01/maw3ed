@@ -196,7 +196,7 @@ export function TeamAccess({
                       {m.isYou ? <span className="font-normal text-muted"> {t('you')}</span> : null}
                     </span>
                     <span dir="ltr" className="truncate text-start text-[13px] text-muted">
-                      {m.email}
+                      {m.email ?? ''}
                     </span>
                     <span className="mt-1 flex flex-wrap gap-1.5">
                       <Chip tone={m.role === 'OWNER' ? 'brand' : 'neutral'}>

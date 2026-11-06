@@ -33,8 +33,8 @@ export const INTL_SCOPES = {
     // Shared money/duration formatting (useAppFormat); the rest of `app` is dashboard-only.
     'app.format',
   ],
-  /** `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/invite`, `/verify-email`. */
-  auth: ['common', 'ui', 'auth', 'recovery', 'verify', 'app.format'],
+  /** `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/invite`, `/verify-email`, `/activate`. */
+  auth: ['common', 'ui', 'auth', 'recovery', 'verify', 'activation', 'app.format'],
   /** `/app/**`. */
   app: [
     'common',

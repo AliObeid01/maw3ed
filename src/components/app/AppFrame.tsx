@@ -11,6 +11,7 @@ import { greetingFor } from '@/lib/dashboard/agenda';
 import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
+import { PractitionerFrame } from './PractitionerFrame';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
@@ -140,6 +141,15 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
 
 /** Client frame for the protected dashboard: shell, toasts and the session context. */
 export function AppFrame({ session, children }: { session: AppSession; children: ReactNode }) {
+  // A barber with a phone login gets the minimal frame: no navigation, no summary requests (default-deny).
+  if (session.role === 'PRACTITIONER')
+    return (
+      <SessionProvider value={session}>
+        <ToastProvider>
+          <PractitionerFrame session={session}>{children}</PractitionerFrame>
+        </ToastProvider>
+      </SessionProvider>
+    );
   return (
     <SessionProvider value={session}>
       <ToastProvider>

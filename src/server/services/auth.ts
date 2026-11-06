@@ -1,5 +1,6 @@
 import { slugProblem } from '@/server/contracts/slug';
 import type { RoleName } from '@/server/http/auth';
+import { parseLoginIdentifier } from '@/server/domain/loginIdentifier';
 import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { AppError, fromDbError } from '@/server/http/errors';
 import type { RouteContext, SessionContext } from '@/server/http/withRoute';
@@ -13,7 +14,14 @@ import { emailVerificationService } from './emailVerification';
 import { sessionService } from './session';
 
 export interface SessionInfo {
-  user: { id: string; name: string; email: string; emailVerified: boolean };
+  user: {
+    id: string;
+    name: string;
+    /** Null for phone-only accounts (staff logins). */
+    email: string | null;
+    phone: string | null;
+    emailVerified: boolean;
+  };
   business: { id: string; slug: string; name: string; timezone: string };
   role: RoleName;
 }
@@ -26,7 +34,13 @@ export interface SignedIn {
 }
 
 export const toSessionInfo = (
-  user: { id: string; name: string; email: string; emailVerifiedAt: Date | null },
+  user: {
+    id: string;
+    name: string;
+    email: string | null;
+    phone?: string | null;
+    emailVerifiedAt: Date | null;
+  },
   business: { id: string; slug: string; name: string; timezone: string },
   role: RoleName,
 ): SessionInfo => ({
@@ -34,6 +48,7 @@ export const toSessionInfo = (
     id: user.id,
     name: user.name,
     email: user.email,
+    phone: user.phone ?? null,
     emailVerified: user.emailVerifiedAt !== null,
   },
   business: {
@@ -104,7 +119,12 @@ export const authService = {
       });
       ctx.logger.info({ businessId: business.id, userId: user.id }, 'business signed up');
       // Soft verification: the account works now; a failed send never fails the signup (Resend is in the banner).
-      await emailVerificationService.sendForNewAccount(ctx, user, business, deps.now());
+      await emailVerificationService.sendForNewAccount(
+        ctx,
+        { id: user.id, email: input.email },
+        business,
+        deps.now(),
+      );
       return {
         info: toSessionInfo(user, business, 'OWNER'),
         token: session.token,
@@ -136,14 +156,19 @@ export const authService = {
    */
   async login(
     ctx: RouteContext,
-    input: { email: string; password: string },
+    input: { identifier?: string; email?: string; password: string },
     deps: AuthDeps = defaultDeps,
   ): Promise<SignedIn> {
     const now = deps.now();
     const ip = ctx.ip ?? UNKNOWN_IP;
-    const ticket = await deps.guard.attempt(input.email, ip);
+    // E-mail or phone, whichever the person typed. The guard key is the canonical form, so every spelling of
+    // one phone number shares one bucket; unparsable text is an unknown account (dummy hash, same 401).
+    const raw = (input.identifier ?? input.email ?? '').trim();
+    const parsed = parseLoginIdentifier(raw);
+    const guardKey = parsed?.value ?? raw.toLowerCase();
+    const ticket = await deps.guard.attempt(guardKey, ip);
 
-    const user = await userRepo.findByEmail(input.email);
+    const user = parsed ? await userRepo.findByIdentifier(parsed) : null;
     const valid = await verifyPassword(input.password, user?.passwordHash);
     const membership = valid && user ? await membershipRepo.findLatestForUser(user.id) : null;
     if (!user || !valid || !membership) {
@@ -164,7 +189,7 @@ export const authService = {
       throw AppError.invalidCredentials();
     }
     // Only a login that really produced a session clears the failure counters.
-    await deps.guard.succeeded(input.email, ip, ticket);
+    await deps.guard.succeeded(guardKey, ip, ticket);
     ctx.logger.info({ businessId: membership.businessId, userId: user.id }, 'login');
     return {
       info: toSessionInfo(user, membership.business, membership.role),
@@ -198,6 +223,7 @@ export const authService = {
       userId: user.id,
       userName: user.name,
       email: user.email,
+      phone: user.phone,
       emailVerified: user.emailVerifiedAt !== null,
       businessId: business.id,
       businessName: business.name,

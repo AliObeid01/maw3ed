@@ -54,6 +54,10 @@ export const RATE_POLICIES = {
   changePasswordUser: { windowSec: 15 * MIN, limit: 5 },
   /** POST /api/auth/sign-out-others, per ip (one cheap DELETE; the cap only stops scripted floods) */
   signOutOthersIp: { windowSec: 10 * MIN, limit: 20 },
+  /** GET/POST /api/activation/{token}, per ip (the POST costs an argon2 hash) */
+  activationIp: { windowSec: 10 * MIN, limit: 20 },
+  /** POST /api/staff/{id}/login, per owner (service-level): each call mints a link */
+  staffLoginIssue: { windowSec: 60 * MIN, limit: 20 },
   /** Login attempts per (sha256(email), ip). A success clears it. */
   loginEmailIp: { windowSec: 15 * MIN, limit: 5 },
   /** Failed logins per ip across all emails. A success refunds its hit. */

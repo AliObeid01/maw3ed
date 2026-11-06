@@ -55,7 +55,17 @@ function StaffCard({
   const t = useTranslations('app.staff');
   const tint = member.active && member.bookable ? AVATAR_TINTS[index % 3] : 'bg-divider text-muted';
   const role =
-    member.role === 'OWNER' ? t('role.owner') : member.role === 'STAFF' ? t('role.login') : null;
+    member.role === 'OWNER'
+      ? t('role.owner')
+      : member.role === 'STAFF'
+        ? t('role.login')
+        : member.role === 'PRACTITIONER'
+          ? t('role.barber')
+          : member.loginStatus === 'NOT_ACTIVATED'
+            ? t('login.status.notActivated')
+            : member.loginStatus === 'OFF'
+              ? t('login.status.off')
+              : null;
   const services = t('serviceCount', { count: member.serviceIds.length });
   return (
     <button

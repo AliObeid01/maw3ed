@@ -28,11 +28,13 @@ lint, typecheck, unit, integration (local Docker Postgres, scratch schema `itest
 pnpm ci:local                              # all of it, stops at the first failure
 pnpm ci:local -- --keep-going              # run every step
 pnpm ci:local -- --e2e                     # also the Playwright projects CI uses (mobile, dashboard-mobile, desktop shell spec)
+pnpm ci:local -- --skip-int                 # light mode: everything except the integration suite (no Docker needed)
 pnpm ci:local -- --only lint,typecheck     # selected steps
 pnpm ci:local -- --dry-run                 # print the plan only
 pnpm ci:local -- --help
 ```
 
+- `--skip-int` drops three steps (`db-up`, `integration`, `db-drop`) and keeps the rest in order: lint, typecheck, unit, build, `openapi:check`, i18n keys, contrast. Agents use it before a PR, because `CLAUDE.md` forbids running the full integration suite locally (about 4 minutes); they run only the touched integration files, one at a time, on a new scratch schema (`ITEST_SCHEMA=itest_<name>`), and CI stays the full verdict. It cannot be combined with `--only integration`.
 - Needs Docker running for the integration step (`docker compose up -d --wait db`).
 - Uses the same throwaway env values as CI, never reads `.env` secrets, and refuses to run if `DATABASE_URL`, `DIRECT_URL` or `DATABASE_URL_TEST` in your shell point anywhere but localhost / 127.0.0.1.
 - It does not run `prisma migrate deploy`: the integration helpers apply the migrations inside the scratch schema, so no other schema is touched.
