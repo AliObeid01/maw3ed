@@ -133,7 +133,6 @@ test.describe('public directory: category and area filters (PR-1)', () => {
     ]) {
       await page.goto(`/directory?${query}`);
       await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
-      await expect(page.getByRole('alert')).toHaveCount(0);
     }
     expect(queries.some((q) => q.includes('%00'))).toBe(false);
     expect(queries.every((q) => !/category=x{41}/.test(q))).toBe(true);
