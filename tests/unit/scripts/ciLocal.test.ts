@@ -99,15 +99,15 @@ describe('ci-local: --skip-int (light mode for agents)', () => {
   });
 
   it('drops the database start, the integration run and the scratch-schema drop, keeps everything else in order', () => {
-    const full = ci.buildSteps({ e2e: false }).map((s) => s.id);
-    const light = ci.buildSteps({ e2e: false, skipInt: true }).map((s) => s.id);
-    expect(light).toEqual(full.filter((id) => !['db-up', 'integration', 'db-drop'].includes(id)));
+    const full = ci.buildSteps({ e2e: false }).map((s: Step) => s.id);
+    const light = ci.buildSteps({ e2e: false, skipInt: true }).map((s: Step) => s.id);
+    expect(light).toEqual(full.filter((id: string) => !['db-up', 'integration', 'db-drop'].includes(id)));
     expect(light).toEqual(['lint', 'typecheck', 'unit', 'build', 'openapi', 'i18n', 'contrast']);
   });
 
   it('is still the default plan without the flag, and --e2e steps survive it', () => {
-    expect(ci.buildSteps({ e2e: false }).map((s) => s.id)).toContain('integration');
-    expect(ci.buildSteps({ e2e: true, skipInt: true }).map((s) => s.id)).toEqual(
+    expect(ci.buildSteps({ e2e: false }).map((s: Step) => s.id)).toContain('integration');
+    expect(ci.buildSteps({ e2e: true, skipInt: true }).map((s: Step) => s.id)).toEqual(
       expect.arrayContaining(['e2e-mobile', 'e2e-desktop']),
     );
   });
