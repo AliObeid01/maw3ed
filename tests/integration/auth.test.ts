@@ -243,9 +243,20 @@ describe('POST /api/auth/login', () => {
   });
 
   it('400 on invalid payload and unknown field', async () => {
+    // The box takes an email OR a phone, so unparsable text is not a 400 (it is an unknown account: the same 401).
     const bad = await call(login, '/api/auth/login', { body: { email: 'nope', password: '' } });
     expect(bad.status).toBe(400);
-    expect(Object.keys(bad.body!.error.fields).sort()).toEqual(['email', 'password']);
+    expect(Object.keys(bad.body!.error.fields).sort()).toEqual(['password']);
+    const neither = await call(login, '/api/auth/login', { body: { password: 'x' } });
+    expect(neither.status).toBe(400);
+    const both = await call(login, '/api/auth/login', {
+      body: { email: 'a@b.test', identifier: 'a@b.test', password: 'x' },
+    });
+    expect(both.status).toBe(400);
+    const garbage = await call(login, '/api/auth/login', {
+      body: { identifier: 'nope', password: 'whatever-it-is' },
+    });
+    expect(garbage.status).toBe(401);
     const unknown = await call(login, '/api/auth/login', {
       body: { email: 'a@b.test', password: 'x', remember: true },
     });

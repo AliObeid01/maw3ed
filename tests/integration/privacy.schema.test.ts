@@ -74,11 +74,12 @@ describe('NFR-04 privacy: no free-text personal data', () => {
     );
   });
 
-  it('User holds only name, email, password hash, verification time and bookkeeping', async () => {
+  it('User holds only name, email, phone, password hash, verification time and bookkeeping', async () => {
     expect(await columns('User')).toEqual(
       [
         'id',
         'email',
+        'phone', // E.164 staff login (PR-4)
         'passwordHash',
         'name',
         'emailVerifiedAt', // when the address was proven (timestamp only)
