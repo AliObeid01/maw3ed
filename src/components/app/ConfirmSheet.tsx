@@ -16,6 +16,7 @@ export function ConfirmSheet({
   cancelLabel,
   closeLabel,
   pending = false,
+  confirmVariant = 'danger',
   onConfirm,
 }: {
   open: boolean;
@@ -26,6 +27,8 @@ export function ConfirmSheet({
   cancelLabel: string;
   closeLabel: string;
   pending?: boolean;
+  /** Danger (default) for a destructive action; primary for one that only changes a record. */
+  confirmVariant?: 'danger' | 'primary';
   onConfirm: () => void;
 }) {
   return (
@@ -37,7 +40,7 @@ export function ConfirmSheet({
       closeLabel={closeLabel}
     >
       <div className="flex flex-col gap-2.5 pt-2">
-        <Button variant="danger" size="lg" block loading={pending} onClick={onConfirm}>
+        <Button variant={confirmVariant} size="lg" block loading={pending} onClick={onConfirm}>
           {confirmLabel}
         </Button>
         <Button variant="secondary" size="lg" block onClick={() => onOpenChange(false)}>

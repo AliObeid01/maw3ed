@@ -55,6 +55,13 @@ export const markOutcome = (id: string, outcome: Outcome) =>
     body: { outcome },
   });
 
+/** Turn a no-show or late cancel into a normal cancellation and take it off the client's history counters. */
+export const excuseAppointment = (id: string) =>
+  request(`/api/appointments/${encodeURIComponent(id)}/excuse`, outcomeResultSchema, {
+    method: 'POST',
+    body: {},
+  });
+
 // ---- One appointment -------------------------------------------------------------------------------
 
 export const appointmentSchema = z.object({

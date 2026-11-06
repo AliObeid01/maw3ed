@@ -35,6 +35,8 @@ export const OutcomeResultDto = registry.register(
   }),
 );
 
+export const ExcuseBody = registry.register('ExcuseBody', z.object({}).strict());
+
 export const QueueQuery = z
   .object({ limit: z.coerce.number().int().min(1).max(100).default(100) })
   .strict();
@@ -68,7 +70,7 @@ registry.registerPath({
   path: '/api/appointments/{id}/outcome',
   summary: 'Record attended / no-show / late cancel (and correct it later)',
   description:
-    'Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW and LATE_CANCEL are allowed once it started. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
+    'Only for appointments that have started (409 NOT_STARTED); ATTENDED additionally needs the appointment to have ended (409 NOT_ENDED), because leaving BOOKED/CONFIRMED re-opens the slot in the no-overlap constraint; NO_SHOW is allowed from 10 minutes after the start (409 NO_SHOW_TOO_EARLY, with data.availableAt = the ISO instant it opens), so a client who is a few minutes late does not lose the slot to a walk-in; LATE_CANCEL is allowed once it started. The grace applies only when moving into NO_SHOW from BOOKED or CONFIRMED: a correction from an outcome already recorded is never held back. Re-marking between outcomes moves one count between the client counters in the same transaction; the same outcome again is a no-op 200. CANCELLED appointments, and a LATE_CANCEL recorded by the cancel flow, cannot become attended or no-show (409 CONFLICT).',
   tags: ['outcomes'],
   security: session,
   request: { params: OutcomeParams, body: { content: json(OutcomeBody) } },
@@ -78,7 +80,25 @@ registry.registerPath({
     401: errorResponses[401],
     403: errorResponses[403],
     404: errorResponses[404],
-    409: err('NOT_STARTED, NOT_ENDED or CONFLICT'),
+    409: err('NOT_STARTED, NO_SHOW_TOO_EARLY (data.availableAt), NOT_ENDED or CONFLICT'),
+  },
+});
+registry.registerPath({
+  method: 'post',
+  path: '/api/appointments/{id}/excuse',
+  summary: 'Excuse a no-show or a late cancel (turns it into a normal cancellation)',
+  description:
+    'For an appointment whose status is NO_SHOW or LATE_CANCEL (marked by staff or written by the cancel link). In one transaction, with the appointment row locked: the status becomes CANCELLED and the matching client counter (noShows or lateCancels) goes down by one, never below 0. cancelledAt / cancelledVia set by the cancel link are kept; otherwise cancelledVia is STAFF. No reason is accepted or stored. Idempotent: an appointment that is already CANCELLED answers 200 and changes nothing. 409 CONFLICT for BOOKED, CONFIRMED, ATTENDED and PENDING_PAYMENT. OWNER and STAFF. Does not touch appointment_no_overlap (none of these statuses is in its active set).',
+  tags: ['outcomes'],
+  security: session,
+  request: { params: OutcomeParams, body: { content: json(ExcuseBody) } },
+  responses: {
+    200: { description: 'Excused (or already cancelled)', content: json(OutcomeResultDto) },
+    400: errorResponses[400],
+    401: errorResponses[401],
+    403: errorResponses[403],
+    404: errorResponses[404],
+    409: err('CONFLICT'),
   },
 });
 registry.registerPath({

@@ -40,11 +40,12 @@ test.describe('Settings: business profile', () => {
     await expect(page.getByLabel('Address')).toHaveValue('Riad El Solh St');
   });
 
-  test('offers exactly the seven areas and the seven categories', async ({ page }) => {
+  test('offers Not set first, then exactly the seven areas and the seven categories', async ({ page }) => {
     await mockSetupApi(page, { state: defaultState() });
     await page.goto('/app/settings');
     await page.getByRole('combobox', { name: 'Area' }).click();
     await expect(page.getByRole('option')).toHaveText([
+      'Not set',
       'Sidon',
       'Beirut',
       'Tripoli',
@@ -56,6 +57,7 @@ test.describe('Settings: business profile', () => {
     await page.keyboard.press('Escape');
     await page.getByRole('combobox', { name: 'Category' }).click();
     await expect(page.getByRole('option')).toHaveText([
+      'Not set',
       'Barbers',
       'Hair salons',
       'Dental clinics',
@@ -64,6 +66,40 @@ test.describe('Settings: business profile', () => {
       'Physiotherapy',
       'Other',
     ]);
+  });
+
+  test('Not set clears category and area (null is sent); an unchanged unset field sends nothing', async ({ page }) => {
+    const state = defaultState();
+    state.business.category = 'barbers';
+    state.business.area = 'sidon';
+    const { calls } = await mockSetupApi(page, { state });
+    await page.goto('/app/settings');
+    await selectOption(page, 'Category', 'Not set');
+    await selectOption(page, 'Area', 'Not set');
+    await page.getByRole('button', { name: 'Save settings' }).last().click();
+    await expect(page.getByRole('status').filter({ hasText: 'Settings saved' })).toBeVisible();
+    expect(patchBody(calls).at(-1)).toMatchObject({ category: null, area: null });
+    expect(await pickerText(page, 'Category')).toBe('Not set');
+    expect(await pickerText(page, 'Area')).toBe('Not set');
+
+    await page.getByLabel('Booking window').fill('45');
+    await page.getByRole('button', { name: 'Save settings' }).last().click();
+    await expect(page.getByRole('status').filter({ hasText: 'Settings saved' }).last()).toBeVisible();
+    expect(patchBody(calls).at(-1)).not.toHaveProperty('category');
+    expect(patchBody(calls).at(-1)).not.toHaveProperty('area');
+  });
+
+  test('a listed business that clears a field keeps its listing and is told how it shows', async ({ page }) => {
+    const state = defaultState();
+    state.business.listed = true;
+    state.business.category = 'barbers';
+    state.business.area = 'sidon';
+    await mockSetupApi(page, { state });
+    await page.goto('/app/settings');
+    await selectOption(page, 'Area', 'Not set');
+    await expect(page.getByRole('combobox', { name: 'Area' })).toHaveAccessibleDescription(
+      /Your business is listed. Without this/,
+    );
   });
 
   test('rejects an address over 120 characters locally, with an inline error', async ({ page }) => {
@@ -104,6 +140,9 @@ test.describe('Settings: business profile', () => {
     const { calls } = await mockSetupApi(page, { state });
     await page.goto('/app/settings');
     expect(await pickerText(page, 'Category')).toBe('Current: Hair salon');
+    await expect(page.getByRole('combobox', { name: 'Category' })).toHaveAccessibleDescription(
+      'Pick a listed category to appear in the category filters.',
+    );
 
     await page.getByLabel('Booking window').fill('45');
     await page.getByRole('button', { name: 'Save settings' }).last().click();
@@ -138,6 +177,7 @@ test.describe('Settings: business profile', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await page.getByRole('combobox', { name: 'المنطقة', exact: true }).click();
     await expect(page.getByRole('option')).toHaveText([
+      'غير محدد',
       'صيدا',
       'بيروت',
       'طرابلس',

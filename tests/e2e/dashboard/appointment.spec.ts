@@ -197,7 +197,7 @@ test('a late cancel is final: Attended and No-show are locked with the reason, L
   const outcome = page.getByRole('region', { name: 'Outcome' });
   const attended = outcome.getByRole('button', { name: /as Attended/ });
   await expect(attended).toBeDisabled();
-  await expect(attended).toHaveAccessibleDescription(/A late cancel is final/);
+  await expect(attended).toHaveAccessibleDescription(/A late cancel cannot be changed to Attended or No-show/);
   await expect(outcome.getByRole('button', { name: /as No-show/ })).toBeDisabled();
   await expect(outcome.getByRole('button', { name: /as Late cancel/ })).toHaveAttribute('aria-pressed', 'true');
 });

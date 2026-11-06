@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cutoffUnit, normaliseDigits, parsePrice, parseWhole } from '@/lib/setup/duration';
-import { cutoffMinutes, toSettingsValues } from '@/lib/setup/settingsForm';
+import { cutoffMinutes, profilePatch, toSettingsValues } from '@/lib/setup/settingsForm';
 
 const business = (cancelCutoffMin: number) => ({
   name: 'Studio Nour',
@@ -46,6 +46,31 @@ describe('cancellation cutoff unit', () => {
   it('rejects non-numeric cutoff text', () => {
     expect(cutoffMinutes('', 'min')).toBeNull();
     expect(cutoffMinutes('1.5', 'hours')).toBeNull();
+  });
+});
+
+describe('profilePatch (category and area only travel when changed; "Not set" clears)', () => {
+  const base = { category: 'barbers', area: 'sidon' };
+
+  it('sends nothing when nothing changed, including a legacy free-text category', () => {
+    expect(profilePatch(base, base)).toEqual({});
+    expect(profilePatch({ category: 'Salon', area: '' }, { category: 'Salon', area: '' })).toEqual({});
+  });
+  it('sends a changed key', () => {
+    expect(profilePatch({ category: 'spa-massage', area: 'tyre' }, base)).toEqual({
+      category: 'spa-massage',
+      area: 'tyre',
+    });
+  });
+  it('"Not set" (empty) sends null to clear', () => {
+    expect(profilePatch({ category: '', area: '' }, base)).toEqual({ category: null, area: null });
+    expect(profilePatch({ category: '', area: 'sidon' }, { category: 'Salon', area: 'sidon' })).toEqual({
+      category: null,
+    });
+  });
+  it('never writes a free-text value back', () => {
+    expect(profilePatch({ category: 'Salon', area: 'sidon' }, base)).toEqual({});
+    expect(profilePatch({ category: 'barbers', area: 'unknown' }, base)).toEqual({});
   });
 });
 

@@ -30,6 +30,21 @@ describe('outcomeFailure', () => {
     expect(outcomeFailure(new ApiError(409, 'CONFLICT', 'x'))).toEqual({ kind: 'conflict' });
     expect(outcomeFailure(new ApiError(404, 'NOT_FOUND', 'x'))).toEqual({ kind: 'notFound' });
   });
+  it('maps NO_SHOW_TOO_EARLY with the time it opens, and tolerates a missing or odd payload', () => {
+    expect(
+      outcomeFailure(
+        new ApiError(409, 'NO_SHOW_TOO_EARLY', 'x', {}, { availableAt: '2026-11-04T12:10:00.000Z' }),
+      ),
+    ).toEqual({ kind: 'tooEarly', availableAt: '2026-11-04T12:10:00.000Z' });
+    expect(outcomeFailure(new ApiError(409, 'NO_SHOW_TOO_EARLY', 'x'))).toEqual({
+      kind: 'tooEarly',
+      availableAt: null,
+    });
+    expect(outcomeFailure(new ApiError(409, 'NO_SHOW_TOO_EARLY', 'x', {}, { availableAt: 5 }))).toEqual({
+      kind: 'tooEarly',
+      availableAt: null,
+    });
+  });
   it('keeps anything else for the generic message', () => {
     const e = new ApiError(500, 'INTERNAL', 'x');
     expect(outcomeFailure(e)).toEqual({ kind: 'other', error: e });

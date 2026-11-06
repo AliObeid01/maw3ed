@@ -23,14 +23,13 @@ import {
   ADDRESS_MAX,
   AREA_KEYS,
   CATEGORY_KEYS,
-  isAreaKey,
-  isCategoryKey,
   legacyCategory,
 } from '@/lib/business/profile';
 import { cn } from '@/lib/cn';
 import { cutoffUnit, parseWhole } from '@/lib/setup/duration';
 import {
   cutoffMinutes,
+  profilePatch,
   toSettingsValues,
   type CutoffUnit,
   type SettingsValues,
@@ -181,6 +180,7 @@ function SettingsForm({
   const legacy = legacyCategory(values.category) ?? legacyCategory(business.category);
   const categoryOptions = useMemo<SelectOption[]>(
     () => [
+      { value: '', label: t('field.notSet') },
       ...(legacy
         ? [{ value: legacy, label: t('field.categoryCurrent', { value: legacy }), searchText: legacy }]
         : []),
@@ -189,8 +189,11 @@ function SettingsForm({
     [legacy, categoryLabel, t],
   );
   const areaOptions = useMemo<SelectOption[]>(
-    () => AREA_KEYS.map((key) => ({ value: key, label: areaLabel(key) ?? key })),
-    [areaLabel],
+    () => [
+      { value: '', label: t('field.notSet') },
+      ...AREA_KEYS.map((key) => ({ value: key, label: areaLabel(key) ?? key })),
+    ],
+    [areaLabel, t],
   );
 
   const slotChoices = [...new Set([...SLOT_CHOICES, values.slotStepMin])].sort((a, b) => a - b);
@@ -237,10 +240,7 @@ function SettingsForm({
         minNoticeMin: notice!,
         cancelCutoffMin: cutoff!,
         // Profile fields are sent only when changed, so a legacy free-text category is never written back.
-        ...(values.category !== baseline.category && isCategoryKey(values.category)
-          ? { category: values.category }
-          : {}),
-        ...(values.area !== baseline.area && isAreaKey(values.area) ? { area: values.area } : {}),
+        ...profilePatch(values, baseline),
         ...(address !== baseline.address.trim() ? { address: address || null } : {}),
       });
       const savedValues = toSettingsValues(saved, unit);
@@ -329,7 +329,13 @@ function SettingsForm({
             options={categoryOptions}
             onChange={(value) => set('category', value)}
             error={errors.category}
-            hint={t('field.categoryHint')}
+            hint={
+              legacy && values.category === legacy
+                ? t('field.categoryLegacyHint')
+                : business.listed && values.category === ''
+                  ? t('field.listedClearedHint')
+                  : t('field.categoryHint')
+            }
           />
           <Select
             label={t('field.area')}
@@ -339,7 +345,9 @@ function SettingsForm({
             options={areaOptions}
             onChange={(value) => set('area', value)}
             error={errors.area}
-            hint={t('field.areaHint')}
+            hint={
+              business.listed && values.area === '' ? t('field.listedClearedHint') : t('field.areaHint')
+            }
           />
           <Input
             label={t('field.address')}

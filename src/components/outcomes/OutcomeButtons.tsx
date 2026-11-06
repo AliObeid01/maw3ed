@@ -28,6 +28,7 @@ function OutcomeButton({
   anyPending,
   onPick,
   describedBy,
+  graceHintId,
 }: {
   name: string;
   outcome: Outcome;
@@ -36,6 +37,7 @@ function OutcomeButton({
   anyPending: boolean;
   onPick: (outcome: Outcome) => void;
   describedBy?: string;
+  graceHintId?: string;
 }) {
   const t = useTranslations('app.outcomes');
   const ts = useTranslations('ui.status');
@@ -48,7 +50,7 @@ function OutcomeButton({
       disabled={disabled}
       aria-pressed={state === 'current' ? true : undefined}
       aria-busy={pending || undefined}
-      aria-describedby={blocked ? describedBy : undefined}
+      aria-describedby={state === 'grace' ? graceHintId : blocked ? describedBy : undefined}
       aria-label={t('markAria', { name, outcome: label })}
       onClick={() => onPick(outcome)}
       className={cn(
@@ -74,6 +76,7 @@ export function OutcomeButtons({
   pending = null,
   onPick,
   describedBy,
+  graceHintId,
 }: {
   name: string;
   states?: Partial<Record<Outcome, OptionState>>;
@@ -81,6 +84,8 @@ export function OutcomeButtons({
   onPick: (outcome: Outcome) => void;
   /** Id of a hint that explains a disabled button. */
   describedBy?: string;
+  /** Id of the 'No-show is available from HH:mm' hint, shown while the No-show grace period runs. */
+  graceHintId?: string;
 }) {
   const t = useTranslations('app.outcomes');
   return (
@@ -95,6 +100,7 @@ export function OutcomeButtons({
           anyPending={pending !== null}
           onPick={onPick}
           describedBy={describedBy}
+          graceHintId={graceHintId}
         />
       ))}
     </div>

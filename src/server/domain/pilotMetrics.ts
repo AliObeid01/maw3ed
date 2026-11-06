@@ -15,7 +15,7 @@ import { DateTime } from 'luxon';
 
 /** Shown to the owner next to the numbers. One definition for the baseline and the pilot. */
 export const RATE_DEFINITION =
-  'No-shows divided by (attended + no-shows). Cancellations and late cancels are excluded.';
+  'No-shows divided by (attended + no-shows). Cancellations and late cancels are excluded. A no-show that staff excused counts as a cancellation.';
 export const BASELINE_DEFINITION =
   'Baseline appointments are those held or missed (attended + no-shows), excluding cancellations and late cancels, which are entered separately. Baseline rate = no-shows / appointments.';
 export const MAX_BASELINE_COUNT = 10000;

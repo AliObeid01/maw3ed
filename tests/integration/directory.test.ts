@@ -362,6 +362,45 @@ describe('PATCH /api/business { listed } needs category and area (PR-1)', () => 
     expect((await patch(t.cookie, { area: 'beirut' })).body).toMatchObject({ listed: true });
   });
 
+  it('is atomic: a concurrent write that clears the area before the listing commits makes the listing fail (no listed business without an area)', async () => {
+    const t = await tenant('Racing', { listed: false, category: 'barbers', area: 'sidon' });
+    // A second connection clears the area and holds the business row lock (not yet committed).
+    const other = newClient();
+    await other.connect();
+    try {
+      await other.query('BEGIN');
+      await other.query(`UPDATE "Business" SET area = NULL WHERE id = $1`, [t.businessId]);
+      const listing = patch(t.cookie, { listed: true });
+      await new Promise((r) => setTimeout(r, 400)); // the listing request now waits on the row
+      await other.query('COMMIT');
+      const res = await listing;
+      expect(res.status).toBe(400);
+      expect(Object.keys(res.body!.error.fields)).toEqual(['area']);
+    } finally {
+      await other.end();
+    }
+    const row = await pg.query(`SELECT listed, area FROM "Business" WHERE id = $1`, [t.businessId]);
+    expect(row.rows[0]).toEqual({ listed: false, area: null });
+  });
+
+  it('two truly concurrent requests (list + clear area) never fail with a 5xx and keep grandfathering', async () => {
+    for (let i = 0; i < 5; i++) {
+      const t = await tenant(`Both ${i}`, { listed: false, category: 'barbers', area: 'sidon' });
+      const [a, b] = await Promise.all([
+        patch(t.cookie, { listed: true }),
+        patch(t.cookie, { area: null }),
+      ]);
+      expect(b.status).toBe(200);
+      expect([200, 400]).toContain(a.status);
+      const row = (
+        await pg.query(`SELECT listed, area FROM "Business" WHERE id = $1`, [t.businessId])
+      ).rows[0];
+      // 200 listed: the listing won the lock first (area is cleared afterwards, grandfathered).
+      // 400: the clear won, so the business is not listed.
+      expect(row.listed).toBe(a.status === 200);
+    }
+  });
+
   it('turning listing off needs no profile', async () => {
     const t = await tenant('Off', { category: null, area: null });
     expect((await patch(t.cookie, { listed: false })).status).toBe(200);

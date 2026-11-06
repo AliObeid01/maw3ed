@@ -106,7 +106,7 @@ model Business {
   /// A key of AREA_KEYS. NULL = not set (every row before PR-1).
   area              String?
   address           String?
-  timezone         String   @default("Asia/Beirut")
+  timezone          String   @default("Asia/Beirut")
   locale            String   @default("en")
   currency          String   @default("USD")
   slotStepMin       Int      @default(15)

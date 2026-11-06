@@ -1,6 +1,13 @@
 export type OutcomeTarget = 'ATTENDED' | 'NO_SHOW' | 'LATE_CANCEL';
 export type CounterField = 'attended' | 'noShows' | 'lateCancels';
 
+/**
+ * Minutes after the start before a booking that nobody has marked can become NO_SHOW. A No-show frees the slot in
+ * appointment_no_overlap, so a client who is a few minutes late must not lose their time to a walk-in. Fixed, not a
+ * business setting. LATE_CANCEL is not held back: the client has said they are not coming.
+ */
+export const NO_SHOW_GRACE_MIN = 10;
+
 const COUNTER: Record<OutcomeTarget, CounterField> = {
   ATTENDED: 'attended',
   NO_SHOW: 'noShows',
@@ -21,6 +28,7 @@ export interface PlanInput {
 export type OutcomePlan =
   | { kind: 'not_started' }
   | { kind: 'not_ended' }
+  | { kind: 'grace_period'; availableAt: Date }
   | { kind: 'conflict' }
   | { kind: 'noop' }
   | { kind: 'apply'; decrement: CounterField | null; increment: CounterField };
@@ -59,8 +67,15 @@ function decide(input: PlanInput): OutcomePlan {
   if (status === 'LATE_CANCEL' && input.cancelledVia !== null)
     return target === 'LATE_CANCEL' ? { kind: 'noop' } : { kind: 'conflict' };
 
-  if (status === 'BOOKED' || status === 'CONFIRMED')
+  if (status === 'BOOKED' || status === 'CONFIRMED') {
+    // The grace period applies only to moving INTO no-show from an unmarked booking. A correction from an outcome
+    // that is already recorded (ATTENDED / LATE_CANCEL set by staff) is not re-blocked: the slot was already free.
+    if (target === 'NO_SHOW') {
+      const availableAt = new Date(input.startAt.getTime() + NO_SHOW_GRACE_MIN * 60_000);
+      if (availableAt.getTime() > input.now.getTime()) return { kind: 'grace_period', availableAt };
+    }
     return { kind: 'apply', decrement: null, increment: COUNTER[target] };
+  }
 
   if (status === 'ATTENDED' || status === 'NO_SHOW' || status === 'LATE_CANCEL') {
     if (status === target) return { kind: 'noop' };
@@ -72,3 +87,24 @@ function decide(input: PlanInput): OutcomePlan {
   }
   return { kind: 'conflict' };
 }
+
+export type ExcusePlan =
+  | { kind: 'noop' }
+  | { kind: 'conflict' }
+  | { kind: 'apply'; decrement: CounterField };
+
+/**
+ * Excuse a no-show or a late cancel: the booking becomes a normal CANCELLED one and the matching client counter
+ * goes down by one. Works for a mark set by staff and for a LATE_CANCEL written by the cancel link. An appointment
+ * that is already CANCELLED is a no-op (idempotent). Every other status conflicts. Neither the source nor the target
+ * status is in the active set of appointment_no_overlap, so the slot is not touched.
+ */
+export function planExcuse(input: { status: string }): ExcusePlan {
+  if (input.status === 'NO_SHOW') return { kind: 'apply', decrement: 'noShows' };
+  if (input.status === 'LATE_CANCEL') return { kind: 'apply', decrement: 'lateCancels' };
+  if (input.status === 'CANCELLED') return { kind: 'noop' };
+  return { kind: 'conflict' };
+}
+
+/** A counter after an excuse: one less, never below zero. */
+export const decrementCounter = (count: number): number => Math.max(0, count - 1);

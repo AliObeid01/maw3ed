@@ -42,6 +42,12 @@ export const outcomesService = {
             undefined,
             'This appointment has not started yet.',
           );
+        case 'grace_period':
+          throw AppError.conflict(
+            'NO_SHOW_TOO_EARLY',
+            { availableAt: res.availableAt.toISOString() },
+            'A no-show can be recorded 10 minutes after the start, in case the client is running late.',
+          );
         case 'not_ended':
           throw AppError.conflict(
             'NOT_ENDED',
@@ -70,6 +76,38 @@ export const outcomesService = {
       }
     }
     throw AppError.conflict('CONFLICT', undefined, 'The appointment changed; try again.');
+  },
+
+  /**
+   * Excuse a no-show or late cancel: it becomes a normal cancellation and the client's counter goes down once.
+   * Idempotent. Logs ids only (who and when), never a name, phone or email.
+   */
+  async excuse(ctx: SessionContext, id: string, now: () => Date = () => new Date()) {
+    requireRole(ctx, 'OWNER', 'STAFF');
+    const res = await outcomeRepo.excuse(ctx.businessId, id, now());
+    switch (res.kind) {
+      case 'not_found':
+        throw AppError.notFound();
+      case 'conflict':
+        throw AppError.conflict(
+          'CONFLICT',
+          undefined,
+          'Only a no-show or a late cancel can be excused.',
+        );
+      case 'applied':
+        if (res.drift)
+          ctx.logger.warn(
+            { businessId: ctx.businessId, appointmentId: id },
+            'client counter drift: an excuse found its counter already at 0',
+          );
+        ctx.logger.info(
+          { businessId: ctx.businessId, appointmentId: id, userId: ctx.userId, at: now().toISOString() },
+          'appointment outcome excused',
+        );
+        return toDto(res.row);
+      case 'noop':
+        return toDto(res.row);
+    }
   },
 
   async queue(ctx: SessionContext, limit: number, now: () => Date = () => new Date()) {

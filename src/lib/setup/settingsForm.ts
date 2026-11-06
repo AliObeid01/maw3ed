@@ -1,3 +1,4 @@
+import { isAreaKey, isCategoryKey, type BusinessArea, type BusinessCategory } from '@/lib/business/profile';
 import { cutoffFromDisplay, cutoffToDisplay, parseWhole } from './duration';
 
 export type CutoffUnit = 'hours' | 'min';
@@ -45,6 +46,26 @@ export function toSettingsValues(business: SettingsSource, unit: CutoffUnit): Se
     area: business.area ?? '',
     address: business.address ?? '',
   };
+}
+
+/**
+ * Category and area for the PATCH body. They are sent only when changed, so a legacy free-text category is never
+ * written back; "Not set" (empty) sends null, which clears the field (the API accepts null and never unlists).
+ */
+export function profilePatch(
+  values: { category: string; area: string },
+  baseline: { category: string; area: string },
+): { category?: BusinessCategory | null; area?: BusinessArea | null } {
+  const patch: { category?: BusinessCategory | null; area?: BusinessArea | null } = {};
+  if (values.category !== baseline.category) {
+    if (values.category === '') patch.category = null;
+    else if (isCategoryKey(values.category)) patch.category = values.category;
+  }
+  if (values.area !== baseline.area) {
+    if (values.area === '') patch.area = null;
+    else if (isAreaKey(values.area)) patch.area = values.area;
+  }
+  return patch;
 }
 
 /** Cutoff in minutes from the typed field and its unit; null when not a whole number. */

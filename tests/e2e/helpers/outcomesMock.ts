@@ -17,7 +17,7 @@ import {
   RATE_DEFINITION,
 } from '../../../src/server/domain/pilotMetrics';
 import { effectiveEmail } from '../../../src/server/domain/contactEmail';
-import { planOutcome } from '../../../src/server/domain/outcomes';
+import { planExcuse, planOutcome } from '../../../src/server/domain/outcomes';
 
 /**
  * Stateful in-memory stand-in for the outcomes, appointment, clients and pilot APIs, answered by page.route.
@@ -147,6 +147,8 @@ export type OutcomesOptions = {
   outcomeScript?: Array<'ok' | '500' | 'slow'>;
   /** Per PATCH /contact attempt, in order: 'ok' (default), '409' (not editable), '404', '500' or 'slow'. */
   contactScript?: Array<'ok' | '409' | '404' | '500' | 'slow'>;
+  /** Per POST excuse attempt, in order: 'ok' (default), '409' (no longer excusable), '500' or 'slow'. */
+  excuseScript?: Array<'ok' | '409' | '500' | 'slow'>;
   /** Milliseconds a 'slow' outcome attempt waits before answering. */
   slowMs?: number;
   /** The queue also lists appointments ending within this many minutes (a server clock ahead of the browser). */
@@ -200,6 +202,7 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
   const calls: Call[] = [];
   let outcomeAttempt = 0;
   let contactAttempt = 0;
+  let excuseAttempt = 0;
   const script = options.outcomeScript ?? [];
 
   const byClient = (id: string) => clients.find((c) => c.id === id);
@@ -312,11 +315,51 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       });
       if (plan.kind === 'not_started') return apiError(route, 409, 'NOT_STARTED');
       if (plan.kind === 'not_ended') return apiError(route, 409, 'NOT_ENDED');
+      if (plan.kind === 'grace_period')
+        return apiError(route, 409, 'NO_SHOW_TOO_EARLY', { data: { availableAt: plan.availableAt.toISOString() } });
       if (plan.kind === 'conflict') return apiError(route, 409, 'CONFLICT');
       if (plan.kind === 'apply') {
         if (plan.decrement) c[plan.decrement] = Math.max(0, c[plan.decrement] - 1);
         c[plan.increment] += 1;
         found.status = target!;
+      }
+      return json(route, 200, {
+        appointment: {
+          id: found.id,
+          status: found.status,
+          startAt: found.startAt,
+          endAt: found.endAt,
+          client: {
+            id: c.id,
+            name: c.name,
+            phone: c.phone,
+            attended: c.attended,
+            noShows: c.noShows,
+            lateCancels: c.lateCancels,
+          },
+        },
+      });
+    }
+
+    const excuse = /^\/api\/appointments\/([^/]+)\/excuse$/.exec(path);
+    if (excuse && method === 'POST') {
+      if (!ID.test(excuse[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
+      if (Object.keys(body ?? {}).length > 0) {
+        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { _: 'Unknown field.' } });
+      }
+      const found = appointments.find((a) => a.id === excuse[1]);
+      if (!found) return apiError(route, 404, 'NOT_FOUND');
+      excuseAttempt += 1;
+      const step = options.excuseScript?.[excuseAttempt - 1] ?? 'ok';
+      if (step === '500') return apiError(route, 500, 'INTERNAL');
+      if (step === 'slow') await new Promise((r) => setTimeout(r, options.slowMs ?? 600));
+      const c = byClient(found.clientId)!;
+      const plan = planExcuse({ status: found.status });
+      if (step === '409' || plan.kind === 'conflict') return apiError(route, 409, 'CONFLICT');
+      if (plan.kind === 'apply') {
+        c[plan.decrement] = Math.max(0, c[plan.decrement] - 1);
+        found.status = 'CANCELLED';
+        found.cancelledVia = found.cancelledVia ?? 'STAFF';
       }
       return json(route, 200, {
         appointment: {
