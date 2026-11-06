@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { BusinessArea, BusinessCategory } from '@/lib/business/profile';
 import { request } from './auth';
 
 // Typed client for the owner setup endpoints. Responses are validated; unknown extra keys are ignored.
@@ -18,7 +19,10 @@ export const businessSchema = z.object({
   bookingWindowDays: z.number(),
   minNoticeMin: z.number(),
   cancelCutoffMin: z.number(),
+  /** A category key, or legacy free text typed before keys existed. */
   category: nullableText,
+  /** An area key (PR-1); null on rows that never set one. */
+  area: nullableText.default(null),
   address: nullableText,
   /** Opted in to the public directory (default false). */
   listed: z.boolean().default(false),
@@ -47,7 +51,8 @@ export type BusinessPatch = Partial<{
   bookingWindowDays: number;
   minNoticeMin: number;
   cancelCutoffMin: number;
-  category: string | null;
+  category: BusinessCategory | null;
+  area: BusinessArea | null;
   address: string | null;
   listed: boolean;
   depositEnabled: boolean;

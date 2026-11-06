@@ -1,5 +1,8 @@
 import { type Page } from '@playwright/test';
 import { ORIGIN } from './helpers/clock';
+import { expectNoPageOverflow } from './helpers/layout';
+import { pickerText, selectOption } from './helpers/pickers';
+import { mockPublicApi, SLUG } from './helpers/publicMock';
 import { expect, test } from './helpers/test';
 
 // Self-contained: /api/public/directory is answered by page.route.
@@ -8,6 +11,7 @@ const studio = {
   slug: 'studio-nour',
   name: 'Studio Nour',
   category: 'Salon',
+  area: 'beirut',
   address: 'Hamra, Beirut',
   serviceCount: 4,
   fromPrice: 15,
@@ -16,6 +20,7 @@ const clinic = {
   slug: 'clinic-amal',
   name: 'Amal Physio',
   category: 'Physio',
+  area: null,
   address: null,
   serviceCount: 2,
   fromPrice: null,
@@ -40,6 +45,184 @@ async function mockDirectory(page: Page, opts: { fail?: boolean; all?: unknown[]
 }
 
 const third = { ...studio, slug: 'third', name: 'Third Place' };
+
+// PR-1 fixtures: fixed category and area keys, like the real API returns for new listings.
+const sidonBarber = {
+  slug: 'sidon-barber',
+  name: 'Sidon Barber',
+  category: 'barbers',
+  area: 'sidon',
+  address: 'Riad El Solh St',
+  serviceCount: 2,
+  fromPrice: 10,
+};
+const beirutSalon = {
+  slug: 'beirut-salon',
+  name: 'Beirut Salon',
+  category: 'hair-salons',
+  area: 'beirut',
+  address: null,
+  serviceCount: 3,
+  fromPrice: 20,
+};
+const noAreaClinic = {
+  slug: 'no-area-clinic',
+  name: 'No Area Clinic',
+  category: 'dental-clinics',
+  area: null,
+  address: null,
+  serviceCount: 1,
+  fromPrice: 30,
+};
+
+/** Answers like the real endpoint: AND of search, category (case-insensitive equality) and area. */
+async function mockFilteredDirectory(page: Page, all: Record<string, unknown>[]) {
+  const queries: string[] = [];
+  await page.route('**/api/public/directory**', (route) => {
+    const url = new URL(route.request().url());
+    queries.push(url.search);
+    const search = (url.searchParams.get('search') ?? '').toLowerCase();
+    const category = (url.searchParams.get('category') ?? '').toLowerCase();
+    const area = url.searchParams.get('area') ?? '';
+    const businesses = all.filter(
+      (b) =>
+        String(b.name).toLowerCase().includes(search) &&
+        (!category || String(b.category).toLowerCase() === category) &&
+        (!area || b.area === area),
+    );
+    return route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ businesses, nextCursor: null }),
+    });
+  });
+  return queries;
+}
+
+test.describe('public directory: category and area filters (PR-1)', () => {
+  const all = [sidonBarber, beirutSalon, noAreaClinic];
+
+  test('cards show Category · Area and the street address with translated labels', async ({ page }) => {
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory');
+    const card = page.getByRole('listitem').filter({ hasText: 'Sidon Barber' });
+    await expect(card).toContainText('Barbers · Sidon');
+    await expect(card).toContainText('Riad El Solh St');
+    await expect(page.getByRole('listitem').filter({ hasText: 'Beirut Salon' })).toContainText('Hair salons · Beirut');
+    // No area: only the category.
+    const clinic = page.getByRole('listitem').filter({ hasText: 'No Area Clinic' });
+    await expect(clinic).toContainText('Dental clinics');
+    await expect(clinic).not.toContainText('·');
+  });
+
+  test('filters by area, category and both, keeps them in the URL and survives a reload', async ({ page }) => {
+    const queries = await mockFilteredDirectory(page, all);
+    await page.goto('/directory');
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+
+    await selectOption(page, 'Area', 'Sidon');
+    await expect(page).toHaveURL(/[?&]area=sidon/);
+    await expect(page.getByRole('heading', { name: 'Beirut Salon' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'No Area Clinic' })).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+
+    await selectOption(page, 'Category', 'Barbers');
+    await expect(page).toHaveURL(/category=barbers/);
+    await expect(page).toHaveURL(/area=sidon/);
+    expect(queries.at(-1)).toContain('category=barbers');
+    expect(queries.at(-1)).toContain('area=sidon');
+
+    await page.getByLabel('Search by name').fill('sidon');
+    await expect(page).toHaveURL(/search=sidon/);
+    await expect(page).toHaveURL(/category=barbers/);
+    await expect(page).toHaveURL(/area=sidon/);
+
+    await page.reload();
+    await expect(page.getByLabel('Search by name')).toHaveValue('sidon');
+    expect(await pickerText(page, 'Category')).toBe('Barbers');
+    expect(await pickerText(page, 'Area')).toBe('Sidon');
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+  });
+
+  test('opens from a shared link with the filters applied', async ({ page }) => {
+    const queries = await mockFilteredDirectory(page, all);
+    await page.goto('/directory?category=hair-salons&area=beirut');
+    await expect(page.getByRole('heading', { name: 'Beirut Salon' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toHaveCount(0);
+    expect(await pickerText(page, 'Category')).toBe('Hair salons');
+    expect(await pickerText(page, 'Area')).toBe('Beirut');
+    expect(queries[0]).toContain('area=beirut');
+  });
+
+  test('"All areas" brings back businesses that have no area', async ({ page }) => {
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory?area=sidon');
+    await expect(page.getByRole('heading', { name: 'No Area Clinic' })).toHaveCount(0);
+    await selectOption(page, 'Area', 'All areas');
+    await expect(page.getByRole('heading', { name: 'No Area Clinic' })).toBeVisible();
+    await expect(page).not.toHaveURL(/area=/);
+  });
+
+  test('an ignored unknown area in the URL means all areas', async ({ page }) => {
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory?area=atlantis');
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+    expect(await pickerText(page, 'Area')).toBe('All areas');
+  });
+
+  test('a legacy free-text category in the URL still filters', async ({ page }) => {
+    await mockFilteredDirectory(page, [studio, clinic, sidonBarber]);
+    await page.goto('/directory?category=Salon');
+    await expect(page.getByRole('heading', { name: 'Studio Nour' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Amal Physio' })).toHaveCount(0);
+    expect(await pickerText(page, 'Category')).toBe('Salon');
+  });
+
+  test('no matches: the empty state offers Clear filters, which resets the URL', async ({ page }) => {
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory?category=barbers&area=beirut');
+    await expect(page.getByRole('heading', { name: 'No matches here' })).toBeVisible();
+    await expect(page.getByText('Try another area or category.')).toBeVisible();
+    await page.getByRole('button', { name: 'Clear filters' }).click();
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+    await expect(page).not.toHaveURL(/category=|area=/);
+  });
+
+  test('tap targets are 44 px and nothing overflows', async ({ page }) => {
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory');
+    await expect(page.getByRole('heading', { name: 'Sidon Barber' })).toBeVisible();
+    for (const name of ['Category', 'Area']) {
+      const box = (await page.getByRole('combobox', { name }).boundingBox())!;
+      expect(box.height, name).toBeGreaterThanOrEqual(44);
+    }
+    await expectNoPageOverflow(page);
+  });
+
+  test('Arabic: right to left, translated filters and labels, no overflow', async ({ page, context }) => {
+    await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+    await mockFilteredDirectory(page, all);
+    await page.goto('/directory');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    const card = page.getByRole('listitem').filter({ hasText: 'Sidon Barber' });
+    await expect(card).toContainText('الحلاقون · صيدا');
+    await selectOption(page, 'المنطقة', 'بيروت');
+    await expect(page).toHaveURL(/area=beirut/);
+    await expect(page.getByRole('heading', { name: 'Beirut Salon' })).toBeVisible();
+    expect(await pickerText(page, 'الفئة')).toBe('كل الفئات');
+    await expectNoPageOverflow(page);
+  });
+});
+
+test.describe('public business page: header', () => {
+  test('shows Category · Area under the name', async ({ page }) => {
+    await mockPublicApi(page);
+    await page.goto(`/b/${SLUG}`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Studio Nour' })).toBeVisible();
+    await expect(page.getByText(/^Salon\s*·\s*,?\s*Sidon/)).toBeVisible();
+    await expectNoPageOverflow(page);
+  });
+});
 
 test.describe('public directory: show more', () => {
   test('appends the next page when Show more is pressed', async ({ page }) => {

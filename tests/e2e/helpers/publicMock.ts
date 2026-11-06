@@ -52,6 +52,7 @@ export const catalogue = {
     timezone: TZ,
     locale: 'en',
     category: 'Hair salon',
+    area: 'sidon',
     address: 'Hamra, Beirut',
   },
   services: [

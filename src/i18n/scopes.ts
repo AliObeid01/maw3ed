@@ -45,6 +45,9 @@ export const INTL_SCOPES = {
     'directory',
     'billing',
     'booking',
+    // Category and area labels in Settings (PR-1).
+    'public.category',
+    'public.area',
     // PasswordField on the change-password card.
     'auth.password',
   ],

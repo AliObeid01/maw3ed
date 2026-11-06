@@ -1,4 +1,5 @@
 import type { SetupFlags } from '@/lib/api/setup';
+import { profileMissing } from '@/lib/business/profile';
 
 export type DirectoryChecklistId = 'services' | 'staff' | 'hours';
 
@@ -11,6 +12,14 @@ export function directoryChecklist(flags: SetupFlags): DirectoryChecklistItem[] 
     { id: 'staff', done: flags.hasBookableStaff, href: '/app/staff' },
     { id: 'hours', done: flags.hasHours, href: '/app/hours' },
   ];
+}
+
+/** True when the business still has to choose a category and an area before it may list (PR-1). */
+export function profileIncomplete(business: {
+  category: string | null;
+  area: string | null;
+}): boolean {
+  return profileMissing(business).length > 0;
 }
 
 const KNOWN: readonly string[] = ['services', 'staff', 'hours'];

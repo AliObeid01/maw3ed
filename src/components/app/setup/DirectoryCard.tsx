@@ -10,7 +10,12 @@ import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
 import { updateBusiness, type Business } from '@/lib/api/setup';
-import { directoryChecklist, missingFromError, type DirectoryChecklistId } from '@/lib/directory/readiness';
+import {
+  directoryChecklist,
+  missingFromError,
+  profileIncomplete,
+  type DirectoryChecklistId,
+} from '@/lib/directory/readiness';
 import { useAppSession } from '../SessionContext';
 import { useErrorMessage } from '../states';
 
@@ -27,22 +32,27 @@ export function DirectoryCard({
   const errorMessage = useErrorMessage();
   const [pending, setPending] = useState(false);
   const [missing, setMissing] = useState<DirectoryChecklistId[]>([]);
+  const [profileError, setProfileError] = useState(false);
   const { emailVerified } = useAppSession();
   const gateReason = useTranslations('verify')('gate.directory');
   const items = directoryChecklist(business.setup);
   const ready = items.every((i) => i.done);
+  const profileTodo = !business.listed && profileIncomplete(business);
 
   async function toggle(next: boolean) {
     if (pending) return;
     setPending(true);
     setMissing([]);
+    setProfileError(false);
     try {
       const updated = await updateBusiness({ listed: next });
       onChange(updated);
       toast.show(updated.listed ? t('listedToast') : t('unlistedToast'));
     } catch (error) {
       const list = error instanceof ApiError ? missingFromError(error) : [];
-      if (list.length > 0) setMissing(list);
+      const fields = error instanceof ApiError && error.status === 400 ? Object.keys(error.fields) : [];
+      if (fields.includes('category') || fields.includes('area')) setProfileError(true);
+      else if (list.length > 0) setMissing(list);
       else toast.show(errorMessage(error), 'error');
     } finally {
       setPending(false);
@@ -108,6 +118,32 @@ export function DirectoryCard({
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {profileTodo && !profileError ? (
+        <div className="flex flex-wrap items-center gap-x-3 text-sm text-muted">
+          <span>{t('profileNeeded')}</span>
+          <Link
+            href="/app/settings#business-profile"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-brand"
+          >
+            {t('profileLink')}
+          </Link>
+        </div>
+      ) : null}
+
+      {profileError ? (
+        <Callout tone="warning">
+          <div role="alert" className="flex flex-wrap items-center gap-x-3">
+            <span>{t('profileError')}</span>
+            <Link
+              href="/app/settings#business-profile"
+              className="inline-flex min-h-11 items-center text-sm font-semibold text-brand"
+            >
+              {t('profileLink')}
+            </Link>
+          </div>
+        </Callout>
       ) : null}
 
       {missing.length > 0 ? (

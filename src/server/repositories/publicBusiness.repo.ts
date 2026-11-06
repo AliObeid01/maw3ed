@@ -6,6 +6,7 @@ export const businessConfigSelect = {
   slug: true,
   name: true,
   category: true,
+  area: true,
   address: true,
   timezone: true,
   locale: true,

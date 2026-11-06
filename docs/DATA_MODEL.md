@@ -6,7 +6,7 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 ## Entities
 | Entity | Key fields | Belongs to | Constraints / notes |
 |---|---|---|---|
-| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, address | none | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; deposits are off until `depositEnabled` |
+| Business | slug, name, timezone (`Asia/Beirut`), locale (`en`), currency (`USD`), slotStepMin (15), bookingWindowDays (30), minNoticeMin (60), cancelCutoffMin (1440), plan (FREE/PRO), depositEnabled (false), depositThreshold (1), depositAmount (5.00), listed (false), category, area, address | none | slug unique (lowercase, `[a-z0-9-]`, reserved words blocked); tenant root; `listed` is the opt-in public directory flag; `category` is a key of `src/lib/business/profile.ts` (`barbers`, `hair-salons`, `dental-clinics`, `beauty-clinics`, `spa-massage`, `physiotherapy`, `other`) or, on rows saved before PR-1, the free text the owner typed (still read and shown as typed); `area` (nullable text, no default, PR-1) is one of `sidon`, `beirut`, `tripoli`, `jounieh`, `tyre`, `zahle`, `other`, NULL on every older row; index `Business_listed_area_category_idx (listed, area, category)` serves the directory filters; deposits are off until `depositEnabled` |
 | User | email, passwordHash (nullable), name, emailVerifiedAt | none | email unique (lowercased); can belong to several businesses; `emailVerifiedAt` NULL = unverified (soft verification, L4); the migration set it to `createdAt` for every pre-existing user |
 | EmailToken | userId, kind (VERIFY, RESET), tokenHash, expiresAt, usedAt | User | tokenHash unique (only sha256 is stored); single use; VERIFY 24 h, RESET 1 h; at most 5 live unused tokens per user and kind (oldest deleted); a successful use deletes all the user's unused tokens of that kind; cleanup purges used or expired rows |
 | Session | tokenHash, userId, businessId, expiresAt, lastSeenAt | User, Business | tokenHash unique; 30-day sliding expiry |
@@ -73,7 +73,8 @@ erDiagram
     string id PK
     string slug UK
     string name
-    string category "optional"
+    string category "optional, key or legacy free text"
+    string area "optional, key"
     string address "optional"
     string currency
     string timezone

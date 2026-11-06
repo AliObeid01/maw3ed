@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import { PlanCard } from '@/components/billing/PlanCard';
+import { useAreaLabel } from '@/components/public/areaLabel';
+import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { DepositSettings } from './DepositSettings';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
@@ -17,6 +19,14 @@ import { useToast } from '@/components/ui/Toast';
 import { getBusiness, updateBusiness, type Business } from '@/lib/api/setup';
 import { useResource } from '@/lib/api/useResource';
 import { timezoneGroups, timezoneLabel } from '@/lib/auth/timezones';
+import {
+  ADDRESS_MAX,
+  AREA_KEYS,
+  CATEGORY_KEYS,
+  isAreaKey,
+  isCategoryKey,
+  legacyCategory,
+} from '@/lib/business/profile';
 import { cn } from '@/lib/cn';
 import { cutoffUnit, parseWhole } from '@/lib/setup/duration';
 import {
@@ -39,6 +49,7 @@ const NAME_MAX = 80;
 const SLOT_CHOICES = [10, 15, 30];
 
 type NumberKey = 'window' | 'notice' | 'cutoff';
+type FieldKey = 'name' | 'category' | 'area' | 'address' | NumberKey;
 
 /** Number field with the board's right-aligned unit (64 px box, centred digits). */
 function RuleRow({
@@ -125,6 +136,8 @@ function SettingsForm({
   const toast = useToast();
   const router = useRouter();
   const { longDuration } = useAppFormat();
+  const categoryLabel = useCategoryLabel();
+  const areaLabel = useAreaLabel();
   const formRef = useRef<HTMLFormElement>(null);
   const uid = useId();
 
@@ -133,7 +146,7 @@ function SettingsForm({
   const [initial] = useState(() => toSettingsValues(business, unit));
   const [values, setValues] = useState<SettingsValues>(initial);
   const [baseline, setBaseline] = useState<SettingsValues>(initial);
-  const [errors, setErrors] = useState<Partial<Record<'name' | NumberKey, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [banner, setBanner] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -164,6 +177,22 @@ function SettingsForm({
     [zones, t],
   );
 
+  // A free-text category saved before the fixed list stays selectable (as "Current: ...") until a listed one is chosen.
+  const legacy = legacyCategory(values.category) ?? legacyCategory(business.category);
+  const categoryOptions = useMemo<SelectOption[]>(
+    () => [
+      ...(legacy
+        ? [{ value: legacy, label: t('field.categoryCurrent', { value: legacy }), searchText: legacy }]
+        : []),
+      ...CATEGORY_KEYS.map((key) => ({ value: key, label: categoryLabel(key) ?? key })),
+    ],
+    [legacy, categoryLabel, t],
+  );
+  const areaOptions = useMemo<SelectOption[]>(
+    () => AREA_KEYS.map((key) => ({ value: key, label: areaLabel(key) ?? key })),
+    [areaLabel],
+  );
+
   const slotChoices = [...new Set([...SLOT_CHOICES, values.slotStepMin])].sort((a, b) => a - b);
 
   const parsedMinutes = (key: NumberKey) =>
@@ -172,10 +201,12 @@ function SettingsForm({
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (pending || !dirty) return;
-    const next: Partial<Record<'name' | NumberKey, string>> = {};
+    const next: Partial<Record<FieldKey, string>> = {};
     const name = values.name.trim();
     if (!name) next.name = t('errors.nameRequired');
     else if (name.length > NAME_MAX) next.name = t('errors.nameTooLong', { max: NAME_MAX });
+    const address = values.address.trim();
+    if (address.length > ADDRESS_MAX) next.address = t('errors.addressTooLong', { max: ADDRESS_MAX });
     const windowDays = parseWhole(values.window);
     if (windowDays === null || windowDays < 1 || windowDays > 365)
       next.window = t('errors.range', { min: 1, max: 365 });
@@ -205,6 +236,12 @@ function SettingsForm({
         bookingWindowDays: windowDays!,
         minNoticeMin: notice!,
         cancelCutoffMin: cutoff!,
+        // Profile fields are sent only when changed, so a legacy free-text category is never written back.
+        ...(values.category !== baseline.category && isCategoryKey(values.category)
+          ? { category: values.category }
+          : {}),
+        ...(values.area !== baseline.area && isAreaKey(values.area) ? { area: values.area } : {}),
+        ...(address !== baseline.address.trim() ? { address: address || null } : {}),
       });
       const savedValues = toSettingsValues(saved, unit);
       setValues(savedValues);
@@ -215,8 +252,11 @@ function SettingsForm({
       if (saved.name !== business.name || saved.timezone !== business.timezone) router.refresh();
     } catch (error) {
       const fields = invalidFields(error);
-      const serverErrors: Partial<Record<'name' | NumberKey, string>> = {};
+      const serverErrors: Partial<Record<FieldKey, string>> = {};
       if (fields.includes('name')) serverErrors.name = t('errors.fieldInvalid');
+      if (fields.includes('category')) serverErrors.category = t('errors.fieldInvalid');
+      if (fields.includes('area')) serverErrors.area = t('errors.fieldInvalid');
+      if (fields.includes('address')) serverErrors.address = t('errors.fieldInvalid');
       if (fields.includes('bookingWindowDays')) serverErrors.window = t('errors.fieldInvalid');
       if (fields.includes('minNoticeMin')) serverErrors.notice = t('errors.fieldInvalid');
       if (fields.includes('cancelCutoffMin')) serverErrors.cutoff = t('errors.fieldInvalid');
@@ -266,8 +306,9 @@ function SettingsForm({
         <Card
           padding="none"
           as="section"
+          id="business-profile"
           aria-labelledby={`${uid}-business`}
-          className="flex flex-col gap-4 p-[22px]"
+          className="flex scroll-mt-4 flex-col gap-4 p-[22px]"
         >
           <h2 id={`${uid}-business`} className="m-0 text-lg font-semibold">
             {t('business')}
@@ -279,6 +320,36 @@ function SettingsForm({
             onChange={(e) => set('name', e.target.value)}
             error={errors.name}
             autoComplete="organization"
+          />
+          <Select
+            label={t('field.category')}
+            name="category"
+            value={values.category}
+            placeholder={t('field.categoryPlaceholder')}
+            options={categoryOptions}
+            onChange={(value) => set('category', value)}
+            error={errors.category}
+            hint={t('field.categoryHint')}
+          />
+          <Select
+            label={t('field.area')}
+            name="area"
+            value={values.area}
+            placeholder={t('field.areaPlaceholder')}
+            options={areaOptions}
+            onChange={(value) => set('area', value)}
+            error={errors.area}
+            hint={t('field.areaHint')}
+          />
+          <Input
+            label={t('field.address')}
+            name="address"
+            value={values.address}
+            onChange={(e) => set('address', e.target.value)}
+            error={errors.address}
+            hint={t('field.addressHint')}
+            autoComplete="street-address"
+            enterKeyHint="done"
           />
           <div className="flex flex-col gap-1.5">
             <label htmlFor={`${uid}-slug`} className="text-[15px] font-medium">

@@ -486,7 +486,34 @@
               "string",
               "null"
             ],
-            "maxLength": 40
+            "enum": [
+              "barbers",
+              "hair-salons",
+              "dental-clinics",
+              "beauty-clinics",
+              "spa-massage",
+              "physiotherapy",
+              "other",
+              null
+            ],
+            "description": "Business category key. New writes must use a listed key; legacy free text already stored is still returned unchanged."
+          },
+          "area": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "sidon",
+              "beirut",
+              "tripoli",
+              "jounieh",
+              "tyre",
+              "zahle",
+              "other",
+              null
+            ],
+            "description": "Area key (Sidon, Beirut, ...). null clears it."
           },
           "address": {
             "type": [
@@ -513,7 +540,7 @@
           },
           "listed": {
             "type": "boolean",
-            "description": "Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED) and a ready business (409 NOT_READY)."
+            "description": "Opt in to the public directory. Turning it on needs a confirmed owner email (409 EMAIL_NOT_VERIFIED), a ready business (409 NOT_READY) and a category and an area (400 with fields.category / fields.area). A business that is already listed stays listed without an area."
           }
         },
         "additionalProperties": false
@@ -549,6 +576,13 @@
             "type": "integer"
           },
           "category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A category key, or legacy free text."
+          },
+          "area": {
             "type": [
               "string",
               "null"
@@ -636,6 +670,7 @@
           "minNoticeMin",
           "cancelCutoffMin",
           "category",
+          "area",
           "address",
           "listed",
           "deposit",
@@ -1231,6 +1266,9 @@
                 "type": "integer"
               },
               "category": {
+                "type": "string"
+              },
+              "area": {
                 "type": "string"
               },
               "address": {
@@ -3847,6 +3885,12 @@
                     "null"
                   ]
                 },
+                "area": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "address": {
                   "type": [
                     "string",
@@ -3868,6 +3912,7 @@
                 "slug",
                 "name",
                 "category",
+                "area",
                 "address",
                 "serviceCount",
                 "fromPrice"
@@ -8637,10 +8682,41 @@
           {
             "schema": {
               "type": "string",
-              "maxLength": 40
+              "maxLength": 40,
+              "description": "A category key (barbers, hair-salons, ...) or, for legacy listings, the free text they were saved with. Case-insensitive equality."
             },
             "required": false,
+            "description": "A category key (barbers, hair-salons, ...) or, for legacy listings, the free text they were saved with. Case-insensitive equality.",
             "name": "category",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sidon",
+                    "beirut",
+                    "tripoli",
+                    "jounieh",
+                    "tyre",
+                    "zahle",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    ""
+                  ]
+                }
+              ],
+              "description": "Area key. Empty means unset. Businesses without an area match only when this is unset."
+            },
+            "required": false,
+            "description": "Area key. Empty means unset. Businesses without an area match only when this is unset.",
+            "name": "area",
             "in": "query"
           },
           {

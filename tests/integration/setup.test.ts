@@ -76,6 +76,7 @@ describe('GET/PATCH /api/business', () => {
       timezone: 'Asia/Beirut',
       slotStepMin: 15,
       category: null,
+      area: null,
       address: null,
     });
     // Signup creates the owner as a bookable staff row.
@@ -135,7 +136,8 @@ describe('GET/PATCH /api/business', () => {
         bookingWindowDays: 60,
         minNoticeMin: 0,
         cancelCutoffMin: 120,
-        category: 'Salon',
+        category: 'hair-salons',
+        area: 'sidon',
         address: 'Hamra',
       },
     });
@@ -147,7 +149,8 @@ describe('GET/PATCH /api/business', () => {
       bookingWindowDays: 60,
       minNoticeMin: 0,
       cancelCutoffMin: 120,
-      category: 'Salon',
+      category: 'hair-salons',
+      area: 'sidon',
       address: 'Hamra',
       slug: 'business-a',
     });
@@ -170,7 +173,12 @@ describe('GET/PATCH /api/business', () => {
     ['empty name', { name: '  ' }, 'name'],
     ['bookingWindowDays 0', { bookingWindowDays: 0 }, 'bookingWindowDays'],
     ['minNoticeMin too large', { minNoticeMin: 10081 }, 'minNoticeMin'],
-    ['category too long', { category: 'x'.repeat(41) }, 'category'],
+    ['category is not a listed key', { category: 'x'.repeat(41) }, 'category'],
+    ['category free text', { category: 'Salon' }, 'category'],
+    ['area is not a listed key', { area: 'atlantis' }, 'area'],
+    ['area free text', { area: 'Sidon' }, 'area'],
+    ['address too long', { address: 'x'.repeat(121) }, 'address'],
+    ['address with NUL', { address: 'a\u0000b' }, 'address'],
     ['slug is not patchable', { slug: 'stolen' }, 'slug'],
     ['plan is not patchable', { plan: 'PRO' }, 'plan'],
     ['businessId smuggled', { businessId: 'x' }, 'businessId'],

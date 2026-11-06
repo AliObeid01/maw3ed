@@ -8,6 +8,7 @@ export interface BusinessPatch {
   minNoticeMin?: number;
   cancelCutoffMin?: number;
   category?: string | null;
+  area?: string | null;
   address?: string | null;
   listed?: boolean;
   depositEnabled?: boolean;
