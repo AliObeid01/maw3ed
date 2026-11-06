@@ -1164,6 +1164,7 @@
       "leave": "أزلني من قائمة الانتظار"
     },
     "whatsapp": {
+      "staffLogin": "مرحبًا {name}، أنشأ {business} حساب دخولك على موعد.\nافتح هذا الرابط لاختيار كلمة المرور (يعمل مرة واحدة ويصلح لمدة 3 أيام):\n{url}\nاسم الدخول هو رقم هاتفك: {phone}",
       "h24": "مرحبًا {name}، تذكير من {business}: موعد {service} مع {staff} غدًا، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}",
       "h2": "مرحبًا {name}، تذكير من {business}: موعد {service} مع {staff} اليوم، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}",
       "late": "مرحبًا {name}، تم حجز موعد {service} مع {staff} لدى {business}، {when}.\nللتأكيد: {confirmUrl}\nللإلغاء: {cancelUrl}"

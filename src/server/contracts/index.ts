@@ -3,6 +3,7 @@ import './health';
 import './auth';
 import './setup';
 import './team';
+import './staffLogin';
 import './booking';
 import './reminders';
 import './outcomes';

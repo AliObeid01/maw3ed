@@ -190,3 +190,23 @@ export function renderWhatsappMessage(
   const m = getEmailMessages(c.locale);
   return interpolate(m.whatsapp[WHATSAPP_KEY[c.kind]], vars(c));
 }
+
+/**
+ * The prefilled WhatsApp text for the owner to send a staff member their one-time activation link. It carries the
+ * link and the login phone number and nothing else: never a password, never client or appointment data.
+ */
+export function renderStaffLoginMessage(c: {
+  locale: string;
+  businessName: string;
+  staffName: string;
+  url: string;
+  phone: string;
+}): string {
+  const m = getEmailMessages(c.locale);
+  return interpolate(m.whatsapp.staffLogin, {
+    name: c.staffName,
+    business: c.businessName,
+    url: c.url,
+    phone: c.phone,
+  });
+}

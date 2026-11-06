@@ -1,4 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client';
+import type { LoginIdentifier } from '@/server/domain/loginIdentifier';
 import { db } from './db';
 
 /** Thrown inside a transaction when the password hash under the User lock is not the one that was verified. */
@@ -27,4 +28,10 @@ export async function lockUserPasswordHash(
 export const userRepo = {
   findByEmail: (email: string) => db.user.findUnique({ where: { email } }),
   findById: (id: string) => db.user.findUnique({ where: { id } }),
+  findByPhone: (phone: string) => db.user.findUnique({ where: { phone } }),
+  /** Login lookup: the identifier is already canonical (lowercased e-mail or E.164 phone). */
+  findByIdentifier: (id: LoginIdentifier) =>
+    id.kind === 'email'
+      ? db.user.findUnique({ where: { email: id.value } })
+      : db.user.findUnique({ where: { phone: id.value } }),
 };

@@ -1164,6 +1164,7 @@
       "leave": "Remove me from the waitlist"
     },
     "whatsapp": {
+      "staffLogin": "Hi {name}, {business} has set up your login on Maw3ed.\nOpen this link to choose your password (it works once and is valid for 3 days):\n{url}\nYour login is this phone number: {phone}",
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
       "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
       "late": "Hi {name}, your {service} with {staff} at {business} is booked for {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"

@@ -38,16 +38,21 @@ function mapRepoError(error: unknown): never {
   throw error;
 }
 
+/** The login phone is the owner's business only: a receptionist sees the state, not the number. */
+function view<T extends { loginPhone: string | null }>(ctx: SessionContext, row: T): T {
+  return ctx.role === 'OWNER' ? row : { ...row, loginPhone: null };
+}
+
 async function mustFind(ctx: SessionContext, id: string) {
   const row = await staffRepo.findById(ctx.businessId, id);
   if (!row) throw AppError.notFound();
-  return row;
+  return view(ctx, row);
 }
 
 export const staffService = {
   /** OWNER and STAFF. */
   async list(ctx: SessionContext) {
-    return { staff: await staffRepo.list(ctx.businessId) };
+    return { staff: (await staffRepo.list(ctx.businessId)).map((r) => view(ctx, r)) };
   },
 
   async create(
