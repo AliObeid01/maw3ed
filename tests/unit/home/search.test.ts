@@ -21,8 +21,8 @@ describe('buildDirectoryUrl', () => {
 });
 
 describe('categoryServiceUrl', () => {
-  it('puts category before search', () => {
-    expect(categoryServiceUrl('barbers', 'Beard trim')).toBe('/directory?category=barbers&search=Beard+trim');
+  it('puts category before service', () => {
+    expect(categoryServiceUrl('barbers', 'Beard trim')).toBe('/directory?category=barbers&service=Beard+trim');
     expect(categoryServiceUrl('barbers')).toBe('/directory?category=barbers');
   });
 });

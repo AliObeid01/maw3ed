@@ -30,7 +30,8 @@ export const HOME_LIMIT = 3;
  * parameter order, nothing random. The CDN then serves them from one cache entry (`s-maxage=60`) and shared
  * networks do not use up the per-IP `directoryLive` budget.
  */
-export const categoriesUrl = (): string => '/api/public/categories';
+export const categoriesUrl = (area?: string): string =>
+  area ? `/api/public/categories?area=${encodeURIComponent(area)}` : '/api/public/categories';
 
 export function homeDirectoryUrl({ area, category }: { area?: string; category?: string } = {}): string {
   const q = new URLSearchParams();
@@ -65,5 +66,26 @@ export function getHomeDirectory(params: { area?: string; category?: string } = 
   return promise;
 }
 
+const catCache = new Map<string, { at: number; promise: Promise<HomeCategories> }>();
+
+/**
+ * The per-category aggregates (popular services among them) for an area or for all areas, kept 60 s like the CDN
+ * does, so the Explore page's service chips never ask twice for the same area.
+ */
+export function getCategoriesCached(area = ''): Promise<HomeCategories> {
+  const key = categoriesUrl(area);
+  const hit = catCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.promise;
+  const promise = request(key, categoriesSchema);
+  catCache.set(key, { at: Date.now(), promise });
+  promise.catch(() => {
+    if (catCache.get(key)?.promise === promise) catCache.delete(key);
+  });
+  return promise;
+}
+
 /** Test hook: forget what was cached. */
-export const clearHomeCache = () => cache.clear();
+export const clearHomeCache = () => {
+  cache.clear();
+  catCache.clear();
+};

@@ -136,6 +136,30 @@ export const directoryRepo = {
     }));
   },
 
+  /**
+   * Up to `perBusiness` ACTIVE services for each business id, cheapest first then name, in ONE query (no N+1).
+   * Public fields only: name, duration, price.
+   */
+  async servicesFor(ids: readonly string[], perBusiness: number) {
+    if (ids.length === 0) return new Map<string, { name: string; durationMin: number; price: number }[]>();
+    const rows = await db.$queryRaw<
+      { businessId: string; name: string; durationMin: number; price: Prisma.Decimal | string | number }[]
+    >`
+      SELECT "businessId", "name", "durationMin", "price" FROM (
+        SELECT s."businessId", s."name", s."durationMin", s."price",
+          row_number() OVER (PARTITION BY s."businessId" ORDER BY s."price" ASC, s."name" ASC, s."id" ASC) AS rn
+        FROM "Service" s
+        WHERE s."active" AND s."businessId" = ANY(${ids as string[]}::text[])
+      ) t WHERE rn <= ${perBusiness} ORDER BY "businessId", rn`;
+    const out = new Map<string, { name: string; durationMin: number; price: number }[]>();
+    for (const r of rows) {
+      const list = out.get(r.businessId) ?? [];
+      list.push({ name: r.name, durationMin: Number(r.durationMin), price: Number(r.price) });
+      out.set(r.businessId, list);
+    }
+    return out;
+  },
+
   /** Largest booking window (days) among listed businesses; 0 when there are none. One indexed aggregate. */
   async maxBookingWindowDays(): Promise<number> {
     const agg = await db.business.aggregate({

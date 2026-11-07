@@ -16,6 +16,14 @@ const optionalText = (max: number) =>
     .optional()
     .transform((v) => (v ? v : undefined));
 
+export const INCLUDE_VALUES = ['nextFree', 'services'] as const;
+
+/** Which optional blocks `include` asks for. */
+export function includeFlags(include: string | undefined): { nextFree: boolean; services: boolean } {
+  const parts = (include ?? '').split(',');
+  return { nextFree: parts.includes('nextFree'), services: parts.includes('services') };
+}
+
 export const DirectoryQuery = z
   .object({
     search: optionalText(80),
@@ -53,12 +61,17 @@ export const DirectoryQuery = z
           'Local day (yyyy-MM-dd, in each business timezone). Keeps only businesses with at least one free slot that day, for their shortest bookable service. Computed with the slot engine for a bounded scan, so a page can hold fewer than `limit` items and still carry a `nextCursor`: keep paging until it is null. With it, `nextFree` / `freeTimes` describe that day.',
       }),
     include: z
-      .enum(['nextFree'])
+      .string()
+      .max(40)
+      .refine(
+        (v) => v === '' || v.split(',').every((p) => (INCLUDE_VALUES as readonly string[]).includes(p)),
+        'Use nextFree, services or nextFree,services.',
+      )
       .optional()
-      .or(z.literal('').transform(() => undefined))
+      .transform((v) => (v ? v : undefined))
       .openapi({
         description:
-          '`nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). Off by default.',
+          'Comma list of `nextFree` and/or `services`. `nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). `services` adds `services`: up to 4 active services (cheapest first, then name) with name, durationMin and price. Both cap the page at 12. Off by default.',
       }),
     limit: z.coerce.number().int().min(1).max(50).optional().openapi({
       description: 'Default 24; default 12 and at most 12 when `include` or `when` is set.',
@@ -115,6 +128,14 @@ export const DirectoryDto = registry.register(
           description:
             'Only with `include=nextFree` / `when`. Earliest bookable start of the shortest bookable active service over the next 7 local days (or on the `when` day); null when there is none.',
         }),
+        services: z
+          .array(z.object({ name: z.string(), durationMin: z.number().int(), price: z.number() }))
+          .max(4)
+          .optional()
+          .openapi({
+            description:
+              'Only with `include=services`. Up to 4 active services, cheapest first, then by name.',
+          }),
         freeTimes: z.array(z.string().datetime()).max(4).optional().openapi({
           description:
             'Only with `include=nextFree` / `when`. Up to 4 start instants on the first local day that has any.',
@@ -130,7 +151,7 @@ registry.registerPath({
   path: '/api/public/directory',
   summary: 'Public directory of opted-in businesses that are ready to take bookings',
   description:
-    'Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include=nextFree` and `when` compute live slots for a bounded page (at most 12 businesses, a scan of at most 36 candidates) and have their own per-IP rate limit.',
+    'Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.',
   tags: ['public'],
   request: { query: DirectoryQuery },
   responses: {

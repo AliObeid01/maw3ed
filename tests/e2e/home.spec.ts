@@ -205,7 +205,7 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(panel(page)).toContainText('Prices from');
   await expect(panel(page)).toContainText('Next free');
   await expect(panel(page)).toContainText('Today 10:30');
-  await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toHaveAttribute('href', '/directory?category=barbers&search=Beard+trim');
+  await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toHaveAttribute('href', '/directory?category=barbers&service=Beard+trim');
   await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toContainText(/from .*12.50 USD/);
   const top = panel(page).getByRole('article');
   await expect(top).toHaveCount(2);
@@ -219,7 +219,7 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-pressed', 'true');
   await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-pressed', 'false');
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Dental clinics' })).toBeVisible();
-  await expect(panel(page).getByRole('link', { name: /Check-up/ })).toHaveAttribute('href', '/directory?category=dental-clinics&search=Check-up');
+  await expect(panel(page).getByRole('link', { name: /Check-up/ })).toHaveAttribute('href', '/directory?category=dental-clinics&service=Check-up');
   await expect(panel(page).getByRole('link', { name: 'See all dental clinics' })).toHaveAttribute('href', '/directory?category=dental-clinics');
 
   // One categories request; one directory request per category opened, cached when you go back. No per-user params.

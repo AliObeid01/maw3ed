@@ -1,4 +1,4 @@
-import type { DirectoryQueryT } from '@/server/contracts/directory';
+import { includeFlags, type DirectoryQueryT } from '@/server/contracts/directory';
 import { FREE_TIMES_MAX } from '@/server/domain/nextFree';
 import { AppError } from '@/server/http/errors';
 import { directoryRepo, type DirectoryRow } from '@/server/repositories/directory.repo';
@@ -34,6 +34,8 @@ export const LIVE_PAGE_SIZE = 12;
 /** `when`: candidates are examined in batches of this size, and at most SCAN_BUDGET per request. */
 export const SCAN_BATCH = 12;
 export const SCAN_BUDGET = 36;
+/** `include=services`: services listed per business. */
+export const SERVICES_MAX = 4;
 
 export interface DirectoryDeps {
   now: () => Date;
@@ -71,7 +73,8 @@ export const directoryService = {
    * `nextCursor` is still set (it points after the last candidate examined). Keep paging until it is null.
    */
   async list(query: DirectoryQueryT, ip?: string, deps: DirectoryDeps = defaults) {
-    const live = query.include === 'nextFree' || query.when !== undefined;
+    const flags = includeFlags(query.include);
+    const live = flags.nextFree || flags.services || query.when !== undefined;
     const limit = query.limit ?? (live ? LIVE_PAGE_SIZE : 24);
     if (live && limit > LIVE_PAGE_SIZE)
       throw AppError.validation({
@@ -91,7 +94,7 @@ export const directoryService = {
       area: query.area,
       service: query.service,
     };
-    const withLive = query.include === 'nextFree';
+    const withLive = flags.nextFree;
 
     if (query.when === undefined) {
       const rows = await directoryRepo.list({ ...base, after, take: limit + 1 });
@@ -103,10 +106,14 @@ export const directoryService = {
             deps.now(),
           )
         : undefined;
+      const svc = flags.services
+        ? await directoryRepo.servicesFor(page.map((r) => r.id), SERVICES_MAX)
+        : undefined;
       return {
         businesses: page.map((b) => ({
           ...plainItem(b),
           ...(lives ? liveFields(lives.get(b.id)) : {}),
+          ...(svc ? { services: svc.get(b.id) ?? [] } : {}),
         })),
         nextCursor: rows.length > limit && last ? encodeCursor(last.name, last.id) : null,
       };
@@ -141,11 +148,15 @@ export const directoryService = {
       }
       cursor = lastExamined ? { name: lastExamined.name, id: lastExamined.id } : cursor;
     }
+    const svc = flags.services
+      ? await directoryRepo.servicesFor(matches.map((m) => m.row.id), SERVICES_MAX)
+      : undefined;
     const more = rowsLeftInBatch || !exhausted;
     return {
       businesses: matches.map(({ row, live }) => ({
         ...plainItem(row),
         ...(withLive ? liveFields(live) : {}),
+        ...(svc ? { services: svc.get(row.id) ?? [] } : {}),
       })),
       nextCursor: more && lastExamined ? encodeCursor(lastExamined.name, lastExamined.id) : null,
     };

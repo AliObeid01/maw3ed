@@ -285,6 +285,8 @@ describe('validation (400)', () => {
     [{ when: '1999-12-31' }, 'when'],
     [{ when: '2101-01-01' }, 'when'],
     [{ include: 'everything' }, 'include'],
+    [{ include: 'nextFree,bogus' }, 'include'],
+    [{ include: 'services', limit: '13' }, 'limit'],
     [{ include: 'nextFree', limit: '13' }, 'limit'],
     [{ when: '2026-11-04', limit: '40' }, 'limit'],
     [{ service: 'a\u0000b' }, 'service'],
@@ -433,6 +435,96 @@ describe('GET /api/public/categories', () => {
     const barbers = (await cats()).body!.categories.find((c: any) => c.category === 'barbers');
     expect(barbers.places).toBe(8);
     expect(barbers.nextFree).toBeNull();
+  });
+});
+
+describe('directory?include=services (PR-7b)', () => {
+  const both = (query: Record<string, string> = {}) =>
+    live({ include: 'nextFree,services', ...query });
+
+  it('adds up to 4 ACTIVE services per business, cheapest first then name; price is a number like fromPrice', async () => {
+    const b = await makeBusiness(pg, {
+      name: 'Alpha',
+      services: [
+        { name: 'Zed cut', durationMin: 30, price: 10 },
+        { name: 'Alpha cut', durationMin: 30, price: 10 },
+        { name: 'Colour', durationMin: 90, price: 60.5 },
+        { name: 'Beard', durationMin: 15, price: 5 },
+        { name: 'Wash', durationMin: 15, price: 8 },
+        { name: 'Hidden', durationMin: 15, price: 1, active: false },
+      ],
+    });
+    const res = await both();
+    expect(res.status).toBe(200);
+    expect(res.headers.get('cache-control')).toBe(
+      'public, s-maxage=60, stale-while-revalidate=300',
+    );
+    const item = bySlug(res, b.slug);
+    expect(item.services).toEqual([
+      { name: 'Beard', durationMin: 15, price: 5 },
+      { name: 'Wash', durationMin: 15, price: 8 },
+      { name: 'Alpha cut', durationMin: 30, price: 10 },
+      { name: 'Zed cut', durationMin: 30, price: 10 },
+    ]);
+    expect(typeof item.fromPrice).toBe('number');
+    expect(item.nextFree).not.toBeUndefined();
+    expect(item.serviceCount).toBe(5);
+  });
+
+  it('works alone (no slot fields) and in either order', async () => {
+    const b = await makeBusiness(pg, { name: 'Solo' });
+    const item = bySlug(await live({ include: 'services' }), b.slug);
+    expect(item.services).toHaveLength(1);
+    expect(item.nextFree).toBeUndefined();
+    expect(item.freeTimes).toBeUndefined();
+    const swapped = bySlug(await live({ include: 'services,nextFree' }), b.slug);
+    expect(swapped.services).toEqual(item.services);
+    expect(swapped.nextFree).not.toBeUndefined();
+  });
+
+  it('keeps the directory order and never lists unlisted or not-ready businesses', async () => {
+    await makeBusiness(pg, { name: 'Hidden', listed: false });
+    await makeBusiness(pg, { name: 'No hours', staff: [{ hours: [] }] });
+    await makeBusiness(pg, { name: 'B shop' });
+    await makeBusiness(pg, { name: 'A shop' });
+    const res = await both();
+    expect(res.body!.businesses.map((x: any) => x.name)).toEqual(['A shop', 'B shop']);
+    expect(res.body!.businesses.every((x: any) => x.services.length === 1)).toBe(true);
+  });
+
+  it('combines with when', async () => {
+    const b = await makeBusiness(pg, { name: 'Tuesday' });
+    const item = bySlug(await both({ when: '2026-11-03' }), b.slug);
+    expect(item.services).toHaveLength(1);
+    expect(item.freeTimes.length).toBeGreaterThan(0);
+  });
+
+  it('the old include=nextFree response is unchanged: no services key', async () => {
+    const b = await makeBusiness(pg, { name: 'Old' });
+    const item = bySlug(await live(), b.slug);
+    expect(Object.keys(item).sort()).toEqual(
+      [
+        'address',
+        'area',
+        'category',
+        'freeTimes',
+        'fromPrice',
+        'name',
+        'nextFree',
+        'serviceCount',
+        'slug',
+        'timezone',
+      ].sort(),
+    );
+  });
+
+  it('raw JSON has no e-mail, phone, staff name or id', async () => {
+    await makeBusiness(pg, { name: 'Private Studio', staff: [{ name: 'Zeina Secretname' }] });
+    const raw = JSON.stringify((await both()).body);
+    expect(raw).not.toContain('@');
+    expect(raw).not.toMatch(/\+?\d{8,}/);
+    expect(raw).not.toContain('Zeina');
+    expect(raw).not.toMatch(/staff|client|appointment|email|phone/i);
   });
 });
 
