@@ -6,7 +6,7 @@ import { PublicHeader } from '@/components/public/PublicHeader';
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <ScopedIntl scope="public">
-      <div className="flex min-h-dvh flex-col">
+      <div id="top" className="flex min-h-dvh flex-col">
         <PublicHeader />
         {children}
         <PublicFooter />

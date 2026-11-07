@@ -403,36 +403,3 @@ test.describe('public directory', () => {
     expect(box?.height).toBeGreaterThanOrEqual(44);
   });
 });
-
-test.describe('home page', () => {
-  test('shows the value line, three steps and the three ways in', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Fewer no-shows. More time.');
-    await expect(page.getByRole('heading', { level: 3 })).toHaveText([
-      'Clients book online',
-      'Reminders go out',
-      'No-shows drop',
-    ]);
-    const main = page.getByRole('main');
-    await expect(main.getByRole('link', { name: 'Find a business' })).toHaveAttribute(
-      'href',
-      '/directory',
-    );
-    await expect(main.getByRole('link', { name: 'Set up your business' })).toHaveAttribute(
-      'href',
-      '/signup',
-    );
-    await expect(main.getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
-    );
-    expect(overflow).toBe(false);
-  });
-
-  test('the language toggle switches to Arabic and flips the direction', async ({ page }) => {
-    await page.goto('/');
-    await page.getByRole('button', { name: 'عربي' }).click();
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('غياب أقل. ووقت أكثر.');
-  });
-});

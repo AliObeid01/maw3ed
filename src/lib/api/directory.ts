@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { request } from './auth';
 
-const directorySchema = z.object({
+export const directorySchema =z.object({
   businesses: z.array(
     z.object({
       slug: z.string(),
@@ -11,6 +11,16 @@ const directorySchema = z.object({
       address: z.string().nullable(),
       serviceCount: z.number(),
       fromPrice: z.number().nullable(),
+      // Only with `include=nextFree` (the home page).
+      timezone: z.string().optional(),
+      nextFree: z
+        .object({
+          startAt: z.string(),
+          service: z.object({ id: z.string(), name: z.string(), durationMin: z.number() }),
+        })
+        .nullable()
+        .optional(),
+      freeTimes: z.array(z.string()).optional(),
     }),
   ),
   nextCursor: z.string().nullable(),

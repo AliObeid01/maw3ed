@@ -3,10 +3,9 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Chip } from '@/components/ui/Chip';
+import { FREE_FEATURES, PRO_FEATURES } from './planCopy';
 import { BOOKABLE_STAFF_LIMIT, PLAN_PRICE } from '@/server/domain/plan';
 
-const FREE_FEATURES = ['staff', 'page', 'email', 'whatsapp', 'waitlist'] as const;
-const PRO_FEATURES = ['everything', 'staff'] as const;
 
 function Feature({ children }: { children: string }) {
   return (
@@ -39,7 +38,7 @@ export function PricingView() {
         </div>
       </header>
 
-      <main className="mx-auto -mt-12 flex w-full max-w-[1000px] flex-1 flex-col gap-8 px-4 pb-12 md:px-8 md:pb-16">
+      <main id="main-content" className="mx-auto -mt-12 flex w-full max-w-[1000px] flex-1 flex-col gap-8 px-4 pb-12 md:px-8 md:pb-16">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           <section
             aria-labelledby="plan-free"
