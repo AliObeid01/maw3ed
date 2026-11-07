@@ -5,7 +5,38 @@ import {
   type NextFree,
 } from '@/server/domain/nextFree';
 import type { Weekday } from '@/server/domain/slots';
+import { UNKNOWN_IP } from '@/server/http/clientIp';
+import { AppError } from '@/server/http/errors';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
+import { routeRateLimitDisabled, type RateLimiter } from './rateLimit';
+
+/**
+ * The per-IP budget of the costly public reads (policy `directoryLive`). Unlike the cheap reads, an address we
+ * cannot derive does NOT skip the limit: all such requests share one bucket (`unknown`), because these calls
+ * compute slots and an unlimited anonymous path would be the cheapest way to load the database. On Vercel the
+ * address is always present (x-vercel-forwarded-for), so the shared bucket only catches a misconfiguration.
+ */
+export async function consumeLiveBudget(
+  limiter: Pick<RateLimiter, 'consume'>,
+  ip: string | undefined,
+): Promise<void> {
+  if (routeRateLimitDisabled()) return;
+  const decision = await limiter.consume('directoryLive', ip ?? UNKNOWN_IP);
+  if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+}
+
+/**
+ * `when` can only have free slots between today (in the business zone) and today + bookingWindowDays. Zones
+ * differ by at most a day from UTC, so a day more than 1 before the UTC date, or more than maxWindowDays + 1
+ * after it, is outside EVERY business's window: the caller answers an empty page without any slot query.
+ */
+export function whenOutsideEveryWindow(when: string, now: Date, maxWindowDays: number): boolean {
+  const day = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
+  const today = day(now.toISOString().slice(0, 10));
+  const DAY = 86_400_000;
+  const w = day(when);
+  return w < today - DAY || w > today + (maxWindowDays + 1) * DAY;
+}
 
 /** At most this many businesses have their slots computed at the same time inside one request. */
 export const LIVE_CONCURRENCY = 4;

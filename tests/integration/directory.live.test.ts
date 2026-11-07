@@ -4,6 +4,7 @@ import type { Client } from 'pg';
 import { GET as categories } from '@/app/api/public/categories/route';
 import { GET as directory } from '@/app/api/public/directory/route';
 import { CATEGORY_KEYS } from '@/lib/business/profile';
+import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { call } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 import { hoursFor, makeBusiness } from './helpers/directory';
@@ -256,11 +257,33 @@ describe('directory filters', () => {
   });
 });
 
+describe('when outside any possible window', () => {
+  it('a past day and a day beyond every booking window answer an empty page with NO slot computation', async () => {
+    await makeBusiness(pg, { name: 'Window', bookingWindowDays: 10 });
+    const spy = vi.spyOn(availabilityRepo, 'loadMany');
+    for (const when of ['2026-10-20', '2026-10-31', '2027-06-01', '2100-12-31']) {
+      const res = await plain({ when });
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({ businesses: [], nextCursor: null });
+    }
+    expect(spy).not.toHaveBeenCalled();
+    // today and tomorrow still compute
+    expect((await plain({ when: '2026-11-02' })).body!.businesses).toHaveLength(1);
+    expect((await plain({ when: '2026-11-03' })).body!.businesses).toHaveLength(1);
+    expect(spy).toHaveBeenCalled();
+    spy.mockRestore();
+  });
+});
+
 describe('validation (400)', () => {
   it.each([
     [{ when: '2026-02-31' }, 'when'],
     [{ when: 'tomorrow' }, 'when'],
     [{ when: '2026-11-4' }, 'when'],
+    [{ when: '9999-12-31' }, 'when'],
+    [{ when: '0000-01-01' }, 'when'],
+    [{ when: '1999-12-31' }, 'when'],
+    [{ when: '2101-01-01' }, 'when'],
     [{ include: 'everything' }, 'include'],
     [{ include: 'nextFree', limit: '13' }, 'limit'],
     [{ when: '2026-11-04', limit: '40' }, 'limit'],

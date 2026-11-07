@@ -2,7 +2,8 @@ import type { CategoriesQueryT } from '@/server/contracts/directory';
 import { earliestNextFree } from '@/server/domain/nextFree';
 import { CATEGORY_KEYS } from '@/lib/business/profile';
 import { directoryRepo } from '@/server/repositories/directory.repo';
-import { liveNextFree } from './directoryLive';
+import { consumeLiveBudget, liveNextFree } from './directoryLive';
+import { rateLimiter, type RateLimiter } from './rateLimit';
 
 /** The category panel computes slots for the first N businesses of each category only (directory order). */
 export const CATEGORY_LIVE_BUSINESSES = 6;
@@ -10,8 +11,9 @@ export const POPULAR_SERVICES = 5;
 
 export interface CategoriesDeps {
   now: () => Date;
+  limiter: Pick<RateLimiter, 'consume'>;
 }
-const defaults: CategoriesDeps = { now: () => new Date() };
+const defaults: CategoriesDeps = { now: () => new Date(), limiter: rateLimiter };
 
 export const categoriesService = {
   /**
@@ -19,7 +21,8 @@ export const categoriesService = {
    * from SQL aggregates, top-5 popular services from one ranked query, and the earliest next-free time among the
    * first 6 businesses of the category (a bounded batch, not every business). The per-IP limit is the route's.
    */
-  async list(query: CategoriesQueryT, deps: CategoriesDeps = defaults) {
+  async list(query: CategoriesQueryT, ip?: string, deps: CategoriesDeps = defaults) {
+    await consumeLiveBudget(deps.limiter, ip);
     const now = deps.now();
     const [totals, popular, top] = await Promise.all([
       directoryRepo.categoryTotals(query.area, CATEGORY_KEYS),

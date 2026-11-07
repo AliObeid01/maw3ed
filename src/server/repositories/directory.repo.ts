@@ -136,6 +136,15 @@ export const directoryRepo = {
     }));
   },
 
+  /** Largest booking window (days) among listed businesses; 0 when there are none. One indexed aggregate. */
+  async maxBookingWindowDays(): Promise<number> {
+    const agg = await db.business.aggregate({
+      where: { listed: true },
+      _max: { bookingWindowDays: true },
+    });
+    return agg._max.bookingWindowDays ?? 0;
+  },
+
   /** The first `perCategory` listed + ready businesses (name, id order: the directory order) of each category. */
   async topBusinessIds(area: string | undefined, keys: readonly string[], perCategory: number) {
     const rows = await db.$queryRaw<{ id: string; category: string }[]>`

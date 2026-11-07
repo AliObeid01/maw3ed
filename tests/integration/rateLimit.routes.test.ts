@@ -276,4 +276,23 @@ describe('per-IP route limits (L6)', () => {
     const rows = await pg.query(`SELECT count(*)::int AS n FROM "RateLimitBucket"`);
     expect(rows.rows[0].n).toBe(0);
   });
+
+  it('PR-6: requests with no derivable address share ONE directoryLive bucket instead of skipping the limit', async () => {
+    const { limit } = RATE_POLICIES.directoryLive;
+    // No forwarding headers at all: the address is "unknown".
+    for (let sent = 0; sent < limit; sent += 10) {
+      const out = await Promise.all(
+        Array.from({ length: Math.min(10, limit - sent) }, () =>
+          call(categories, '/api/public/categories'),
+        ),
+      );
+      expect(out.every((r) => r.status !== 429)).toBe(true);
+    }
+    const over = await call(categories, '/api/public/categories');
+    expect(over.status).toBe(429);
+    // The costly directory variants draw on the same shared bucket; a plain read is not limited by it.
+    const live = await call(directory, '/api/public/directory', { query: { include: 'nextFree' } });
+    expect(live.status).toBe(429);
+    expect((await call(directory, '/api/public/directory')).status).not.toBe(429);
+  });
 });

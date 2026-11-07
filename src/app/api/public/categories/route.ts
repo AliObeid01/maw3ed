@@ -6,9 +6,10 @@ export const dynamic = 'force-dynamic';
 
 /** Public, non-personal aggregates (live slots for a bounded set): safe for the CDN to cache briefly. */
 export const GET = withRoute(
-  { auth: 'public', rateLimit: { policy: 'directoryLive' }, query: CategoriesQuery },
-  async ({ query }) =>
-    json(await categoriesService.list(query), 200, {
+  { auth: 'public', query: CategoriesQuery },
+  // The directoryLive budget is taken in the service: an unknown address shares one bucket, it never skips.
+  async ({ query, ctx }) =>
+    json(await categoriesService.list(query, ctx.ip), 200, {
       'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
     }),
 );

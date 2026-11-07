@@ -1,10 +1,14 @@
 import type { DirectoryQueryT } from '@/server/contracts/directory';
 import { FREE_TIMES_MAX } from '@/server/domain/nextFree';
-import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { AppError } from '@/server/http/errors';
 import { directoryRepo, type DirectoryRow } from '@/server/repositories/directory.repo';
-import { rateLimiter, routeRateLimitDisabled, type RateLimiter } from './rateLimit';
-import { liveNextFree, type LiveResult } from './directoryLive';
+import { rateLimiter, type RateLimiter } from './rateLimit';
+import {
+  consumeLiveBudget,
+  liveNextFree,
+  whenOutsideEveryWindow,
+  type LiveResult,
+} from './directoryLive';
 
 const encodeCursor = (name: string, id: string) =>
   Buffer.from(JSON.stringify([name, id]), 'utf8').toString('base64url');
@@ -73,10 +77,13 @@ export const directoryService = {
       throw AppError.validation({
         limit: `At most ${LIVE_PAGE_SIZE} when include or when is set.`,
       });
-    if (live && ip && ip !== UNKNOWN_IP && !routeRateLimitDisabled()) {
-      const decision = await deps.limiter.consume('directoryLive', ip);
-      if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
-    }
+    if (live) await consumeLiveBudget(deps.limiter, ip);
+    // `when` outside every listed business's booking window can never match: answer at once, no slot query.
+    if (
+      query.when !== undefined &&
+      whenOutsideEveryWindow(query.when, deps.now(), await directoryRepo.maxBookingWindowDays())
+    )
+      return { businesses: [], nextCursor: null };
     const after = query.cursor ? decodeCursor(query.cursor) : undefined;
     const base = {
       search: query.search,

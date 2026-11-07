@@ -39,6 +39,10 @@ export const DirectoryQuery = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use a date like 2026-11-10.')
       .refine(
+        (v) => v >= '2000-01-01' && v <= '2100-12-31',
+        'Use a date between 2000-01-01 and 2100-12-31.',
+      )
+      .refine(
         (v) => DateTime.fromISO(v, { zone: 'utc' }).isValid,
         'Use a real date like 2026-11-10.',
       )
