@@ -33,7 +33,13 @@ import { ApiError } from '@/lib/api/auth';
 import { errorKey } from '@/lib/setup/errors';
 import { useResource } from '@/lib/api/useResource';
 import { apptTone, dayRelation } from '@/lib/dashboard/agenda';
-import { formatPhone, initials, isDeletedClient, telUrl, whatsappChatUrl } from '@/lib/dashboard/phone';
+import {
+  formatPhone,
+  initials,
+  isDeletedClient,
+  telUrl,
+  whatsappChatUrl,
+} from '@/lib/dashboard/phone';
 import { useClientLabel } from '@/components/app/useClientLabel';
 import { outcomeOptions, type OutcomeOptions } from '@/lib/outcomes/eligibility';
 import { outcomeFailure, type OutcomeFailure } from '@/lib/outcomes/state';
@@ -124,7 +130,8 @@ export function OutcomeCard({
   const excuseBusy = useRef(false);
 
   // Only a recorded no-show or late cancel (staff-marked or written by the cancel link) can be excused.
-  const excusable = canExcuse && (options.current === 'NO_SHOW' || options.current === 'LATE_CANCEL');
+  const excusable =
+    canExcuse && (options.current === 'NO_SHOW' || options.current === 'LATE_CANCEL');
   const excuse = async () => {
     if (excuseBusy.current) return;
     excuseBusy.current = true;
@@ -194,7 +201,13 @@ export function OutcomeCard({
             ? t('recorded', { outcome: ts(statusKey[options.current]) })
             : t('ended', { name: clientName });
   return (
-    <Card as="section" size="sm" padding="compact" aria-labelledby="outcome-title" className="flex flex-col gap-3">
+    <Card
+      as="section"
+      size="sm"
+      padding="compact"
+      aria-labelledby="outcome-title"
+      className="flex flex-col gap-3"
+    >
       <h2 id="outcome-title" className="m-0 text-lg font-semibold">
         {t('title')}
       </h2>
@@ -338,7 +351,8 @@ export function AppointmentView({ id }: { id: string }) {
       ? t('confirmedByClient')
       : ts(toneLabelKey[tone === 'waitlist' ? 'booked' : tone]);
   const cancellable =
-    (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') && now.getTime() < Date.parse(appt.startAt);
+    (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') &&
+    now.getTime() < Date.parse(appt.startAt);
   // Only for a booking that can still be reminded, and only once the server sent the field (older cache: hidden).
   const remindable =
     (appt.status === 'BOOKED' || appt.status === 'CONFIRMED') &&
@@ -404,6 +418,11 @@ export function AppointmentView({ id }: { id: string }) {
               source: t(`source.${sourceKey}`),
             })}
           </span>
+          {appt.reference ? (
+            <span className="text-sm text-hero-muted">
+              {t('reference', { code: ltr(appt.reference) })}
+            </span>
+          ) : null}
           <span className="inline-flex min-h-8 items-center self-start rounded-chip bg-cyan px-3 py-1.5 text-[13px] font-medium text-ink">
             {statusText}
           </span>
@@ -445,11 +464,18 @@ export function AppointmentView({ id }: { id: string }) {
           >
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-lg font-semibold">
               {clientName}
-              {appt.client.repeatNoShow && !deleted ? <NoShowBadge count={appt.client.noShows} /> : null}
+              {appt.client.repeatNoShow && !deleted ? (
+                <NoShowBadge count={appt.client.noShows} />
+              ) : null}
             </span>
             <span className="text-sm text-muted">
               <MetaLine
-                items={[<Bidi key="p" dir="ltr">{formatPhone(appt.client.phone)}</Bidi>, deleted ? null : counts]}
+                items={[
+                  <Bidi key="p" dir="ltr">
+                    {formatPhone(appt.client.phone)}
+                  </Bidi>,
+                  deleted ? null : counts,
+                ]}
               />
             </span>
           </ClientHead>
@@ -472,7 +498,11 @@ export function AppointmentView({ id }: { id: string }) {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={sheet.whatsappAria}
-                className={buttonClasses({ variant: 'whatsapp', size: 'row', className: 'flex-1 sm:flex-none' })}
+                className={buttonClasses({
+                  variant: 'whatsapp',
+                  size: 'row',
+                  className: 'flex-1 sm:flex-none',
+                })}
               >
                 <MessageCircle size={18} aria-hidden="true" />
                 {sheet.whatsapp}

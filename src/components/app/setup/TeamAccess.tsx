@@ -1,7 +1,6 @@
 'use client';
 
 import { BadgeCheck, ChevronDown, MailPlus } from 'lucide-react';
-import Link from 'next/link';
 import { useFormatter, useTranslations } from 'next-intl';
 import { useId, useState } from 'react';
 import { Button } from '@/components/ui/Button';
@@ -86,7 +85,9 @@ export function TeamAccess({
       removeTeamMember(member.userId)
         .then(({ futureAppointments }) => {
           toast.show(t('removed', { name: isolate(member.name) }));
-          setNote(futureAppointments > 0 ? { name: member.name, count: futureAppointments } : undefined);
+          setNote(
+            futureAppointments > 0 ? { name: member.name, count: futureAppointments } : undefined,
+          );
         })
         .catch((error: unknown) => {
           team.setData(snapshot);
@@ -112,15 +113,6 @@ export function TeamAccess({
   const summary = data
     ? t('summary', { people: members.length, pending: invites.length })
     : t('loading');
-
-  // Plain node, so the JSX below holds no call with a literal argument.
-  const barberHint = t.rich('barberHint', {
-    link: (chunks) => (
-      <Link href="/app/staff" className="font-semibold text-brand">
-        {chunks}
-      </Link>
-    ),
-  });
 
   return (
     <Card
@@ -148,13 +140,16 @@ export function TeamAccess({
                 <ChevronDown
                   size={18}
                   aria-hidden="true"
-                  className={cn('shrink-0 transition-transform duration-200', expanded && 'rotate-180')}
+                  className={cn(
+                    'shrink-0 transition-transform duration-200',
+                    expanded && 'rotate-180',
+                  )}
                 />
               </button>
             )}
           </h2>
           <p className="m-0 text-[13px] text-muted">{t('purpose')}</p>
-          <p className="m-0 text-[13px] text-muted">{barberHint}</p>
+          <p className="m-0 text-[13px] text-muted">{t('barberHint')}</p>
           <p className="m-0 text-[13px] text-muted">{summary}</p>
         </div>
         {/* The one invite button: always visible, also while the member list is collapsed on a phone. */}
@@ -181,14 +176,21 @@ export function TeamAccess({
         {team.error && !data ? (
           <p role="alert" className="m-0 mt-3 text-[13px] text-danger">
             {t('loadFailed')}{' '}
-            <button type="button" onClick={team.reload} className="min-h-11 font-semibold underline">
+            <button
+              type="button"
+              onClick={team.reload}
+              className="min-h-11 font-semibold underline"
+            >
               {t('retry')}
             </button>
           </p>
         ) : null}
 
         {note ? (
-          <p aria-live="polite" className="m-0 mt-3 rounded-input bg-amber-soft p-3 text-[13px] text-amber">
+          <p
+            aria-live="polite"
+            className="m-0 mt-3 rounded-input bg-amber-soft p-3 text-[13px] text-amber"
+          >
             {t('remainingNote', { name: isolate(note.name), count: note.count })}
           </p>
         ) : null}
@@ -294,7 +296,9 @@ export function TeamAccess({
             ? t('confirmRevoke.body', { email: isolate(target.invite.email) })
             : t('confirmRemove.body')
         }
-        confirmLabel={target?.kind === 'invite' ? t('confirmRevoke.confirm') : t('confirmRemove.confirm')}
+        confirmLabel={
+          target?.kind === 'invite' ? t('confirmRevoke.confirm') : t('confirmRemove.confirm')
+        }
         cancelLabel={t('cancel')}
         closeLabel={t('close')}
         onConfirm={confirm}

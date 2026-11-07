@@ -68,6 +68,8 @@ export const excuseAppointment = (id: string) =>
 export const appointmentSchema = z.object({
   appointment: z.object({
     id: z.string(),
+    /** Owner / staff screens only (the barber's shape has none). */
+    reference: z.string().nullable().optional(),
     startAt: z.string(),
     endAt: z.string(),
     status: z.string(),

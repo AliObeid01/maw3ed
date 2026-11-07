@@ -123,7 +123,14 @@ afterAll(async () => {
   await pg.end();
 });
 beforeEach(async () => {
-  for (const t of ['WaitlistOffer', 'WaitlistEntry', 'ReminderJob', 'Payment', 'Appointment', 'Client'])
+  for (const t of [
+    'WaitlistOffer',
+    'WaitlistEntry',
+    'ReminderJob',
+    'Payment',
+    'Appointment',
+    'Client',
+  ])
     await pg.query(`DELETE FROM "${t}"`);
   await patch(a.cookie, { depositEnabled: true, depositThreshold: 1, depositAmount: 5 });
   fakeEmailProvider.reset();
@@ -139,7 +146,11 @@ describe('settings (owner only)', () => {
   });
 
   it('owner can change them; staff gets 403; anonymous 401', async () => {
-    const ok = await patch(a.cookie, { depositEnabled: true, depositThreshold: 2, depositAmount: 7.5 });
+    const ok = await patch(a.cookie, {
+      depositEnabled: true,
+      depositThreshold: 2,
+      depositAmount: 7.5,
+    });
     expect(ok.status).toBe(200);
     expect(ok.body!.deposit).toMatchObject({ enabled: true, threshold: 2, amount: 7.5 });
     expect((await patch(staffCookie, { depositEnabled: false })).status).toBe(403);
@@ -205,6 +216,9 @@ describe('who is asked for a deposit', () => {
     const id = res.body!.appointment.id;
     const r = await row(id);
     expect(r.status).toBe('PENDING_PAYMENT');
+    // PR-6: a deposit hold is inserted by the same path, so it has its reference from the start.
+    expect(r.reference).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
+    expect(res.body!.appointment.reference).toBe(r.reference);
     expect(new Date(r.holdExpiresAt).getTime()).toBe(NOW.getTime() + 15 * MIN);
     // no reminders, no confirmation email
     expect(await jobs(id)).toHaveLength(0);
@@ -442,7 +456,12 @@ describe('paying', () => {
 
   it('pay racing the expiry job: exactly one wins, never a booking on a freed slot', async () => {
     for (let i = 0; i < 12; i++) {
-      const hold = await holdSlot({ startAt: at(['07:00', '08:00', '09:00', '10:00'][i % 4]!, `2026-11-${String(4 + Math.floor(i / 4)).padStart(2, '0')}`) });
+      const hold = await holdSlot({
+        startAt: at(
+          ['07:00', '08:00', '09:00', '10:00'][i % 4]!,
+          `2026-11-${String(4 + Math.floor(i / 4)).padStart(2, '0')}`,
+        ),
+      });
       const id = hold.body!.appointment.id;
       const expiresAt = new Date(hold.body!.holdExpiresAt);
       const [paid, freed] = await Promise.all([
@@ -614,7 +633,11 @@ describe('waitlist claim that needs a deposit (B2)', () => {
     expect((await offerRow(entryId)).status).toBe('OPEN');
     expect((await offerRow(entryId)).claimedAppointmentId).toBeNull();
     expect((await entryRow(entryId)).status).toBe('OPEN');
-    const sig = await pilotRepo.waitlistSignal(a.businessId, new Date(0), new Date(NOW.getTime() + 3600_000));
+    const sig = await pilotRepo.waitlistSignal(
+      a.businessId,
+      new Date(0),
+      new Date(NOW.getTime() + 3600_000),
+    );
     expect(sig.refills).toBe(0);
   });
 
@@ -626,7 +649,11 @@ describe('waitlist claim that needs a deposit (B2)', () => {
     expect((await row(claim.body!.appointment.id)).status).toBe('CANCELLED');
     expect((await offerRow(entryId)).status).not.toBe('CLAIMED');
     expect((await entryRow(entryId)).status).toBe('OPEN');
-    const sig = await pilotRepo.waitlistSignal(a.businessId, new Date(0), new Date(NOW.getTime() + 3600_000));
+    const sig = await pilotRepo.waitlistSignal(
+      a.businessId,
+      new Date(0),
+      new Date(NOW.getTime() + 3600_000),
+    );
     expect(sig.refills).toBe(0);
   });
 
@@ -637,7 +664,11 @@ describe('waitlist claim that needs a deposit (B2)', () => {
     expect(o.status).toBe('CLAIMED');
     expect(o.claimedAppointmentId).toBe(claim.body!.appointment.id);
     expect((await entryRow(entryId)).status).toBe('FULFILLED');
-    const sig = await pilotRepo.waitlistSignal(a.businessId, new Date(0), new Date(NOW.getTime() + 3600_000));
+    const sig = await pilotRepo.waitlistSignal(
+      a.businessId,
+      new Date(0),
+      new Date(NOW.getTime() + 3600_000),
+    );
     expect(sig.refills).toBe(1);
   });
 });
@@ -751,13 +782,17 @@ describe('a failed checkout releases the hold and re-offers the slot', () => {
     expect(res.status).toBe(503);
     const held = await pg.query(`SELECT status FROM "Appointment" WHERE "startAt"=$1`, [SLOT]);
     expect(held.rows.map((r) => r.status)).toEqual(['CANCELLED']);
-    const offers = await pg.query('SELECT 1 FROM "WaitlistOffer" WHERE "entryId"=$1', [waiter.entryId]);
+    const offers = await pg.query('SELECT 1 FROM "WaitlistOffer" WHERE "entryId"=$1', [
+      waiter.entryId,
+    ]);
     expect(offers.rowCount).toBe(1);
     expect(fakeEmailProvider.calls.some((c) => c.to === 'wendy@example.test')).toBe(true);
   });
 
   it('still answers 503 when releasing the hold itself fails (the cron sweeps it)', async () => {
-    const spy = vi.spyOn(appointmentRepo, 'abandonHold').mockRejectedValueOnce(new Error('db down'));
+    const spy = vi
+      .spyOn(appointmentRepo, 'abandonHold')
+      .mockRejectedValueOnce(new Error('db down'));
     fakePaymentProvider.failNext = new Error('provider down');
     const res = await bookPublicly(
       a.slug,
@@ -818,7 +853,10 @@ describe('a paid deposit is not a confirmation (B3)', () => {
       `UPDATE "ReminderJob" SET status='SENT', "sentAt"=now() WHERE "appointmentId"=$1 AND kind='H24' AND channel='EMAIL'`,
       [id],
     );
-    const signal = await pilotRepo.reminderConfirmSignal(a.businessId, new Date('2026-11-05T00:00:00Z'));
+    const signal = await pilotRepo.reminderConfirmSignal(
+      a.businessId,
+      new Date('2026-11-05T00:00:00Z'),
+    );
     expect(signal).toEqual({ remindedAppointments: 1, confirmedAfterReminder: 0 });
   });
 
@@ -906,7 +944,9 @@ describe('expiry job (inside /api/jobs/waitlist-expiry)', () => {
     expect(r.cancelledVia).toBe('SYSTEM');
     expect((await payments(id))[0].status).toBe('EXPIRED');
     // the waitlist cascade ran like a cancellation
-    const offers = await pg.query('SELECT * FROM "WaitlistOffer" WHERE "entryId"=$1', [waiter.entryId]);
+    const offers = await pg.query('SELECT * FROM "WaitlistOffer" WHERE "entryId"=$1', [
+      waiter.entryId,
+    ]);
     expect(offers.rowCount).toBe(1);
     expect(offers.rows[0].freedFromAppointmentId).toBe(id);
     expect(fakeEmailProvider.calls.some((c) => c.to === 'wendy@example.test')).toBe(true);
@@ -921,13 +961,11 @@ describe('expiry job (inside /api/jobs/waitlist-expiry)', () => {
   it('overlapping runs do not double-cancel or double-offer, and a second run is a no-op', async () => {
     const ids: string[] = [];
     for (let i = 0; i < 4; i++) {
-      const h = await holdSlot({ startAt: at(["07:00", "08:00", "09:00", "10:00"][i]!) });
+      const h = await holdSlot({ startAt: at(['07:00', '08:00', '09:00', '10:00'][i]!) });
       ids.push(h.body!.appointment.id);
     }
     vi.setSystemTime(new Date(NOW.getTime() + 20 * MIN));
-    const runs = await Promise.all(
-      Array.from({ length: 4 }, () => runExpiry()),
-    );
+    const runs = await Promise.all(Array.from({ length: 4 }, () => runExpiry()));
     expect(runs.every((r) => r.status === 200)).toBe(true);
     expect(runs.reduce((n, r) => n + (r.body!.holdsExpired as number), 0)).toBe(4);
     const after = await pg.query(
@@ -1017,7 +1055,11 @@ describe('token scopes', () => {
     expect((await payGet(`${body}.${sig!.slice(0, -2)}AA`)).status).toBe(404);
     expect((await payGet('not-a-token')).status).toBe(404);
     const ghost = signToken(
-      { a: 'ckghostghostghostghost0000', act: 'pay', exp: payExpiryFor(new Date(NOW.getTime() + 600_000)) },
+      {
+        a: 'ckghostghostghostghost0000',
+        act: 'pay',
+        exp: payExpiryFor(new Date(NOW.getTime() + 600_000)),
+      },
       SECRET(),
     );
     expect((await payGet(ghost)).status).toBe(404);
@@ -1035,7 +1077,10 @@ describe('token scopes', () => {
   it('cross-tenant: another business cannot see or cancel the hold (404)', async () => {
     const hold = await holdSlot();
     const id = hold.body!.appointment.id;
-    expect((await call(getAppointment, `/api/appointments/${id}`, { cookie: b.cookie, params: { id } })).status).toBe(404);
+    expect(
+      (await call(getAppointment, `/api/appointments/${id}`, { cookie: b.cookie, params: { id } }))
+        .status,
+    ).toBe(404);
     expect((await staffCancel(b.cookie, id)).status).toBe(404);
     expect((await row(id)).status).toBe('PENDING_PAYMENT');
   });
@@ -1043,7 +1088,10 @@ describe('token scopes', () => {
 
 describe('pay view: business address and service total (F51)', () => {
   it("shows this business's address and the service price next to the deposit, never another business's", async () => {
-    await pg.query(`UPDATE "Business" SET address=$1 WHERE id=$2`, ['1 Hamra Street, Beirut', a.businessId]);
+    await pg.query(`UPDATE "Business" SET address=$1 WHERE id=$2`, [
+      '1 Hamra Street, Beirut',
+      a.businessId,
+    ]);
     await pg.query(`UPDATE "Business" SET address=$1 WHERE id=$2`, ['99 Other Road', b.businessId]);
     const hold = await holdSlot();
     const price = Number(

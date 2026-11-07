@@ -34,6 +34,8 @@ export const directoryRepo = {
     search?: string;
     category?: string;
     area?: string;
+    /** Text matched (ILIKE, parameterised) against ACTIVE service names, in addition to `search`. */
+    service?: string;
     after?: { name: string; id: string };
     take: number;
   }): Promise<DirectoryRow[]> {
@@ -45,6 +47,9 @@ export const directoryRepo = {
       ? Prisma.sql`AND lower(b."category") = lower(${input.category})`
       : Prisma.empty;
     const areaSql = input.area ? Prisma.sql`AND b."area" = ${input.area}` : Prisma.empty;
+    const serviceSql = input.service
+      ? Prisma.sql`AND EXISTS (SELECT 1 FROM "Service" sv WHERE sv."businessId" = b."id" AND sv."active" AND sv."name" ILIKE ${`%${escapeLike(input.service)}%`} ESCAPE '\\')`
+      : Prisma.empty;
     const cursorSql = input.after
       ? Prisma.sql`AND (b."name", b."id") > (${input.after.name}, ${input.after.id})`
       : Prisma.empty;
@@ -65,7 +70,7 @@ export const directoryRepo = {
         (SELECT count(*) FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "serviceCount",
         (SELECT min(s."price") FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "fromPrice"
       FROM "Business" b
-      WHERE b."listed" AND ${READY} ${searchSql} ${categorySql} ${areaSql} ${cursorSql}
+      WHERE b."listed" AND ${READY} ${searchSql} ${categorySql} ${areaSql} ${serviceSql} ${cursorSql}
       ORDER BY b."name" ASC, b."id" ASC
       LIMIT ${input.take}`;
     return rows.map((r) => ({
@@ -79,4 +84,79 @@ export const directoryRepo = {
       fromPrice: r.fromPrice === null ? null : Number(r.fromPrice),
     }));
   },
+
+  /**
+   * Per fixed category key: how many listed + ready places, and the cheapest active service price among them.
+   * Cheap aggregates in SQL; categories without places are simply absent (the service fills them with zero).
+   */
+  async categoryTotals(area: string | undefined, keys: readonly string[]) {
+    const rows = await db.$queryRaw<
+      {
+        category: string;
+        places: bigint | number;
+        fromPrice: Prisma.Decimal | string | number | null;
+      }[]
+    >`
+      SELECT lower(b."category") AS category, count(*) AS places,
+        min((SELECT min(s."price") FROM "Service" s WHERE s."businessId" = b."id" AND s."active")) AS "fromPrice"
+      FROM "Business" b
+      WHERE b."listed" AND ${READY} AND lower(b."category") = ANY(${keys as string[]}::text[]) ${areaClause(area)}
+      GROUP BY lower(b."category")`;
+    return rows.map((r) => ({
+      category: r.category,
+      places: Number(r.places),
+      fromPrice: r.fromPrice === null ? null : Number(r.fromPrice),
+    }));
+  },
+
+  /**
+   * Top services per category: a service counts once per business that offers it (name compared
+   * case-insensitively), ranked by number of businesses, then cheapest, then name. Top `perCategory` per key.
+   */
+  async popularServices(area: string | undefined, keys: readonly string[], perCategory: number) {
+    const rows = await db.$queryRaw<
+      { category: string; name: string; fromPrice: Prisma.Decimal | string | number }[]
+    >`
+      WITH base AS (
+        SELECT lower(b."category") AS category, lower(btrim(s."name")) AS key, min(s."name") AS name,
+          count(DISTINCT b."id") AS businesses, min(s."price") AS "fromPrice"
+        FROM "Business" b
+        JOIN "Service" s ON s."businessId" = b."id" AND s."active"
+        WHERE b."listed" AND ${READY} AND lower(b."category") = ANY(${keys as string[]}::text[]) ${areaClause(area)}
+        GROUP BY lower(b."category"), lower(btrim(s."name"))
+      ), ranked AS (
+        SELECT *, row_number() OVER (PARTITION BY category ORDER BY businesses DESC, "fromPrice" ASC, key ASC) AS rn
+        FROM base
+      )
+      SELECT category, name, "fromPrice" FROM ranked WHERE rn <= ${perCategory} ORDER BY category, rn`;
+    return rows.map((r) => ({
+      category: r.category,
+      name: r.name,
+      fromPrice: Number(r.fromPrice),
+    }));
+  },
+
+  /** Largest booking window (days) among listed businesses; 0 when there are none. One indexed aggregate. */
+  async maxBookingWindowDays(): Promise<number> {
+    const agg = await db.business.aggregate({
+      where: { listed: true },
+      _max: { bookingWindowDays: true },
+    });
+    return agg._max.bookingWindowDays ?? 0;
+  },
+
+  /** The first `perCategory` listed + ready businesses (name, id order: the directory order) of each category. */
+  async topBusinessIds(area: string | undefined, keys: readonly string[], perCategory: number) {
+    const rows = await db.$queryRaw<{ id: string; category: string }[]>`
+      SELECT id, category FROM (
+        SELECT b."id", lower(b."category") AS category,
+          row_number() OVER (PARTITION BY lower(b."category") ORDER BY b."name" ASC, b."id" ASC) AS rn
+        FROM "Business" b
+        WHERE b."listed" AND ${READY} AND lower(b."category") = ANY(${keys as string[]}::text[]) ${areaClause(area)}
+      ) t WHERE rn <= ${perCategory} ORDER BY category, rn`;
+    return rows;
+  },
 };
+
+const areaClause = (area: string | undefined) =>
+  area ? Prisma.sql`AND b."area" = ${area}` : Prisma.empty;

@@ -10,7 +10,7 @@ import { resolveScope } from './scope';
 const MAX_ATTEMPTS = 3;
 
 /** The owner / receptionist shape (full client counters), or the barber's (first name + phone only). */
-const toDto = (row: OutcomeRow, scope: Scope = ALL_SCOPE) => ({
+const toDto = (row: OutcomeRow, scope: Scope) => ({
   appointment: {
     id: row.id,
     status: row.status,
@@ -113,12 +113,17 @@ export const outcomesService = {
             'client counter drift: an excuse found its counter already at 0',
           );
         ctx.logger.info(
-          { businessId: ctx.businessId, appointmentId: id, userId: ctx.userId, at: now().toISOString() },
+          {
+            businessId: ctx.businessId,
+            appointmentId: id,
+            userId: ctx.userId,
+            at: now().toISOString(),
+          },
           'appointment outcome excused',
         );
-        return toDto(res.row);
+        return toDto(res.row, ALL_SCOPE);
       case 'noop':
-        return toDto(res.row);
+        return toDto(res.row, ALL_SCOPE);
     }
   },
 

@@ -18,15 +18,20 @@ test.afterEach(() => {
 });
 
 const MAYA = client('clmaya', 'Maya Khoury', '+96171234567', { attended: 4 });
-const NADINE = client('clnadine', 'Nadine Aoun', '+96176418902', { attended: 7, noShows: 2, lateCancels: 1 });
+const NADINE = client('clnadine', 'Nadine Aoun', '+96176418902', {
+  attended: 7,
+  noShows: 2,
+  lateCancels: 1,
+});
 
-const setup = (extra: Parameters<typeof appt>[4] = {}, startMinutes = -120, duration = 30) =>
-  ({
-    clients: [{ ...MAYA }, { ...NADINE }],
-    appointments: [appt('apone', 'clmaya', startMinutes, duration, extra)],
-  });
+const setup = (extra: Parameters<typeof appt>[4] = {}, startMinutes = -120, duration = 30) => ({
+  clients: [{ ...MAYA }, { ...NADINE }],
+  appointments: [appt('apone', 'clmaya', startMinutes, duration, extra)],
+});
 
-test('shows the details: time, service, staff, source, status, client with call and WhatsApp', async ({ page }) => {
+test('shows the details: time, service, staff, source, status, client with call and WhatsApp', async ({
+  page,
+}) => {
   await mockOutcomesApi(page, setup({ status: 'CONFIRMED', source: 'PUBLIC' }, 180, 30));
   await page.goto('/app/appointments/apone');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Appointment');
@@ -34,12 +39,17 @@ test('shows the details: time, service, staff, source, status, client with call 
   // Each Latin name is its own first-strong isolate (FSI ... PDI), so it can never reorder its neighbours.
   await expect(details).toContainText('⁨Haircut⁩ · with ⁨Karim⁩ · booked online');
   await expect(details).toContainText('Confirmed by client');
+  // The code is an LRI ... PDI run, so it cannot reorder its neighbours.
+  await expect(details).toContainText(/Reference ⁦K7M2QX⁩/);
   await expect(details.locator('bdi')).toContainText(/^\d{1,2}:\d{2} – \d{1,2}:\d{2}$/);
   const who = page.getByRole('region', { name: 'Client' });
   await expect(who).toContainText('Maya Khoury');
   await expect(who).toContainText('+961 71 234 567');
   await expect(who).toContainText('0 no-shows');
-  await expect(who.getByRole('link', { name: 'Call Maya Khoury' })).toHaveAttribute('href', 'tel:+96171234567');
+  await expect(who.getByRole('link', { name: 'Call Maya Khoury' })).toHaveAttribute(
+    'href',
+    'tel:+96171234567',
+  );
   const wa = who.getByRole('link', { name: /WhatsApp chat with Maya Khoury/ });
   await expect(wa).toHaveAttribute('href', 'https://wa.me/96171234567');
   await expect(wa).toHaveAttribute('rel', /noopener/);
@@ -59,7 +69,9 @@ test('shows the details: time, service, staff, source, status, client with call 
   );
 });
 
-test('upcoming: outcome buttons are disabled with the reason; cancel is offered', async ({ page }) => {
+test('upcoming: outcome buttons are disabled with the reason; cancel is offered', async ({
+  page,
+}) => {
   await mockOutcomesApi(page, setup({}, 180, 30));
   await page.goto('/app/appointments/apone');
   const outcome = page.getByRole('region', { name: 'Outcome' });
@@ -71,7 +83,9 @@ test('upcoming: outcome buttons are disabled with the reason; cancel is offered'
   await expect(page.getByText('The slot is offered to the waitlist straight away.')).toBeVisible();
 });
 
-test('in progress: Attended waits for the end, No-show and Late cancel are available', async ({ page }) => {
+test('in progress: Attended waits for the end, No-show and Late cancel are available', async ({
+  page,
+}) => {
   await mockOutcomesApi(page, setup({}, -10, 30));
   await page.goto('/app/appointments/apone');
   const outcome = page.getByRole('region', { name: 'Outcome' });
@@ -85,7 +99,9 @@ test('in progress: Attended waits for the end, No-show and Late cancel are avail
   await expect(page.getByRole('button', { name: 'Cancel for client' })).toHaveCount(0);
 });
 
-test('ended: marking records the outcome, updates the status and allows a correction', async ({ page }) => {
+test('ended: marking records the outcome, updates the status and allows a correction', async ({
+  page,
+}) => {
   const { calls } = await mockOutcomesApi(page, setup());
   await page.goto('/app/appointments/apone');
   const outcome = page.getByRole('region', { name: 'Outcome' });
@@ -105,13 +121,21 @@ test('ended: marking records the outcome, updates the status and allows a correc
 test('a repeat no-show client carries the badge', async ({ page }) => {
   await mockOutcomesApi(page, {
     clients: [{ ...NADINE }],
-    appointments: [appt('apone', 'clnadine', 120, 30, { serviceId: SERVICES.colour.id, staffId: STAFF.lina.id, source: 'WAITLIST' })],
+    appointments: [
+      appt('apone', 'clnadine', 120, 30, {
+        serviceId: SERVICES.colour.id,
+        staffId: STAFF.lina.id,
+        source: 'WAITLIST',
+      }),
+    ],
   });
   await page.goto('/app/appointments/apone');
   const who = page.getByRole('region', { name: 'Client' });
   await expect(who).toContainText('2 no-shows');
   await expect(who).toContainText('1 late cancel');
-  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText('from the waitlist');
+  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText(
+    'from the waitlist',
+  );
 });
 
 test('cancel asks for confirmation; keeping it sends nothing, confirming cancels and closes the outcome card', async ({
@@ -128,17 +152,25 @@ test('cancel asks for confirmation; keeping it sends nothing, confirming cancels
 
   await page.getByRole('button', { name: 'Cancel for client' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Yes, cancel it' }).dblclick();
-  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText('Cancelled');
-  await expect(page.getByRole('status').filter({ hasText: "Maya Khoury's appointment was cancelled" })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText(
+    'Cancelled',
+  );
+  await expect(
+    page.getByRole('status').filter({ hasText: "Maya Khoury's appointment was cancelled" }),
+  ).toBeVisible();
   await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Cancel for client' })).toHaveCount(0);
-  expect(calls.filter((c) => c.path === '/api/appointments/apone/cancel' && c.method === 'POST')).toHaveLength(1);
+  expect(
+    calls.filter((c) => c.path === '/api/appointments/apone/cancel' && c.method === 'POST'),
+  ).toHaveLength(1);
 });
 
 test('a cancelled appointment has no outcome buttons', async ({ page }) => {
   await mockOutcomesApi(page, setup({ status: 'CANCELLED' }));
   await page.goto('/app/appointments/apone');
-  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText('Cancelled');
+  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText(
+    'Cancelled',
+  );
   await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
 });
 
@@ -153,19 +185,28 @@ test('an id that is not in this business shows a friendly not-found state', asyn
 test('a server error offers a retry', async ({ page }) => {
   await mockOutcomesApi(page, setup());
   await page.route('**/api/appointments/apone', (route) =>
-    route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'x' } }) }),
+    route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ error: { code: 'INTERNAL', message: 'x' } }),
+    }),
   );
   await page.goto('/app/appointments/apone');
   await expect(page.getByRole('alert').filter({ hasText: 'We could not load this' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Try again' })).toBeVisible();
 });
 
-const GONE = client('cldeleted', 'Deleted client', 'deleted:cldeleted9x8y7z6w5v4u', { attended: 0 });
+const GONE = client('cldeleted', 'Deleted client', 'deleted:cldeleted9x8y7z6w5v4u', {
+  attended: 0,
+});
 
 test('an anonymised client: no tombstone text, no tel or WhatsApp link, no link to the history that would 404', async ({
   page,
 }) => {
-  await mockOutcomesApi(page, { clients: [{ ...GONE }], appointments: [appt('apgone', 'cldeleted', -120, 30)] });
+  await mockOutcomesApi(page, {
+    clients: [{ ...GONE }],
+    appointments: [appt('apgone', 'cldeleted', -120, 30)],
+  });
   await page.goto('/app/appointments/apgone');
   const who = page.getByRole('region', { name: 'Client' });
   await expect(who).toContainText('Deleted client');
@@ -177,12 +218,17 @@ test('an anonymised client: no tombstone text, no tel or WhatsApp link, no link 
   await expect(who.getByRole('link')).toHaveCount(0);
   expect(await page.locator('body').innerText()).not.toContain('deleted:');
   // The outcome can still be recorded for a past appointment.
-  await expect(page.getByRole('region', { name: 'Outcome' })).toContainText('Did Deleted client come?');
+  await expect(page.getByRole('region', { name: 'Outcome' })).toContainText(
+    'Did Deleted client come?',
+  );
 });
 
 test('an anonymised client in Arabic shows the localized name', async ({ page }) => {
   await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
-  await mockOutcomesApi(page, { clients: [{ ...GONE }], appointments: [appt('apgone', 'cldeleted', -120, 30)] });
+  await mockOutcomesApi(page, {
+    clients: [{ ...GONE }],
+    appointments: [appt('apgone', 'cldeleted', -120, 30)],
+  });
   await page.goto('/app/appointments/apgone');
   await expect(page.getByRole('region', { name: 'العميل' })).toContainText('عميل محذوف');
   expect(await page.locator('body').innerText()).not.toContain('deleted:');
@@ -197,25 +243,36 @@ test('a late cancel is final: Attended and No-show are locked with the reason, L
   const outcome = page.getByRole('region', { name: 'Outcome' });
   const attended = outcome.getByRole('button', { name: /as Attended/ });
   await expect(attended).toBeDisabled();
-  await expect(attended).toHaveAccessibleDescription(/A late cancel cannot be changed to Attended or No-show/);
+  await expect(attended).toHaveAccessibleDescription(
+    /A late cancel cannot be changed to Attended or No-show/,
+  );
   await expect(outcome.getByRole('button', { name: /as No-show/ })).toBeDisabled();
-  await expect(outcome.getByRole('button', { name: /as Late cancel/ })).toHaveAttribute('aria-pressed', 'true');
+  await expect(outcome.getByRole('button', { name: /as Late cancel/ })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
 });
 
-test('a 409 CONFLICT reloads the appointment so the page shows what the server knows', async ({ page }) => {
+test('a 409 CONFLICT reloads the appointment so the page shows what the server knows', async ({
+  page,
+}) => {
   const { appointments, calls } = await mockOutcomesApi(page, setup());
   await page.goto('/app/appointments/apone');
   const outcome = page.getByRole('region', { name: 'Outcome' });
   await expect(outcome).toBeVisible();
   // Cancelled by someone else after this page loaded.
   appointments.find((a) => a.id === 'apone')!.status = 'CANCELLED';
-  const loadsBefore = calls.filter((c) => c.method === 'GET' && c.path === '/api/appointments/apone').length;
+  const loadsBefore = calls.filter(
+    (c) => c.method === 'GET' && c.path === '/api/appointments/apone',
+  ).length;
   await outcome.getByRole('button', { name: /as No-show/ }).click();
-  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText('Cancelled');
-  await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
-  expect(calls.filter((c) => c.method === 'GET' && c.path === '/api/appointments/apone').length).toBeGreaterThan(
-    loadsBefore,
+  await expect(page.getByRole('region', { name: 'Appointment details' })).toContainText(
+    'Cancelled',
   );
+  await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
+  expect(
+    calls.filter((c) => c.method === 'GET' && c.path === '/api/appointments/apone').length,
+  ).toBeGreaterThan(loadsBefore);
 });
 
 test('a booking waiting for payment says so instead of "Booked"', async ({ page }) => {
@@ -227,21 +284,27 @@ test('a booking waiting for payment says so instead of "Booked"', async ({ page 
   await expect(page.getByRole('region', { name: 'Outcome' })).toHaveCount(0);
 });
 
-test('RTL: Arabic appointment page, back chevron mirrored, phone left-to-right', async ({ page }) => {
+test('RTL: Arabic appointment page, back chevron mirrored, phone left-to-right', async ({
+  page,
+}) => {
   await page.context().addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
   await mockOutcomesApi(page, setup());
   await page.goto('/app/appointments/apone');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await expect(page.getByRole('region', { name: 'تفاصيل الموعد' })).toBeVisible();
   await expect(page.locator('bdi[dir="ltr"]', { hasText: '+961 71 234 567' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'رجوع' }).locator('svg')).toHaveClass(/rtl:-scale-x-100/);
+  await expect(page.getByRole('button', { name: 'رجوع' }).locator('svg')).toHaveClass(
+    /rtl:-scale-x-100/,
+  );
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
 });
 
-test('Reminders go to: the address for this booking, with a hint when it differs from the record', async ({ page }) => {
+test('Reminders go to: the address for this booking, with a hint when it differs from the record', async ({
+  page,
+}) => {
   await mockOutcomesApi(page, {
     clients: [{ ...MAYA, email: 'maya.record@example.test' }],
     appointments: [appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya.booking@example.test' })],
@@ -280,7 +343,9 @@ test('Reminders go to in Arabic: rtl, the address stays left-to-right and the pa
   await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
   await mockOutcomesApi(page, {
     clients: [{ ...MAYA, email: 'maya.record@example.test' }],
-    appointments: [appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya.booking.long.address@example.test' })],
+    appointments: [
+      appt('apone', 'clmaya', 180, 30, { contactEmail: 'maya.booking.long.address@example.test' }),
+    ],
   });
   await page.goto('/app/appointments/apone');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');

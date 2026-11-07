@@ -28,6 +28,12 @@ export const RATE_POLICIES = {
   publicPage: { windowSec: 10 * MIN, limit: 300 },
   /** GET /api/public/directory */
   directory: { windowSec: 10 * MIN, limit: 120 },
+  /**
+   * GET /api/public/categories, and GET /api/public/directory when it computes slots (include=nextFree or when).
+   * Costlier than a plain read (a batched load plus the slot engine for up to 12 to 36 businesses), so a lower
+   * cap than `directory`; a plain directory read is counted by `directory` only.
+   */
+  directoryLive: { windowSec: 10 * MIN, limit: 60 },
   /** GET /api/links/* and GET /api/offers/* */
   linkRead: { windowSec: 10 * MIN, limit: 120 },
   /** POST /api/links/{token} and POST /api/offers/{token}/claim */
@@ -75,6 +81,7 @@ export const SOFT_POLICIES: ReadonlySet<RatePolicyName> = new Set([
   'slots',
   'publicPage',
   'directory',
+  'directoryLive',
   'linkRead',
 ]);
 export const SOFT_THRESHOLD = 0.5;

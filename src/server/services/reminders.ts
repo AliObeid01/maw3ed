@@ -69,8 +69,7 @@ export const defaultReminderDeps = (logger: Logger = rootLogger): ReminderDeps =
 const startOfUtcDay = (d: Date) =>
   new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 
-const isActive = (status: string) =>
-  (REMINDABLE_STATUSES as readonly string[]).includes(status);
+const isActive = (status: string) => (REMINDABLE_STATUSES as readonly string[]).includes(status);
 
 type Plan = { send: true } | { send: false; reason: string };
 
@@ -183,7 +182,10 @@ export async function runReminders(
     // F68 defensive: LATE is a WhatsApp-only item for the receptionist and the claim only takes EMAIL rows, so
     // this never fires. If one ever appears it must not become an email.
     if (claimedJob.kind === 'LATE') return skip(claimedJob, 'whatsapp_only');
-    const job: ClaimedJob & { kind: 'BOOKING' | 'H24' | 'H2' } = { ...claimedJob, kind: claimedJob.kind };
+    const job: ClaimedJob & { kind: 'BOOKING' | 'H24' | 'H2' } = {
+      ...claimedJob,
+      kind: claimedJob.kind,
+    };
     // Loaded just before sending, so a cancel that landed after the claim is seen.
     const [c] = await reminderJobRepo.loadSendContexts([job.id]);
     if (!c) return skip(job, 'missing');
@@ -204,6 +206,7 @@ export async function runReminders(
     const rendered = renderReminderEmail({
       kind: job.kind,
       links: bookingPlan?.links,
+      reference: job.kind === 'BOOKING' ? a.reference : undefined,
       reminderPromise: bookingPlan?.reminderPromise,
       locale: c.business.locale,
       timezone: c.business.timezone,

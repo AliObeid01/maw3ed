@@ -68,5 +68,19 @@ BEGIN
     RAISE EXCEPTION 'MISSING: user_has_identity CHECK on User';
   END IF;
 
-  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key, partial indexes and staff-login guarantees are present';
+  -- Booking reference: the unique index the booking insert retries on (and the idempotency key stays separate).
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'Appointment_reference_key' AND indexdef LIKE 'CREATE UNIQUE INDEX%' AND indexdef ~ '\(("?)reference\1\)'
+  ) THEN
+    RAISE EXCEPTION 'MISSING: Appointment_reference_key unique index';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'Appointment_businessId_idempotencyKey_key'
+  ) THEN
+    RAISE EXCEPTION 'MISSING: Appointment_businessId_idempotencyKey_key unique index';
+  END IF;
+
+  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key, partial indexes, staff-login and reference guarantees are present';
 END $$;

@@ -373,6 +373,9 @@ model Appointment {
   status            AppointmentStatus @default(BOOKED)
   source            AppointmentSource @default(PUBLIC)
   idempotencyKey    String?
+  // Short code shown to the client (6 characters, unambiguous alphabet). NOT a secret, NOT an auth token.
+  // NULL on rows created before PR-6 (never backfilled).
+  reference         String?           @unique
   // F16: where THIS booking's emails go. NULL = fall back to Client.email. Nulled when the client is anonymised.
   contactEmail      String?
   // F16 review: the name typed for THIS booking; the only name an email to a non-record address may use.

@@ -17,6 +17,7 @@ const state = (startAt: string): BookedState => ({
   result: {
     appointment: {
       id: 'a1',
+      reference: 'K7M2QX',
       startAt,
       endAt: startAt,
       status: 'BOOKED',

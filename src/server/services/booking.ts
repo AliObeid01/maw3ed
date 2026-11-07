@@ -57,6 +57,8 @@ export interface BookDeps {
   appUrl: () => string;
   /** The payment provider for deposit holds (default: the configured one, the fake in test mode). */
   payments?: () => PaymentProvider;
+  /** Test seam: the booking reference source (default: crypto.randomInt over the unambiguous alphabet). */
+  newReference?: () => string;
   /** Test seam: runs after the availability read and before the insert (to provoke a lost race). */
   afterAvailability?: (info: { candidates: string[] }) => Promise<void>;
 }
@@ -74,6 +76,8 @@ export interface BookingResult {
   replay: boolean;
   appointment: {
     id: string;
+    /** Short code for the client to quote. A label only: never a credential. Null on rows before PR-6. */
+    reference: string | null;
     startAt: Date;
     endAt: Date;
     status: string;
@@ -102,6 +106,7 @@ const price = (v: { toString(): string }) => Number(v.toString());
 export function appointmentSummary(a: Stored) {
   return {
     id: a.id,
+    reference: a.reference,
     startAt: a.startAt,
     endAt: a.endAt,
     status: a.status,
@@ -358,7 +363,15 @@ async function bookInner(
   // Friendly re-check (also enforces minNotice, bookingWindow, step alignment and working hours).
   const startMs = input.startAt.getTime();
   let remaining = avail.slots.filter((s) => s.startAt.getTime() === startMs).map((s) => s.staffId);
-  if (remaining.length === 0) throw slotTaken(await freshSlots());
+  if (remaining.length === 0) {
+    // A parallel request with the SAME Idempotency-Key may have just committed this very slot (its key lookup above
+    // ran before that commit): that is a replay of the first booking, not "taken". Found by PR-6's 5-way race test.
+    if (key) {
+      const first = await appointmentRepo.findByIdempotencyKey(businessId, key);
+      if (first) return replayOf(first);
+    }
+    throw slotTaken(await freshSlots());
+  }
 
   const counts = specific
     ? {}
@@ -389,11 +402,13 @@ async function bookInner(
         contactEmail,
         // The name typed for THIS booking (not for a waitlist claim: there the name is the record's, and
         // mail to the entry's address is greeted by `mailGreetingName`).
-        contactName: input.source === 'WAITLIST' ? undefined : input.client.name.trim() || undefined,
+        contactName:
+          input.source === 'WAITLIST' ? undefined : input.client.name.trim() || undefined,
         // Only an authenticated front-desk booking may change an existing client's contact details.
         overwriteContact: input.source === 'FRONT_DESK',
         reminders,
         deposit,
+        newReference: deps.newReference,
       });
       ctx.logger.info(
         {

@@ -379,6 +379,9 @@ describe('offer page and claim (FR-19)', () => {
     const apptId = res.body!.appointment.id as string;
     const row = (await pg.query('SELECT * FROM "Appointment" WHERE id=$1', [apptId])).rows[0];
     expect(row.source).toBe('WAITLIST');
+    // PR-6: the shared insert issues the booking reference for a waitlist claim too.
+    expect(row.reference).toMatch(/^[2-9A-HJKMNP-Z]{6}$/);
+    expect(res.body!.appointment.reference).toBe(row.reference);
     expect(row.clientId).toBe(es[1]!.clientId);
     // normal reminder jobs come with the booking
     const kinds = (

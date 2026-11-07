@@ -810,6 +810,7 @@
       "eyebrowToday": "اليوم · {day}",
       "eyebrowTomorrow": "غدًا · {day}",
       "summary": "{service} · مع {staff} · {source}",
+      "reference": "المرجع {code}",
       "source": {
         "public": "حجز عبر الإنترنت",
         "waitlist": "من قائمة الانتظار",
@@ -1086,7 +1087,7 @@
     },
     "remainingNote": "{name} مخفي من صفحة الحجز. {count, plural, zero {لا مواعيد قادمة} one {يبقى موعد قادم واحد} two {يبقى موعدان قادمان} few {تبقى # مواعيد قادمة} many {يبقى # موعدًا قادمًا} other {يبقى # موعد قادم}} في تقويمه: انقلها أو ألغها من صفحة اليوم، أو اجعله قابلًا للحجز مرة أخرى من قائمة الموظفين أعلاه.",
     "purpose": "ادعُ شخصًا لإدارة التقويم. ينضم بصفة موظف.",
-    "barberHint": "تُدار حسابات دخول الحلاقين من صفحة <link>الموظفين</link>."
+    "barberHint": "افتح أحد أعضاء الفريق لمنحه حساب دخول للحلاق."
   },
   "auth": {
     "tabs": {
@@ -1197,7 +1198,8 @@
       "service": "الخدمة",
       "staff": "مع",
       "when": "الموعد",
-      "business": "المكان"
+      "business": "المكان",
+      "reference": "المرجع"
     },
     "actions": {
       "confirm": "تأكيد موعدي",
@@ -1400,6 +1402,7 @@
       "with": "مع",
       "when": "الموعد",
       "price": "السعر",
+      "reference": "المرجع",
       "serviceValue": "{name} · {duration}",
       "whenValue": "{date} · {time}"
     },
@@ -1482,6 +1485,7 @@
     },
     "confirmOnlyHint": "لا تستطيع الحضور؟ استخدم رابط الإلغاء في رسالة التذكير.",
     "details": "{service} مع {staff} · {price}",
+    "reference": "المرجع {code}",
     "when": "{date} · {range}",
     "monthDay": "{month} {day}",
     "status": {

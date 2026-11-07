@@ -1732,6 +1732,13 @@
               "id": {
                 "type": "string"
               },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Short booking code (6 characters, no O/0/I/1/L) to quote on the phone. A label only: it never grants access to a booking. Null on bookings made before it existed."
+              },
               "startAt": {
                 "type": "string",
                 "format": "date-time"
@@ -1784,6 +1791,7 @@
             },
             "required": [
               "id",
+              "reference",
               "startAt",
               "endAt",
               "status",
@@ -1836,6 +1844,13 @@
         "properties": {
           "id": {
             "type": "string"
+          },
+          "reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Short booking code (6 characters, no O/0/I/1/L) to quote on the phone. A label only: it never grants access to a booking. Null on bookings made before it existed."
           },
           "startAt": {
             "type": "string",
@@ -1928,6 +1943,7 @@
         },
         "required": [
           "id",
+          "reference",
           "startAt",
           "endAt",
           "status",
@@ -1947,6 +1963,13 @@
               "properties": {
                 "id": {
                   "type": "string"
+                },
+                "reference": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Short booking code (6 characters, no O/0/I/1/L) to quote on the phone. A label only: it never grants access to a booking. Null on bookings made before it existed."
                 },
                 "startAt": {
                   "type": "string",
@@ -2039,6 +2062,7 @@
               },
               "required": [
                 "id",
+                "reference",
                 "startAt",
                 "endAt",
                 "status",
@@ -2062,6 +2086,13 @@
             "properties": {
               "id": {
                 "type": "string"
+              },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Short booking code (6 characters, no O/0/I/1/L) to quote on the phone. A label only: it never grants access to a booking. Null on bookings made before it existed."
               },
               "startAt": {
                 "type": "string",
@@ -2179,6 +2210,7 @@
             },
             "required": [
               "id",
+              "reference",
               "startAt",
               "endAt",
               "status",
@@ -2403,6 +2435,13 @@
               "id": {
                 "type": "string"
               },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Short booking code. A label only, never a credential."
+              },
               "startAt": {
                 "type": "string",
                 "format": "date-time"
@@ -2455,6 +2494,7 @@
             },
             "required": [
               "id",
+              "reference",
               "startAt",
               "endAt",
               "status",
@@ -2534,6 +2574,13 @@
               "id": {
                 "type": "string"
               },
+              "reference": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Short booking code. A label only, never a credential."
+              },
               "startAt": {
                 "type": "string",
                 "format": "date-time"
@@ -2586,6 +2633,7 @@
             },
             "required": [
               "id",
+              "reference",
               "startAt",
               "endAt",
               "status",
@@ -4476,6 +4524,55 @@
                     "null"
                   ],
                   "description": "Cheapest active service price."
+                },
+                "timezone": {
+                  "type": "string",
+                  "description": "Only with `include=nextFree` / `when`: IANA zone to format the instants in."
+                },
+                "nextFree": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "durationMin": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "durationMin"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "startAt",
+                    "service"
+                  ],
+                  "description": "Only with `include=nextFree` / `when`. Earliest bookable start of the shortest bookable active service over the next 7 local days (or on the `when` day); null when there is none."
+                },
+                "freeTimes": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "maxItems": 4,
+                  "description": "Only with `include=nextFree` / `when`. Up to 4 start instants on the first local day that has any."
                 }
               },
               "required": [
@@ -4500,6 +4597,129 @@
         "required": [
           "businesses",
           "nextCursor"
+        ]
+      },
+      "Categories": {
+        "type": "object",
+        "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "barbers",
+                    "hair-salons",
+                    "dental-clinics",
+                    "beauty-clinics",
+                    "spa-massage",
+                    "physiotherapy",
+                    "other"
+                  ]
+                },
+                "places": {
+                  "type": "integer",
+                  "description": "Listed, ready businesses in the category."
+                },
+                "fromPrice": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "description": "Cheapest active service price in the category."
+                },
+                "nextFree": {
+                  "type": [
+                    "object",
+                    "null"
+                  ],
+                  "properties": {
+                    "startAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "service": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "durationMin": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "durationMin"
+                      ]
+                    },
+                    "business": {
+                      "type": "object",
+                      "properties": {
+                        "slug": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "timezone": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "slug",
+                        "name",
+                        "timezone"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "startAt",
+                    "service",
+                    "business"
+                  ],
+                  "description": "Earliest next-free instant among the first 6 businesses of the category (by name). Null when none of them has one."
+                },
+                "popularServices": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "fromPrice": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "fromPrice"
+                    ]
+                  },
+                  "maxItems": 5,
+                  "description": "Top 5 service names by number of businesses offering them."
+                }
+              },
+              "required": [
+                "category",
+                "places",
+                "fromPrice",
+                "nextFree",
+                "popularServices"
+              ]
+            },
+            "description": "Every fixed category key, in order, including those with zero places."
+          }
+        },
+        "required": [
+          "categories"
         ]
       },
       "CheckoutBody": {
@@ -9742,7 +9962,7 @@
     "/api/public/directory": {
       "get": {
         "summary": "Public directory of opted-in businesses that are ready to take bookings",
-        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s.",
+        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include=nextFree` and `when` compute live slots for a bounded page (at most 12 businesses, a scan of at most 36 candidates) and have their own per-IP rate limit.",
         "tags": [
           "public"
         ],
@@ -9798,12 +10018,68 @@
           },
           {
             "schema": {
+              "type": "string",
+              "maxLength": 60,
+              "description": "Text matched (case-insensitive, contains) against the names of ACTIVE services. Combines with `search`."
+            },
+            "required": false,
+            "description": "Text matched (case-insensitive, contains) against the names of ACTIVE services. Combines with `search`.",
+            "name": "service",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    ""
+                  ]
+                }
+              ],
+              "description": "Local day (yyyy-MM-dd, in each business timezone). Keeps only businesses with at least one free slot that day, for their shortest bookable service. Computed with the slot engine for a bounded scan, so a page can hold fewer than `limit` items and still carry a `nextCursor`: keep paging until it is null. With it, `nextFree` / `freeTimes` describe that day."
+            },
+            "required": false,
+            "description": "Local day (yyyy-MM-dd, in each business timezone). Keeps only businesses with at least one free slot that day, for their shortest bookable service. Computed with the slot engine for a bounded scan, so a page can hold fewer than `limit` items and still carry a `nextCursor`: keep paging until it is null. With it, `nextFree` / `freeTimes` describe that day.",
+            "name": "when",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "nextFree"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    ""
+                  ]
+                }
+              ],
+              "description": "`nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). Off by default."
+            },
+            "required": false,
+            "description": "`nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). Off by default.",
+            "name": "include",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 50,
-              "default": 24
+              "description": "Default 24; default 12 and at most 12 when `include` or `when` is set."
             },
             "required": false,
+            "description": "Default 24; default 12 and at most 12 when `include` or `when` is set.",
             "name": "limit",
             "in": "query"
           },
@@ -9824,6 +10100,71 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Directory"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (Retry-After header)"
+          }
+        }
+      }
+    },
+    "/api/public/categories": {
+      "get": {
+        "summary": "Per-category aggregates for the home page: places, prices from, next free, popular services",
+        "description": "Only listed, ready businesses. Counts and prices are SQL aggregates; `nextFree` is computed for the first 6 businesses of each category only. Cacheable for 60 s. Own per-IP rate limit.",
+        "tags": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "enum": [
+                    "sidon",
+                    "beirut",
+                    "tripoli",
+                    "jounieh",
+                    "tyre",
+                    "zahle",
+                    "other"
+                  ]
+                },
+                {
+                  "type": "string",
+                  "enum": [
+                    ""
+                  ]
+                }
+              ],
+              "description": "Area key. Empty means every area."
+            },
+            "required": false,
+            "description": "Area key. Empty means every area.",
+            "name": "area",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One entry per category key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categories"
                 }
               }
             }

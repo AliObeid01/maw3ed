@@ -122,6 +122,10 @@ export const OptionalIdempotencyHeaders = z.object({
 
 const BookedAppointment = z.object({
   id: z.string(),
+  reference: z.string().nullable().openapi({
+    description:
+      'Short booking code (6 characters, no O/0/I/1/L) to quote on the phone. A label only: it never grants access to a booking. Null on bookings made before it existed.',
+  }),
   startAt: z.string().datetime(),
   endAt: z.string().datetime(),
   status: z.string(),
