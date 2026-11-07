@@ -61,9 +61,9 @@ export function ResultCard({ business, now }: { business: DirectoryBusiness; now
 
       {m.services.length > 0 ? (
         <ul className="m-0 flex list-none flex-wrap gap-2 p-0" data-testid="card-services">
-          {m.services.map((s) => (
+          {m.services.map((s, i) => (
             <li
-              key={s.name}
+              key={`${s.name}|${s.price}|${i}`}
               className="inline-flex min-h-8 items-center gap-1.5 rounded-pill bg-canvas px-3 text-sm text-ink"
             >
               <Bidi>{s.name}</Bidi>

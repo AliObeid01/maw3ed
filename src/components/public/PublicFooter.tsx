@@ -2,6 +2,7 @@ import { ArrowUp, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
+import { FooterMyBookingsLink } from '@/components/myBookings/FooterMyBookingsLink';
 import { AREA_KEYS } from '@/lib/business/profile';
 import { HOME_CATEGORIES } from '@/lib/home/categories';
 import { contactHref, COPYRIGHT_YEAR, SITE, socialLinks, type SocialId } from '@/lib/site';
@@ -136,6 +137,7 @@ export function PublicFooter() {
             <ul className="m-0 list-none p-0">
               <li><Link href="/#how" className={linkClass}>{t('public.footer.howItWorks')}</Link></li>
               <li><a href={contactHref()} className={linkClass}>{t('public.footer.contactUs')}</a></li>
+              <FooterMyBookingsLink className={linkClass} />
             </ul>
           </nav>
         </div>

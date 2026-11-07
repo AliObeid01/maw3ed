@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, Info, Store } from 'lucide-react';
+import { CalendarCheck, Compass, Info, Store } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { cn } from '@/lib/cn';
+import { useSavedCount } from '@/components/myBookings/useSavedBookings';
 import { LanguageToggle } from './LanguageToggle';
 import { activeTab, showTabBar } from './publicNav';
 
@@ -49,11 +50,17 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
   const current = activeTab(pathname, hash);
   const tabs = showTabBar(pathname);
 
+  // "My bookings" only shows on a device that has saved bookings (read after mount: the server renders without it).
+  const hasSaved = useSavedCount() > 0;
   const links = [
     { id: 'explore', href: '/directory', label: t('explore') },
     { id: 'how', href: '/#how', label: t('howItWorks') },
     { id: 'pricing', href: '/pricing', label: t('pricing') },
+    ...(hasSaved ? [{ id: 'my', href: '/my-bookings', label: t('myBookings') }] : []),
   ] as const;
+  const tabItems = hasSaved
+    ? [...TABS, { id: 'my', href: '/my-bookings', key: 'myBookings', Icon: CalendarCheck } as const]
+    : TABS;
 
   return (
     <>
@@ -111,9 +118,9 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
       {tabs ? (
         <nav
           aria-label={t('tabsLabel')}
-          className="public-tabbar fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+          className="public-tabbar fixed inset-x-0 bottom-0 z-40 grid grid-flow-col auto-cols-fr border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
-          {TABS.map(({ id, href, key, Icon }) => (
+          {tabItems.map(({ id, href, key, Icon }) => (
             <Link
               key={id}
               href={href}

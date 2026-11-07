@@ -53,7 +53,8 @@
       "pricing": "Pricing",
       "signIn": "Sign in",
       "skip": "Skip to content",
-      "tabsLabel": "Main"
+      "tabsLabel": "Main",
+      "myBookings": "My bookings"
     },
     "steps": {
       "navLabel": "Booking steps",
@@ -118,7 +119,8 @@
       "privacy": "Privacy policy",
       "terms": "Terms of use",
       "top": "Back to top",
-      "legalNav": "Legal"
+      "legalNav": "Legal",
+      "myBookings": "My bookings"
     }
   },
   "app": {
@@ -1916,7 +1918,8 @@
       "retry": "Try again",
       "timeNote": "Times are shown in each business’s local time.",
       "showMore": "Show more",
-      "moreError": "Could not load more. Try again."
+      "moreError": "Could not load more. Try again.",
+      "retryIn": "Try again in {seconds} s"
     }
   },
   "home": {
@@ -2052,6 +2055,10 @@
         "cancel": {
           "q": "How do I cancel or confirm?",
           "a": "The booking email has a Cancel link (and a Confirm link when the visit is within 24 hours); every reminder has both."
+        },
+        "mine": {
+          "q": "Can I see my bookings later?",
+          "a": "Yes, on the same device and browser: open My bookings. Bookings are saved on this device only."
         },
         "taken": {
           "q": "What if the time I want is taken?",
@@ -2413,6 +2420,70 @@
           "p1": "Email: {email}. Phone: {phone}. Address: {address}."
         }
       }
+    }
+  },
+  "myBookings": {
+    "pageTitle": "My bookings",
+    "title": "My bookings",
+    "subtitle": "Bookings made on this device. No account needed.",
+    "loading": "Loading your bookings",
+    "upcoming": {
+      "title": "Upcoming",
+      "none": "Nothing coming up. Book a new time from any business page."
+    },
+    "past": {
+      "title": "Previous visits"
+    },
+    "reference": "Reference {code}",
+    "with": "{service} with {staff}",
+    "when": "{day} · {range}",
+    "status": {
+      "booked": "Booked",
+      "confirmed": "Confirmed",
+      "cancelled": "Cancelled",
+      "pending": "Awaiting payment",
+      "checking": "Checking the latest status"
+    },
+    "manage": "Manage this booking",
+    "actions": {
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "view": "View booking page",
+      "again": "Book again"
+    },
+    "refresh": {
+      "failed": "Could not refresh",
+      "retry": "Retry"
+    },
+    "empty": {
+      "title": "Your bookings will appear here.",
+      "body": "When you book from this browser, the booking is listed here so you can confirm or cancel it later.",
+      "explore": "Explore businesses"
+    },
+    "blocked": {
+      "title": "Your browser is blocking saved bookings",
+      "body": "New bookings cannot be listed here. The email we send you still has a link to manage each booking."
+    },
+    "privacy": {
+      "title": "What is saved on this device",
+      "body": "Only booking details, never your name, phone or email. Anyone using this browser can see this list.",
+      "shared": "On a shared computer, forget your bookings when you are done."
+    },
+    "forget": {
+      "button": "Forget my bookings on this device",
+      "title": "Forget your bookings on this device?",
+      "body": "This removes the list from this browser only. Your bookings stay valid and your reminder emails still work.",
+      "confirm": "Forget bookings",
+      "keep": "Keep them",
+      "close": "Close"
+    },
+    "strip": {
+      "title": "Your bookings here",
+      "count": "{count, plural, one {# booking} other {# bookings}} on this device"
+    },
+    "saved": {
+      "hint": "Saved on this device. Find it later under My bookings.",
+      "link": "My bookings"
     }
   }
 }

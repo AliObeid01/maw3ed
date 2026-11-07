@@ -1,6 +1,6 @@
-export type NavId = 'explore' | 'how' | 'pricing' | 'owners';
+export type NavId = 'explore' | 'how' | 'pricing' | 'owners' | 'my';
 
-const MARKETPLACE = new Set(['/', '/directory', '/pricing', '/privacy', '/terms']);
+const MARKETPLACE = new Set(['/', '/directory', '/pricing', '/privacy', '/terms', '/my-bookings']);
 
 /** The marketplace pages carry the phone tab bar and the skip link target; the booking flow (`/b`, `/l`, `/o`, `/pay`) does not. */
 export const showTabBar = (pathname: string): boolean => MARKETPLACE.has(pathname);
@@ -10,5 +10,6 @@ export function activeTab(pathname: string, hash: string): NavId | null {
   if (pathname === '/') return hash === '#how' ? 'how' : 'explore';
   if (pathname === '/directory') return 'explore';
   if (pathname === '/pricing') return 'pricing';
+  if (pathname === '/my-bookings') return 'my';
   return null;
 }

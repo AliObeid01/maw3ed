@@ -1,4 +1,5 @@
 import { isAreaKey } from '@/lib/business/profile';
+import { cleanServiceParam } from '@/lib/directory/explore';
 import { cleanSearchParam } from '@/lib/directory/params';
 
 /** Popular chips on the hero: message keys under `home.hero.popular`; the Latin value is the directory search text. */
@@ -14,10 +15,15 @@ export function buildDirectoryUrl({ search = '', area = '' }: { search?: string;
   return qs ? `/directory?${qs}` : '/directory';
 }
 
-/** A popular service of a category: the directory filtered by category, then by the service name. */
+/**
+ * A popular service of a category: the directory filtered by category, then by the service name. It uses the
+ * `service` filter (not `search`) because that is what Explore's Service chip row reads: the chip of this exact
+ * service is highlighted, and the filter matches active service names only. The hero's free-text chips
+ * (`buildDirectoryUrl`) stay `search=`: they have no category, so there is no chip row to highlight.
+ */
 export function categoryServiceUrl(category: string, service?: string): string {
   const q = new URLSearchParams({ category });
-  const text = cleanSearchParam(service);
-  if (text) q.set('search', text);
+  const text = cleanServiceParam(service);
+  if (text) q.set('service', text);
   return `/directory?${q.toString()}`;
 }

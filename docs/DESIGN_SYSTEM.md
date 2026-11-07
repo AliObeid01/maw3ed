@@ -60,6 +60,13 @@ The home `/` follows the owner's design with OUR logo and palette v2. Sections, 
 - **States:** skeleton sized like the final cards, results dimmed (not replaced) while a new request is pending, empty (with or without `when`), error banner that keeps the previous results, polite live region ("N places found").
 - **Copy rules:** "Free today / tomorrow / <day>" (never a promise: the times can already be taken), "No free times soon" (never "fully booked", "no availability" or "sold out"), "Showing N places" (the API has no total), "Times are shown in each business's local time."
 
+## My bookings on this device (PR-8, `/my-bookings`)
+Built from the PR-7a/7b parts (header, footer, `Card`, `Chip`, `Callout`, `ConfirmSheet`, `Skeleton`): no new colours, flat surfaces, no gradients or glows. Components in `src/components/myBookings`: `MyBookingsView` (list, empty, blocked-storage notice, privacy card, Forget sheet), `BookingCards` (`UpcomingCard` live, `PastCard` summary only), `YourBookingsStrip` (on `/b/[slug]`), `FooterMyBookingsLink`, and the hooks `useSavedBookings` (a `useSyncExternalStore` over the storage module) and `useLiveBookings` (pool of 3 link reads).
+- **360 px first:** one column of cards: a 64x68 date tile, business name, "service with staff", "Fri 6 Nov · 10:30 – 11:00" (business zone, 24 h, Latin digits), a status chip and "Reference ABC234", then full-width 46 px Confirm / Cancel (two columns from `sm`), then a ghost "View booking page" link. `lg`: cards in two columns.
+- **States:** skeleton until the browser has read storage (never a flash of "empty"), empty (icon, "Your bookings will appear here.", Explore businesses), per-card status skeleton, per-card "Could not refresh" + Retry (summary kept), blocked-storage warning callout, cancel sheet (free or late text from the API), Forget sheet.
+- **Privacy copy (always visible):** "Only booking details, never your name, phone or email. Anyone using this browser can see this list." and the shared-computer line. Previous visits never show an outcome.
+- **Entry points:** header nav (lg), phone tab bar (4th tab, `grid-flow-col auto-cols-fr` so 3 and 4 tabs share the same bar), footer Support column, the per-business strip, the booked-step hint. All render only when the device has saved bookings.
+
 ## Board → route map
 | # | Board | Route | Component root |
 |---|---|---|---|

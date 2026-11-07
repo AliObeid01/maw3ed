@@ -15,6 +15,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import type { BookingResult } from '@/lib/api/booking';
 import { claimOffer, getOffer } from '@/lib/api/waitlist';
+import { entryFromBooking, myBookings } from '@/lib/myBookings/storage';
 import { reminderPromiseKind } from '@/lib/reminders/promise';
 import { useResource } from '@/lib/api/useResource';
 import { safeHref, serverNow } from '@/lib/waitlist/clock';
@@ -179,6 +180,9 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
         return;
       }
       setOutcome({ kind: 'booked', result });
+      // "My bookings on this device": the claimed booking has a view link like any other.
+      const saved = entryFromBooking(result, business, new Date());
+      if (saved) myBookings.save(saved);
       window.scrollTo({ top: 0 });
     } catch (error) {
       const failure = classifyOfferError(error);

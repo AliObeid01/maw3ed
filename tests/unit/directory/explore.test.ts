@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   EXPLORE_LIMIT,
+  EXPLORE_ZONE,
+  msUntilNextDay,
+  todayIn,
   EXPLORE_WHEN_DAYS,
   activeFilterCount,
   cleanServiceParam,
@@ -174,5 +177,28 @@ describe('whenDayText', () => {
   });
   it('invalid input gives an empty string', () => {
     expect(whenDayText('nope', 'en')).toBe('');
+  });
+});
+
+describe('Explore calendar (Asia/Beirut)', () => {
+  it('today is the Beirut date even when UTC or the device is on another day', () => {
+    expect(EXPLORE_ZONE).toBe('Asia/Beirut');
+    // 22:30Z on 6 Nov is already 7 Nov (00:30) in Beirut (UTC+2).
+    expect(todayIn(new Date('2026-11-06T22:30:00Z'))).toBe('2026-11-07');
+    expect(todayIn(new Date('2026-11-06T21:59:00Z'))).toBe('2026-11-06');
+    // Summer time (UTC+3): 21:30Z is 00:30 on the next day.
+    expect(todayIn(new Date('2026-07-10T21:30:00Z'))).toBe('2026-07-11');
+  });
+
+  it('the range and "tomorrow" follow the Beirut today', () => {
+    const today = todayIn(new Date('2026-11-06T22:30:00Z'));
+    expect(whenRange(today)).toEqual({ min: '2026-11-07', max: '2026-12-05' });
+  });
+
+  it('msUntilNextDay counts to the next Beirut midnight, across the DST change', () => {
+    // 23:59:50 Beirut on 6 Nov (21:59:50Z): 10 s to midnight.
+    expect(msUntilNextDay(new Date('2026-11-06T21:59:50Z'))).toBe(10_000);
+    // Beirut clocks jump 00:00 -> 01:00 on 28 Mar 2027: from 00:00 on the 28th (22:00Z on the 27th) the day lasts 23 h.
+    expect(msUntilNextDay(new Date('2027-03-27T22:00:00Z'))).toBe(23 * 3_600_000);
   });
 });

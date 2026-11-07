@@ -7,7 +7,7 @@ import { CATEGORY_KEYS } from '@/lib/business/profile';
 import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { call } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
-import { hoursFor, makeBusiness } from './helpers/directory';
+import { hoursFor, makeBusiness, privateKeysIn } from './helpers/directory';
 
 // PR-6 part B: live aggregates for the marketplace home / explore pages. Time is frozen: Monday 2 Nov 2026,
 // 10:00 in Beirut (UTC+2).
@@ -192,6 +192,38 @@ describe('directory filters', () => {
     await makeBusiness(pg, { name: 'Nour Sidon', category: 'barbers', area: 'sidon' });
     const r = await plain({ search: 'nour', category: 'barbers', area: 'beirut', service: 'hair' });
     expect(r.body!.businesses.map((x: any) => x.name)).toEqual(['Nour Cuts']);
+  });
+
+  it('service: LIKE wildcards and the backslash escape character are literal (EXISTS clause)', async () => {
+    await makeBusiness(pg, { name: 'Pct', services: [{ name: '50% off cut', durationMin: 30, price: 5 }] });
+    await makeBusiness(pg, { name: 'Under', services: [{ name: 'Hair_cut', durationMin: 30, price: 5 }] });
+    await makeBusiness(pg, { name: 'Slash', services: [{ name: 'Cut \\ colour', durationMin: 30, price: 5 }] });
+    await makeBusiness(pg, { name: 'Plain', services: [{ name: 'Haircut', durationMin: 30, price: 5 }] });
+    const slugs = async (service: string) =>
+      (await plain({ service })).body!.businesses.map((x: any) => x.name).sort();
+    expect(await slugs('%')).toEqual(['Pct']);
+    expect(await slugs('_')).toEqual(['Under']);
+    expect(await slugs('Hair_cut')).toEqual(['Under']); // `_` does not match the "r" of "Haircut"
+    expect(await slugs('Hair%')).toEqual([]); // no service name starts a literal "Hair%"
+    expect(await slugs('\\')).toEqual(['Slash']);
+    expect(await slugs('Cut \\ col')).toEqual(['Slash']);
+    expect(await slugs('\\%')).toEqual([]); // a backslash then a percent sign, both literal
+  });
+
+  it('service AND search: a business must match both (the service text on a service, the search on name, category, address or service)', async () => {
+    await makeBusiness(pg, { name: 'Nour Cuts', services: [{ name: 'Beard trim', durationMin: 20, price: 8 }] });
+    await makeBusiness(pg, { name: 'Nour Spa', services: [{ name: 'Massage', durationMin: 60, price: 40 }] });
+    await makeBusiness(pg, { name: 'Other Cuts', services: [{ name: 'Beard trim', durationMin: 20, price: 8 }] });
+    const names = async (q: Record<string, string>) =>
+      (await plain(q)).body!.businesses.map((x: any) => x.name).sort();
+    expect(await names({ search: 'nour', service: 'beard' })).toEqual(['Nour Cuts']);
+    expect(await names({ search: 'nour', service: 'massage' })).toEqual(['Nour Spa']);
+    expect(await names({ search: 'other', service: 'massage' })).toEqual([]);
+    expect(await names({ search: 'beard', service: 'beard' })).toEqual(['Nour Cuts', 'Other Cuts']);
+    // The two filters are independent: search matched through a service name, service through another one.
+    expect(await names({ search: 'massage', service: 'beard' })).toEqual([]);
+    // Wildcards stay literal when both are given.
+    expect(await names({ search: '%', service: '%' })).toEqual([]);
   });
 
   it('when: only businesses with a free slot that local day, with that day times', async () => {
@@ -484,6 +516,15 @@ describe('search also matches ACTIVE service names (PR-7b follow-up)', () => {
     expect(names(await plain({ search: 'Hair%' }))).toEqual([]);
   });
 
+  it('a literal backslash in a service name is matched literally and is not the escape character', async () => {
+    await makeBusiness(pg, { name: 'Back', services: [{ name: 'Cut \\ colour', durationMin: 30, price: 5 }] });
+    await makeBusiness(pg, { name: 'Other', services: [{ name: 'Haircut', durationMin: 30, price: 5 }] });
+    expect(names(await plain({ search: '\\' }))).toEqual(['Back']);
+    expect(names(await plain({ search: 'Cut \\ col' }))).toEqual(['Back']);
+    expect(names(await plain({ search: '\\%' }))).toEqual([]);
+    expect(names(await plain({ search: '\\_' }))).toEqual([]);
+  });
+
   it('keeps the page order and cursor paging, and the raw JSON stays free of private data', async () => {
     for (const n of ['C shop', 'A shop', 'B shop'])
       await makeBusiness(pg, { name: n, services: [{ name: 'Haircut', durationMin: 30, price: 5 }] });
@@ -495,7 +536,7 @@ describe('search also matches ACTIVE service names (PR-7b follow-up)', () => {
     expect(second.body!.nextCursor).toBeNull();
     const raw = JSON.stringify(first.body);
     expect(raw).not.toContain('@');
-    expect(raw).not.toMatch(/staff|client|appointment|email|phone/i);
+    expect(privateKeysIn(first.body)).toEqual([]); // exact keys: a fixture named "Staff Club" must not trip this
   });
 });
 
@@ -581,11 +622,12 @@ describe('directory?include=services (PR-7b)', () => {
 
   it('raw JSON has no e-mail, phone, staff name or id', async () => {
     await makeBusiness(pg, { name: 'Private Studio', staff: [{ name: 'Zeina Secretname' }] });
-    const raw = JSON.stringify((await both()).body);
+    const body = (await both()).body;
+    const raw = JSON.stringify(body);
     expect(raw).not.toContain('@');
     expect(raw).not.toMatch(/\+?\d{8,}/);
     expect(raw).not.toContain('Zeina');
-    expect(raw).not.toMatch(/staff|client|appointment|email|phone/i);
+    expect(privateKeysIn(body)).toEqual([]);
   });
 });
 
@@ -600,18 +642,22 @@ describe('privacy', () => {
         },
       ],
     });
-    const raws = [
-      JSON.stringify((await live()).body),
-      JSON.stringify((await live({ when: '2026-11-03' })).body),
-      JSON.stringify((await cats()).body),
+    const bodies = [
+      (await live()).body,
+      (await live({ when: '2026-11-03' })).body,
+      (await cats()).body,
     ];
-    for (const raw of raws) {
+    for (const body of bodies) {
+      const raw = JSON.stringify(body);
       expect(raw).not.toContain('@');
       expect(raw).not.toMatch(/\+?\d{8,}/); // no phone-like digit runs
       expect(raw).not.toContain('Zeina');
       expect(raw).not.toContain('Secretname');
       expect(raw).not.toContain('Private Person');
-      expect(raw).not.toMatch(/staff|client|appointment|email|phone/i);
+      expect(privateKeysIn(body)).toEqual([]);
     }
+    // A fixture whose own NAME contains those words is data, not a leak: the check looks at keys only.
+    await makeBusiness(pg, { name: 'Staff and Client Club' });
+    expect(privateKeysIn((await live()).body)).toEqual([]);
   });
 });

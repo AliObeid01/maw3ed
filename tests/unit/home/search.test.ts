@@ -21,9 +21,10 @@ describe('buildDirectoryUrl', () => {
 });
 
 describe('categoryServiceUrl', () => {
-  it('puts category before search', () => {
-    expect(categoryServiceUrl('barbers', 'Beard trim')).toBe('/directory?category=barbers&search=Beard+trim');
+  it('uses the `service` filter (the one the Explore chip row highlights), after the category', () => {
+    expect(categoryServiceUrl('barbers', 'Beard trim')).toBe('/directory?category=barbers&service=Beard+trim');
     expect(categoryServiceUrl('barbers')).toBe('/directory?category=barbers');
+    expect(categoryServiceUrl('barbers', 'a\u0000b')).toBe('/directory?category=barbers&service=ab');
   });
 });
 

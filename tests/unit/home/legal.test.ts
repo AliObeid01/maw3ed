@@ -33,10 +33,11 @@ describe('public navigation', () => {
     expect(activeTab('/', '#how')).toBe('how');
     expect(activeTab('/directory', '')).toBe('explore');
     expect(activeTab('/pricing', '')).toBe('pricing');
+    expect(activeTab('/my-bookings', '')).toBe('my');
     expect(activeTab('/b/studio', '')).toBeNull();
   });
   it('shows the phone tab bar on marketplace pages only, never in the booking flow', () => {
-    for (const p of ['/', '/directory', '/pricing', '/privacy', '/terms']) expect(showTabBar(p)).toBe(true);
+    for (const p of ['/', '/directory', '/pricing', '/privacy', '/terms', '/my-bookings']) expect(showTabBar(p)).toBe(true);
     for (const p of ['/b/studio-nour', '/l/abc', '/o/abc', '/pay/x']) expect(showTabBar(p)).toBe(false);
   });
 });
@@ -49,7 +50,8 @@ describe('home copy rules', () => {
   };
   it('never claims "no availability" or "fully booked", and does not mention features that do not exist', () => {
     const text = walk(en.home).join('\n').toLowerCase();
-    for (const banned of ['no availability', 'fully booked', 'my bookings', 'reference', '30 days', 'help centre', '[xx]', 'solo', 'clinic plan'])
+    // "My bookings" is a real feature since PR-8 (the FAQ mentions it); it is checked in tests/e2e/myBookings.spec.ts.
+    for (const banned of ['no availability', 'fully booked', 'reference', '30 days', 'help centre', '[xx]', 'solo', 'clinic plan'])
       expect(text, banned).not.toContain(banned);
   });
 });

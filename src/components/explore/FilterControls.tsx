@@ -79,20 +79,20 @@ export function FilterControls({
   return (
     <div className={cn('grid gap-4', variant === 'bar' && 'md:grid-cols-2 lg:grid-cols-3')}>
       {leading ? <div className="md:col-span-2 lg:col-span-1">{leading}</div> : null}
-        <Select
-          id={`${idPrefix}-area`}
-          label={t('area')}
-          value={value.area}
-          options={areaOptions}
-          onChange={(area) => onChange({ area })}
-        />
-        <Select
-          id={`${idPrefix}-category`}
-          label={t('category')}
-          value={value.category}
-          options={categoryOptions}
-          onChange={(category) => onChange({ category, service: '' })}
-        />
+      <Select
+        id={`${idPrefix}-area`}
+        label={t('area')}
+        value={value.area}
+        options={areaOptions}
+        onChange={(area) => onChange({ area })}
+      />
+      <Select
+        id={`${idPrefix}-category`}
+        label={t('category')}
+        value={value.category}
+        options={categoryOptions}
+        onChange={(category) => onChange({ category, service: '' })}
+      />
 
       <div
         role="group"
@@ -109,7 +109,10 @@ export function FilterControls({
           <FilterPill pressed={value.when === today} onClick={() => onChange({ when: today })}>
             {t('whenToday')}
           </FilterPill>
-          <FilterPill pressed={value.when === tomorrow} onClick={() => onChange({ when: tomorrow })}>
+          <FilterPill
+            pressed={value.when === tomorrow}
+            onClick={() => onChange({ when: tomorrow })}
+          >
             {t('whenTomorrow')}
           </FilterPill>
           <div className="w-[176px] max-w-full">
@@ -166,14 +169,19 @@ function ServiceChips({
     `chips:${enabled ? area : '-'}`,
   );
   const popular =
-    cats.data?.categories.find((c) => c.category === category)?.popularServices.map((s) => s.name) ??
-    [];
+    cats.data?.categories
+      .find((c) => c.category === category)
+      ?.popularServices.map((s) => s.name) ?? [];
   const known = popular.some((name) => name.toLowerCase() === service.toLowerCase());
   const loading = enabled && cats.loading;
   if (!loading && popular.length === 0 && !service) return null;
 
   return (
-    <div role="group" aria-labelledby={`${labelId}-label`} className={cn('grid content-start gap-2', className)}>
+    <div
+      role="group"
+      aria-labelledby={`${labelId}-label`}
+      className={cn('grid content-start gap-2', className)}
+    >
       <span id={`${labelId}-label`} className="text-sm font-medium">
         {t('service')}
       </span>

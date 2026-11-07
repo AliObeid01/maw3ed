@@ -1,8 +1,10 @@
 'use client';
 
 import { Check, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
+import { useSavedCount } from '@/components/myBookings/useSavedBookings';
 import { BookingSummary } from '@/components/public/BookingSummary';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { ltr } from '@/components/ui/Bidi';
@@ -28,6 +30,10 @@ export function BookedView({
   const t = useTranslations('booking.booked');
   const tr = useTranslations('reminderPromise');
   const ts = useTranslations('booking.summary');
+  const tm = useTranslations('myBookings.saved');
+  const savedCount = useSavedCount();
+  const savedHint = tm('hint');
+  const savedLink = tm('link');
   const f = useBookingFormat(timezone);
   const headingRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => headingRef.current?.focus(), []);
@@ -134,6 +140,15 @@ export function BookedView({
           </ButtonLink>
           <p className="m-0 text-[13px] text-muted">{t('manageHint')}</p>
         </div>
+
+        {savedCount > 0 ? (
+          <p className="m-0 flex flex-wrap items-center gap-x-1 text-[13px] text-muted" data-testid="saved-hint">
+            {savedHint}
+            <Link href="/my-bookings" className="inline-flex min-h-11 items-center font-semibold text-brand">
+              {savedLink}
+            </Link>
+          </p>
+        ) : null}
       </section>
 
       <aside className="flex w-full max-w-none flex-[1_1_240px] flex-col gap-3.5 lg:max-w-[290px]">

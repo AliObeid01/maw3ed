@@ -34,7 +34,26 @@ export function cleanServiceParam(value: string | null | undefined): string {
   return cut.trim();
 }
 
-/** The days the "When" control offers, in the VIEWER's calendar (`today` is injected as yyyy-MM-dd). */
+/**
+ * The calendar "Today", "Tomorrow" and the 28-day range follow. Explore lists places across businesses, each with its
+ * own zone, so the page needs ONE zone: Lebanon's `Asia/Beirut`, the default business timezone (a visitor abroad still
+ * asks "what is free today" of Beirut businesses). The device's zone is deliberately not used. Assumption: while every
+ * business is in Lebanon this is exact; a business in another zone would need the API to filter in ITS zone.
+ */
+export const EXPLORE_ZONE = 'Asia/Beirut';
+
+/** `yyyy-MM-dd` of an instant in the Explore calendar zone. */
+export function todayIn(now: Date, zone: string = EXPLORE_ZONE): string {
+  return DateTime.fromJSDate(now, { zone }).toFormat('yyyy-MM-dd');
+}
+
+/** Milliseconds from `now` to the start of the next day in the Explore zone (exact across DST changes). */
+export function msUntilNextDay(now: Date, zone: string = EXPLORE_ZONE): number {
+  const next = DateTime.fromJSDate(now, { zone }).plus({ days: 1 }).startOf('day');
+  return Math.max(0, next.toMillis() - now.getTime());
+}
+
+/** The days the "When" control offers, from `today` (yyyy-MM-dd in the Explore zone). */
 export function whenRange(today: string): { min: string; max: string } {
   return { min: today, max: addDaysYmd(today, EXPLORE_WHEN_DAYS) };
 }

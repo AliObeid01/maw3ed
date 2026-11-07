@@ -208,9 +208,10 @@ test.describe('explore: filters and the request rules', () => {
     await page.getByRole('button', { name: 'Any day' }).click();
     await page.getByRole('button', { name: 'Tomorrow' }).click();
     await expect(page).toHaveURL(new RegExp(`when=${TOMORROW()}`));
-    await page.waitForTimeout(1000);
-    // Four clicks, one request (the last state), and no storm.
-    expect(seen.requests.length - before).toBe(1);
+    // Four clicks, one request (the last state), and no storm. Poll the request count instead of sleeping: the
+    // debounce is 400 ms, so the request is out as soon as the count reaches 1 (no fixed wait on a loaded runner).
+    await expect.poll(() => seen.requests.length - before, { timeout: 10_000 }).toBe(1);
+    expect(seen.requests.slice(before).every((r) => r.includes(`when=${TOMORROW()}`))).toBe(true);
     expect(seen.requests.at(-1)).toContain(`when=${TOMORROW()}`);
     expect(aborted).toEqual([]);
   });
@@ -415,10 +416,64 @@ test.describe('explore: empty and error states', () => {
     await expect(page.getByRole('heading', { name: 'Abu Karam Barbershop' })).toBeVisible(); // still there
     await expect(page.getByRole('button', { name: 'Show more' })).toHaveCount(0);
     seen.setMode({});
-    await alert.getByRole('button', { name: 'Try again' }).click();
+    // After a 429 the button waits 10 s (with a countdown) before it can fire again.
+    const retry = alert.getByRole('button');
+    await expect(retry).toBeDisabled();
+    await expect(retry).toHaveText(/^Try again in (10|9|8) s$/);
+    const requestsBefore = seen.requests.length;
+    await retry.click({ force: true }).catch(() => undefined);
+    expect(seen.requests.length).toBe(requestsBefore); // a disabled button sends nothing
+    // One second at a time: each tick re-renders and only then schedules the next one.
+    for (let i = 0; i < 3; i += 1) await page.clock.runFor(1000);
+    await expect(retry).toHaveText(/^Try again in [4-7] s$/); // the countdown moves
+    await expect(async () => {
+      await page.clock.runFor(1000);
+      await expect(retry).toBeEnabled({ timeout: 300 });
+    }).toPass({ timeout: 15_000 });
+    await expect(retry).toHaveText('Try again');
+    await retry.click();
     await expect(page.getByTestId('explore-error')).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Abu Karam Barbershop' })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Fade Lab' })).toBeVisible();
+  });
+
+  test('a server error (not a 429) can be retried at once', async ({ page }) => {
+    const seen = await mockExplore(page, { mode: { status: 500 } });
+    await page.goto('/directory');
+    const retry = page.getByTestId('explore-error').getByRole('button');
+    await expect(retry).toHaveText('Try again');
+    await expect(retry).toBeEnabled();
+    seen.setMode({});
+    await retry.click();
+    await expect(page.getByRole('heading', { name: 'Fade Lab' })).toBeVisible();
+  });
+
+  test('a stale error banner does not return when the filters come back to a failed URL (A, B, A)', async ({
+    page,
+  }) => {
+    test.skip((page.viewportSize()?.width ?? 0) < 768, 'the inline bar applies filters at once');
+    const seen = await mockExplore(page, { mode: { status: 500 } });
+    await page.goto('/directory?area=sidon'); // A fails
+    await expect(page.getByTestId('explore-error')).toBeVisible();
+    seen.setMode({});
+    await chooseArea(page, 'Beirut'); // B works
+    await expect(page.getByTestId('explore-error')).toHaveCount(0);
+    await expect(page.getByRole('heading', { name: 'Fade Lab' })).toBeVisible();
+    // Back to A: its request hangs, so the old failure must not be shown while it runs.
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => (release = r));
+    let hits = 0;
+    await page.route('**/api/public/directory**area=sidon**', async (route) => {
+      hits += 1;
+      await gate;
+      await route.fallback().catch(() => undefined);
+    });
+    seen.setMode({ status: 500 }); // when it finally answers, it fails again
+    await chooseArea(page, 'Sidon');
+    await expect.poll(() => hits).toBe(1);
+    await expect(page.getByTestId('explore-error')).toHaveCount(0);
+    release();
+    await expect(page.getByTestId('explore-error')).toBeVisible(); // the NEW failure does show
   });
 
   test('a server error on the first load shows the error with Retry', async ({ page }) => {
@@ -517,5 +572,57 @@ test.describe('explore: Arabic', () => {
     await expect(c).toBeVisible();
     await expect(c).toContainText('صن');
     await expectNoPageOverflow(page);
+  });
+});
+
+test.describe('explore: follow-ups from the PR #83 review', () => {
+  test('a service link from the home page highlights its chip', async ({ page }) => {
+    await mockExplore(page);
+    await page.goto('/directory?category=barbers&service=Beard+trim');
+    if ((page.viewportSize()?.width ?? 1280) < 768) await page.getByRole('button', { name: /^Filters/ }).click();
+    const group = page.getByRole('group', { name: 'Service' });
+    await expect(group.getByRole('button', { name: 'Beard trim' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(group.getByRole('button', { name: 'Haircut' })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('two services with the same name on one card both render', async ({ page }) => {
+    await mockExplore(page, {
+      all: [
+        biz({
+          services: [
+            { name: 'Haircut', durationMin: 30, price: 8 },
+            { name: 'Haircut', durationMin: 45, price: 12 },
+          ],
+        }),
+      ],
+    });
+    await page.goto('/directory');
+    await expect(page.getByTestId('card-services').getByRole('listitem')).toHaveCount(2);
+  });
+
+  test('Today and Tomorrow are Beirut days even when the device calendar is a day behind', async ({ browser }) => {
+    // 4 Nov 10:00 in Beirut is 21:00 on 3 Nov in Pago Pago (UTC-11): the device says yesterday.
+    const context = await browser.newContext({ timezoneId: 'Pacific/Pago_Pago' });
+    const page = await context.newPage();
+    await mockExplore(page);
+    await page.goto('/directory');
+    await withFilters(page, () => page.getByRole('button', { name: 'Today', exact: true }).click());
+    expect(clockNow().setZone('Asia/Beirut').toFormat('yyyy-MM-dd')).toBe('2026-11-04');
+    await expect(page).toHaveURL(/when=2026-11-04/);
+    await withFilters(page, () => page.getByRole('button', { name: 'Tomorrow', exact: true }).click());
+    await expect(page).toHaveURL(/when=2026-11-05/);
+    await context.close();
+  });
+
+  test('"Today" moves to the new day when the tab stays open past midnight in Beirut', async ({ page }) => {
+    await mockExplore(page);
+    await page.clock.setSystemTime(new Date('2026-11-04T21:59:30Z')); // 23:59:30 in Beirut
+    await page.goto('/directory');
+    await withFilters(page, () => page.getByRole('button', { name: 'Today', exact: true }).click());
+    await expect(page).toHaveURL(/when=2026-11-04/);
+    await page.clock.runFor(60_000); // past midnight
+    // Yesterday is no longer a choice: the filter is dropped, and "Today" now means the new day.
+    await withFilters(page, () => page.getByRole('button', { name: 'Today', exact: true }).click());
+    await expect(page).toHaveURL(/when=2026-11-05/);
   });
 });

@@ -1,10 +1,9 @@
 'use client';
 
 import { CloudOff, Search, SearchX, SlidersHorizontal } from 'lucide-react';
-import { DateTime } from 'luxon';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CountBadge } from '@/components/ui/CountBadge';
@@ -18,6 +17,7 @@ import {
   filtersToSearch,
   hasAnyFilter,
   parseFilters,
+  requestUrl,
   sameFilters,
   whenDayText,
   type ExploreFilters,
@@ -26,6 +26,7 @@ import { useMediaQuery } from '@/lib/useMediaQuery';
 import { FilterControls, type FilterPatch } from './FilterControls';
 import { ResultCard } from './ResultCard';
 import { useExploreResults } from './useExploreResults';
+import { useExploreToday } from './useExploreToday';
 
 const noopSubscribe = () => () => undefined;
 
@@ -65,6 +66,25 @@ function ResultsSkeleton() {
   );
 }
 
+/** After a 429 the Retry button waits this long (the limit is per address and window: an instant retry fails again). */
+export const RATE_COOLDOWN_SECONDS = 10;
+
+/** Retry, disabled with a countdown label while `cooldownSeconds` runs (mount it afresh for each failure). */
+function RetryButton({ cooldownSeconds, onClick }: { cooldownSeconds: number; onClick: () => void }) {
+  const t = useTranslations('directory.explore');
+  const [left, setLeft] = useState(cooldownSeconds);
+  useEffect(() => {
+    if (left <= 0) return;
+    const timer = setTimeout(() => setLeft((n) => n - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [left]);
+  return (
+    <Button variant="secondary" onClick={onClick} disabled={left > 0}>
+      {left > 0 ? t('retryIn', { seconds: left }) : t('retry')}
+    </Button>
+  );
+}
+
 /** For business owners who land here: sign up to be listed. */
 function OwnerLink({ variant }: { variant: 'empty' | 'list' }) {
   const t = useTranslations('directory.ownerCta');
@@ -97,9 +117,8 @@ function Explore() {
   const pathname = usePathname();
   const params = useSearchParams();
   const wide = useMediaQuery('(min-width: 768px)');
-  // Today in the VIEWER's calendar: `when` is offered from today to today + 28 days.
-  const [today] = useState(() => DateTime.now().toFormat('yyyy-MM-dd'));
-  const [now] = useState(() => new Date());
+  // Today in the Explore calendar (Asia/Beirut, refreshed across midnight): `when` runs from today to today + 28 days.
+  const { today, now } = useExploreToday();
   const filters = useMemo(() => parseFilters((name) => params.get(name), today), [params, today]);
   const { state, submit, retry, loadMore } = useExploreResults(filters);
 
@@ -280,9 +299,11 @@ function Explore() {
                 ? t('stillShowing')
                 : t('errorBody')}
           </span>
-          <Button variant="secondary" onClick={retry}>
-            {t('retry')}
-          </Button>
+          <RetryButton
+            key={`${requestUrl(filters)}|${state.failed}`}
+            cooldownSeconds={state.failed === 'rate' ? RATE_COOLDOWN_SECONDS : 0}
+            onClick={retry}
+          />
         </div>
       ) : null}
 

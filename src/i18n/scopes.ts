@@ -30,6 +30,7 @@ export const INTL_SCOPES = {
     'directory',
     'pricing',
     'home',
+    'myBookings',
     'billing',
     // Shared money/duration formatting (useAppFormat); the rest of `app` is dashboard-only.
     'app.format',

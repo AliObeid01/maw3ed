@@ -205,7 +205,7 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(panel(page)).toContainText('Prices from');
   await expect(panel(page)).toContainText('Next free');
   await expect(panel(page)).toContainText('Today 10:30');
-  await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toHaveAttribute('href', '/directory?category=barbers&search=Beard+trim');
+  await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toHaveAttribute('href', '/directory?category=barbers&service=Beard+trim');
   await expect(panel(page).getByRole('link', { name: /Beard trim/ })).toContainText(/from .*12.50 USD/);
   const top = panel(page).getByRole('article');
   await expect(top).toHaveCount(2);
@@ -219,7 +219,7 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-pressed', 'true');
   await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-pressed', 'false');
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Dental clinics' })).toBeVisible();
-  await expect(panel(page).getByRole('link', { name: /Check-up/ })).toHaveAttribute('href', '/directory?category=dental-clinics&search=Check-up');
+  await expect(panel(page).getByRole('link', { name: /Check-up/ })).toHaveAttribute('href', '/directory?category=dental-clinics&service=Check-up');
   await expect(panel(page).getByRole('link', { name: 'See all dental clinics' })).toHaveAttribute('href', '/directory?category=dental-clinics');
 
   // One categories request; one directory request per category opened, cached when you go back. No per-user params.
@@ -274,8 +274,8 @@ test('How it works: true steps, the reminder email preview, and a keyboard FAQ',
   await expect(preview).toContainText('Cancel my appointment');
   await expect(preview).toContainText('Illustration');
   await expect(preview.locator('a, button')).toHaveCount(0);
-  // Claims that were removed because the product does not do them.
-  await expect(page.locator('main')).not.toContainText(/My bookings|your reference|next 30 days|Help centre/i);
+  // Claims that were removed because the product does not do them ("My bookings" is true since PR-8: see myBookings.spec.ts).
+  await expect(page.locator('main')).not.toContainText(/your reference|next 30 days|Help centre/i);
 
   const first = how.getByText('Do I need an account?');
   const details = how.locator('details').first();
@@ -289,7 +289,7 @@ test('How it works: true steps, the reminder email preview, and a keyboard FAQ',
   await page.keyboard.press('Tab');
   await page.keyboard.press('Enter');
   await expect(how.locator('details').nth(1)).toContainText('The booking email has a Cancel link (and a Confirm link when the visit is within 24 hours); every reminder has both.');
-  await expect(how.locator('details')).toHaveCount(4);
+  await expect(how.locator('details')).toHaveCount(5);
 });
 
 test('For business owners: band, links, phone mockup and the five setup steps', async ({ page }) => {

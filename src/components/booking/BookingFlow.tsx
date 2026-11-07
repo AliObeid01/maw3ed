@@ -51,6 +51,8 @@ import {
 import { clearBooked, loadBooked, saveBooked, type BookedState } from '@/lib/booking/bookedStore';
 import { createLiveRefresh, sameData } from '@/lib/booking/liveRefresh';
 import { loadSlotWindow } from '@/lib/booking/window';
+import { YourBookingsStrip } from '@/components/myBookings/YourBookingsStrip';
+import { entryFromBooking, myBookings } from '@/lib/myBookings/storage';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { BookedView } from './BookedView';
 import { DetailsStep, type DetailsValues } from './DetailsStep';
@@ -478,6 +480,14 @@ export function BookingFlow({ slug }: { slug: string }) {
       }
       const next: BookedState = { result, name: body.client.name, hasEmail: !!email };
       saveBooked(slug, next);
+      // "My bookings on this device": business, service, staff, time and the view link only. `next.name`,
+      // the phone and the email are deliberately not passed (entryFromBooking cannot take them).
+      const saved = entryFromBooking(
+        result,
+        { slug, name: data?.business.name ?? slug, timezone },
+        new Date(),
+      );
+      if (saved) myBookings.save(saved);
       setBooked(next);
       router.replace(pathname, { scroll: false });
       window.scrollTo({ top: 0 });
@@ -623,6 +633,7 @@ export function BookingFlow({ slug }: { slug: string }) {
             ) : null}
           </div>
         ) : null}
+        <YourBookingsStrip slug={slug} />
         <StepRail steps={steps} current={currentIndex} onBack={back} />
 
         {resolved.step === 'service' ? (

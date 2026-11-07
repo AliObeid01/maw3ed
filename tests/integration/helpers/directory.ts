@@ -111,3 +111,39 @@ export async function makeBusiness(pg: Client, o: FixtureOptions) {
   }
   return { id, slug, serviceIds, staffIds };
 }
+
+/** Every object key anywhere in a JSON value (keys, not values: a business named "Staff Club" is not a leak). */
+export function jsonKeys(value: unknown, out: Set<string> = new Set()): Set<string> {
+  if (Array.isArray(value)) for (const v of value) jsonKeys(v, out);
+  else if (value && typeof value === 'object')
+    for (const [k, v] of Object.entries(value)) {
+      out.add(k);
+      jsonKeys(v, out);
+    }
+  return out;
+}
+
+/** Keys that would mean private data reached a public response, whatever the fixture names contain. */
+export const PRIVATE_KEYS = [
+  'staff',
+  'staffId',
+  'staffName',
+  'displayName',
+  'client',
+  'clientId',
+  'clients',
+  'appointment',
+  'appointments',
+  'email',
+  'phone',
+  'owner',
+  'ownerId',
+  'passwordHash',
+  'businessId',
+] as const;
+
+/** The private keys present anywhere in a response body (an empty list is the passing result). */
+export function privateKeysIn(body: unknown): string[] {
+  const keys = jsonKeys(body);
+  return PRIVATE_KEYS.filter((k) => keys.has(k));
+}
