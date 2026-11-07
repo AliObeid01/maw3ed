@@ -28,7 +28,13 @@ async function stickingOut(page: Page) {
       if (r.width > 0 && (r.right > width + 1 || r.left < -1))
         out.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 50)} ${Math.round(r.left)}..${Math.round(r.right)}`);
     }
-    return out.length > 1 ? out.slice(0, 12) : [];
+    if (out.length === 1) return [];
+    // What inside the cards is nearly as wide as the card (the thing that sized the column)?
+    for (const el of Array.from(document.querySelectorAll('[data-testid="upcoming-card"] *'))) {
+      const r = el.getBoundingClientRect();
+      if (r.width >= 290) out.push(`inner ${el.tagName.toLowerCase()}.${String(el.className).slice(0, 40)} w=${Math.round(r.width)} scrollW=${el.scrollWidth}`);
+    }
+    return out.slice(0, 30);
   });
 }
 

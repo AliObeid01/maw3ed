@@ -158,7 +158,7 @@ export function UpcomingCard({
   }
 
   return (
-    <Card as="li" padding="compact" className="flex flex-col gap-4" data-testid="upcoming-card">
+    <Card as="li" padding="compact" className="flex min-w-0 flex-col gap-4" data-testid="upcoming-card">
       <Summary
         entry={entry}
         chip={
@@ -241,7 +241,7 @@ export function UpcomingCard({
 export function PastCard({ entry }: { entry: SavedBooking }) {
   const t = useTranslations('myBookings');
   return (
-    <Card as="li" padding="compact" className="flex flex-col gap-3" data-testid="past-card">
+    <Card as="li" padding="compact" className="flex min-w-0 flex-col gap-3" data-testid="past-card">
       <Summary
         entry={entry}
         chip={

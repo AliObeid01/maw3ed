@@ -45,7 +45,7 @@ function Loaded() {
   const [forgetOpen, setForgetOpen] = useState(false);
 
   return (
-    <div className="grid gap-8">
+    <div className="grid grid-cols-1 gap-8">
       {availability === 'blocked' ? (
         <div role="status" data-testid="storage-blocked">
           <Callout tone="warning" icon={<ShieldAlert />}>
@@ -71,12 +71,12 @@ function Loaded() {
         </Card>
       ) : (
         <>
-          <section aria-labelledby="mb-upcoming" className="grid gap-3.5">
+          <section aria-labelledby="mb-upcoming" className="grid grid-cols-1 gap-3.5">
             <h2 id="mb-upcoming" className="m-0 text-xl font-semibold">
               {t('upcoming.title')}
             </h2>
             {upcoming.length > 0 ? (
-              <ul className="m-0 grid list-none gap-3.5 p-0 lg:grid-cols-2">
+              <ul className="m-0 grid list-none grid-cols-1 gap-3.5 p-0 lg:grid-cols-2">
                 {upcoming.map((entry) => (
                   <UpcomingCard
                     key={entry.token}
@@ -93,11 +93,11 @@ function Loaded() {
           </section>
 
           {past.length > 0 ? (
-            <section aria-labelledby="mb-past" className="grid gap-3.5">
+            <section aria-labelledby="mb-past" className="grid grid-cols-1 gap-3.5">
               <h2 id="mb-past" className="m-0 text-xl font-semibold">
                 {t('past.title')}
               </h2>
-              <ul className="m-0 grid list-none gap-3.5 p-0 lg:grid-cols-2">
+              <ul className="m-0 grid list-none grid-cols-1 gap-3.5 p-0 lg:grid-cols-2">
                 {past.map((entry) => (
                   <PastCard key={entry.token} entry={entry} />
                 ))}
