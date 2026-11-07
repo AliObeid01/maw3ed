@@ -5,7 +5,7 @@ import { expect, test } from './helpers/test';
 // /privacy and /terms: server-rendered drafts, en and ar, with the "Draft - under review" notice.
 
 const PAGES = [
-  { path: '/privacy', en: 'Privacy policy', ar: 'سياسة الخصوصية', sections: 14, mentions: ['Vercel', 'Neon', 'Resend', 'Sentry (EU region)', 'one-way hash'] },
+  { path: '/privacy', en: 'Privacy policy', ar: 'سياسة الخصوصية', sections: 14, mentions: ['Vercel', 'Neon', 'Resend', 'Sentry (EU region)', 'where possible', 'rate-limit', 'a phone number', 'not by Maw3ed', 'The business owner can delete a client'] },
   { path: '/terms', en: 'Terms of use', ar: 'شروط الاستخدام', sections: 12, mentions: ['[GOVERNING LAW]', 'test mode'] },
 ] as const;
 

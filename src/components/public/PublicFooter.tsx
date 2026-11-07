@@ -54,7 +54,7 @@ export function PublicFooter() {
             <p className="mt-3.5 mb-0 max-w-[36ch] text-[15px] leading-normal">{t('public.footer.blurb')}</p>
             <ul aria-label={t('public.footer.contactLabel')} className="mt-4 mb-0 grid list-none gap-1 p-0 text-[15px]">
               <li>
-                <a href={contactHref()} className="inline-flex min-h-9 items-center gap-2.5 text-hero-muted no-underline hover:text-white">
+                <a href={contactHref()} className="inline-flex min-h-11 items-center gap-2.5 text-hero-muted no-underline hover:text-white">
                   <Mail size={18} aria-hidden="true" className="text-hero-accent" />
                   <span dir="ltr">{SITE.email}</span>
                 </a>
@@ -65,7 +65,7 @@ export function PublicFooter() {
               </li>
               <li className="inline-flex min-h-9 items-center gap-2.5">
                 <MapPin size={18} aria-hidden="true" className="text-hero-accent" />
-                <span>{SITE.address}</span>
+                <bdi>{SITE.address}</bdi>
               </li>
             </ul>
             {social.length > 0 ? (

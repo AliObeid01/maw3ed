@@ -1,6 +1,7 @@
 import { FileWarning, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
+import { ltr } from '@/components/ui/Bidi';
 import { Callout } from '@/components/ui/Callout';
 import { legalKeys, type LegalSection } from '@/lib/legal';
 import { GOVERNING_LAW, LEGAL_DRAFT, LEGAL_UPDATED, SITE } from '@/lib/site';
@@ -19,7 +20,8 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
     timeZone: 'Asia/Beirut',
     numberingSystem: 'latn',
   });
-  const args = { email: SITE.email, phone: SITE.phone, address: SITE.address, law: GOVERNING_LAW };
+  // Latin runs (address, phone, placeholders) stay left to right inside Arabic text.
+  const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: ltr(SITE.address), law: ltr(GOVERNING_LAW) };
   const key = (path: string) => `${doc}.sections.${path}`;
 
   return (

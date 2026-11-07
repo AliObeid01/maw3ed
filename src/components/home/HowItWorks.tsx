@@ -70,6 +70,7 @@ export function HowItWorks() {
             <span className="rounded-chip bg-divider px-2.5 py-1 text-xs font-semibold">{t('mail.label')}</span>
           </div>
           <h4 className="m-0 text-[21px] leading-tight font-semibold">{t('mail.heading')}</h4>
+          <p className="m-0 text-[15.5px] text-muted">{t('mail.intro')}</p>
           <div className="grid gap-0.5 rounded-tile border border-divider p-3.5 text-[15.5px]">
             <b className="font-semibold">{t('mail.business')}</b>
             <span className="text-muted">{t('mail.service')}</span>

@@ -2009,14 +2009,15 @@
         "details": "Every detail is in the message: place, service, person and time"
       },
       "mail": {
-        "label": "Example email",
+        "label": "Illustration",
         "brand": "Maw3ed · Reminder",
-        "heading": "Your haircut is tomorrow at 10:30",
+        "heading": "Your appointment is tomorrow",
         "business": "Abu Karam Barbershop",
         "service": "Haircut · 30 min · with Karam",
         "when": "Tomorrow · 10:30",
-        "confirm": "Confirm",
-        "cancel": "Cancel"
+        "confirm": "Confirm my appointment",
+        "cancel": "Cancel my appointment",
+        "intro": "This is a reminder of your appointment at Abu Karam Barbershop."
       },
       "faqTitle": "Common questions",
       "faq": {
@@ -2026,7 +2027,7 @@
         },
         "cancel": {
           "q": "How do I cancel or confirm?",
-          "a": "Use the links in your emails. The booking email has a Cancel link, and every reminder has Confirm and Cancel."
+          "a": "The booking email has a Cancel link (and a Confirm link when the visit is within 24 hours); every reminder has both."
         },
         "taken": {
           "q": "What if the time I want is taken?",
@@ -2269,7 +2270,7 @@
         },
         "business": {
           "title": "Business owners and staff",
-          "p1": "A business account stores a name, an email address and a password, which is kept only as a one-way hash. A session cookie keeps you signed in on your device."
+          "p1": "A business account stores a name, an email address or, for staff the owner sets up, a phone number, and a password, which is kept only as a one-way hash. A session cookie keeps you signed in on your device."
         },
         "use": {
           "title": "How we use it",
@@ -2282,7 +2283,7 @@
         "reminders": {
           "title": "Reminders and messages",
           "p1": "We email a booking confirmation and reminders, about 24 hours and 2 hours before the appointment, with Confirm and Cancel links.",
-          "p2": "A business can also send you a WhatsApp message itself, with a button that opens WhatsApp on its own phone. Maw3ed does not send WhatsApp messages."
+          "p2": "A business can also send you a WhatsApp message itself (for example a reminder or an activation message for staff), with a button that opens WhatsApp on the business's own phone. The message is sent by the business from its own phone, not by Maw3ed. Maw3ed does not send WhatsApp messages."
         },
         "sharing": {
           "title": "Who sees your data",
@@ -2290,7 +2291,7 @@
           "b1": "Vercel, for hosting",
           "b2": "Neon, for the database",
           "b3": "Resend, to deliver email",
-          "b4": "Sentry (EU region), for error monitoring: errors only, with personal data removed",
+          "b4": "Sentry (EU region), for error monitoring: errors only, with personal data removed where possible",
           "p2": "We do not sell your data and we do not use it for advertising."
         },
         "cookies": {
@@ -2299,12 +2300,13 @@
         },
         "keep": {
           "title": "How long we keep it, and deletion",
-          "p1": "We keep booking records while the business uses Maw3ed, so it can run its appointments and see its history. A business can delete a client: the record is then anonymised and no personal data of that client is left.",
+          "p1": "We keep booking records while the business uses Maw3ed, so it can run its appointments and see its history. The business owner can delete a client: the record is then anonymised and no personal data of that client is left.",
           "p2": "To have your data deleted, ask the business you booked with, or contact us."
         },
         "security": {
           "title": "Security",
-          "p1": "Connections use HTTPS, each business can only reach its own data, links in emails are signed, and passwords are stored as one-way hashes. No system is perfectly secure, but we limit what we hold so there is little to lose."
+          "p1": "Connections use HTTPS, each business can only reach its own data, links in emails are signed, and passwords are stored as one-way hashes. No system is perfectly secure, but we limit what we hold so there is little to lose.",
+          "p2": "We use IP addresses briefly to limit abuse, for example to rate-limit booking, sign-in and directory requests."
         },
         "children": {
           "title": "Children",

@@ -4,7 +4,8 @@ import { ArrowRight, MapPin, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { cn } from '@/lib/cn';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -19,7 +20,10 @@ import { PlaceCard } from './PlaceCard';
 const AREAS = AREA_KEYS.filter((k) => k !== 'other');
 
 /** Right column of the hero (lg and up): live next-free cards. Hidden when there is nothing to show. */
-function NextFreePanel({ area }: { area: string }) {
+/** Cards shown in the hero panel. Space for exactly this many is reserved from the first paint (no layout shift). */
+const PANEL_CARDS = 2;
+
+function NextFreePanel({ area, onEmpty }: { area: string; onEmpty: (empty: boolean) => void }) {
   const t = useTranslations('home.nextFree');
   const areaName = useTranslations('public.area');
   const { data, error, loading } = useResource(
@@ -27,7 +31,11 @@ function NextFreePanel({ area }: { area: string }) {
     `nextfree:${area}`,
   );
   const items = data?.businesses.filter((b) => (b.freeTimes?.length ?? 0) > 0) ?? [];
-  if (!loading && (error || items.length === 0)) return null;
+  const empty = !loading && (Boolean(error) || items.length === 0);
+  useEffect(() => {
+    onEmpty(empty);
+  }, [empty, onEmpty]);
+  if (empty) return null;
 
   const title = isAreaKey(area) ? t('titleIn', { area: areaName(area) }) : t('title');
   return (
@@ -35,7 +43,7 @@ function NextFreePanel({ area }: { area: string }) {
       aria-labelledby="next-free-title"
       aria-busy={loading}
       data-testid="next-free-panel"
-      className="rounded-[28px] bg-brand p-6 text-white"
+      className="rounded-[28px] bg-brand p-6 text-white lg:min-h-[720px]"
     >
       <h2 id="next-free-title" className="m-0 mb-1 text-[22px] font-semibold">
         {title}
@@ -49,7 +57,7 @@ function NextFreePanel({ area }: { area: string }) {
         </div>
       ) : (
         <ul className="m-0 grid list-none gap-3 p-0">
-          {items.map((b) => (
+          {items.slice(0, PANEL_CARDS).map((b) => (
             <li key={b.slug}>
               <PlaceCard business={b} avatar="navy" />
             </li>
@@ -70,6 +78,8 @@ export function HomeHero() {
   const [text, setText] = useState('');
   const [area, setArea] = useState('');
   const [pending, setPending] = useState(false);
+  // The right column is reserved while the panel loads or shows; it collapses only when there is nothing to show.
+  const [panelEmpty, setPanelEmpty] = useState(false);
 
   const options = useMemo<SelectOption[]>(
     () => [{ value: '', label: t('areaAll') }, ...AREAS.map((k) => ({ value: k, label: areaName(k) }))],
@@ -162,7 +172,9 @@ export function HomeHero() {
           </div>
         </div>
 
-        {desktop ? <NextFreePanel area={area} /> : null}
+        <div className={cn('hidden lg:block', !panelEmpty && 'lg:min-h-[720px]')}>
+          {desktop ? <NextFreePanel area={area} onEmpty={setPanelEmpty} /> : null}
+        </div>
       </div>
     </section>
   );

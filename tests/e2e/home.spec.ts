@@ -267,9 +267,12 @@ test('How it works: true steps, the reminder email preview, and a keyboard FAQ',
   const preview = how.getByTestId('email-preview');
   await expect(preview).toHaveAttribute('aria-hidden', 'true');
   await expect(preview).toContainText('Maw3ed · Reminder');
-  await expect(preview).toContainText('Your haircut is tomorrow at 10:30');
-  await expect(preview).toContainText('Confirm');
-  await expect(preview).toContainText('Cancel');
+  // Same wording as the real reminder (email.h24 and email.actions).
+  await expect(preview).toContainText('Your appointment is tomorrow');
+  await expect(preview).toContainText('This is a reminder of your appointment at');
+  await expect(preview).toContainText('Confirm my appointment');
+  await expect(preview).toContainText('Cancel my appointment');
+  await expect(preview).toContainText('Illustration');
   await expect(preview.locator('a, button')).toHaveCount(0);
   // Claims that were removed because the product does not do them.
   await expect(page.locator('main')).not.toContainText(/My bookings|your reference|next 30 days|Help centre/i);
@@ -285,7 +288,7 @@ test('How it works: true steps, the reminder email preview, and a keyboard FAQ',
   await expect(details).not.toHaveAttribute('open', '');
   await page.keyboard.press('Tab');
   await page.keyboard.press('Enter');
-  await expect(how.locator('details').nth(1)).toContainText('Cancel link');
+  await expect(how.locator('details').nth(1)).toContainText('The booking email has a Cancel link (and a Confirm link when the visit is within 24 hours); every reminder has both.');
   await expect(how.locator('details')).toHaveCount(4);
 });
 
@@ -337,6 +340,7 @@ test('footer: real links, contact placeholders from one config, no dead social l
   await expect(footer.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', 'mailto:hello@[YOUR-DOMAIN]');
   await expect(footer.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
   await expect(footer.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
+  expect((await footer.getByRole('link', { name: /hello@/ }).boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
   await expect(footer.getByRole('link', { name: 'Back to top' })).toHaveAttribute('href', '#top');
   await expect(footer).toContainText('hello@[YOUR-DOMAIN]');
   await expect(footer).toContainText('+961 [XX XXX XXX]');
@@ -441,4 +445,29 @@ test.describe('overflow at the three widths', () => {
       await expectNoPageOverflow(page);
     });
   }
+});
+
+test('wide screens: the hero does not jump when the Next free panel arrives', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the panel is shown from lg');
+  await mockHome(page);
+  // Answer the panel slowly so the loading state can be measured, then the real cards.
+  await page.route('**/api/public/directory**', async (route) => {
+    await new Promise((r) => setTimeout(r, 1200));
+    await route.fallback();
+  });
+  await page.goto('/');
+  const hero = page.locator('main > section').first();
+  await expect(page.getByTestId('next-free-panel')).toHaveAttribute('aria-busy', 'true');
+  const loading = (await hero.boundingBox())!.height;
+  await expect(page.getByTestId('next-free-panel')).toHaveAttribute('aria-busy', 'false');
+  const loaded = (await hero.boundingBox())!.height;
+  expect(Math.abs(loaded - loading)).toBeLessThanOrEqual(2);
+  // Nothing to show: the reserved space is given back, no empty box is left behind.
+  await page.unroute('**/api/public/directory**');
+  await page.route('**/api/public/directory**', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ businesses: [], nextCursor: null }) }),
+  );
+  await page.goto('/');
+  await expect(page.getByTestId('next-free-panel')).toHaveCount(0);
+  await expect.poll(async () => (await hero.boundingBox())!.height).toBeLessThan(loaded - 100);
 });
