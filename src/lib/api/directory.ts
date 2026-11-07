@@ -21,6 +21,10 @@ export const directorySchema =z.object({
         .nullable()
         .optional(),
       freeTimes: z.array(z.string()).optional(),
+      // Only with `include=services` (the Explore page): up to 4 active services, cheapest first.
+      services: z
+        .array(z.object({ name: z.string(), durationMin: z.number(), price: z.number() }))
+        .optional(),
     }),
   ),
   nextCursor: z.string().nullable(),
@@ -41,3 +45,7 @@ export const getDirectory = (
   const qs = q.toString();
   return request(`/api/public/directory${qs ? `?${qs}` : ''}`, directorySchema, { signal });
 };
+
+/** One Explore page of results. `url` comes from `requestUrl` (lib/directory/explore.ts): same filters, same URL. */
+export const getExplorePage = (url: string, signal?: AbortSignal) =>
+  request(url, directorySchema, { signal });

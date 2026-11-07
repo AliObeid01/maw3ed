@@ -54,6 +54,12 @@ The home `/` follows the owner's design with OUR logo and palette v2. Sections, 
 - **Mobile adaptation:** the six categories are a snap-scrolling row (opted out of the overflow guard with `data-allow-overflow`) above the panel; the "Next free" panel is not rendered below lg (and not fetched).
 - **Copy rules:** never "no availability" or "fully booked" (next free only looks at the shortest service); prices as `8 USD` (the API has no currency field, USD is the default); legal pages carry a draft notice.
 
+## Explore listing (PR-7b, the design's Explore view)
+`/directory` follows the owner's Explore view with the PR-7a tokens (Outfit, flat colours, no gradients or glows). Components in `src/components/explore`: `ExploreView` (state, URL, layout), `FilterControls` (Area and Category Selects, When pills + DatePicker, Service chips; one component for the inline bar and the sheet), `FilterPill` (44 px pill toggle with `aria-pressed`: outline when off, solid Royal Blue when on), `ResultCard` (20 px card, 1.5 px divider border, 52 px initials avatar, service chips, free-time chips, 48 px "View & book" button with the 14 px radius), `useExploreResults` (requests).
+- **Layout:** 360 px: the text box with a 52 px Search button, then a "Filters" button with a count badge (Filters sheet with Apply and Clear) and a result grid of one column; md: inline bar (search, Area, Category, When, Service); lg: three columns (search | Area | Category, then When over two columns and Service). Results use `repeat(auto-fill, minmax(min(340px, 100%), 1fr))`.
+- **States:** skeleton sized like the final cards, results dimmed (not replaced) while a new request is pending, empty (with or without `when`), error banner that keeps the previous results, polite live region ("N places found").
+- **Copy rules:** "Free today / tomorrow / <day>" (never a promise: the times can already be taken), "No free times soon" (never "fully booked", "no availability" or "sold out"), "Showing N places" (the API has no total), "Times are shown in each business's local time."
+
 ## Board → route map
 | # | Board | Route | Component root |
 |---|---|---|---|

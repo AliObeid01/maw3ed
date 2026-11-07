@@ -142,7 +142,6 @@ export function PublicFooter() {
 
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-white/15 pt-5 pb-7 text-sm text-hero-subtle">
           <span>{t('public.footer.rights', { year: COPYRIGHT_YEAR })}</span>
-          <span>{t('public.footer.times')}</span>
           <nav aria-label={t('public.footer.legalNav')} className="flex flex-wrap items-center gap-x-4">
             <LanguageToggle className="border-white/30 bg-transparent text-white hover:bg-white/10" />
             <Link href="/privacy" className="inline-flex min-h-11 items-center font-medium text-white no-underline hover:underline">

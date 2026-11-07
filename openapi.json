@@ -4565,6 +4565,30 @@
                   ],
                   "description": "Only with `include=nextFree` / `when`. Earliest bookable start of the shortest bookable active service over the next 7 local days (or on the `when` day); null when there is none."
                 },
+                "services": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "durationMin": {
+                        "type": "integer"
+                      },
+                      "price": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "durationMin",
+                      "price"
+                    ]
+                  },
+                  "maxItems": 4,
+                  "description": "Only with `include=services`. Up to 4 active services, cheapest first, then by name."
+                },
                 "freeTimes": {
                   "type": "array",
                   "items": {
@@ -9962,7 +9986,7 @@
     "/api/public/directory": {
       "get": {
         "summary": "Public directory of opted-in businesses that are ready to take bookings",
-        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include=nextFree` and `when` compute live slots for a bounded page (at most 12 businesses, a scan of at most 36 candidates) and have their own per-IP rate limit.",
+        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.",
         "tags": [
           "public"
         ],
@@ -10050,24 +10074,12 @@
           },
           {
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "enum": [
-                    "nextFree"
-                  ]
-                },
-                {
-                  "type": "string",
-                  "enum": [
-                    ""
-                  ]
-                }
-              ],
-              "description": "`nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). Off by default."
+              "type": "string",
+              "maxLength": 40,
+              "description": "Comma list of `nextFree` and/or `services`. `nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). `services` adds `services`: up to 4 active services (cheapest first, then name) with name, durationMin and price. Both cap the page at 12. Off by default."
             },
             "required": false,
-            "description": "`nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). Off by default.",
+            "description": "Comma list of `nextFree` and/or `services`. `nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). `services` adds `services`: up to 4 active services (cheapest first, then name) with name, durationMin and price. Both cap the page at 12. Off by default.",
             "name": "include",
             "in": "query"
           },
