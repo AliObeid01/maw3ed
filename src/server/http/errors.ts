@@ -165,6 +165,27 @@ export function pgErrorCode(error: unknown, depth = 0): string | undefined {
   return undefined;
 }
 
+/**
+ * Every constraint / index / column name a unique-violation error mentions. Depending on the Prisma path
+ * they sit in `meta.target`, `meta.driverAdapterError.cause.constraint` (`{ index }` or `{ fields }`) or a
+ * plain pg `constraint`, so walk the likely places. Used to tell WHICH unique rule fired (a booking reference
+ * collision is retried; the idempotency key and the slot constraint are not).
+ */
+export function violatedNames(error: unknown, depth = 0, out: string[] = []): string[] {
+  if (!error || typeof error !== 'object' || depth > 6) return out;
+  const e = error as Record<string, unknown>;
+  for (const key of ['constraint', 'target', 'fields', 'index']) {
+    const v = e[key];
+    if (typeof v === 'string') out.push(v);
+    else if (Array.isArray(v)) {
+      for (const x of v) if (typeof x === 'string') out.push(x);
+    }
+  }
+  for (const key of ['meta', 'driverAdapterError', 'cause', 'constraint'])
+    if (e[key] && typeof e[key] === 'object') violatedNames(e[key], depth + 1, out);
+  return out;
+}
+
 function prismaCode(error: unknown): string | undefined {
   if (error && typeof error === 'object') {
     const c = (error as { code?: unknown }).code;

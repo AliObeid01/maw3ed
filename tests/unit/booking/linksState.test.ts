@@ -17,6 +17,7 @@ const link = (patch: Partial<LinkView> & { status?: string } = {}): LinkView => 
     act: 'view',
     appointment: {
       id: 'a1',
+      reference: 'K7M2QX',
       startAt: '2026-11-03T08:30:00Z',
       endAt: '2026-11-03T09:00:00Z',
       status: status ?? 'BOOKED',

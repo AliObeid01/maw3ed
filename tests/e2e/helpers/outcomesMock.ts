@@ -45,7 +45,12 @@ const apiError = (
   extra: { fields?: Record<string, string>; data?: unknown } = {},
 ) =>
   json(route, status, {
-    error: { code, message: code, fields: extra.fields ?? {}, ...(extra.data ? { data: extra.data } : {}) },
+    error: {
+      code,
+      message: code,
+      fields: extra.fields ?? {},
+      ...(extra.data ? { data: extra.data } : {}),
+    },
   });
 
 /** Minutes from now as a UTC instant (negative = in the past). */
@@ -91,7 +96,12 @@ export const STAFF = {
 const SERVICE_LIST = Object.values(SERVICES);
 const STAFF_LIST = Object.values(STAFF);
 
-export const client = (id: string, name: string, phone: string, extra: Partial<MockClient> = {}): MockClient => ({
+export const client = (
+  id: string,
+  name: string,
+  phone: string,
+  extra: Partial<MockClient> = {},
+): MockClient => ({
   id,
   name,
   phone,
@@ -175,7 +185,10 @@ async function roleOf(request: Request): Promise<'OWNER' | 'STAFF'> {
 }
 
 /** Past appointments for the pilot report: `attended` + `noShows` + `lateCancels` spread over the last 12 days. */
-export function pilotHistory(clientId: string, counts: { attended: number; noShows: number; lateCancels?: number }) {
+export function pilotHistory(
+  clientId: string,
+  counts: { attended: number; noShows: number; lateCancels?: number },
+) {
   const rows: MockAppt[] = [];
   const total = counts.attended + counts.noShows + (counts.lateCancels ?? 0);
   const statuses = [
@@ -220,14 +233,21 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
     const reminderEmail = effectiveEmail(a.contactEmail, c.email);
     return {
       reminderEmail,
-      reminderEmailDiffers: reminderEmail !== null && reminderEmail.toLowerCase() !== (c.email ?? '').toLowerCase(),
+      reminderEmailDiffers:
+        reminderEmail !== null && reminderEmail.toLowerCase() !== (c.email ?? '').toLowerCase(),
       contactEmail: a.contactEmail ?? null,
       contactName: a.contactName ?? null,
       id: a.id,
+      reference: 'K7M2QX',
       startAt: a.startAt,
       endAt: a.endAt,
       status: a.status,
-      service: { id: serviceOf(a).id, name: serviceOf(a).name, durationMin: serviceOf(a).durationMin, price: serviceOf(a).price },
+      service: {
+        id: serviceOf(a).id,
+        name: serviceOf(a).name,
+        durationMin: serviceOf(a).durationMin,
+        price: serviceOf(a).price,
+      },
       staff: { id: staffOf(a).id, displayName: staffOf(a).displayName },
       source: a.source,
       client: {
@@ -291,11 +311,17 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
 
     const outcome = /^\/api\/appointments\/([^/]+)\/outcome$/.exec(path);
     if (outcome && method === 'PATCH') {
-      if (!ID.test(outcome[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
+      if (!ID.test(outcome[1]!))
+        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
       const keys = Object.keys(body ?? {});
       const target = (body as { outcome?: string } | undefined)?.outcome;
-      if (keys.some((k) => k !== 'outcome') || !['ATTENDED', 'NO_SHOW', 'LATE_CANCEL'].includes(target ?? '')) {
-        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { outcome: 'Invalid outcome.' } });
+      if (
+        keys.some((k) => k !== 'outcome') ||
+        !['ATTENDED', 'NO_SHOW', 'LATE_CANCEL'].includes(target ?? '')
+      ) {
+        return apiError(route, 400, 'VALIDATION_FAILED', {
+          fields: { outcome: 'Invalid outcome.' },
+        });
       }
       const found = appointments.find((a) => a.id === outcome[1]);
       if (!found) return apiError(route, 404, 'NOT_FOUND');
@@ -316,7 +342,9 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       if (plan.kind === 'not_started') return apiError(route, 409, 'NOT_STARTED');
       if (plan.kind === 'not_ended') return apiError(route, 409, 'NOT_ENDED');
       if (plan.kind === 'grace_period')
-        return apiError(route, 409, 'NO_SHOW_TOO_EARLY', { data: { availableAt: plan.availableAt.toISOString() } });
+        return apiError(route, 409, 'NO_SHOW_TOO_EARLY', {
+          data: { availableAt: plan.availableAt.toISOString() },
+        });
       if (plan.kind === 'conflict') return apiError(route, 409, 'CONFLICT');
       if (plan.kind === 'apply') {
         if (plan.decrement) c[plan.decrement] = Math.max(0, c[plan.decrement] - 1);
@@ -343,7 +371,8 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
 
     const excuse = /^\/api\/appointments\/([^/]+)\/excuse$/.exec(path);
     if (excuse && method === 'POST') {
-      if (!ID.test(excuse[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
+      if (!ID.test(excuse[1]!))
+        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
       if (Object.keys(body ?? {}).length > 0) {
         return apiError(route, 400, 'VALIDATION_FAILED', { fields: { _: 'Unknown field.' } });
       }
@@ -382,7 +411,8 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
     // ---- one appointment --------------------------------------------------------------------
     const one = /^\/api\/appointments\/([^/]+)$/.exec(path);
     if (one && method === 'GET') {
-      if (!ID.test(one[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
+      if (!ID.test(one[1]!))
+        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
       const found = appointments.find((a) => a.id === one[1]);
       if (!found) return apiError(route, 404, 'NOT_FOUND');
       return json(route, 200, { appointment: apptItem(found) });
@@ -395,10 +425,13 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       const email = (body as { contactEmail?: string | null } | undefined)?.contactEmail;
       const name = (body as { contactName?: string | null } | undefined)?.contactName;
       const fields: Record<string, string> = {};
-      for (const k of keys) if (k !== 'contactEmail' && k !== 'contactName') fields[k] = 'Unknown field.';
+      for (const k of keys)
+        if (k !== 'contactEmail' && k !== 'contactName') fields[k] = 'Unknown field.';
       if (keys.length === 0) fields.contactEmail = 'Send contactEmail, contactName or both.';
-      if (typeof email === 'string' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.contactEmail = 'Invalid email.';
-      if (email === null && found.source === 'PUBLIC') fields.contactEmail = 'A booking made on the public page needs an email address.';
+      if (typeof email === 'string' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+        fields.contactEmail = 'Invalid email.';
+      if (email === null && found.source === 'PUBLIC')
+        fields.contactEmail = 'A booking made on the public page needs an email address.';
       if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
       contactAttempt += 1;
       const step = options.contactScript?.[contactAttempt - 1] ?? 'ok';
@@ -424,7 +457,9 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
     // ---- clients ----------------------------------------------------------------------------
     if (path === '/api/clients' && method === 'GET') {
       const q = url.searchParams;
-      const unknown = [...q.keys()].filter((k) => !['search', 'sort', 'limit', 'cursor'].includes(k));
+      const unknown = [...q.keys()].filter(
+        (k) => !['search', 'sort', 'limit', 'cursor'].includes(k),
+      );
       if (unknown.length) {
         return apiError(route, 400, 'VALIDATION_FAILED', {
           fields: Object.fromEntries(unknown.map((k) => [k, 'Unknown field.'])),
@@ -454,7 +489,10 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
       );
       rows = [...rows].sort((a, b) => {
         if (sort === 'noShows') return b.noShows - a.noShows || a.name.localeCompare(b.name);
-        if (sort === 'recent') return (b.lastVisitAt ?? '').localeCompare(a.lastVisitAt ?? '') || a.name.localeCompare(b.name);
+        if (sort === 'recent')
+          return (
+            (b.lastVisitAt ?? '').localeCompare(a.lastVisitAt ?? '') || a.name.localeCompare(b.name)
+          );
         return a.name.localeCompare(b.name);
       });
       const offset = cursor ? Number(/^o(\d+)$/.exec(cursor)?.[1] ?? 0) : 0;
@@ -465,7 +503,8 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
 
     const oneClient = /^\/api\/clients\/([^/]+)$/.exec(path);
     if (oneClient) {
-      if (!ID.test(oneClient[1]!)) return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
+      if (!ID.test(oneClient[1]!))
+        return apiError(route, 400, 'VALIDATION_FAILED', { fields: { id: 'Invalid id.' } });
       const c = byClient(oneClient[1]!);
       if (method === 'GET') {
         if (!c) return apiError(route, 404, 'NOT_FOUND');
@@ -486,7 +525,11 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         if (role !== 'OWNER') return apiError(route, 403, 'FORBIDDEN');
         if (!c) return apiError(route, 404, 'NOT_FOUND');
         for (const a of appointments) {
-          if (a.clientId === c.id && Date.parse(a.startAt) > nowMs() && (a.status === 'BOOKED' || a.status === 'CONFIRMED')) {
+          if (
+            a.clientId === c.id &&
+            Date.parse(a.startAt) > nowMs() &&
+            (a.status === 'BOOKED' || a.status === 'CONFIRMED')
+          ) {
             a.status = 'CANCELLED';
           }
         }
@@ -507,15 +550,19 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         for (const k of Object.keys(b)) if (!allowed.includes(k)) shapeErrors[k] = 'Unknown field.';
         for (const k of ['appointments', 'noShows', 'lateCancels']) {
           const v = b[k];
-          if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 10_000) shapeErrors[k] = 'Expected a whole number from 0 to 10000.';
+          if (typeof v !== 'number' || !Number.isInteger(v) || v < 0 || v > 10_000)
+            shapeErrors[k] = 'Expected a whole number from 0 to 10000.';
         }
         for (const k of ['fromDate', 'toDate']) {
-          if (typeof b[k] !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b[k] as string)) shapeErrors[k] = 'Use a date like 2026-11-10.';
+          if (typeof b[k] !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(b[k] as string))
+            shapeErrors[k] = 'Use a date like 2026-11-10.';
         }
-        if (Object.keys(shapeErrors).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields: shapeErrors });
+        if (Object.keys(shapeErrors).length)
+          return apiError(route, 400, 'VALIDATION_FAILED', { fields: shapeErrors });
         const input = b as unknown as Baseline;
         const fields = validateBaseline(input, localDateOf(nowDate(), TZ));
-        if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
+        if (Object.keys(fields).length)
+          return apiError(route, 400, 'VALIDATION_FAILED', { fields });
         baseline = {
           fromDate: input.fromDate,
           toDate: input.toDate,
@@ -554,7 +601,10 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
         const base = baseline ? baselineRate(baseline.appointments, baseline.noShows) : null;
         const change = changeVsBaseline(rate, base);
         const to = localDateOf(now, TZ);
-        const earliest = rows.reduce<Date | null>((min, r) => (!min || r.startAt < min ? r.startAt : min), null);
+        const earliest = rows.reduce<Date | null>(
+          (min, r) => (!min || r.startAt < min ? r.startAt : min),
+          null,
+        );
         const from = earliest ? localDateOf(earliest, TZ) : to;
         return json(route, 200, {
           rateDefinition: RATE_DEFINITION,
@@ -568,7 +618,8 @@ export async function mockOutcomesApi(page: Page, options: OutcomesOptions = {})
             noShowRate: rate === null ? null : round1(rate),
             baselineRate: base === null ? null : round1(base),
             changePoints: change.changePoints === null ? null : round1(change.changePoints),
-            changeRelativePct: change.changeRelativePct === null ? null : round1(change.changeRelativePct),
+            changeRelativePct:
+              change.changeRelativePct === null ? null : round1(change.changeRelativePct),
           },
           weekly,
           signals: options.signals ?? DEFAULT_SIGNALS,

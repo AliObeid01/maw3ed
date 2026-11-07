@@ -13,6 +13,7 @@ import { POST as inviteAccept } from '@/app/api/invites/[token]/accept/route';
 import { GET as linkGet, POST as linkPost } from '@/app/api/links/[token]/route';
 import { GET as offerGet } from '@/app/api/offers/[token]/route';
 import { POST as offerClaim } from '@/app/api/offers/[token]/claim/route';
+import { GET as categories } from '@/app/api/public/categories/route';
 import { GET as directory } from '@/app/api/public/directory/route';
 import { GET as publicPage } from '@/app/api/public/[slug]/route';
 import { POST as bookings } from '@/app/api/public/[slug]/bookings/route';
@@ -81,6 +82,20 @@ const CASES: Case[] = [
     opts: { params: { slug: 'no-such-business' } },
   },
   { policy: 'directory', handler: directory, path: '/api/public/directory' },
+  // PR-6: the costlier live reads share one tighter per-IP policy.
+  { policy: 'directoryLive', handler: categories, path: '/api/public/categories' },
+  {
+    policy: 'directoryLive',
+    handler: directory,
+    path: '/api/public/directory',
+    opts: { query: { include: 'nextFree' } },
+  },
+  {
+    policy: 'directoryLive',
+    handler: directory,
+    path: '/api/public/directory',
+    opts: { query: { when: '2026-11-04' } },
+  },
   {
     policy: 'linkRead',
     handler: linkGet,

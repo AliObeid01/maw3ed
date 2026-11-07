@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 import { BookingSummary } from '@/components/public/BookingSummary';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { ltr } from '@/components/ui/Bidi';
 import { Card } from '@/components/ui/Card';
 import type { BookingResult } from '@/lib/api/booking';
 import { reminderPromiseKind } from '@/lib/reminders/promise';
@@ -61,6 +62,9 @@ export function BookedView({
     { id: 'with', label: ts('with'), value: appointment.staff.displayName },
     { id: 'when', label: ts('when'), value: when },
     { id: 'price', label: ts('price'), value: f.money(appointment.service.price) },
+    ...(appointment.reference
+      ? [{ id: 'reference', label: ts('reference'), value: ltr(appointment.reference) }]
+      : []),
   ];
 
   return (

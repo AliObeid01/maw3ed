@@ -49,6 +49,8 @@ export const remindersSchema = z.object({ h24: z.boolean(), h2: z.boolean(), ema
 export const bookingResultSchema = z.object({
   appointment: z.object({
     id: z.string(),
+    /** Short booking code; null for bookings made before it existed. A label, never a credential. */
+    reference: z.string().nullable().default(null),
     startAt: z.string(),
     endAt: z.string(),
     status: z.string(),

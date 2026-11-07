@@ -130,7 +130,8 @@ export type BookingCall = {
  * clock. The mock's slot list and the specs' expectations both read it here, so a run that crosses midnight in
  * the business zone (E2E_NOW=23:55 and a slow test) cannot make them pick different days (F59).
  */
-export const businessToday = (tz: string = TZ): DateTime => DateTime.fromJSDate(FIXED_NOW, { zone: tz }).startOf('day');
+export const businessToday = (tz: string = TZ): DateTime =>
+  DateTime.fromJSDate(FIXED_NOW, { zone: tz }).startOf('day');
 
 /** The next local day (tomorrow or later) that has slots in the mock: never a Sunday. */
 export function firstBookableDay(tz: string = TZ): string {
@@ -187,8 +188,12 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     business: {
       ...catalogue.business,
       timezone: tz,
-      ...(options.bookingWindowDays === undefined ? {} : { bookingWindowDays: options.bookingWindowDays }),
-      ...(options.cancelCutoffMin === undefined ? {} : { cancelCutoffMin: options.cancelCutoffMin }),
+      ...(options.bookingWindowDays === undefined
+        ? {}
+        : { bookingWindowDays: options.bookingWindowDays }),
+      ...(options.cancelCutoffMin === undefined
+        ? {}
+        : { cancelCutoffMin: options.cancelCutoffMin }),
     },
   };
   const script: Attempt[] = options.script ?? [
@@ -205,7 +210,12 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     if (!match) return apiError(route, 404, 'NOT_FOUND');
     const slug = decodeURIComponent(match[1]!);
     // SlugParams: trimmed, lower-cased, 1-80 characters (anything else is a 400).
-    if (slug.length < 1 || slug.length > 80 || slug !== slug.trim().toLowerCase() || /[^a-z0-9-]/.test(slug)) {
+    if (
+      slug.length < 1 ||
+      slug.length > 80 ||
+      slug !== slug.trim().toLowerCase() ||
+      /[^a-z0-9-]/.test(slug)
+    ) {
       return apiError(route, 400, 'VALIDATION_FAILED', { fields: { slug: 'Invalid.' } });
     }
     if (slug !== SLUG) return apiError(route, 404, 'NOT_FOUND');
@@ -216,7 +226,10 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
       if (businessRequests > 1 && options.refreshedBookingWindowDays !== undefined) {
         return json(route, 200, {
           ...publicCatalogue,
-          business: { ...publicCatalogue.business, bookingWindowDays: options.refreshedBookingWindowDays },
+          business: {
+            ...publicCatalogue.business,
+            bookingWindowDays: options.refreshedBookingWindowDays,
+          },
         });
       }
       return json(route, 200, publicCatalogue);
@@ -231,14 +244,19 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
       const from = q.get('from') ?? '';
       const to = q.get('to') ?? '';
       if (!/^[0-9a-z]+$/.test(q.get('serviceId') ?? '')) fields.serviceId = 'Invalid id.';
-      if (!date.test(from) || !DateTime.fromISO(from).isValid) fields.from = 'Use a date like 2026-11-10.';
-      if (!date.test(to) || !DateTime.fromISO(to).isValid) fields.to = 'Use a date like 2026-11-10.';
+      if (!date.test(from) || !DateTime.fromISO(from).isValid)
+        fields.from = 'Use a date like 2026-11-10.';
+      if (!date.test(to) || !DateTime.fromISO(to).isValid)
+        fields.to = 'Use a date like 2026-11-10.';
       if (Object.keys(fields).length) return apiError(route, 400, 'VALIDATION_FAILED', { fields });
       const first = DateTime.fromISO(from, { zone: 'utc' });
       const last = DateTime.fromISO(to, { zone: 'utc' });
       const span = Math.round(last.diff(first, 'days').days) + 1;
       const today = clockNow().setZone(tz);
-      const limit = DateTime.fromObject({ year: today.year, month: today.month, day: today.day }, { zone: 'utc' }).plus({
+      const limit = DateTime.fromObject(
+        { year: today.year, month: today.month, day: today.day },
+        { zone: 'utc' },
+      ).plus({
         days: windowDays,
       });
       if (span < 1) fields.to = 'The end date must not be before the start date.';
@@ -249,7 +267,9 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
       const service = catalogue.services.find((s) => s.id === q.get('serviceId'));
       const staffId = q.get('staffId') ?? undefined;
       const staff = staffId
-        ? catalogue.staff.find((s) => s.id === staffId && service && (s.serviceIds as string[]).includes(service.id))
+        ? catalogue.staff.find(
+            (s) => s.id === staffId && service && (s.serviceIds as string[]).includes(service.id),
+          )
         : true;
       if (!service || !staff) return apiError(route, 404, 'NOT_FOUND');
       return json(route, 200, {
@@ -280,7 +300,8 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     const fields: Record<string, string> = {};
     if (!idOk(body.serviceId ?? '')) fields.serviceId = 'Invalid id.';
     if (body.staffId !== 'anyone' && !idOk(body.staffId ?? '')) fields.staffId = 'Invalid id.';
-    if (!body.client?.name?.trim()) fields['client.name'] = 'Too small: expected string to have >=1 characters';
+    if (!body.client?.name?.trim())
+      fields['client.name'] = 'Too small: expected string to have >=1 characters';
     else if (body.client.name.trim().length > 80)
       fields['client.name'] = 'Too big: expected string to have <=80 characters';
     if (options.rejectPhone || (body.client?.phone ?? '').length > 32) {
@@ -319,7 +340,8 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     const step: Attempt = script[attempts - 1] ?? 'ok';
     const day = DateTime.fromISO(body.startAt).setZone(tz).toISODate()!;
     const staffForSlots = body.staffId === 'anyone' ? undefined : body.staffId;
-    const freshSlots = () => slotsFor(day, day, staffForSlots, taken, options.bookedTimes ?? [], tz);
+    const freshSlots = () =>
+      slotsFor(day, day, staffForSlots, taken, options.bookedTimes ?? [], tz);
 
     if (step === 'taken') {
       taken.add(body.startAt);
@@ -342,16 +364,28 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
 
     const service = catalogue.services.find((s) => s.id === body.serviceId);
     const staff = catalogue.staff.find((s) => s.id === body.staffId) ?? catalogue.staff[0]!;
-    if (!service || (body.staffId !== 'anyone' && !catalogue.staff.some((s) => s.id === body.staffId))) {
+    if (
+      !service ||
+      (body.staffId !== 'anyone' && !catalogue.staff.some((s) => s.id === body.staffId))
+    ) {
       return apiError(route, 404, 'NOT_FOUND');
     }
     const result = {
       appointment: {
         id: `a${bookings.size + 1}`,
+        reference: 'K7M2QX',
         startAt: body.startAt,
-        endAt: DateTime.fromISO(body.startAt).plus({ minutes: service.durationMin }).toUTC().toISO(),
+        endAt: DateTime.fromISO(body.startAt)
+          .plus({ minutes: service.durationMin })
+          .toUTC()
+          .toISO(),
         status: 'BOOKED',
-        service: { id: service.id, name: service.name, durationMin: service.durationMin, price: service.price },
+        service: {
+          id: service.id,
+          name: service.name,
+          durationMin: service.durationMin,
+          price: service.price,
+        },
         staff: { id: staff.id, displayName: staff.displayName },
       },
       links: { manage: `/l/mock-manage-token` },
@@ -392,8 +426,14 @@ export type LinkMock = {
   cutoffPassesAfterFirstGet?: boolean;
 };
 
-export function linkBody(mock: LinkMock = {}, patch: { pastCutoff?: boolean; status?: string } = {}) {
-  const start = clockNow().setZone(TZ).plus({ days: 2 }).set({ hour: 10, minute: 30, second: 0, millisecond: 0 });
+export function linkBody(
+  mock: LinkMock = {},
+  patch: { pastCutoff?: boolean; status?: string } = {},
+) {
+  const start = clockNow()
+    .setZone(TZ)
+    .plus({ days: 2 })
+    .set({ hour: 10, minute: 30, second: 0, millisecond: 0 });
   const status = patch.status ?? mock.status ?? 'BOOKED';
   return {
     act: mock.act ?? 'confirm',

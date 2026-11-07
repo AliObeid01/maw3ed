@@ -42,13 +42,15 @@ async function openTeam(page: Page) {
 }
 
 test.describe('Staff > Team access', () => {
-  test('says where barber logins are managed, with a link to Staff', async ({ page }) => {
+  test('tells the owner to open a team member for a barber login, without a link to this same page', async ({
+    page,
+  }) => {
     await mockSetupApi(page, { state: state() });
     await page.goto('/app/staff');
     const section = page.getByRole('region', { name: 'Team access' });
-    await expect(section).toContainText('Barber logins are managed under Staff.');
-    const link = section.getByRole('link', { name: 'Staff' });
-    await expect(link).toHaveAttribute('href', '/app/staff');
+    await expect(section).toContainText('Open a team member to give them a barber login.');
+    // TeamAccess renders inside /app/staff, so a link to /app/staff would point at itself.
+    await expect(section.getByRole('link', { name: 'Staff' })).toHaveCount(0);
   });
 
   test('lists people with role and verified marker; the own row has no remove action', async ({
@@ -73,7 +75,9 @@ test.describe('Staff > Team access', () => {
     // Revoke is a tap target too.
     const revokeBtn = section.getByRole('button', { name: /Revoke the invite/ });
     expect((await revokeBtn.boundingBox())!.height).toBeGreaterThanOrEqual(44);
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
   });
 
   test('remove access: the confirmation says what happens, Cancel changes nothing, Confirm removes at once', async ({
@@ -108,7 +112,9 @@ test.describe('Staff > Team access', () => {
     ]);
   });
 
-  test('shows how many upcoming appointments remain on the removed person calendar', async ({ page }) => {
+  test('shows how many upcoming appointments remain on the removed person calendar', async ({
+    page,
+  }) => {
     const st = state();
     st.memberAppointments = { u2: 3 };
     await mockSetupApi(page, { state: st });
@@ -116,7 +122,9 @@ test.describe('Staff > Team access', () => {
     const section = await openTeam(page);
     await section.getByRole('button', { name: /Remove access for Rana/ }).click();
     await page.getByRole('dialog').getByRole('button', { name: 'Remove access' }).click();
-    await expect(section.getByText(/3 upcoming appointments remain on their calendar/)).toBeVisible();
+    await expect(
+      section.getByText(/3 upcoming appointments remain on their calendar/),
+    ).toBeVisible();
     await expect(section.getByText(/is hidden from your booking page/)).toBeVisible();
   });
 
@@ -162,7 +170,9 @@ test.describe('Staff > Team access', () => {
     await invite.getByRole('button', { name: /Revoke/ }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByRole('heading')).toHaveText('Revoke this invite?');
-    await expect(dialog).toContainText(/The link sent to .*newhire@example\.com.* stops working immediately\./);
+    await expect(dialog).toContainText(
+      /The link sent to .*newhire@example\.com.* stops working immediately\./,
+    );
     await dialog.getByRole('button', { name: 'Revoke invite' }).click();
     await expect(page.getByText('Invite revoked.').first()).toBeVisible();
     await expect(invite).toHaveCount(0);
@@ -181,11 +191,15 @@ test.describe('Staff > Team access', () => {
 });
 
 test.describe('F64: one invite control on the Staff screen', () => {
-  test('exactly one invite button, visible while collapsed, with the purpose line; it opens the sheet', async ({ page }) => {
+  test('exactly one invite button, visible while collapsed, with the purpose line; it opens the sheet', async ({
+    page,
+  }) => {
     await mockSetupApi(page, { state: state() });
     await page.goto('/app/staff');
     await expect(page.getByRole('region', { name: 'Receptionist logins' })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /^Invite (someone|receptionist)$/ })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: /^Invite (someone|receptionist)$/ })).toHaveCount(
+      1,
+    );
     const section = page.getByRole('region', { name: 'Team access' });
     await expect(section).toContainText('Invite someone to run the calendar. They join as Staff.');
     const invite = section.getByRole('button', { name: 'Invite someone' });
@@ -195,7 +209,9 @@ test.describe('F64: one invite control on the Staff screen', () => {
     await expect(page.getByRole('dialog').getByLabel('Email')).toBeVisible();
   });
 
-  test('the setup checklist invite step leads to the Team access card and its button', async ({ page }) => {
+  test('the setup checklist invite step leads to the Team access card and its button', async ({
+    page,
+  }) => {
     const s = state();
     s.invites = [];
     s.staff = s.staff.filter((m) => m.role !== 'STAFF');
@@ -212,31 +228,53 @@ test.describe('F64: one invite control on the Staff screen', () => {
 });
 
 test.describe('F64: #team-access scrolls to the card after the lists load', () => {
-  test('a long staff list: the setup step lands with Team access in view and focus on Invite', async ({ page }) => {
+  test('a long staff list: the setup step lands with Team access in view and focus on Invite', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 640 });
     const s = state();
     s.invites = [];
     s.business.setup = { hasServices: true, hasBookableStaff: true, hasHours: true };
     for (let i = 0; i < 12; i++) {
-      s.staff.push({ id: `x${i}`, displayName: `Extra ${i}`, bookable: true, active: true, role: null, serviceIds: ['s1'] });
+      s.staff.push({
+        id: `x${i}`,
+        displayName: `Extra ${i}`,
+        bookable: true,
+        active: true,
+        role: null,
+        serviceIds: ['s1'],
+      });
     }
     await mockSetupApi(page, { state: s });
     await page.goto('/app/setup');
     await page.getByRole('link', { name: /Invite your receptionist/ }).click();
-    const invite = page.getByRole('region', { name: 'Team access' }).getByRole('button', { name: 'Invite someone' });
+    const invite = page
+      .getByRole('region', { name: 'Team access' })
+      .getByRole('button', { name: 'Invite someone' });
     await expect(invite).toBeInViewport();
     await expect(invite).toBeFocused();
   });
 
-  test('a hard load with the hash scrolls too; an ordinary visit does not steal focus or scroll', async ({ page }) => {
+  test('a hard load with the hash scrolls too; an ordinary visit does not steal focus or scroll', async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 360, height: 640 });
     const s = state();
     for (let i = 0; i < 12; i++) {
-      s.staff.push({ id: `y${i}`, displayName: `Extra ${i}`, bookable: true, active: true, role: null, serviceIds: ['s1'] });
+      s.staff.push({
+        id: `y${i}`,
+        displayName: `Extra ${i}`,
+        bookable: true,
+        active: true,
+        role: null,
+        serviceIds: ['s1'],
+      });
     }
     await mockSetupApi(page, { state: s });
     await page.goto('/app/staff#team-access');
-    const invite = page.getByRole('region', { name: 'Team access' }).getByRole('button', { name: 'Invite someone' });
+    const invite = page
+      .getByRole('region', { name: 'Team access' })
+      .getByRole('button', { name: 'Invite someone' });
     await expect(invite).toBeInViewport();
     await expect(invite).toBeFocused();
     await page.goto('/app/staff');
@@ -266,7 +304,9 @@ test.describe('Account page: sign out other devices', () => {
     await open.click();
     await dialog.getByRole('button', { name: 'Sign out other devices' }).click();
     await expect(page.getByText('2 other devices were signed out.').first()).toBeVisible();
-    await expect(card.getByText('2 other devices were signed out.')).toHaveText('2 other devices were signed out.');
+    await expect(card.getByText('2 other devices were signed out.')).toHaveText(
+      '2 other devices were signed out.',
+    );
     expect(calls.filter((c) => c.path === '/api/auth/sign-out-others')).toHaveLength(1);
   });
 });
@@ -293,7 +333,9 @@ test.describe('Arabic', () => {
     await remove.click();
     const dialog = page.getByRole('dialog');
     await expect(dialog).toContainText('سيتم تسجيل خروجه فورًا');
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
     await dialog.getByRole('button', { name: 'إزالة الصلاحية' }).click();
     await expect(rana).toHaveCount(0);
   });

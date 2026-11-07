@@ -33,6 +33,7 @@ function view(a: Row, now: Date, act: TokenAction) {
     act,
     appointment: {
       id: a.id,
+      reference: a.reference,
       startAt: a.startAt,
       endAt: a.endAt,
       status: a.status,

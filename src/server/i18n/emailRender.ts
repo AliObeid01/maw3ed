@@ -34,6 +34,8 @@ export type ReminderEmailContext = Omit<EmailContext, 'clientName'> & {
   links?: 'both' | 'cancel' | undefined;
   /** BOOKING email only: add the "we will email you a reminder" sentence. Only when one is really planned. */
   reminderPromise?: boolean | undefined;
+  /** BOOKING email only: the booking reference line. Stored value, so a retry renders the same bytes. */
+  reference?: string | null | undefined;
 };
 
 export interface RenderedEmail {
@@ -127,6 +129,7 @@ export function renderReminderEmail(c: ReminderEmailContext): RenderedEmail {
     [m.labels.business, v.business!],
   ];
   const isBooking = c.kind === 'BOOKING';
+  if (isBooking && c.reference) details.push([m.labels.reference, oneLine(c.reference)]);
   const calendarNote = isBooking ? m.calendar : undefined;
   // F68: only the immediate booking email can be cancel-only (an H24 reminder with both links follows).
   const cancelOnly = isBooking && c.links === 'cancel';

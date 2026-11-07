@@ -47,6 +47,7 @@ const LinkView = z.object({
   act: z.enum(['view', 'confirm', 'cancel']),
   appointment: z.object({
     id: z.string(),
+    reference: z.string().nullable().openapi({ description: 'Short booking code. A label only, never a credential.' }),
     startAt: iso,
     endAt: iso,
     status: z.string(),

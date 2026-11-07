@@ -810,6 +810,7 @@
       "eyebrowToday": "Today · {day}",
       "eyebrowTomorrow": "Tomorrow · {day}",
       "summary": "{service} · with {staff} · {source}",
+      "reference": "Reference {code}",
       "source": {
         "public": "booked online",
         "waitlist": "from the waitlist",
@@ -1086,7 +1087,7 @@
     },
     "remainingNote": "{name} is hidden from your booking page. {count, plural, one {# upcoming appointment remains} other {# upcoming appointments remain}} on their calendar: move or cancel them from Today, or make them bookable again in the staff list above.",
     "purpose": "Invite someone to run the calendar. They join as Staff.",
-    "barberHint": "Barber logins are managed under <link>Staff</link>."
+    "barberHint": "Open a team member to give them a barber login."
   },
   "auth": {
     "tabs": {
@@ -1197,7 +1198,8 @@
       "service": "Service",
       "staff": "With",
       "when": "When",
-      "business": "Where"
+      "business": "Where",
+      "reference": "Reference"
     },
     "actions": {
       "confirm": "Confirm my appointment",
@@ -1400,6 +1402,7 @@
       "with": "With",
       "when": "When",
       "price": "Price",
+      "reference": "Reference",
       "serviceValue": "{name} · {duration}",
       "whenValue": "{date} · {time}"
     },
@@ -1482,6 +1485,7 @@
     },
     "confirmOnlyHint": "Can't make it? Use the cancel link in your reminder message.",
     "details": "{service} with {staff} · {price}",
+    "reference": "Reference {code}",
     "when": "{date} · {range}",
     "monthDay": "{month} {day}",
     "status": {

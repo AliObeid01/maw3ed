@@ -1,6 +1,7 @@
 import { isRepeatNoShow } from '@/server/domain/clientFlags';
 import { effectiveEmail } from '@/server/domain/contactEmail';
 import { MAX_APPOINTMENT_RANGE_DAYS, resolveLocalRange } from '@/server/domain/dateRange';
+import { ALL_SCOPE } from '@/server/domain/scope';
 import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
@@ -9,13 +10,14 @@ import { availabilityRepo } from '@/server/repositories/availability.repo';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
 import { book, defaultBookDeps, type BookDeps } from './booking';
 import { barberClient } from './barberView';
-import { resolveScope } from './scope';
+import { resolveScopeForRead } from './scope';
 import { onSlotFreed } from './slotFreed';
 
 type Row = NonNullable<Awaited<ReturnType<typeof appointmentRepo.findById>>>;
 
 const toItem = (a: Row) => ({
   id: a.id,
+  reference: a.reference,
   startAt: a.startAt,
   endAt: a.endAt,
   status: a.status,
@@ -51,7 +53,7 @@ const toBarberItem = (a: Row) => ({
  * line can never promise an address the runner would skip. Never logged, never in a public shape.
  */
 async function withReminderEmail(ctx: SessionContext, row: Row) {
-  const src = await appointmentRepo.reminderSources(ctx.businessId, row.id);
+  const src = await appointmentRepo.reminderSources(ctx.businessId, ALL_SCOPE, row.id);
   const recordEmail = src?.client.email?.trim().toLowerCase() || null;
   const reminderEmail = effectiveEmail(src?.contactEmail, src?.client.email);
   return {
@@ -83,7 +85,7 @@ export const appointmentsService = {
     if (!range.ok) throw AppError.validation(range.fields);
     if (q.staffId && !(await availabilityRepo.staffExists(ctx.businessId, q.staffId)))
       throw AppError.notFound();
-    const rows = await appointmentRepo.list(ctx.businessId, {
+    const rows = await appointmentRepo.list(ctx.businessId, ALL_SCOPE, {
       startUtc: range.startUtc,
       endUtc: range.endUtc,
       staffId: q.staffId,
@@ -93,9 +95,12 @@ export const appointmentsService = {
 
   async get(ctx: SessionContext, id: string) {
     requireRole(ctx, 'OWNER', 'STAFF', 'PRACTITIONER');
-    const scope = await resolveScope(ctx);
+    // Equal work on every refusal (see resolveScopeForRead): an unlinked barber costs the same queries as a foreign id.
+    const scope = await resolveScopeForRead(ctx, (s) =>
+      appointmentRepo.findById(ctx.businessId, s, id),
+    );
     // Outside the scope (another barber's, another business's, unknown) is the same 404.
-    const row = await appointmentRepo.findByIdInScope(ctx.businessId, scope, id);
+    const row = await appointmentRepo.findById(ctx.businessId, scope, id);
     if (!row) throw AppError.notFound();
     if (scope.kind === 'own') return { appointment: toBarberItem(row) };
     return { appointment: await withReminderEmail(ctx, row) };
@@ -128,7 +133,7 @@ export const appointmentsService = {
       { businessId: ctx.businessId, appointmentId: id, requeued: res.requeued },
       'appointment contact details corrected',
     );
-    const row = await appointmentRepo.findById(ctx.businessId, id);
+    const row = await appointmentRepo.findById(ctx.businessId, ALL_SCOPE, id);
     if (!row) throw AppError.notFound();
     return { appointment: await withReminderEmail(ctx, row) };
   },
@@ -164,12 +169,12 @@ export const appointmentsService = {
   /** Idempotent: cancelling a cancelled appointment succeeds; one with an outcome is a conflict. */
   async cancel(ctx: SessionContext, id: string, now: () => Date = () => new Date()) {
     requireRole(ctx, 'OWNER', 'STAFF');
-    const current = await appointmentRepo.findById(ctx.businessId, id);
+    const current = await appointmentRepo.findById(ctx.businessId, ALL_SCOPE, id);
     if (!current) throw AppError.notFound();
     if (current.status !== 'CANCELLED') {
       const done = await appointmentRepo.cancelByStaff(ctx.businessId, id, now());
       if (!done) {
-        const latest = await appointmentRepo.findById(ctx.businessId, id);
+        const latest = await appointmentRepo.findById(ctx.businessId, ALL_SCOPE, id);
         if (!latest) throw AppError.notFound();
         if (latest.status !== 'CANCELLED')
           throw AppError.conflict(
@@ -195,7 +200,7 @@ export const appointmentsService = {
         }
       }
     }
-    const row = await appointmentRepo.findById(ctx.businessId, id);
+    const row = await appointmentRepo.findById(ctx.businessId, ALL_SCOPE, id);
     if (!row) throw AppError.notFound();
     return { appointment: await withReminderEmail(ctx, row) };
   },

@@ -13,6 +13,7 @@ export const linkSchema = z.object({
   act: z.enum(LINK_ACTIONS),
   appointment: z.object({
     id: z.string(),
+    reference: z.string().nullable().default(null),
     startAt: z.string(),
     endAt: z.string(),
     /** BOOKED, CONFIRMED, PENDING_PAYMENT, CANCELLED, LATE_CANCEL, ATTENDED or NO_SHOW; unknown values are treated as still open. */

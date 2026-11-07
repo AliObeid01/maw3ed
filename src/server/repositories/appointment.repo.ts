@@ -1,9 +1,12 @@
+import { randomInt } from 'node:crypto';
 import { DELETED_CLIENT_NAME, TOMBSTONE_PHONE_PREFIX } from '@/server/domain/clientFlags';
 import { effectiveEmail, isContactEditable } from '@/server/domain/contactEmail';
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { Prisma } from '@/generated/prisma/client';
+import { generateReference, REFERENCE_INDEX } from '@/server/domain/reference';
 import { scopeWhere, type Scope as RowScope } from '@/server/domain/scope';
+import { AppError, pgErrorCode, violatedNames } from '@/server/http/errors';
 import { db } from './db';
 import { clientRepo } from './client.repo';
 import { expirePendingDeposits } from './payment.repo';
@@ -17,6 +20,7 @@ const detailSelect = {
   status: true,
   source: true,
   idempotencyKey: true,
+  reference: true,
   holdExpiresAt: true,
   confirmedAt: true,
   client: { select: { id: true, name: true, phone: true, noShows: true, lateCancels: true } },
@@ -39,6 +43,8 @@ export interface NewBooking {
   contactName?: string | undefined;
   /** True only for a session-authenticated front-desk booking: see clientRepo.upsertByPhone. */
   overwriteContact: boolean;
+  /** Test seam: the reference source (default: crypto.randomInt over the unambiguous alphabet). */
+  newReference?: (() => string) | undefined;
   /** Empty for a deposit hold: reminders (and the booking email) are created when the deposit is paid. */
   reminders: NewReminderJob[];
   /** Set for a booking that needs a deposit: inserted as PENDING_PAYMENT with its Payment row. */
@@ -63,12 +69,23 @@ export interface ExpiredHold {
 /** Statuses that count towards a staff member's day for the "anyone" fairness pick. */
 const COUNTED_STATUSES = [...SLOT_HOLDING_STATUSES, 'ATTENDED', 'NO_SHOW'] as const;
 
-export const appointmentRepo = {
-  findById: (businessId: string, id: string) =>
-    db.appointment.findFirst({ where: { id, businessId }, select: detailSelect }),
+/** How many times the insert is retried when the generated reference was already taken. */
+export const REFERENCE_ATTEMPTS = 5;
 
-  /** Same row, but only when it is inside the session's scope (a barber: their own staff member's). */
-  findByIdInScope: (businessId: string, scope: RowScope, id: string) =>
+/** A 23505 / P2002 on the REFERENCE index only (not the idempotency key, not the slot constraint 23P01). */
+export function isReferenceCollision(error: unknown): boolean {
+  const unique =
+    pgErrorCode(error) === '23505' || (error as { code?: unknown } | null)?.code === 'P2002';
+  if (!unique) return false;
+  return violatedNames(error).some((n) => n === REFERENCE_INDEX || n === 'reference');
+}
+
+export const appointmentRepo = {
+  /**
+   * One appointment by id. `scope` is REQUIRED: owner paths pass ALL_SCOPE explicitly, a barber's own
+   * scope only matches their staff member's rows (a foreign row is the same "not found" as another business's).
+   */
+  findById: (businessId: string, scope: RowScope, id: string) =>
     db.appointment.findFirst({
       where: { id, businessId, ...scopeWhere(scope) },
       select: detailSelect,
@@ -78,9 +95,9 @@ export const appointmentRepo = {
    * Staff-only: the two stored addresses `effectiveEmail` chooses from. Kept out of `detailSelect` so no
    * list / booking / public shape can pick them up by accident (NFR-04).
    */
-  reminderSources: (businessId: string, id: string) =>
+  reminderSources: (businessId: string, scope: RowScope, id: string) =>
     db.appointment.findFirst({
-      where: { id, businessId },
+      where: { id, businessId, ...scopeWhere(scope) },
       select: { contactEmail: true, contactName: true, client: { select: { email: true } } },
     }),
 
@@ -149,12 +166,18 @@ export const appointmentRepo = {
   findByIdempotencyKey: (businessId: string, key: string) =>
     db.appointment.findFirst({ where: { businessId, idempotencyKey: key }, select: detailSelect }),
 
-  list: (businessId: string, q: { startUtc: Date; endUtc: Date; staffId?: string | undefined }) =>
+  list: (
+    businessId: string,
+    scope: RowScope,
+    q: { startUtc: Date; endUtc: Date; staffId?: string | undefined },
+  ) =>
     db.appointment.findMany({
       where: {
         businessId,
         startAt: { gte: q.startUtc, lt: q.endUtc },
         ...(q.staffId ? { staffId: q.staffId } : {}),
+        // Last, so a requested staffId can never widen a barber's own scope.
+        ...scopeWhere(scope),
       },
       orderBy: [{ startAt: 'asc' }, { id: 'asc' }],
       select: detailSelect,
@@ -182,61 +205,23 @@ export const appointmentRepo = {
    * THE booking insert (public, front desk, later waitlist claims and deposits). One transaction: client
    * find-or-create, the appointment, and its reminder jobs. A 23P01 from appointment_no_overlap or a 23505
    * from the idempotency key aborts the whole transaction and propagates to the service.
+   *
+   * The booking reference is generated here, inside the insert. A unique violation of the REFERENCE index
+   * (and only that one) rolls the transaction back and the whole insert is retried with a new code, up to
+   * REFERENCE_ATTEMPTS times; every other error (slot constraint, idempotency key) propagates untouched.
    */
-  create: (businessId: string, data: NewBooking) =>
-    db.$transaction(async (tx) => {
-      const client = await clientRepo.upsertByPhone(
-        businessId,
-        tx,
-        data.client,
-        data.overwriteContact,
-      );
-      // In-flight anonymisation: if the client was anonymised between the upsert and this insert, the
-      // appointment points at the tombstone and must not keep an address (NFR-04).
-      const current = await tx.client.findFirst({
-        where: { id: client.id, businessId },
-        select: { name: true, phone: true },
-      });
-      const tombstoned =
-        !current ||
-        current.name === DELETED_CLIENT_NAME ||
-        current.phone.startsWith(TOMBSTONE_PHONE_PREFIX);
-      const appointment = await tx.appointment.create({
-        data: {
-          businessId,
-          clientId: client.id,
-          staffId: data.staffId,
-          serviceId: data.serviceId,
-          startAt: data.startAt,
-          endAt: data.endAt,
-          blockedUntil: data.blockedUntil,
-          status: data.deposit ? 'PENDING_PAYMENT' : 'BOOKED',
-          holdExpiresAt: data.deposit?.holdExpiresAt ?? null,
-          source: data.source,
-          idempotencyKey: data.idempotencyKey ?? null,
-          contactEmail: tombstoned ? null : (data.contactEmail ?? null),
-          contactName: tombstoned ? null : (data.contactName ?? null),
-        },
-        select: { id: true },
-      });
-      if (data.deposit) {
-        await tx.payment.create({
-          data: {
-            businessId,
-            purpose: 'DEPOSIT',
-            appointmentId: appointment.id,
-            status: 'PENDING',
-            externalId: `pending_${appointment.id}`,
-            ...data.deposit.payment,
-          },
-        });
+  async create(businessId: string, data: NewBooking) {
+    const next = data.newReference ?? (() => generateReference(randomInt));
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await insertBooking(businessId, data, next());
+      } catch (error) {
+        if (!isReferenceCollision(error)) throw error;
+        if (attempt >= REFERENCE_ATTEMPTS)
+          throw AppError.unavailable('We could not issue a booking reference. Please try again.');
       }
-      await reminderJobRepo.createForAppointment(businessId, tx, appointment.id, data.reminders);
-      return tx.appointment.findFirstOrThrow({
-        where: { id: appointment.id, businessId },
-        select: detailSelect,
-      });
-    }),
+    }
+  },
 
   /** Signed-link resolution: the token carries only the appointment id, so this is the one unscoped lookup. */
   async businessIdOf(appointmentId: string): Promise<string | null> {
@@ -252,6 +237,7 @@ export const appointmentRepo = {
       where: { id, businessId },
       select: {
         id: true,
+        reference: true,
         startAt: true,
         endAt: true,
         status: true,
@@ -341,7 +327,9 @@ export const appointmentRepo = {
         staffId: true,
         service: { select: { id: true, name: true, durationMin: true, price: true } },
         staff: { select: { id: true, displayName: true } },
-        business: { select: { name: true, slug: true, timezone: true, locale: true, address: true } },
+        business: {
+          select: { name: true, slug: true, timezone: true, locale: true, address: true },
+        },
         payments: {
           where: { businessId, purpose: 'DEPOSIT' },
           orderBy: { createdAt: 'desc' },
@@ -439,6 +427,64 @@ export const appointmentRepo = {
       return res.count === 1;
     }),
 };
+
+/** One attempt of the booking insert: client find-or-create, the appointment (with `reference`), its payment and reminder jobs. */
+function insertBooking(businessId: string, data: NewBooking, reference: string) {
+  return db.$transaction(async (tx) => {
+    const client = await clientRepo.upsertByPhone(
+      businessId,
+      tx,
+      data.client,
+      data.overwriteContact,
+    );
+    // In-flight anonymisation: if the client was anonymised between the upsert and this insert, the
+    // appointment points at the tombstone and must not keep an address (NFR-04).
+    const current = await tx.client.findFirst({
+      where: { id: client.id, businessId },
+      select: { name: true, phone: true },
+    });
+    const tombstoned =
+      !current ||
+      current.name === DELETED_CLIENT_NAME ||
+      current.phone.startsWith(TOMBSTONE_PHONE_PREFIX);
+    const appointment = await tx.appointment.create({
+      data: {
+        businessId,
+        clientId: client.id,
+        staffId: data.staffId,
+        serviceId: data.serviceId,
+        startAt: data.startAt,
+        endAt: data.endAt,
+        blockedUntil: data.blockedUntil,
+        status: data.deposit ? 'PENDING_PAYMENT' : 'BOOKED',
+        holdExpiresAt: data.deposit?.holdExpiresAt ?? null,
+        source: data.source,
+        idempotencyKey: data.idempotencyKey ?? null,
+        reference,
+        contactEmail: tombstoned ? null : (data.contactEmail ?? null),
+        contactName: tombstoned ? null : (data.contactName ?? null),
+      },
+      select: { id: true },
+    });
+    if (data.deposit) {
+      await tx.payment.create({
+        data: {
+          businessId,
+          purpose: 'DEPOSIT',
+          appointmentId: appointment.id,
+          status: 'PENDING',
+          externalId: `pending_${appointment.id}`,
+          ...data.deposit.payment,
+        },
+      });
+    }
+    await reminderJobRepo.createForAppointment(businessId, tx, appointment.id, data.reminders);
+    return tx.appointment.findFirstOrThrow({
+      where: { id: appointment.id, businessId },
+      select: detailSelect,
+    });
+  });
+}
 
 interface Scope {
   businessId: string;

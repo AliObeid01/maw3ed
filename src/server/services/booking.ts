@@ -57,6 +57,8 @@ export interface BookDeps {
   appUrl: () => string;
   /** The payment provider for deposit holds (default: the configured one, the fake in test mode). */
   payments?: () => PaymentProvider;
+  /** Test seam: the booking reference source (default: crypto.randomInt over the unambiguous alphabet). */
+  newReference?: () => string;
   /** Test seam: runs after the availability read and before the insert (to provoke a lost race). */
   afterAvailability?: (info: { candidates: string[] }) => Promise<void>;
 }
@@ -74,6 +76,8 @@ export interface BookingResult {
   replay: boolean;
   appointment: {
     id: string;
+    /** Short code for the client to quote. A label only: never a credential. Null on rows before PR-6. */
+    reference: string | null;
     startAt: Date;
     endAt: Date;
     status: string;
@@ -102,6 +106,7 @@ const price = (v: { toString(): string }) => Number(v.toString());
 export function appointmentSummary(a: Stored) {
   return {
     id: a.id,
+    reference: a.reference,
     startAt: a.startAt,
     endAt: a.endAt,
     status: a.status,
@@ -389,11 +394,13 @@ async function bookInner(
         contactEmail,
         // The name typed for THIS booking (not for a waitlist claim: there the name is the record's, and
         // mail to the entry's address is greeted by `mailGreetingName`).
-        contactName: input.source === 'WAITLIST' ? undefined : input.client.name.trim() || undefined,
+        contactName:
+          input.source === 'WAITLIST' ? undefined : input.client.name.trim() || undefined,
         // Only an authenticated front-desk booking may change an existing client's contact details.
         overwriteContact: input.source === 'FRONT_DESK',
         reminders,
         deposit,
+        newReference: deps.newReference,
       });
       ctx.logger.info(
         {
