@@ -25,6 +25,8 @@
   --color-navy: #0b1938;
   --color-electric: #2864f5; /* selected day, focus ring */
   --color-cyan: #43c4f0; /* small info chips, logo check; navy text only */
+  --color-navy-hover: #16295a;
+  --color-turquoise-hover: #3bdbc4;
   --color-turquoise: #21cdb3; /* one highlight tile; navy text only */
   --color-mint: #20d2ac; /* service and category icons */
 
@@ -48,6 +50,7 @@
   --color-danger-soft: #ffe4e8;
   --color-danger-line: #f5b3bd;
 
+  --color-hero-accent: #43c4f0; /* Cyan, only as text ON the navy hero and footer (9:1) */
   --color-hero-ink: #e9eff8;
   --color-hero-muted: #c9d6f2;
   --color-hero-subtle: #b9c9ec;
@@ -58,6 +61,8 @@
   --radius-card: 16px;
   --radius-card-sm: 14px;
   --radius-btn: 12px;
+  --radius-btn-lg: 14px; /* home page buttons */
+  --radius-panel: 24px; /* home page explorer and panels (18 to 28 px family) */
   --radius-chip: 8px;
   --radius-pill: 999px; /* Switch, avatars, count badges and dots only */
 

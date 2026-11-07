@@ -100,7 +100,7 @@ test('uses the Arabic font, not horizontal scroll at 360 px, and the toggle keep
   );
   expect(family.toLowerCase()).toContain('ibm plex sans arabic');
 
-  const toggle = page.getByRole('button', { name: 'English' });
+  const toggle = page.getByRole('banner').getByRole('button', { name: 'English' });
   await expectTapTarget(toggle);
   await toggle.click();
   await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
