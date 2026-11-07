@@ -363,7 +363,15 @@ async function bookInner(
   // Friendly re-check (also enforces minNotice, bookingWindow, step alignment and working hours).
   const startMs = input.startAt.getTime();
   let remaining = avail.slots.filter((s) => s.startAt.getTime() === startMs).map((s) => s.staffId);
-  if (remaining.length === 0) throw slotTaken(await freshSlots());
+  if (remaining.length === 0) {
+    // A parallel request with the SAME Idempotency-Key may have just committed this very slot (its key lookup above
+    // ran before that commit): that is a replay of the first booking, not "taken". Found by PR-6's 5-way race test.
+    if (key) {
+      const first = await appointmentRepo.findByIdempotencyKey(businessId, key);
+      if (first) return replayOf(first);
+    }
+    throw slotTaken(await freshSlots());
+  }
 
   const counts = specific
     ? {}
