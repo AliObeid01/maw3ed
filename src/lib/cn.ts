@@ -5,7 +5,7 @@ import { extendTailwindMerge } from 'tailwind-merge';
 const twMerge = extendTailwindMerge({
   extend: {
     classGroups: {
-      rounded: [{ rounded: ['input', 'nav', 'tile', 'card', 'card-sm', 'btn', 'chip', 'pill'] }],
+      rounded: [{ rounded: ['input', 'nav', 'tile', 'card', 'card-sm', 'btn', 'btn-lg', 'chip', 'pill'] }],
     },
   },
 });

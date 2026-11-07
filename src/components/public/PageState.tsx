@@ -21,7 +21,7 @@ export function PageState({
   className?: string;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-[1240px] flex-1 items-start justify-center px-4 py-10 md:px-8 md:py-16">
+    <main id="main-content" className="mx-auto flex w-full max-w-[1240px] flex-1 items-start justify-center px-4 py-10 md:px-8 md:py-16">
       <Card
         role={role}
         className={cn('flex w-full max-w-md flex-col items-center gap-4 text-center', className)}

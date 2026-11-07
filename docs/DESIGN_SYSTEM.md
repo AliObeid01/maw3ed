@@ -47,10 +47,19 @@ The boards are 1440 px desktop. We build **360 px first**:
   the 256 px sidebar at `lg+`. Today's calendar grid becomes an agenda list with staff filter chips on phones.
 - Tables become stacked cards on phones. Side cards move above the main content ("Do this first" is the first thing staff see).
 
+## Marketplace home (PR-7a, owner design `design/Home page/Maw3ed_Home_Page.html`)
+The home `/` follows the owner's design with OUR logo and palette v2. Sections, top to bottom, all in `components/home` (server components unless they fetch): hero (`HomeHero`: flat navy, cyan accent word via the `text-hero-accent` token, search card with a custom Area Select, turquoise Search with navy text, pill Popular chips, lg+ "Next free" panel on Royal Blue), browse by category (`CategoryExplorer`: list left on lg, scrolling row on phones, panel on Soft Blue Gray), `HowItWorks` (steps, email preview, FAQ with native details), `OwnerSections` (Royal Blue band with a decorative phone, setup steps), `PricingTeaser` (reads `pricing.*`).
+- **Tokens added:** `--radius-btn-lg: 14px` (button size `hero`, 48 px), `--radius-panel: 24px`, `--color-navy-hover`, `--color-turquoise-hover`, `--color-hero-accent` (Cyan, ONLY as text on navy). Button variants `navy`, `turquoise` (navy text) and `onDark`.
+- **Shared:** `PublicHeader` (links at lg; phone: logo, language toggle, "For owners" and a bottom tab bar on `/`, `/directory`, `/pricing`, `/privacy`, `/terms`), `PublicFooter` (navy, columns, legal line), `PlaceCard` (business with free-time chips in the business zone). Free-time chips link to the business page: the booking page shows what is free now.
+- **Mobile adaptation:** the six categories are a snap-scrolling row (opted out of the overflow guard with `data-allow-overflow`) above the panel; the "Next free" panel is not rendered below lg (and not fetched).
+- **Copy rules:** never "no availability" or "fully booked" (next free only looks at the shortest service); prices as `8 USD` (the API has no currency field, USD is the default); legal pages carry a draft notice.
+
 ## Board → route map
 | # | Board | Route | Component root |
 |---|---|---|---|
-| 01 | Shared public header | — | `components/public/PublicHeader.tsx` |
+| 01 | Shared public header | — | `components/public/PublicHeader.tsx` (+ `PublicFooter.tsx`, PR-7a) |
+| H1 | Marketplace home (owner file `design/Home page`) | `/` | `app/(public)/page.tsx`, `components/home/*` |
+| L1 | Privacy policy · Terms of use (drafts) | `/privacy` · `/terms` | `components/legal/LegalDocument.tsx` |
 | 02–05 | 1.1 Choose service · 1.2 Choose staff · 1.3 Day & time · 1.4 Your details | `/b/[slug]?step=service|staff|time|details` | `app/(public)/b/[slug]/BookingFlow.tsx` |
 | 06 | 1.5 Booked | `/b/[slug]/booked/[token]` | `…/booked/[token]/page.tsx` |
 | 07 | 1.6 Slot just taken | state of step `time`/`details` after 409 | `BookingFlow` |

@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn';
 
-export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'whatsapp' | 'call';
-export type ButtonSize = 'md' | 'row' | 'lg';
+export type ButtonVariant = 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger' | 'whatsapp' | 'call' | 'navy' | 'turquoise' | 'onDark';
+export type ButtonSize = 'md' | 'row' | 'lg' | 'hero';
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-white hover:bg-brand-hover',
@@ -11,6 +11,10 @@ const variants: Record<ButtonVariant, string> = {
   // WhatsApp is solid deep green (never the bright WhatsApp brand green, it fails contrast with white); Call is OUTLINED Royal Blue.
   whatsapp: 'bg-whatsapp text-white hover:bg-whatsapp-hover active:bg-whatsapp-hover',
   call: 'border border-brand bg-surface text-brand hover:bg-brand-soft active:bg-brand-soft',
+  // Marketplace home (the owner's design): navy and turquoise carry NAVY text; onDark is the outline button on the navy band.
+  navy: 'bg-navy text-white hover:bg-navy-hover',
+  turquoise: 'bg-turquoise text-ink hover:bg-turquoise-hover',
+  onDark: 'border-[1.5px] border-white/55 bg-transparent text-white hover:bg-white/10',
   danger: 'border border-danger-line bg-danger-soft text-danger hover:brightness-95',
 };
 
@@ -19,6 +23,8 @@ const sizes: Record<ButtonSize, string> = {
   md: 'h-11 px-[18px] text-[15px]',
   row: 'h-[46px] px-5 text-[15px]',
   lg: 'h-[50px] px-6 text-[15px]',
+  // The home page's 14 px-radius buttons (48 px).
+  hero: 'h-12 rounded-btn-lg px-[22px] text-base',
 };
 
 /** Class string for anything that should look like a Button (server-safe, no handlers). */

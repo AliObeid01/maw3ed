@@ -46,11 +46,14 @@
     "header": {
       "home": "Maw3ed home",
       "navLabel": "Site",
-      "forBusinesses": "For businesses",
+      "explore": "Explore",
+      "howItWorks": "How it works",
+      "forBusinesses": "For business owners",
+      "forBusinessesShort": "For owners",
       "pricing": "Pricing",
-      "signIn": "Business sign in",
-      "menu": "Open menu",
-      "close": "Close"
+      "signIn": "Sign in",
+      "skip": "Skip to content",
+      "tabsLabel": "Main"
     },
     "steps": {
       "navLabel": "Booking steps",
@@ -91,6 +94,32 @@
       "tyre": "Tyre",
       "zahle": "Zahle",
       "other": "Other"
+    },
+    "footer": {
+      "blurb": "Booking and reminders for salons, barbers, clinics and physiotherapists in Lebanon.",
+      "contactLabel": "Contact",
+      "socialLabel": "Follow us",
+      "social": {
+        "instagram": "Instagram",
+        "whatsapp": "WhatsApp",
+        "facebook": "Facebook"
+      },
+      "categories": "Categories",
+      "areas": "Areas",
+      "owners": "For business owners",
+      "pricing": "Pricing",
+      "putOnMaw3ed": "Put your business on Maw3ed",
+      "businessSignIn": "Business sign in",
+      "reminders": "Reminders and confirmations",
+      "support": "Support",
+      "howItWorks": "How it works",
+      "contactUs": "Contact us",
+      "rights": "© {year} Maw3ed. All rights reserved.",
+      "times": "Times are shown in the business's local time.",
+      "privacy": "Privacy policy",
+      "terms": "Terms of use",
+      "top": "Back to top",
+      "legalNav": "Legal"
     }
   },
   "app": {
@@ -1417,10 +1446,6 @@
       "freeCancel": "Free cancellation up to the cutoff in your reminder",
       "freeCancelUntil": "Free cancellation until <d>{when}</d>."
     },
-    "footer": {
-      "brand": "Bookings by Maw3ed · Fewer no-shows. More time.",
-      "privacy": "Your details are only shared with the business you book with."
-    },
     "taken": {
       "title": "Pick another time",
       "heading": "{time} was just taken",
@@ -1871,38 +1896,206 @@
     "resultsCount": "{count, plural, =0 {No results} one {# result} other {# results}}"
   },
   "home": {
-    "pageTitle": "Fewer no-shows, more time",
-    "title": "Fewer no-shows. More time.",
-    "subtitle": "Online booking for salons, barbers and clinics, with automatic reminders that bring clients back or free the slot.",
-    "findBusiness": "Find a business",
-    "setUp": "Set up your business",
-    "haveAccount": "Already have an account?",
-    "signIn": "Sign in",
-    "preview": {
-      "label": "Example",
-      "confirmed": "Slot booked",
-      "service": "Sample service · 30 min",
-      "when": "Tomorrow · 10:30",
-      "reminder": "Reminder 24 hours before",
-      "freedTitle": "A spot just opened up",
-      "freedBody": "Tomorrow · 14:00",
-      "freedAction": "Book this slot"
+    "pageTitle": "Maw3ed: book salons, barbers and clinics in Lebanon",
+    "metaDescription": "Book barbers, salons, dental and beauty clinics, spas and physiotherapists in Lebanon in minutes. No account needed, and you get a reminder you can act on.",
+    "hero": {
+      "titleLead": "Book your next appointment in",
+      "titleAccent": "minutes",
+      "subtitle": "Barbers, salons, clinics and physiotherapists across Lebanon. No account needed.",
+      "searchLabel": "Service or business",
+      "searchPlaceholder": "Haircut, dental check-up...",
+      "areaLabel": "Area",
+      "areaAll": "All areas",
+      "submit": "Search",
+      "popular": "Popular:",
+      "popularItems": {
+        "haircut": "Haircut",
+        "dental": "Dental check-up",
+        "massage": "Massage",
+        "hydrafacial": "Hydrafacial"
+      }
+    },
+    "nextFree": {
+      "title": "Next free",
+      "titleIn": "Next free in {area}",
+      "hint": "Tap a time to open the business page.",
+      "note": "Times can be taken before you book. The booking page shows what is free right now.",
+      "loading": "Loading free times",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "viewPage": "View page",
+      "viewPageAria": "View the page of {name}",
+      "timeAria": "{time}, {name}",
+      "service": "{service} · {duration}"
+    },
+    "categories": {
+      "title": "Browse by category",
+      "subtitle": "Pick a category to see what it costs and who is free next.",
+      "listLabel": "Category list",
+      "stat": "{places} · from {price}",
+      "statNoPrice": "{places}",
+      "places": "{count, plural, one {# place} other {# places}}",
+      "tiles": {
+        "places": "Places",
+        "from": "Prices from",
+        "next": "Next free"
+      },
+      "popular": "Popular services",
+      "popularPrice": "from {price}",
+      "top": "Top places",
+      "seeAll": "See all {category}",
+      "openNow": "From {price}",
+      "freeNote": "Free times can be taken before you book.",
+      "noFree": "No free times soon",
+      "error": {
+        "title": "Could not load the categories",
+        "body": "Check your connection and try again.",
+        "retry": "Try again"
+      },
+      "placesError": "Could not load the top places.",
+      "names": {
+        "barbers": "Barbers",
+        "hair-salons": "Hair salons",
+        "dental-clinics": "Dental clinics",
+        "beauty-clinics": "Beauty clinics",
+        "spa-massage": "Spa & massage",
+        "physiotherapy": "Physiotherapy"
+      },
+      "lower": {
+        "barbers": "barbers",
+        "hair-salons": "hair salons",
+        "dental-clinics": "dental clinics",
+        "beauty-clinics": "beauty clinics",
+        "spa-massage": "spa & massage places",
+        "physiotherapy": "physiotherapists"
+      },
+      "desc": {
+        "barbers": "Haircuts, fades, beard trims and shaves.",
+        "hair-salons": "Cuts, blow-dries, colour and styling.",
+        "dental-clinics": "Check-ups, cleaning, whitening and fillings.",
+        "beauty-clinics": "Facials, laser, manicures and skin care.",
+        "spa-massage": "Massage, hot stone and relaxation treatments.",
+        "physiotherapy": "Assessments, rehab and sports therapy."
+      },
+      "empty": {
+        "title": "No places here yet",
+        "body": "No business in this category is listed yet. Run one? Put it on Maw3ed and clients can book you.",
+        "cta": "Be the first"
+      }
     },
     "how": {
-      "title": "How it works",
+      "kicker": "How it works",
+      "title": "How Maw3ed works",
+      "subtitle": "Book in three steps. We handle the reminder.",
       "step": "Step {number}",
-      "book": {
-        "title": "Clients book online",
-        "body": "They pick a service and a time on your booking page. No app, no account."
+      "steps": {
+        "choose": {
+          "title": "Choose a service and a person",
+          "body": "Open a business page and see each price and duration before you commit."
+        },
+        "pick": {
+          "title": "Pick a free time",
+          "body": "Choose a free day and time, then add your name, phone and email. No account to create."
+        },
+        "remind": {
+          "title": "Get your reminder",
+          "body": "We email you before your visit with Confirm and Cancel links, so a missed slot never costs the business an hour."
+        }
       },
-      "remind": {
-        "title": "Reminders go out",
-        "body": "An email 24 hours and 2 hours before, with a one-tap confirm or cancel link."
+      "reminderTitle": "A reminder you can act on",
+      "bullets": {
+        "confirm": "Confirm your appointment in one tap",
+        "cancel": "Can't make it? Cancel in one tap and free the time",
+        "details": "Every detail is in the message: place, service, person and time"
       },
-      "drop": {
-        "title": "No-shows drop",
-        "body": "Cancelled slots go to your waitlist, and you see who tends to miss visits."
+      "mail": {
+        "label": "Illustration",
+        "brand": "Maw3ed · Reminder",
+        "heading": "Your appointment is tomorrow",
+        "business": "Abu Karam Barbershop",
+        "service": "Haircut · 30 min · with Karam",
+        "when": "Tomorrow · 10:30",
+        "confirm": "Confirm my appointment",
+        "cancel": "Cancel my appointment",
+        "intro": "This is a reminder of your appointment at Abu Karam Barbershop."
+      },
+      "faqTitle": "Common questions",
+      "faq": {
+        "account": {
+          "q": "Do I need an account?",
+          "a": "No. You only enter your name, phone and email when you book."
+        },
+        "cancel": {
+          "q": "How do I cancel or confirm?",
+          "a": "The booking email has a Cancel link (and a Confirm link when the visit is within 24 hours); every reminder has both."
+        },
+        "taken": {
+          "q": "What if the time I want is taken?",
+          "a": "Pick another time, day or person, or join the waitlist and we email you if a spot opens."
+        },
+        "zone": {
+          "q": "Which time zone are times in?",
+          "a": "Times are shown in the business's local time, which is Beirut time for businesses in Lebanon."
+        }
+      },
+      "explore": "Explore businesses"
+    },
+    "owners": {
+      "title": "Every no-show is a paid hour lost.",
+      "body": "Maw3ed sends the reminders for you. Clients confirm or cancel with one tap, and you see the whole day on your phone.",
+      "cta": "Put your business on Maw3ed",
+      "signIn": "Business sign in",
+      "phone": {
+        "title": "Today",
+        "example": "Example",
+        "rows": {
+          "one": {
+            "name": "Rami Haddad",
+            "detail": "Haircut · Karam",
+            "status": "Confirmed"
+          },
+          "two": {
+            "name": "Lina Saab",
+            "detail": "Cut + beard · Hadi",
+            "status": "Booked"
+          },
+          "three": {
+            "name": "Karim Awad",
+            "detail": "Beard trim · Karam",
+            "status": "Cancelled"
+          }
+        }
+      },
+      "setupTitle": "Set up in five steps",
+      "setupSubtitle": "Set it up once, then share your booking link.",
+      "setup": {
+        "profile": {
+          "title": "Business profile",
+          "body": "Name, category, area and address"
+        },
+        "services": {
+          "title": "Services",
+          "body": "Name, duration and price"
+        },
+        "staff": {
+          "title": "Staff",
+          "body": "Each person can get a login and sees only their own appointments"
+        },
+        "hours": {
+          "title": "Working hours",
+          "body": "Seven days, with a closed toggle"
+        },
+        "publish": {
+          "title": "Publish",
+          "body": "Share your link on Instagram or WhatsApp"
+        }
       }
+    },
+    "pricing": {
+      "kicker": "For business owners",
+      "title": "Simple pricing",
+      "subtitle": "Start free with one bookable staff member. Upgrade when your team grows.",
+      "seeAll": "See all plans"
     }
   },
   "deposit": {
@@ -2043,6 +2236,159 @@
       "rateLimited": "Too many attempts. Wait a few minutes and try again.",
       "network": "We can't reach the server. Check your connection and try again.",
       "generic": "Something went wrong. Please try again."
+    }
+  },
+  "legal": {
+    "common": {
+      "draftTitle": "Draft - under review",
+      "draftBody": "This page is a draft. It has not been reviewed by a lawyer yet, it is not legal advice, and it may change.",
+      "updated": "Last updated {date}",
+      "toc": "On this page",
+      "home": "Back to home",
+      "otherPrivacy": "Privacy policy",
+      "otherTerms": "Terms of use",
+      "anchor": "Link to this section"
+    },
+    "privacy": {
+      "pageTitle": "Privacy policy",
+      "title": "Privacy policy",
+      "intro": "This policy explains what Maw3ed stores about you, why, and who can see it. We keep it short because we keep very little.",
+      "sections": {
+        "who": {
+          "title": "Who we are",
+          "p1": "Maw3ed is a booking and reminders service for salons, barbers, clinics and physiotherapists. Each business that uses Maw3ed runs its own appointments; Maw3ed provides the software.",
+          "p2": "Questions about this policy: {email}."
+        },
+        "collect": {
+          "title": "What we store",
+          "p1": "When you book, we store only what is needed to run the appointment:",
+          "b1": "your name",
+          "b2": "your phone number, in international format",
+          "b3": "your email address",
+          "b4": "the appointment time, the service and the staff member",
+          "p2": "We do not ask for notes or free-text details about you, and we do not store payment card data. Deposits, where a business offers them, are in test mode and no card is charged."
+        },
+        "business": {
+          "title": "Business owners and staff",
+          "p1": "A business account stores a name, an email address or, for staff the owner sets up, a phone number, and a password, which is kept only as a one-way hash. A session cookie keeps you signed in on your device."
+        },
+        "use": {
+          "title": "How we use it",
+          "p1": "We use your details only to run your booking:",
+          "b1": "to show and confirm the appointment to the business",
+          "b2": "to send the booking email and the reminders",
+          "b3": "to email you if a spot opens when you joined a waitlist",
+          "b4": "to let the business see its own client history, including missed appointments"
+        },
+        "reminders": {
+          "title": "Reminders and messages",
+          "p1": "We email a booking confirmation and reminders, about 24 hours and 2 hours before the appointment, with Confirm and Cancel links.",
+          "p2": "A business can also send you a WhatsApp message itself (for example a reminder or an activation message for staff), with a button that opens WhatsApp on the business's own phone. The message is sent by the business from its own phone, not by Maw3ed. Maw3ed does not send WhatsApp messages."
+        },
+        "sharing": {
+          "title": "Who sees your data",
+          "p1": "The business you book with sees your booking details. We use these providers to run the service:",
+          "b1": "Vercel, for hosting",
+          "b2": "Neon, for the database",
+          "b3": "Resend, to deliver email",
+          "b4": "Sentry (EU region), for error monitoring: errors only, with personal data removed where possible",
+          "p2": "We do not sell your data and we do not use it for advertising."
+        },
+        "cookies": {
+          "title": "Cookies",
+          "p1": "Clients need no account. We use a language cookie to remember your choice and, for business users, a session cookie to keep you signed in. We do not use advertising cookies."
+        },
+        "keep": {
+          "title": "How long we keep it, and deletion",
+          "p1": "We keep booking records while the business uses Maw3ed, so it can run its appointments and see its history. The business owner can delete a client: the record is then anonymised and no personal data of that client is left.",
+          "p2": "To have your data deleted, ask the business you booked with, or contact us."
+        },
+        "security": {
+          "title": "Security",
+          "p1": "Connections use HTTPS, each business can only reach its own data, links in emails are signed, and passwords are stored as one-way hashes. No system is perfectly secure, but we limit what we hold so there is little to lose.",
+          "p2": "We use IP addresses briefly to limit abuse, for example to rate-limit booking, sign-in and directory requests."
+        },
+        "children": {
+          "title": "Children",
+          "p1": "Maw3ed is not aimed at children. A parent or guardian should book on behalf of a child."
+        },
+        "transfers": {
+          "title": "International transfers",
+          "p1": "Our providers may process data in other countries, including outside Lebanon. We choose providers that protect data, and we limit what we send them to what the service needs."
+        },
+        "rights": {
+          "title": "Your choices",
+          "p1": "You can ask to see, correct or delete the details held about you. Start with the business you booked with, or contact us."
+        },
+        "changes": {
+          "title": "Changes",
+          "p1": "We may update this policy. The date at the top shows when it last changed."
+        },
+        "contact": {
+          "title": "Contact",
+          "p1": "Email: {email}. Phone: {phone}. Address: {address}."
+        }
+      }
+    },
+    "terms": {
+      "pageTitle": "Terms of use",
+      "title": "Terms of use",
+      "intro": "These terms apply when you use Maw3ed to book an appointment or to run a business on it.",
+      "sections": {
+        "about": {
+          "title": "What Maw3ed is",
+          "p1": "Maw3ed is a booking and reminders platform. The business provides the service you book. Maw3ed is not a party to that service and does not provide it."
+        },
+        "clients": {
+          "title": "If you book",
+          "p1": "Give correct details so the business can reach you. Use the Confirm and Cancel links if your plans change. Keep your confirmation links private."
+        },
+        "businesses": {
+          "title": "If you run a business",
+          "p1": "You are responsible for your listing, services, prices, opening hours and staff, and for the people you invite. You must have the right to contact your clients and you must treat their details as private.",
+          "p2": "You decide how you handle your appointments, including what you offer and what you charge."
+        },
+        "cancellations": {
+          "title": "Cancellations and no-shows",
+          "p1": "Cancellation and no-show rules are set by each business, not by Maw3ed. Maw3ed only records what the business tells it."
+        },
+        "availability": {
+          "title": "Availability",
+          "p1": "Free times shown on Maw3ed can be taken by someone else before you book. The booking page shows what is free at that moment. We do not guarantee that a time, a business or the service itself will always be available."
+        },
+        "acceptable": {
+          "title": "Acceptable use",
+          "p1": "Do not use Maw3ed to:",
+          "b1": "break the law or harm others",
+          "b2": "make bookings you do not mean to keep, or book for someone else without their permission",
+          "b3": "try to reach data that is not yours, or to disrupt the service",
+          "b4": "send spam or misuse reminders and links"
+        },
+        "plans": {
+          "title": "Plans and payments",
+          "p1": "Maw3ed has a Free plan and a Pro plan. Checkout is currently in test mode: it is simulated and no card is charged."
+        },
+        "liability": {
+          "title": "Limits of liability",
+          "p1": "Maw3ed is provided as is. To the extent the law allows, we are not liable for missed or late appointments, for what a business does or does not deliver, or for indirect losses."
+        },
+        "termination": {
+          "title": "Ending use",
+          "p1": "You can stop using Maw3ed at any time. We may suspend an account that breaks these terms or puts the service at risk."
+        },
+        "law": {
+          "title": "Governing law",
+          "p1": "These terms are governed by {law}."
+        },
+        "changes": {
+          "title": "Changes",
+          "p1": "We may update these terms. The date at the top shows when they last changed. If you keep using Maw3ed after a change, you accept the new terms."
+        },
+        "contact": {
+          "title": "Contact",
+          "p1": "Email: {email}. Phone: {phone}. Address: {address}."
+        }
+      }
     }
   }
 }

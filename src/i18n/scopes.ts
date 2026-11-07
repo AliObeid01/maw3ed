@@ -15,7 +15,7 @@ type Namespace = Top | `${Top}.${string}`;
  */
 export const INTL_SCOPES = {
   /** Root layout: pages outside any group (home, not-found) and the floor every nested scope repeats. */
-  root: ['common', 'ui', 'home', 'notFound', 'public', 'directory'],
+  root: ['common', 'ui', 'notFound', 'public', 'directory'],
   /** `/b`, `/l`, `/o`, `/pay`, `/directory`, `/pricing`. */
   public: [
     'common',
@@ -29,6 +29,7 @@ export const INTL_SCOPES = {
     'deposit',
     'directory',
     'pricing',
+    'home',
     'billing',
     // Shared money/duration formatting (useAppFormat); the rest of `app` is dashboard-only.
     'app.format',

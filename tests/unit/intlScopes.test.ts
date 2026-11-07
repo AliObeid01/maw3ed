@@ -76,7 +76,7 @@ function clientNamespaces(entries: string[]) {
 const app = path.join(SRC, 'app');
 const under = (dir: string) => walk(path.join(app, dir));
 const GROUPS: Record<Exclude<IntlScope, 'dev'>, string[]> = {
-  root: [path.join(app, 'page.tsx'), path.join(app, 'not-found.tsx')],
+  root: [path.join(app, 'not-found.tsx')],
   public: under('(public)'),
   auth: under('(auth)'),
   app: under('app'),

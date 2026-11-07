@@ -12,7 +12,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function DirectoryPage() {
   // useSearchParams (the URL filters) needs a Suspense boundary to keep the shell static.
   return (
-    <Suspense fallback={<main className="flex-1" />}>
+    <Suspense fallback={<main id="main-content" className="flex-1" />}>
       <DirectoryView />
     </Suspense>
   );

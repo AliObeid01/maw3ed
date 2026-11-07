@@ -243,7 +243,7 @@ export function DirectoryView() {
     );
 
   return (
-    <main className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-6 px-4 py-8 md:px-8 md:py-12">
+    <main id="main-content" className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col gap-6 px-4 py-8 md:px-8 md:py-12">
       <header className="flex flex-col gap-2">
         <h1 className="m-0 text-[28px] leading-tight font-semibold tracking-[-0.01em] md:text-4xl">
           {t('title')}
