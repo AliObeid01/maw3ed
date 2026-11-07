@@ -438,6 +438,67 @@ describe('GET /api/public/categories', () => {
   });
 });
 
+describe('search also matches ACTIVE service names (PR-7b follow-up)', () => {
+  const names = (r: any) => r.body.businesses.map((b: any) => b.name);
+
+  it('finds a business by an active service whose name does not contain the text', async () => {
+    await makeBusiness(pg, { name: 'Studio Nour', services: [{ name: 'Haircut', durationMin: 30, price: 15 }] });
+    await makeBusiness(pg, { name: 'Other Place', services: [{ name: 'Massage', durationMin: 60, price: 40 }] });
+    expect(names(await plain({ search: 'haircut' }))).toEqual(['Studio Nour']);
+  });
+
+  it('an inactive service does not match', async () => {
+    await makeBusiness(pg, {
+      name: 'Quiet Place',
+      services: [
+        { name: 'Massage', durationMin: 60, price: 40 },
+        { name: 'Haircut', durationMin: 30, price: 15, active: false },
+      ],
+    });
+    expect(names(await plain({ search: 'haircut' }))).toEqual([]);
+  });
+
+  it('name, category, address and service still match; a business matching twice appears once', async () => {
+    await makeBusiness(pg, {
+      name: 'Haircut House',
+      services: [
+        { name: 'Haircut', durationMin: 30, price: 15 },
+        { name: 'Kids haircut', durationMin: 30, price: 10 },
+      ],
+    });
+    const res = await plain({ search: 'haircut' });
+    expect(names(res)).toEqual(['Haircut House']);
+  });
+
+  it('unlisted and not-ready businesses never appear through a service match', async () => {
+    await makeBusiness(pg, { name: 'Hidden', listed: false });
+    await makeBusiness(pg, { name: 'No hours', staff: [{ hours: [] }] });
+    expect(names(await plain({ search: 'haircut' }))).toEqual([]);
+  });
+
+  it('LIKE wildcards are literal in the service match too', async () => {
+    await makeBusiness(pg, { name: 'A', services: [{ name: '50% off cut', durationMin: 30, price: 5 }] });
+    await makeBusiness(pg, { name: 'B', services: [{ name: 'Haircut', durationMin: 30, price: 5 }] });
+    expect(names(await plain({ search: '%' }))).toEqual(['A']);
+    expect(names(await plain({ search: 'hair_ut' }))).toEqual([]);
+    expect(names(await plain({ search: 'Hair%' }))).toEqual([]);
+  });
+
+  it('keeps the page order and cursor paging, and the raw JSON stays free of private data', async () => {
+    for (const n of ['C shop', 'A shop', 'B shop'])
+      await makeBusiness(pg, { name: n, services: [{ name: 'Haircut', durationMin: 30, price: 5 }] });
+    const first = await plain({ search: 'haircut', limit: '2' });
+    expect(names(first)).toEqual(['A shop', 'B shop']);
+    expect(first.body!.nextCursor).not.toBeNull();
+    const second = await plain({ search: 'haircut', limit: '2', cursor: first.body!.nextCursor });
+    expect(names(second)).toEqual(['C shop']);
+    expect(second.body!.nextCursor).toBeNull();
+    const raw = JSON.stringify(first.body);
+    expect(raw).not.toContain('@');
+    expect(raw).not.toMatch(/staff|client|appointment|email|phone/i);
+  });
+});
+
 describe('directory?include=services (PR-7b)', () => {
   const both = (query: Record<string, string> = {}) =>
     live({ include: 'nextFree,services', ...query });

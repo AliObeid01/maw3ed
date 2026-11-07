@@ -107,7 +107,7 @@ test.describe('public directory: category and area filters (PR-1)', () => {
     await expect(page).toHaveURL(/search=sidon&area=sidon&category=barbers/);
 
     await page.reload();
-    await expect(page.getByRole('searchbox', { name: 'Business name' })).toHaveValue('sidon');
+    await expect(page.getByRole('searchbox', { name: 'Service or business' })).toHaveValue('sidon');
     await withFilters(page, async () => {
       expect(await pickerText(page, 'Category')).toBe('Barbers');
       expect(await pickerText(page, 'Area')).toBe('Sidon');

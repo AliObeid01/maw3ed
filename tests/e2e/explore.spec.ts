@@ -27,7 +27,7 @@ test.describe('explore: results and cards', () => {
     await page.goto('/directory?category=barbers&area=sidon&search=Abu');
     await expect(page.getByRole('heading', { level: 1, name: 'Explore businesses' })).toBeVisible();
     await expect(page.getByRole('heading', { level: 2, name: 'Abu Karam Barbershop' })).toBeVisible();
-    await expect(page.getByRole('searchbox', { name: 'Business name' })).toHaveValue('Abu');
+    await expect(page.getByRole('searchbox', { name: 'Service or business' })).toHaveValue('Abu');
     expect(seen.requests).toEqual([`${API}?search=Abu&area=sidon&category=barbers&include=nextFree%2Cservices&limit=12`]);
     // Phone: the filters sit in the sheet.
     await withFilters(page, async () => {
@@ -177,7 +177,7 @@ test.describe('explore: filters and the request rules', () => {
     await page.goto('/directory');
     await expect(page.getByRole('heading', { name: 'Fade Lab' })).toBeVisible();
     const before = seen.requests.length;
-    const box = page.getByRole('searchbox', { name: 'Business name' });
+    const box = page.getByRole('searchbox', { name: 'Service or business' });
     await box.pressSequentially('fade', { delay: 60 });
     await page.waitForTimeout(900);
     expect(seen.requests.length).toBe(before);
@@ -258,7 +258,7 @@ test.describe('explore: filters and the request rules', () => {
     await expect(page.getByRole('heading', { name: 'Abu Karam Barbershop' })).toBeVisible();
     await page.getByRole('button', { name: 'Clear filters' }).first().click();
     await expect(page).toHaveURL(`${ORIGIN}/directory`);
-    await expect(page.getByRole('searchbox', { name: 'Business name' })).toHaveValue('');
+    await expect(page.getByRole('searchbox', { name: 'Service or business' })).toHaveValue('');
     await expect(page.getByRole('heading', { name: 'Fade Lab' })).toBeVisible();
   });
 });

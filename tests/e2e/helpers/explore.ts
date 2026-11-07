@@ -156,7 +156,7 @@ export const chooseCategory = (page: Page, category: string) =>
 
 /** Submit the search box (Enter). */
 export async function search(page: Page, text: string) {
-  const box = page.getByRole('searchbox', { name: 'Business name' });
+  const box = page.getByRole('searchbox', { name: 'Service or business' });
   await box.fill(text);
   await box.press('Enter');
 }

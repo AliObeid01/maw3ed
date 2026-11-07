@@ -41,7 +41,7 @@ export const directoryRepo = {
   }): Promise<DirectoryRow[]> {
     const search = input.search ? `%${escapeLike(input.search)}%` : undefined;
     const searchSql = search
-      ? Prisma.sql`AND (b."name" ILIKE ${search} ESCAPE '\\' OR b."category" ILIKE ${search} ESCAPE '\\' OR b."address" ILIKE ${search} ESCAPE '\\')`
+      ? Prisma.sql`AND (b."name" ILIKE ${search} ESCAPE '\\' OR b."category" ILIKE ${search} ESCAPE '\\' OR b."address" ILIKE ${search} ESCAPE '\\' OR EXISTS (SELECT 1 FROM "Service" ss WHERE ss."businessId" = b."id" AND ss."active" AND ss."name" ILIKE ${search} ESCAPE '\\'))`
       : Prisma.empty;
     const categorySql = input.category
       ? Prisma.sql`AND lower(b."category") = lower(${input.category})`
