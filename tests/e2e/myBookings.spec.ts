@@ -18,6 +18,20 @@ import { freezeClock } from './helpers/clock';
 // Self-contained: the booking and link endpoints are answered by page.route on the frozen clock; localStorage is
 // seeded with fake entries. Set MB_SHOTS=<dir> to write screenshots.
 
+/** Elements that stick out of the viewport on the right (or left in RTL): named in the failure so a CI-only overflow is diagnosable. */
+async function stickingOut(page: Page) {
+  return page.evaluate(() => {
+    const width = document.documentElement.clientWidth;
+    const out: string[] = [`scrollWidth=${document.documentElement.scrollWidth} clientWidth=${width}`];
+    for (const el of Array.from(document.querySelectorAll('body *'))) {
+      const r = el.getBoundingClientRect();
+      if (r.width > 0 && (r.right > width + 1 || r.left < -1))
+        out.push(`${el.tagName.toLowerCase()}.${String(el.className).slice(0, 50)} ${Math.round(r.left)}..${Math.round(r.right)}`);
+    }
+    return out.length > 1 ? out.slice(0, 12) : [];
+  });
+}
+
 const SHOTS = process.env.MB_SHOTS;
 async function shot(page: Page, name: string) {
   if (!SHOTS) return;
@@ -420,6 +434,7 @@ test.describe('entry points and layout', () => {
       await mockLinkApi(page, { act: 'view' });
       await page.goto('/my-bookings');
       await expect(page.getByTestId('status-chip')).toHaveCount(2);
+      expect(await stickingOut(page), 'elements outside the viewport').toEqual([]);
       await expectNoPageOverflow(page);
       for (const b of await page.getByTestId('upcoming-card').getByRole('button').all()) {
         expect((await b.boundingBox())!.height).toBeGreaterThanOrEqual(44);
