@@ -2,8 +2,12 @@ import { describe, expect, it } from 'vitest';
 import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
 
-type Tree = Record<string, any>;
-const trees: Record<string, Tree> = { en, ar };
+type Tree = {
+  directory: { explore: Record<string, string> };
+  home: { categories: Record<string, unknown>; nextFree: Record<string, string> };
+  public: { footer: { owners: string } };
+};
+const trees: Record<string, Tree> = { en: en as unknown as Tree, ar: ar as unknown as Tree };
 
 describe.each(['en', 'ar'])('PR-12 cosmetic copy (%s)', (locale) => {
   const m = trees[locale]!;
@@ -28,6 +32,6 @@ describe.each(['en', 'ar'])('PR-12 cosmetic copy (%s)', (locale) => {
     // Footer column at 320 px is about 130 px wide at 16 px semibold: about 15 characters in Latin, 18 in Arabic.
     expect([...m.public.footer.owners].length).toBeLessThanOrEqual(locale === 'en' ? 15 : 18);
     // Search field at 320 px shows about 24 characters at 15 px.
-    expect([...m.directory.explore.searchPlaceholder].length).toBeLessThanOrEqual(24);
+    expect([...(m.directory.explore.searchPlaceholder ?? '')].length).toBeLessThanOrEqual(24);
   });
 });

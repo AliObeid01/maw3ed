@@ -26,7 +26,8 @@ export function initialRevealState({
 }
 
 export function nextRevealState(state: RevealState, event: 'intersect' | 'reduced'): RevealState {
-  if (state === 'hidden') return 'revealed';
+  // Both events (scrolled into view, or reduced motion switched on) reveal a hidden block; nothing else changes state.
+  if (state === 'hidden' && (event === 'intersect' || event === 'reduced')) return 'revealed';
   return state;
 }
 

@@ -1,5 +1,7 @@
+import { clockNow } from '../helpers/clock';
 import { expect, test } from '../helpers/test';
 import { expectNoHorizontalOverflow } from '../helpers/layout';
+import { watchCardLeaks } from '../helpers/cardLeak';
 import { mockSetupApi, setRole } from '../helpers/mockApi';
 
 // Runs against the fake-session dev server; /api is answered by page.route (no database).
@@ -38,6 +40,7 @@ test.describe('Pro checkout (TEST MODE)', () => {
     await setRole(page, 'OWNER', DASHBOARD);
     await page.setViewportSize({ width: 360, height: 900 });
     const { calls } = await mockSetupApi(page);
+    const leaks = await watchCardLeaks(page);
     const bodies: string[] = [];
     page.on('request', (req) => {
       if (req.method() !== 'GET') bodies.push(`${req.url()} ${req.postData() ?? ''}`);
@@ -47,9 +50,10 @@ test.describe('Pro checkout (TEST MODE)', () => {
     // Exactly one h1 (the shell header's title).
     await expect(page.getByRole('heading', { name: 'Upgrade to Pro', level: 1 })).toHaveCount(1);
     await expect(page.getByText('$9 / month')).toBeVisible();
-    await expect(
-      page.getByText('Test mode: checkout is simulated and no card is charged.').first(),
-    ).toBeVisible();
+    // ONE test-mode note on the page (PR-12: the order summary used to add a second "TEST MODE" chip).
+    await expect(page.getByText('Test mode: checkout is simulated and no card is charged.')).toHaveCount(1);
+    await expect(page.getByText('Test mode: checkout is simulated and no card is charged.')).toBeVisible();
+    await expect(page.getByText(/test mode/i)).toHaveCount(1);
     const form = page.getByTestId('test-card-form');
     await expectNoHorizontalOverflow(form, 'card form');
 
@@ -106,7 +110,10 @@ test.describe('Pro checkout (TEST MODE)', () => {
       { plan: 'PRO', scenario: 'declined' },
       { plan: 'PRO', scenario: 'success' },
     ]);
-    // The card-digits guard: no request body or URL contained any run of card digits.
+    // The card-digits guard, end to end: no request (URL, headers, body), console line, storage write or cookie
+    // contained a run of 8+ digits of any card that was typed (see helpers/cardLeak.ts).
+    await leaks.assertNoCardDigits([OK_CARD, DECLINE_CARD, '4242424242424241']);
+    // And the request bodies themselves, as before:
     for (const b of bodies) {
       expect(b.replaceAll(/\s/g, '')).not.toMatch(/\d{9,}/);
       expect(b).not.toContain(OK_CARD);
@@ -131,6 +138,110 @@ test.describe('Pro checkout (TEST MODE)', () => {
     await expect(form.getByText(/Test card\D*4000 0000 0000 0002/)).toBeVisible();
     await form.getByRole('button', { name: 'Fill test card' }).click();
     await expect(form.getByLabel('Card number')).toHaveValue('4000 0000 0000 0002');
+  });
+
+  test('"Fill test card" derives the expiry year from the (frozen) clock, three years ahead', async ({ page }) => {
+    await setRole(page, 'OWNER', DASHBOARD);
+    await page.setViewportSize({ width: 360, height: 900 });
+    await mockSetupApi(page); // freezes the browser clock at FIXED_NOW
+    await page.goto('/app/checkout?plan=pro');
+    const form = page.getByTestId('test-card-form');
+    await form.getByRole('button', { name: 'Fill test card' }).click();
+    await expect(form.getByLabel('Expiry')).toHaveValue(`12/${String((clockNow().year + 3) % 100).padStart(2, '0')}`);
+  });
+
+  test('the floating New booking button is hidden on the checkout (it could cover Pay) and present elsewhere on a phone', async ({
+    page,
+  }) => {
+    await setRole(page, 'OWNER', DASHBOARD);
+    await page.setViewportSize({ width: 360, height: 640 });
+    await mockSetupApi(page);
+    await page.goto('/app/settings');
+    await expect(page.getByTestId('new-booking-fab')).toBeVisible();
+    await page.goto('/app/checkout?plan=pro');
+    await expect(page.getByTestId('test-card-form')).toBeVisible();
+    await expect(page.getByTestId('new-booking-fab')).toHaveCount(0);
+    // On the shortest phone the Pay button can be scrolled fully into view with nothing floating over it.
+    const pay = page.getByTestId('test-card-form').getByRole('button', { name: /^Pay/ });
+    await pay.scrollIntoViewIfNeeded();
+    const covering = await pay.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return top === el || el.contains(top);
+    });
+    expect(covering).toBe(true);
+  });
+
+  test('card errors are bound to their inputs, and a failed submit focuses the first invalid field', async ({ page }) => {
+    await setRole(page, 'OWNER', DASHBOARD);
+    await page.setViewportSize({ width: 360, height: 900 });
+    await mockSetupApi(page);
+    await page.goto('/app/checkout?plan=pro');
+    const form = page.getByTestId('test-card-form');
+    await form.getByRole('button', { name: /^Pay/ }).click();
+    for (const label of ['Card number', 'Expiry', 'CVC', 'Name on card']) {
+      const input = form.getByLabel(label);
+      await expect(input).toHaveAttribute('aria-invalid', 'true');
+      const describedBy = await input.getAttribute('aria-describedby');
+      expect(describedBy, label).toBeTruthy();
+      await expect(page.locator(`[id="${describedBy}"]`)).toHaveText(/\S/);
+    }
+    await expect(form.getByLabel('Card number')).toBeFocused();
+    // Fixing a field clears only its own error.
+    await form.getByLabel('Card number').fill(OK_CARD);
+    await expect(form.getByLabel('Card number')).not.toHaveAttribute('aria-invalid', 'true');
+    await expect(form.getByLabel('Expiry')).toHaveAttribute('aria-invalid', 'true');
+  });
+
+  test('the scenario picker works from the keyboard (popover from md): arrows, Home/End, typeahead, Enter, Escape returns focus', async ({
+    page,
+  }) => {
+    await setRole(page, 'OWNER', DASHBOARD);
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await mockSetupApi(page);
+    await page.goto('/app/checkout?plan=pro');
+    const form = page.getByTestId('test-card-form');
+    const picker = form.getByRole('combobox', { name: 'Simulated result' });
+    await picker.focus();
+    await page.keyboard.press('ArrowDown');
+    await expect(picker).toHaveAttribute('aria-expanded', 'true');
+    await page.keyboard.press('End');
+    await page.keyboard.press('Enter');
+    await expect(picker).toHaveAttribute('aria-expanded', 'false');
+    await expect(picker).toBeFocused();
+    await expect(form.getByText(/Test card\D*4000 0000 0000 0002/)).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Home');
+    await page.keyboard.press('Enter');
+    await expect(form.getByText(/Test card\D*4242 4242 4242 4242/)).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.type('Card d');
+    await page.keyboard.press('Enter');
+    await expect(form.getByText(/Test card\D*4000 0000 0000 0002/)).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await page.keyboard.press('Escape');
+    await expect(picker).toHaveAttribute('aria-expanded', 'false');
+    await expect(picker).toBeFocused();
+    await expect(form.getByText(/Test card\D*4000 0000 0000 0002/)).toBeVisible();
+  });
+
+  test('a declined card moves focus to the one alert (no shake), and the form stays usable', async ({ page }) => {
+    await setRole(page, 'OWNER', DASHBOARD);
+    await page.setViewportSize({ width: 360, height: 900 });
+    await mockSetupApi(page);
+    await page.goto('/app/checkout?plan=pro');
+    const form = page.getByTestId('test-card-form');
+    await form.getByRole('combobox', { name: 'Simulated result' }).click();
+    await page.getByRole('option', { name: 'Card declined' }).click();
+    await form.getByRole('button', { name: 'Fill test card' }).click();
+    await form.getByRole('button', { name: /^Pay/ }).click();
+    const problem = page.getByTestId('checkout-problem');
+    await expect(problem).toBeFocused();
+    await expect(problem).toHaveAttribute('role', 'alert');
+    // Exactly one live alert for the problem (field errors are not shown for a valid card).
+    await expect(page.getByRole('alert').filter({ hasText: 'declined' })).toHaveCount(1);
+    expect(await problem.evaluate((el) => getComputedStyle(el).animationName)).not.toBe('shake');
+    await expect(form.getByRole('button', { name: /^Pay/ })).toBeEnabled();
   });
 
   test('a receptionist gets the owner-only state and no card form', async ({ page }) => {

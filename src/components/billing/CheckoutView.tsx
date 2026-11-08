@@ -9,7 +9,6 @@ import { ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
 import { DrawnCheck } from '@/components/ui/DrawnCheck';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ApiError } from '@/lib/api/auth';
@@ -140,7 +139,6 @@ function OwnerCheckout() {
             <dt className="text-muted">{t('checkout.plan')}</dt>
             <dd className="m-0 flex flex-wrap items-center gap-2 font-medium">
               {t('checkout.planValue')}
-              <Chip tone="warning">{t('testBadge')}</Chip>
             </dd>
             <dt className="text-muted">{t('checkout.price')}</dt>
             <dd className="m-0 font-medium">{price}</dd>

@@ -42,16 +42,16 @@ export function Reveal({
       return;
     }
     el.dataset.revealed = 'false';
-    let io: IntersectionObserver | undefined;
-    const show = (event: 'intersect' | 'reduced') => {
-      if (nextRevealState('hidden', event) === 'revealed') el.dataset.revealed = 'true';
-      io?.disconnect();
+    const node: HTMLElement = el;
+    function show(event: 'intersect' | 'reduced') {
+      if (nextRevealState('hidden', event) === 'revealed') node.dataset.revealed = 'true';
+      io.disconnect();
       media.removeEventListener('change', onMedia);
-    };
-    const onMedia = () => {
+    }
+    function onMedia() {
       if (media.matches) show('reduced');
-    };
-    io = new IntersectionObserver(
+    }
+    const io = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) show('intersect');
       },
@@ -60,7 +60,7 @@ export function Reveal({
     io.observe(el);
     media.addEventListener('change', onMedia);
     return () => {
-      io?.disconnect();
+      io.disconnect();
       media.removeEventListener('change', onMedia);
     };
   }, []);
