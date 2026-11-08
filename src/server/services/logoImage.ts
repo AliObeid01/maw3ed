@@ -12,6 +12,11 @@ export const LOGO_MAX_INPUT_PIXELS = 25_000_000;
 export const LOGO_MAX_STORED_BYTES = 150 * 1024;
 const QUALITIES = [82, 74, 66, 58, 50, 42, 34];
 
+// Uploads are rare and limited (10 per hour per IP): one libvips thread and no operation cache keep the memory of
+// a serverless instance small and predictable.
+sharp.concurrency(1);
+sharp.cache(false);
+
 export interface ProcessedLogo {
   bytes: Buffer;
   mime: 'image/webp';
@@ -26,8 +31,8 @@ const unsupported = () =>
     image: 'Use a PNG, JPEG or WebP image.',
   });
 const invalid = () =>
-  new AppError(400, 'INVALID_IMAGE', 'That image could not be read. Try another file.', {
-    image: 'That image could not be read. Try another file.',
+  new AppError(400, 'INVALID_IMAGE', 'That image could not be read. Try another file or export it again from an image editor.', {
+    image: 'That image could not be read. Try another file or export it again from an image editor.',
   });
 const tooLarge = () =>
   new AppError(400, 'IMAGE_TOO_LARGE', 'The image is larger than 3 MB.', {
@@ -43,7 +48,8 @@ export async function processLogo(input: Buffer): Promise<ProcessedLogo> {
   if (input.length > LOGO_MAX_INPUT_BYTES) throw tooLarge();
   if (detectImageType(input) === null) throw unsupported();
   try {
-    // No `animated`: only the first frame is read. `failOn: 'warning'` rejects truncated files.
+    // No `animated`: only the first frame is read. `failOn: 'warning'` is what rejects truncated files; the price
+    // is that a few JPEGs that merely carry a decoder warning are refused too, hence the "export it again" message.
     const base = sharp(input, {
       limitInputPixels: LOGO_MAX_INPUT_PIXELS,
       failOn: 'warning',

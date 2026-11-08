@@ -152,6 +152,31 @@ describe('processLogo', () => {
     );
   });
 
+  it('a polyglot (valid image + trailing HTML/script and ZIP bytes) is stored as a clean WebP with no trailing payload', async () => {
+    const trailer = Buffer.concat([
+      Buffer.from('<html><script>alert(1)</script></body>'),
+      Buffer.from([0x50, 0x4b, 0x03, 0x04]),
+      Buffer.from('PK-ZIP-PAYLOAD-MARKER'),
+      Buffer.alloc(64, 0x41),
+    ]);
+    const bases = {
+      png: await make(120, 90).png().toBuffer(),
+      jpeg: await make(120, 90).jpeg().toBuffer(),
+      webp: await make(120, 90).webp().toBuffer(),
+    };
+    for (const [type, base] of Object.entries(bases)) {
+      // WebP carries a RIFF size, so appended bytes sit outside it; PNG/JPEG simply have bytes after the end marker.
+      const out = await processLogo(Buffer.concat([base, trailer]));
+      const b = out.bytes;
+      expect(b.subarray(0, 4).toString('latin1'), type).toBe('RIFF');
+      expect(b.subarray(8, 12).toString('latin1'), type).toBe('WEBP');
+      expect(b.readUInt32LE(4) + 8, `${type}: nothing after the declared RIFF size`).toBe(b.length);
+      for (const marker of ['<html', '<script', 'alert', 'PK-ZIP', 'MARKER'])
+        expect(b.includes(Buffer.from(marker)), `${type} contains ${marker}`).toBe(false);
+      expect(b.includes(Buffer.from([0x50, 0x4b, 0x03, 0x04])), `${type} zip header`).toBe(false);
+    }
+  });
+
   it('rejects a truncated or corrupt file as INVALID_IMAGE (400)', async () => {
     const png = await make(300, 300).png().toBuffer();
     expect(await codeOf(processLogo(png.subarray(0, 40)))).toBe('INVALID_IMAGE:400');

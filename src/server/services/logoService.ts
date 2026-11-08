@@ -52,14 +52,16 @@ export const logoService = {
   ): Promise<PublicLogo> {
     const meta = await businessLogoRepo.findMetaBySlug(slug);
     if (!meta) throw AppError.notFound();
-    const etag = `"${meta.hash}"`;
-    const immutable =
-      opts.v !== undefined &&
-      opts.v.length >= 8 &&
-      meta.hash.startsWith(opts.v);
-    if (matches(opts.ifNoneMatch, etag)) return { status: 'notModified', etag, immutable };
+    // ETag, immutability and body must all describe ONE stored image: derive them from the same hash.
+    const describe = (hash: string) => ({
+      etag: `"${hash}"`,
+      immutable: opts.v !== undefined && opts.v.length >= 8 && hash.startsWith(opts.v),
+    });
+    const first = describe(meta.hash);
+    if (matches(opts.ifNoneMatch, first.etag)) return { status: 'notModified', ...first };
     const row = await businessLogoRepo.readBytes(meta.businessId);
     if (!row) throw AppError.notFound();
-    return { status: 'ok', etag: `"${row.hash}"`, immutable, mime: row.mime, bytes: row.bytes };
+    // The logo may have been replaced since the meta read: the row that supplies the bytes decides.
+    return { status: 'ok', ...describe(row.hash), mime: row.mime, bytes: row.bytes };
   },
 };

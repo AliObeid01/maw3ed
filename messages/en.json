@@ -672,7 +672,7 @@
         "removed": "Logo removed",
         "errors": {
           "unsupported": "That file type is not supported. Use a PNG, JPEG or WebP image.",
-          "invalid": "We could not read that image. Try another file.",
+          "invalid": "We could not read that image. Try another file, or export it again from an image editor.",
           "tooLarge": "That image is larger than 3 MB. Choose a smaller one.",
           "rateLimited": "You have uploaded a lot of images in a short time. Try again later.",
           "forbidden": "Only the owner can change the logo.",

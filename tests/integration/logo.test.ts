@@ -10,6 +10,7 @@ import { GET as publicLogo } from '@/app/api/public/[slug]/logo/route';
 import { POST as createInvite } from '@/app/api/invites/route';
 import { POST as acceptInvite } from '@/app/api/invites/[token]/accept/route';
 import { fakeEmailProvider } from '@/server/providers/email';
+import { businessLogoRepo } from '@/server/repositories/businessLogo.repo';
 import { call, PASSWORD, signup } from './helpers/api';
 import { activatedPractitioner } from './helpers/practitioner';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
@@ -260,6 +261,22 @@ describe('GET /api/public/{slug}/logo', () => {
       getLogo('pub-logo', '', { 'if-none-match': etag }),
     );
     expect(statements.some((s) => /"bytes"/.test(s))).toBe(false);
+  });
+
+  it('ETag, Cache-Control and body all come from ONE row: a logo replaced between the two reads is never marked immutable under the old version', async () => {
+    const { v } = await shop();
+    const real = await businessLogoRepo.readBytes((await businessLogoRepo.findMetaBySlug('pub-logo'))!.businessId);
+    // The meta read saw the old hash (v matches it); by the time the bytes are read the logo was replaced.
+    const newer = { ...real!, hash: 'f'.repeat(64) };
+    const spy = vi.spyOn(businessLogoRepo, 'readBytes').mockResolvedValue(newer);
+    try {
+      const { res } = await getLogo('pub-logo', `?v=${v}`);
+      expect(res.status).toBe(200);
+      expect(res.headers.get('etag')).toBe(`"${'f'.repeat(64)}"`);
+      expect(res.headers.get('cache-control')).toBe('public, max-age=300, stale-while-revalidate=86400');
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('a new upload changes the etag: the old validator no longer matches', async () => {

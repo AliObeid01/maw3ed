@@ -6,7 +6,7 @@ import { SLOT_HOLDING_STATUSES } from '@/server/domain/slotStatuses';
 import { Prisma } from '@/generated/prisma/client';
 import { generateReference, REFERENCE_INDEX } from '@/server/domain/reference';
 import { scopeWhere, type Scope as RowScope } from '@/server/domain/scope';
-import { AppError, pgErrorCode, violatedNames } from '@/server/http/errors';
+import { AppError, isRetryableLockError, pgErrorCode, violatedNames } from '@/server/http/errors';
 import { db } from './db';
 import { clientRepo } from './client.repo';
 import { expirePendingDeposits } from './payment.repo';
@@ -68,6 +68,14 @@ export interface ExpiredHold {
 
 /** Statuses that count towards a staff member's day for the "anyone" fairness pick. */
 const COUNTED_STATUSES = [...SLOT_HOLDING_STATUSES, 'ATTENDED', 'NO_SHOW'] as const;
+
+/**
+ * Attempts of the booking insert when Postgres picks it as a deadlock victim (40P01) or refuses a lock (55P03).
+ * Concurrent inserts into appointment_no_overlap can deadlock each other; the victim's transaction is rolled back,
+ * so a fresh transaction is safe and then meets 23P01 (slot taken) or succeeds.
+ */
+export const LOCK_ATTEMPTS = 3;
+const lockBackoffMs = () => 10 + Math.floor(Math.random() * 31);
 
 /** How many times the insert is retried when the generated reference was already taken. */
 export const REFERENCE_ATTEMPTS = 5;
@@ -212,12 +220,21 @@ export const appointmentRepo = {
    */
   async create(businessId: string, data: NewBooking) {
     const next = data.newReference ?? (() => generateReference(randomInt));
-    for (let attempt = 1; ; attempt++) {
+    let refAttempts = 0;
+    let lockAttempts = 0;
+    for (;;) {
       try {
+        // Every attempt is a NEW transaction: nothing is ever retried inside an aborted one.
         return await insertBooking(businessId, data, next());
       } catch (error) {
+        if (isRetryableLockError(error)) {
+          // Out of attempts: the original error propagates and maps to 503 SERVICE_BUSY.
+          if (++lockAttempts >= LOCK_ATTEMPTS) throw error;
+          await new Promise((resolve) => setTimeout(resolve, lockBackoffMs()));
+          continue;
+        }
         if (!isReferenceCollision(error)) throw error;
-        if (attempt >= REFERENCE_ATTEMPTS)
+        if (++refAttempts >= REFERENCE_ATTEMPTS)
           throw AppError.unavailable('We could not issue a booking reference. Please try again.');
       }
     }
