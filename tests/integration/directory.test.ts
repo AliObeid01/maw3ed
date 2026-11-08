@@ -96,6 +96,7 @@ describe('GET /api/public/directory', () => {
           category: 'Salon',
           area: 'beirut',
           address: 'Hamra, Beirut',
+          logoUrl: null, // PR-10b
           serviceCount: 3,
           fromPrice: 12.5,
         },
@@ -209,6 +210,7 @@ describe('GET /api/public/directory', () => {
       'area',
       'category',
       'fromPrice',
+      'logoUrl', // PR-10b: a versioned url or null, never the bytes
       'name',
       'serviceCount',
       'slug',
@@ -297,6 +299,7 @@ describe('GET /api/public/directory: category and area filters (PR-1)', () => {
         category: 'barbers',
         area: 'sidon',
         address: 'Riad El Solh St',
+        logoUrl: null,
         serviceCount: 1,
         fromPrice: 10,
       },

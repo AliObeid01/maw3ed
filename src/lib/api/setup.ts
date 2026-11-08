@@ -24,6 +24,8 @@ export const businessSchema = z.object({
   /** An area key (PR-1); null on rows that never set one. */
   area: nullableText.default(null),
   address: nullableText,
+  /** Versioned public logo url (PR-10b), or null. */
+  logoUrl: nullableText.default(null),
   /** Opted in to the public directory (default false). */
   listed: z.boolean().default(false),
   /** Deposit rules (FR-26). Off by default. */
@@ -134,6 +136,14 @@ export const getBusiness = (signal?: AbortSignal) =>
   request('/api/business', businessSchema, { signal });
 export const updateBusiness = (body: BusinessPatch) =>
   request('/api/business', businessSchema, { method: 'PATCH', body });
+
+export const uploadLogo = (imageBase64: string) =>
+  request('/api/business/logo', z.object({ logoUrl: z.string().nullable() }), {
+    method: 'PUT',
+    body: { image: imageBase64 },
+  });
+export const removeLogo = () =>
+  request('/api/business/logo', z.undefined(), { method: 'DELETE' });
 
 // ---- Services ----
 export const listServices = (signal?: AbortSignal) =>

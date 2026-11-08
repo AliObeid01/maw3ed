@@ -16,6 +16,8 @@ export const reminderItemSchema = z.object({
   client: z.object({ name: z.string(), phone: z.string(), noShows: z.number().int() }),
   whatsappUrl: z.string().nullable(),
   phoneInvalid: z.boolean().optional(),
+  /** The client already confirmed (shows the Confirmed chip). Absent on an older server. */
+  confirmed: z.boolean().default(false),
   status: z.enum(['PENDING', 'SENT']),
   sentBy: person.nullable(),
   sentAt: z.string().nullable(),

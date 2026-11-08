@@ -3,7 +3,14 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import type { Client } from 'pg';
 import { GET as getLink, POST as postLink } from '@/app/api/links/[token]/route';
 import { GET as getOutcome } from '@/app/api/links/[token]/outcome/route';
-import { expiryFor, OUTCOME_GRACE_SEC, signToken, type TokenAction } from '@/server/domain/tokens';
+import {
+  expiryFor,
+  leaveExpiryFor,
+  OUTCOME_GRACE_SEC,
+  payExpiryFor,
+  signToken,
+  type TokenAction,
+} from '@/server/domain/tokens';
 import { makeBusiness } from './helpers/directory';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
 import { countStatements } from './helpers/queryCount';
@@ -171,6 +178,33 @@ describe('GET /api/links/{token}/outcome', () => {
     const existing = await rawLink(getLink, 'garbage');
     expect(existing.status).toBe(404);
     expect(results[0]!.body).toBe(existing.body);
+  });
+
+  it('REAL pay and waitlist leave tokens (minted with the production expiry rules) are the same 404 (cross-act regression)', async () => {
+    // A pay token names an appointment; a leave token names a waitlist offer. Neither may read an outcome, even
+    // when its signature and expiry are perfectly valid and the appointment is ATTENDED.
+    const future = new Date(Date.now() + 2 * 3_600_000);
+    const pay = signToken({ a: ids.ATTENDED, act: 'pay', exp: payExpiryFor(future) }, secret());
+    const payExpired = signToken(
+      { a: ids.ATTENDED, act: 'pay', exp: payExpiryFor(new Date(START.getTime() - 1000)) },
+      secret(),
+    );
+    const leave = signToken(
+      { o: 'offer_real_1', act: 'leave', exp: leaveExpiryFor(future) },
+      secret(),
+    );
+    const claim = signToken(
+      { o: 'offer_real_1', act: 'claim', exp: leaveExpiryFor(future) },
+      secret(),
+    );
+    const results = await Promise.all(
+      [pay, payExpired, leave, claim, 'garbage'].map((t) => raw(t)),
+    );
+    for (const r of results) {
+      expect(r.status).toBe(404);
+      expect(r).toEqual(results[results.length - 1]);
+    }
+    expect(JSON.parse(results[0]!.body).error.code).toBe('NOT_FOUND');
   });
 
   it('a token longer than the path parameter allows is a 400 like the other link routes; unknown query is a 400', async () => {

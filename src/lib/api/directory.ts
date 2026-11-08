@@ -9,6 +9,8 @@ export const directorySchema =z.object({
       category: z.string().nullable(),
       area: z.string().nullable().default(null),
       address: z.string().nullable(),
+      /** Versioned public logo url, or null (the initials tile is shown). */
+      logoUrl: z.string().nullable().default(null),
       serviceCount: z.number(),
       fromPrice: z.number().nullable(),
       // Only with `include=nextFree` (the home page).

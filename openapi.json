@@ -618,6 +618,13 @@
               "null"
             ]
           },
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Versioned public logo url, or null when there is none."
+          },
           "listed": {
             "type": "boolean"
           },
@@ -696,6 +703,7 @@
           "category",
           "area",
           "address",
+          "logoUrl",
           "listed",
           "deposit",
           "readiness",
@@ -1459,6 +1467,12 @@
               },
               "address": {
                 "type": "string"
+              },
+              "logoUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               }
             },
             "required": [
@@ -1467,7 +1481,8 @@
               "timezone",
               "locale",
               "bookingWindowDays",
-              "cancelCutoffMin"
+              "cancelCutoffMin",
+              "logoUrl"
             ]
           },
           "services": {
@@ -2810,6 +2825,10 @@
                 "phoneInvalid": {
                   "type": "boolean"
                 },
+                "confirmed": {
+                  "type": "boolean",
+                  "description": "The client has already confirmed this appointment (status CONFIRMED or a confirmation time). The receptionist list shows a Confirmed chip. The message text drops the Confirm line only when the confirmation came at or before this job fell due (H24 / H2)."
+                },
                 "status": {
                   "type": "string",
                   "enum": [
@@ -2851,6 +2870,7 @@
                 "client",
                 "whatsappUrl",
                 "phoneInvalid",
+                "confirmed",
                 "status",
                 "sentBy",
                 "sentAt"
@@ -4528,6 +4548,13 @@
                     "null"
                   ]
                 },
+                "logoUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Versioned public logo url (`/api/public/<slug>/logo?v=<hash>`), or null: show the initials monogram. Present in every include mode."
+                },
                 "serviceCount": {
                   "type": "integer"
                 },
@@ -4618,6 +4645,7 @@
                 "category",
                 "area",
                 "address",
+                "logoUrl",
                 "serviceCount",
                 "fromPrice"
               ]
@@ -5000,6 +5028,37 @@
           "now",
           "testMode",
           "reminders"
+        ]
+      },
+      "PutLogoBody": {
+        "type": "object",
+        "properties": {
+          "image": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4194368,
+            "pattern": "^[A-Za-z0-9+/]+={0,2}$",
+            "description": "PNG, JPEG or WebP, base64 without a `data:` prefix, at most 3 MB decoded. The server detects the real type from the bytes, removes all metadata, centre-crops to a square and stores a 256x256 WebP."
+          }
+        },
+        "required": [
+          "image"
+        ],
+        "additionalProperties": false
+      },
+      "Logo": {
+        "type": "object",
+        "properties": {
+          "logoUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Relative URL of the public logo, versioned: `/api/public/<slug>/logo?v=<hash>`."
+          }
+        },
+        "required": [
+          "logoUrl"
         ]
       }
     },
@@ -8485,7 +8544,7 @@
     "/api/links/{token}/outcome": {
       "get": {
         "summary": "Was this visit attended? (read-only, works up to 90 days after the start)",
-        "description": "Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ \"completed\": true }` for an ATTENDED appointment and the byte-identical `{ \"completed\": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Shares the `linkRead` per-IP limit.",
+        "description": "Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ \"completed\": true }` for an ATTENDED appointment and the byte-identical `{ \"completed\": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Own per-IP limit `linkOutcome` (300 per 10 minutes).",
         "tags": [
           "links"
         ],
@@ -10646,6 +10705,182 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/business/logo": {
+      "put": {
+        "summary": "Upload or replace the business logo (owner)",
+        "description": "JSON body with the image as base64 (max 4 MiB of text, 3 MB of image). Rejects SVG, GIF, AVIF, TIFF and anything that is not a real PNG, JPEG or WebP (UNSUPPORTED_IMAGE), unreadable or oversized-pixel images (INVALID_IMAGE) and files over 3 MB (IMAGE_TOO_LARGE). Per-IP limit: 10 uploads per hour.",
+        "tags": [
+          "setup"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutLogoBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Logo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "PAYLOAD_TOO_LARGE"
+          },
+          "429": {
+            "description": "RATE_LIMITED (Retry-After header)"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove the business logo (owner). Idempotent",
+        "tags": [
+          "setup"
+        ],
+        "security": [
+          {
+            "session": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed (or there was none)"
+          },
+          "401": {
+            "description": "Not authenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Wrong role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/public/{slug}/logo": {
+      "get": {
+        "summary": "The business logo as image/webp (public, no cookies)",
+        "description": "Served for any existing business, listed or not (the logo is public branding). ETag = sha256 of the stored bytes, `If-None-Match` answers 304. `Cache-Control: public, max-age=31536000, immutable` when `?v=` is a prefix (8+ characters) of the current hash, otherwise `public, max-age=300, stale-while-revalidate=86400`. `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'; sandbox`. 404 when the business has no logo.",
+        "tags": [
+          "public"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 80,
+              "pattern": "^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$"
+            },
+            "required": true,
+            "name": "slug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 80
+            },
+            "required": false,
+            "name": "v",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image",
+            "content": {
+              "image/webp": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (Retry-After header)"
           }
         }
       }

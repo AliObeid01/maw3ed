@@ -119,6 +119,10 @@ export const WhatsappDueDto = registry.register(
         client: z.object({ name: z.string(), phone: z.string(), noShows: z.number().int() }),
         whatsappUrl: z.string().nullable(),
         phoneInvalid: z.boolean(),
+        confirmed: z.boolean().openapi({
+          description:
+            'The client has already confirmed this appointment (status CONFIRMED or a confirmation time). The receptionist list shows a Confirmed chip. The message text drops the Confirm line only when the confirmation came at or before this job fell due (H24 / H2).',
+        }),
         status: z.enum(['PENDING', 'SENT']),
         sentBy: person.nullable(),
         sentAt: iso.nullable(),
@@ -223,7 +227,7 @@ registry.registerPath({
   path: '/api/links/{token}/outcome',
   summary: 'Was this visit attended? (read-only, works up to 90 days after the start)',
   description:
-    'Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ "completed": true }` for an ATTENDED appointment and the byte-identical `{ "completed": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Shares the `linkRead` per-IP limit.',
+    'Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ "completed": true }` for an ATTENDED appointment and the byte-identical `{ "completed": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Own per-IP limit `linkOutcome` (300 per 10 minutes).',
   tags: ['links'],
   request: { params: LinkParams, query: NoQuery },
   responses: {

@@ -50,6 +50,8 @@ export interface RouteConfig {
   /** Parsed from lower-cased request headers. Not `.strict()`: requests carry many unrelated headers. */
   headers?: z.ZodType;
   body?: z.ZodType;
+  /** Larger JSON body cap for the one route that needs it (logo upload); default MAX_BODY_BYTES (64 KB). */
+  maxBodyBytes?: number;
   /** Per-IP limit from the policy table, applied before auth, parsing and the handler. Fails open. */
   rateLimit?: { policy: RatePolicyName };
 }
@@ -163,10 +165,10 @@ function assertSameOrigin(req: Request, url: URL) {
 
 export const MAX_BODY_BYTES = 64 * 1024;
 
-/** Read the body as text, refusing more than MAX_BODY_BYTES (content-length first, then the real bytes). */
-async function readLimitedText(req: Request): Promise<string> {
+/** Read the body as text, refusing more than `max` bytes (content-length first, then the real bytes). */
+async function readLimitedText(req: Request, max: number): Promise<string> {
   const declared = Number(req.headers.get('content-length'));
-  if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) throw AppError.payloadTooLarge();
+  if (Number.isFinite(declared) && declared > max) throw AppError.payloadTooLarge();
   if (!req.body) return '';
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -175,7 +177,7 @@ async function readLimitedText(req: Request): Promise<string> {
     const { done, value } = await reader.read();
     if (done) break;
     total += value.byteLength;
-    if (total > MAX_BODY_BYTES) {
+    if (total > max) {
       await reader.cancel();
       throw AppError.payloadTooLarge();
     }
@@ -184,8 +186,8 @@ async function readLimitedText(req: Request): Promise<string> {
   return Buffer.concat(chunks).toString('utf8');
 }
 
-async function readBody(req: Request): Promise<unknown> {
-  const text = await readLimitedText(req);
+async function readBody(req: Request, max: number): Promise<unknown> {
+  const text = await readLimitedText(req, max);
   if (!text.trim()) return undefined;
   try {
     return JSON.parse(text);
@@ -261,7 +263,9 @@ export function withRoute<C extends RouteConfig>(
       const query = parse(config.query, queryToObject(url), 'query');
       const headers = parse(config.headers, Object.fromEntries(req.headers.entries()), 'headers');
       if (config.body) assertJsonContentType(req);
-      const body = config.body ? parse(config.body, await readBody(req), 'body') : undefined;
+      const body = config.body
+        ? parse(config.body, await readBody(req, config.maxBodyBytes ?? MAX_BODY_BYTES), 'body')
+        : undefined;
 
       if (config.auth === 'token') {
         ctx.token = await resolveToken(

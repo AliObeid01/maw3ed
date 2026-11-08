@@ -2,6 +2,7 @@ import { effectiveEmail, mailGreetingName } from '@/server/domain/contactEmail';
 import { REMINDABLE_STATUSES } from '@/server/domain/appointmentStatus';
 import { bookingEmailPlan } from '@/server/domain/bookingPlan';
 import { buildIcs } from '@/server/domain/ics';
+import { confirmedBeforeReminder } from '@/server/domain/reminderConfirmed';
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { expiryFor, signToken } from '@/server/domain/tokens';
 import { getServerEnv, misconfiguredError, requireLinkSecret } from '@/server/env';
@@ -206,6 +207,8 @@ export async function runReminders(
     const rendered = renderReminderEmail({
       kind: job.kind,
       links: bookingPlan?.links,
+      // H24 / H2 only. Both timestamps are immutable once set, so a retried send renders the same bytes.
+      confirmed: job.kind !== 'BOOKING' && confirmedBeforeReminder(a.confirmedAt, job.dueAt),
       reference: job.kind === 'BOOKING' ? a.reference : undefined,
       reminderPromise: bookingPlan?.reminderPromise,
       locale: c.business.locale,

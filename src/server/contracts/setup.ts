@@ -89,6 +89,7 @@ export const BusinessDto = registry.register(
     category: z.string().nullable().openapi({ description: 'A category key, or legacy free text.' }),
     area: z.string().nullable(),
     address: z.string().nullable(),
+    logoUrl: z.string().nullable().openapi({ description: 'Versioned public logo url, or null when there is none.' }),
     listed: z.boolean(),
     deposit: z.object({
       enabled: z.boolean(),

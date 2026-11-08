@@ -139,9 +139,24 @@ model Business {
   offers        WaitlistOffer[]
   baseline      PilotBaseline?
   payments      Payment[]
+  logo          BusinessLogo?
 
   /// Public directory filters (listed first: only opted-in businesses are read).
   @@index([listed, area, category])
+}
+
+/// The public logo of a business: one processed 256x256 WebP (no EXIF, no personal data). Kept out of Business so
+/// Business queries never load image bytes. `hash` (sha256 of `bytes`) is the public version and the ETag.
+model BusinessLogo {
+  businessId String   @id
+  mime       String
+  bytes      Bytes
+  width      Int
+  height     Int
+  hash       String
+  updatedAt  DateTime @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -406,6 +421,8 @@ model Appointment {
   @@index([businessId, startAt])
   @@index([businessId, clientId, startAt])
   @@index([businessId, status, startAt])
+  /// PR-10: popular-service demand counts appointments created in a window.
+  @@index([businessId, createdAt])
 }
 
 model ReminderJob {

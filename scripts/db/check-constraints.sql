@@ -82,5 +82,20 @@ BEGIN
     RAISE EXCEPTION 'MISSING: Appointment_businessId_idempotencyKey_key unique index';
   END IF;
 
-  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key, partial indexes, staff-login and reference guarantees are present';
+  -- Business logo (PR-10b): its own table with the cascade, and the demand-count index.
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'BusinessLogo_businessId_fkey' AND contype = 'f' AND confdeltype = 'c'
+      AND connamespace = current_schema()::regnamespace
+  ) THEN
+    RAISE EXCEPTION 'MISSING: BusinessLogo_businessId_fkey (ON DELETE CASCADE)';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_indexes WHERE schemaname = current_schema()
+      AND indexname = 'Appointment_businessId_createdAt_idx'
+  ) THEN
+    RAISE EXCEPTION 'MISSING: Appointment_businessId_createdAt_idx';
+  END IF;
+
+  RAISE NOTICE 'OK: appointment_no_overlap, reminder unique key, partial indexes, staff-login, reference and logo guarantees are present';
 END $$;

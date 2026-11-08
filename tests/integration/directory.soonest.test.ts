@@ -80,6 +80,7 @@ describe('sort=soonest: ranking', () => {
         'category',
         'freeTimes',
         'fromPrice',
+        'logoUrl',
         'name',
         'nextFree',
         'serviceCount',

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { monogram } from './monogram';
+import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 import { cn } from '@/lib/cn';
 
 export type BusinessHeroProps = {
@@ -8,21 +8,18 @@ export type BusinessHeroProps = {
   meta: ReactNode;
   /** Pill facts, e.g. "Reminders 24 h and 2 h before". */
   facts?: string[];
+  /** Versioned public logo url; null or absent shows the cyan monogram tile. */
+  logoUrl?: string | null | undefined;
   className?: string;
 };
 
 /** Navy hero band with the cyan monogram tile (board 02, palette v2). */
-export function BusinessHero({ name, meta, facts = [], className }: BusinessHeroProps) {
+export function BusinessHero({ name, meta, facts = [], logoUrl, className }: BusinessHeroProps) {
   return (
     // Named, so it is a region landmark and its content is not orphaned outside <main>.
     <section aria-label={name} className={cn('bg-hero text-white', className)}>
       <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-4 px-4 py-5 md:px-8 md:py-[26px]">
-        <div
-          aria-hidden="true"
-          className="flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-cyan text-lg font-bold text-ink md:size-16 md:rounded-tile md:text-[22px]"
-        >
-          {monogram(name)}
-        </div>
+        <BusinessAvatar name={name} logoUrl={logoUrl} size="hero" tone="cyan" priority />
         <div className="flex min-w-0 flex-[1_1_240px] flex-col gap-1">
           <h1 className="text-[22px] leading-tight font-semibold md:text-[26px]">{name}</h1>
           <div className="text-[15px] text-hero-muted">{meta}</div>

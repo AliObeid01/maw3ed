@@ -1,6 +1,7 @@
 import { includeFlags, type DirectoryQueryT } from '@/server/contracts/directory';
 import { FREE_TIMES_MAX } from '@/server/domain/nextFree';
 import { rankSoonest, spreadByCategory } from '@/server/domain/soonest';
+import { logoUrlFor } from '@/lib/business/logoUrl';
 import { AppError } from '@/server/http/errors';
 import { directoryRepo, type DirectoryRow } from '@/server/repositories/directory.repo';
 import { rateLimiter, type RateLimiter } from './rateLimit';
@@ -55,6 +56,7 @@ const plainItem = (b: DirectoryRow) => ({
   address: b.address,
   serviceCount: b.serviceCount,
   fromPrice: b.fromPrice,
+  logoUrl: logoUrlFor(b.slug, b.logoHash),
 });
 
 const liveFields = (live: LiveResult | undefined) => ({

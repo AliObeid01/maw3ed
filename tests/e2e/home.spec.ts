@@ -119,6 +119,31 @@ test('the page is complete: one h1, landmarks, skip link, no overflow', async ({
   await expect(page.locator('meta[property="og:title"]')).toHaveCount(1);
 });
 
+test('PR-10b: a place card shows its logo, falls back to initials when the image fails, and keeps its box', async ({
+  page,
+}) => {
+  const logo = (slug: string) => `/api/public/${slug}/logo?v=0123456789abcdef`;
+  // 1x1 transparent GIF bytes are enough: the browser decodes them as a valid image of any declared size.
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  await page.route('**/api/public/*/logo*', (route) =>
+    route.request().url().includes('/abu-karam/')
+      ? route.fulfill({ status: 200, contentType: 'image/gif', body: pixel })
+      : route.fulfill({ status: 404, contentType: 'application/json', body: '{}' }),
+  );
+  await mockHome(page, {
+    directory: [barber({ logoUrl: logo('abu-karam') }), { ...fade, logoUrl: logo('fade-lab') }],
+  });
+  await page.goto('/');
+  const abu = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Abu Karam Barbershop' }) });
+  await expect(abu.locator('img')).toHaveAttribute('src', logo('abu-karam'));
+  await expect(abu.locator('img')).toHaveAttribute('width', '46');
+  const lab = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Fade Lab' }) });
+  await expect(lab.locator('img')).toHaveCount(0);
+  await expect(lab.getByText('FL', { exact: true })).toBeVisible();
+  expect((await lab.getByText('FL', { exact: true }).boundingBox())!.width).toBe(46);
+  await expectNoPageOverflow(page);
+});
+
 test('the language toggle switches to Arabic and flips the direction', async ({ page }) => {
   await mockHome(page);
   await page.goto('/');

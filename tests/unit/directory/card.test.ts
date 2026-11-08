@@ -10,6 +10,7 @@ const base: DirectoryBusiness = {
   category: 'hair-salons',
   area: 'beirut',
   address: 'Hamra Street',
+  logoUrl: null,
   serviceCount: 6,
   fromPrice: 12.5,
   timezone: 'Asia/Beirut',

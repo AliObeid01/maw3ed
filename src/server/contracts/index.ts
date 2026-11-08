@@ -11,5 +11,6 @@ import './waitlist';
 import './directory';
 import './billing';
 import './deposit';
+import './logo';
 
 export { buildOpenApiDocument, registry } from './registry';

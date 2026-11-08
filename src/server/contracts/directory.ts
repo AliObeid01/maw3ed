@@ -131,6 +131,10 @@ export const DirectoryDto = registry.register(
         category: z.string().nullable(),
         area: z.string().nullable(),
         address: z.string().nullable(),
+        logoUrl: z.string().nullable().openapi({
+          description:
+            'Versioned public logo url (`/api/public/<slug>/logo?v=<hash>`), or null: show the initials monogram. Present in every include mode.',
+        }),
         serviceCount: z.number().int(),
         fromPrice: z.number().nullable().openapi({ description: 'Cheapest active service price.' }),
         timezone: z.string().optional().openapi({

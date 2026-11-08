@@ -16,6 +16,8 @@ export interface CurrentSession {
   businessId: string;
   businessName: string;
   businessSlug: string;
+  /** Versioned public logo url, or null (initials are shown instead). */
+  logoUrl: string | null;
   timezone: string;
   role: RoleName;
 }

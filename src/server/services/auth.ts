@@ -6,6 +6,8 @@ import { AppError, fromDbError } from '@/server/http/errors';
 import type { RouteContext, SessionContext } from '@/server/http/withRoute';
 import { accountRepo } from '@/server/repositories/account.repo';
 import { businessRepo } from '@/server/repositories/business.repo';
+import { businessLogoRepo } from '@/server/repositories/businessLogo.repo';
+import { logoUrlFor } from '@/lib/business/logoUrl';
 import { membershipRepo } from '@/server/repositories/membership.repo';
 import { userRepo } from '@/server/repositories/user.repo';
 import { loginGuard, type LoginGuard } from './loginGuard';
@@ -214,9 +216,10 @@ export const authService = {
   async current(token: string) {
     const resolved = await sessionService.resolve(token);
     if (!resolved) return null;
-    const [user, business] = await Promise.all([
+    const [user, business, logoHash] = await Promise.all([
       userRepo.findById(resolved.userId),
       businessRepo.findById(resolved.businessId),
+      businessLogoRepo.hashFor(resolved.businessId),
     ]);
     if (!user || !business) return null;
     return {
@@ -228,6 +231,7 @@ export const authService = {
       businessId: business.id,
       businessName: business.name,
       businessSlug: business.slug,
+      logoUrl: logoUrlFor(business.slug, logoHash),
       timezone: business.timezone,
       role: resolved.role,
     };

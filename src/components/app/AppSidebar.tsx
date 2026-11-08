@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
 import { LanguageToggle } from '@/components/public/LanguageToggle';
-import { monogram } from '@/components/public/monogram';
 import { ButtonLink } from '@/components/ui/Button';
+import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 import { CountBadge } from '@/components/ui/CountBadge';
 import { cn } from '@/lib/cn';
 import {
@@ -21,7 +21,7 @@ import {
   type NavId,
 } from './nav';
 
-export type ShellBusiness = { name: string; subtitle: string };
+export type ShellBusiness = { name: string; subtitle: string; logoUrl?: string | null };
 
 type Props = {
   business: ShellBusiness;
@@ -137,12 +137,7 @@ export function AppSidebar({
       </Link>
 
       <div className="flex items-center gap-2.5 rounded-2xl bg-canvas p-2.5">
-        <span
-          aria-hidden="true"
-          className="flex size-9 shrink-0 items-center justify-center rounded-nav bg-cyan text-sm font-bold text-ink"
-        >
-          {monogram(business.name)}
-        </span>
+        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={36} tone="cyan" priority />
         <span className="flex min-w-0 flex-col">
           <span className="truncate text-[15px] font-semibold">{business.name}</span>
           <span className="truncate text-xs text-muted">{business.subtitle}</span>

@@ -10,6 +10,6 @@ export const dynamic = 'force-dynamic';
  * `{ completed: boolean }`, never cached (withRoute sets `Cache-Control: no-store`).
  */
 export const GET = withRoute(
-  { auth: 'public', rateLimit: { policy: 'linkRead' }, params: LinkParams, query: NoQuery },
+  { auth: 'public', rateLimit: { policy: 'linkOutcome' }, params: LinkParams, query: NoQuery },
   async ({ params }) => ok(await linksService.outcome(params.token)),
 );

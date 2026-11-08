@@ -33,6 +33,7 @@ export const loadSession = cache(async function loadSession(): Promise<CurrentSe
         businessId: 'e2e-business',
         businessName: 'Studio Nour',
         businessSlug: 'studio-nour',
+        logoUrl: (await cookies()).get('e2e_logo')?.value === '1' ? '/api/public/studio-nour/logo?v=0123456789abcdef' : null,
         timezone: 'Asia/Beirut',
         role,
       };

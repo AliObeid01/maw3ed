@@ -2,6 +2,8 @@ import { normalizePhone } from '@/server/domain/phone';
 import { AppError } from '@/server/http/errors';
 import type { RouteContext } from '@/server/http/withRoute';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
+import { businessLogoRepo } from '@/server/repositories/businessLogo.repo';
+import { logoUrlFor } from '@/lib/business/logoUrl';
 import { availabilityService } from './availability';
 import { createHmac } from 'node:crypto';
 import { requireLinkSecret } from '@/server/env';
@@ -20,7 +22,10 @@ export const publicBookingService = {
   async getBusiness(ctx: RouteContext, slug: string) {
     const business = await resolve(slug);
     ctx.logger = ctx.logger.child({ businessId: business.id });
-    const { services, staff } = await publicBusinessRepo.catalogue(business.id);
+    const [{ services, staff }, logoHash] = await Promise.all([
+      publicBusinessRepo.catalogue(business.id),
+      businessLogoRepo.hashFor(business.id),
+    ]);
     return {
       business: {
         name: business.name,
@@ -29,6 +34,7 @@ export const publicBookingService = {
         locale: business.locale,
         bookingWindowDays: business.bookingWindowDays,
         cancelCutoffMin: business.cancelCutoffMin,
+        logoUrl: logoUrlFor(business.slug, logoHash),
         ...(business.category ? { category: business.category } : {}),
         ...(business.area ? { area: business.area } : {}),
         ...(business.address ? { address: business.address } : {}),

@@ -73,6 +73,7 @@ describe('GET /api/public/{slug}', () => {
       category: 'Salon',
       area: 'sidon',
       address: 'Hamra, Beirut',
+      logoUrl: null, // PR-10b: null when the business has no logo
     });
     const serviceIds = res.body!.services.map((s: any) => s.id);
     expect(serviceIds).toContain(serviceId);

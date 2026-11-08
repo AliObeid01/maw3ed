@@ -394,8 +394,9 @@ function Row({
         <span>{text.when}</span>
         <span className="text-sm text-muted">{text.what}</span>
       </span>
-      <span>
+      <span className="flex flex-wrap items-center gap-1.5">
         <ReminderChip kind={item.kind} />
+        {item.confirmed ? <StatusChip status="confirmed" /> : null}
       </span>
       <ActionCell
         item={item}

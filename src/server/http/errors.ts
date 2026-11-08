@@ -166,6 +166,16 @@ export function pgErrorCode(error: unknown, depth = 0): string | undefined {
 }
 
 /**
+ * A transient lock failure whose transaction Postgres has already rolled back: 40P01 (deadlock detected, this
+ * statement was the victim) and 55P03 (lock not available). Retrying the WHOLE transaction is safe; retrying
+ * inside the aborted one is not. The slot constraint (23P01) and unique violations are NOT retryable here.
+ */
+export function isRetryableLockError(error: unknown): boolean {
+  const pg = pgErrorCode(error);
+  return pg === '40P01' || pg === '55P03';
+}
+
+/**
  * Every constraint / index / column name a unique-violation error mentions. Depending on the Prisma path
  * they sit in `meta.target`, `meta.driverAdapterError.cause.constraint` (`{ index }` or `{ fields }`) or a
  * plain pg `constraint`, so walk the likely places. Used to tell WHICH unique rule fired (a booking reference

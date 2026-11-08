@@ -4,12 +4,15 @@ import { requireRole } from '@/server/http/auth';
 import { AppError } from '@/server/http/errors';
 import type { SessionContext } from '@/server/http/withRoute';
 import { businessRepo, type BusinessPatch } from '@/server/repositories/business.repo';
+import { businessLogoRepo } from '@/server/repositories/businessLogo.repo';
+import { logoUrlFor } from '@/lib/business/logoUrl';
 import { emailVerificationService } from './emailVerification';
 
 async function load(ctx: SessionContext): Promise<BusinessDtoT> {
-  const [b, setup] = await Promise.all([
+  const [b, setup, logoHash] = await Promise.all([
     businessRepo.findById(ctx.businessId),
     businessRepo.setupFlags(ctx.businessId),
+    businessLogoRepo.hashFor(ctx.businessId),
   ]);
   if (!b) throw AppError.notFound();
   return {
@@ -25,6 +28,7 @@ async function load(ctx: SessionContext): Promise<BusinessDtoT> {
     category: b.category,
     area: b.area,
     address: b.address,
+    logoUrl: logoUrlFor(b.slug, logoHash),
     listed: b.listed,
     deposit: {
       enabled: b.depositEnabled,
