@@ -11,6 +11,7 @@ import { POST as verifyEmail } from '@/app/api/auth/verify-email/route';
 import { GET as inviteGet } from '@/app/api/invites/[token]/route';
 import { POST as inviteAccept } from '@/app/api/invites/[token]/accept/route';
 import { GET as linkGet, POST as linkPost } from '@/app/api/links/[token]/route';
+import { GET as linkOutcome } from '@/app/api/links/[token]/outcome/route';
 import { GET as offerGet } from '@/app/api/offers/[token]/route';
 import { POST as offerClaim } from '@/app/api/offers/[token]/claim/route';
 import { GET as categories } from '@/app/api/public/categories/route';
@@ -101,6 +102,20 @@ const CASES: Case[] = [
     handler: linkGet,
     path: '/api/links/nope',
     opts: { params: { token: 'nope' } },
+  },
+  {
+    // PR-10: the outcome read shares the linkRead budget.
+    policy: 'linkRead',
+    handler: linkOutcome,
+    path: '/api/links/nope/outcome',
+    opts: { params: { token: 'nope' } },
+  },
+  {
+    // PR-10: sort=soonest is a live read like the others.
+    policy: 'directoryLive',
+    handler: directory,
+    path: '/api/public/directory',
+    opts: { query: { include: 'nextFree', sort: 'soonest' } },
   },
   {
     policy: 'linkRead',

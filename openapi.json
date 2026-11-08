@@ -2908,6 +2908,19 @@
           "sentAt"
         ]
       },
+      "LinkOutcome": {
+        "type": "object",
+        "properties": {
+          "completed": {
+            "type": "boolean",
+            "description": "true only when the appointment is ATTENDED. false for every other state (booked, confirmed, cancelled, late cancel, no-show, pending payment, not yet marked, or unknown): the outcome cannot be inferred from it."
+          }
+        },
+        "required": [
+          "completed"
+        ],
+        "additionalProperties": false
+      },
       "OutcomeBody": {
         "type": "object",
         "properties": {
@@ -4615,12 +4628,11 @@
               "string",
               "null"
             ],
-            "description": "Opaque. Pass back as `cursor`."
+            "description": "Opaque. Pass back as `cursor`. Absent with `sort=soonest`."
           }
         },
         "required": [
-          "businesses",
-          "nextCursor"
+          "businesses"
         ]
       },
       "Categories": {
@@ -4728,7 +4740,7 @@
                     ]
                   },
                   "maxItems": 5,
-                  "description": "Top 5 service names by number of businesses offering them."
+                  "description": "Top 5 service names by recent demand: appointments booked in the last 30 days (cancelled and unpaid excluded), then by number of businesses offering them, then cheapest. Counts are never returned."
                 }
               },
               "required": [
@@ -8470,6 +8482,62 @@
         }
       }
     },
+    "/api/links/{token}/outcome": {
+      "get": {
+        "summary": "Was this visit attended? (read-only, works up to 90 days after the start)",
+        "description": "Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ \"completed\": true }` for an ATTENDED appointment and the byte-identical `{ \"completed\": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Shares the `linkRead` per-IP limit.",
+        "tags": [
+          "links"
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 600
+            },
+            "required": true,
+            "name": "token",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Outcome",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (or belongs to another business)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "RATE_LIMITED (Retry-After header)"
+          }
+        }
+      }
+    },
     "/api/reminders/whatsapp-due": {
       "get": {
         "summary": "WhatsApp reminders and last-minute bookings due now, plus those sent in the last 12 hours",
@@ -9986,7 +10054,7 @@
     "/api/public/directory": {
       "get": {
         "summary": "Public directory of opted-in businesses that are ready to take bookings",
-        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.",
+        "description": "Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id (or by soonest free time with sort=soonest). No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.",
         "tags": [
           "public"
         ],
@@ -10085,13 +10153,39 @@
           },
           {
             "schema": {
+              "type": "string",
+              "enum": [
+                "soonest"
+              ],
+              "description": "Only `soonest` (requires `include` to contain `nextFree`). Computes the next free time for the first 24 matching businesses (by name, id: pilot scale, so beyond 24 matches the result is the soonest AMONG those 24), drops the ones with none, orders by that instant (ties by name, id) and returns the first `limit` (default 4, 1 to 12). No cursor: `cursor` is rejected and the response has no `nextCursor`. Unset: name order."
+            },
+            "required": false,
+            "description": "Only `soonest` (requires `include` to contain `nextFree`). Computes the next free time for the first 24 matching businesses (by name, id: pilot scale, so beyond 24 matches the result is the soonest AMONG those 24), drops the ones with none, orders by that instant (ties by name, id) and returns the first `limit` (default 4, 1 to 12). No cursor: `cursor` is rejected and the response has no `nextCursor`. Unset: name order.",
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "category"
+              ],
+              "description": "Only with `sort=soonest`. `category`: round-robin over categories, the soonest business of each category first (categories ordered by their soonest time), then the next-soonest of each, until `limit`."
+            },
+            "required": false,
+            "description": "Only with `sort=soonest`. `category`: round-robin over categories, the soonest business of each category first (categories ordered by their soonest time), then the next-soonest of each, until `limit`.",
+            "name": "spread",
+            "in": "query"
+          },
+          {
+            "schema": {
               "type": "integer",
               "minimum": 1,
               "maximum": 50,
-              "description": "Default 24; default 12 and at most 12 when `include` or `when` is set."
+              "description": "Default 24; default 12 and at most 12 when `include` or `when` is set; default 4 with `sort=soonest`."
             },
             "required": false,
-            "description": "Default 24; default 12 and at most 12 when `include` or `when` is set.",
+            "description": "Default 24; default 12 and at most 12 when `include` or `when` is set; default 4 with `sort=soonest`.",
             "name": "limit",
             "in": "query"
           },

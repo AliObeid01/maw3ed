@@ -1,5 +1,6 @@
 import { includeFlags, type DirectoryQueryT } from '@/server/contracts/directory';
 import { FREE_TIMES_MAX } from '@/server/domain/nextFree';
+import { rankSoonest, spreadByCategory } from '@/server/domain/soonest';
 import { AppError } from '@/server/http/errors';
 import { directoryRepo, type DirectoryRow } from '@/server/repositories/directory.repo';
 import { rateLimiter, type RateLimiter } from './rateLimit';
@@ -34,6 +35,9 @@ export const LIVE_PAGE_SIZE = 12;
 /** `when`: candidates are examined in batches of this size, and at most SCAN_BUDGET per request. */
 export const SCAN_BATCH = 12;
 export const SCAN_BUDGET = 36;
+/** `sort=soonest`: at most this many businesses (name, id order) have their slots computed per request. */
+export const SOONEST_CANDIDATES = 24;
+export const SOONEST_DEFAULT_LIMIT = 4;
 /** `include=services`: services listed per business. */
 export const SERVICES_MAX = 4;
 
@@ -61,6 +65,82 @@ const liveFields = (live: LiveResult | undefined) => ({
   freeTimes: (live?.nextFree?.freeTimes ?? []).slice(0, FREE_TIMES_MAX).map((d) => d.toISOString()),
 });
 
+type Flags = ReturnType<typeof includeFlags>;
+
+/**
+ * `sort=soonest`. The filtered listed + ready candidates (search, service, area, category, when) are taken in
+ * directory order (name, id) and capped at SOONEST_CANDIDATES: beyond that many matches the answer is the
+ * soonest AMONG the first 24, which is exact at pilot scale and keeps the cost fixed (one batched load plus at
+ * most 24 slot computations at LIVE_CONCURRENCY). Businesses with no free time are dropped, the rest are ranked
+ * by next-free instant (pure rankSoonest), optionally spread round-robin over categories, and cut to `limit`.
+ * There is no cursor: the page is the whole answer.
+ */
+async function soonestList(
+  query: DirectoryQueryT,
+  flags: Flags,
+  ip: string | undefined,
+  deps: DirectoryDeps,
+) {
+  if (!flags.nextFree)
+    throw AppError.validation({ include: 'sort=soonest needs include=nextFree.' });
+  if (query.cursor !== undefined)
+    throw AppError.validation({ cursor: 'sort=soonest does not paginate: remove cursor.' });
+  const limit = query.limit ?? SOONEST_DEFAULT_LIMIT;
+  if (limit > LIVE_PAGE_SIZE)
+    throw AppError.validation({ limit: `At most ${LIVE_PAGE_SIZE} when include or when is set.` });
+  await consumeLiveBudget(deps.limiter, ip);
+  const now = deps.now();
+  if (
+    query.when !== undefined &&
+    whenOutsideEveryWindow(query.when, now, await directoryRepo.maxBookingWindowDays())
+  )
+    return { businesses: [] };
+  const rows = await directoryRepo.list({
+    search: query.search,
+    category: query.category,
+    area: query.area,
+    service: query.service,
+    take: SOONEST_CANDIDATES,
+  });
+  const lives = await liveNextFree(
+    rows.map((r) => r.id),
+    now,
+    query.when,
+  );
+  const ranked = rankSoonest(
+    rows.flatMap((row) => {
+      const live = lives.get(row.id);
+      return live?.nextFree
+        ? [
+            {
+              id: row.id,
+              name: row.name,
+              category: row.category,
+              startAt: live.nextFree.startAt,
+              row,
+              live,
+            },
+          ]
+        : [];
+    }),
+  );
+  const picked =
+    query.spread === 'category' ? spreadByCategory(ranked, limit) : ranked.slice(0, limit);
+  const svc = flags.services
+    ? await directoryRepo.servicesFor(
+        picked.map((p) => p.id),
+        SERVICES_MAX,
+      )
+    : undefined;
+  return {
+    businesses: picked.map(({ row, live }) => ({
+      ...plainItem(row),
+      ...liveFields(live),
+      ...(svc ? { services: svc.get(row.id) ?? [] } : {}),
+    })),
+  };
+}
+
 export const directoryService = {
   /**
    * Public. Only listed businesses that still meet readiness; no owner, staff or client data.
@@ -74,6 +154,9 @@ export const directoryService = {
    */
   async list(query: DirectoryQueryT, ip?: string, deps: DirectoryDeps = defaults) {
     const flags = includeFlags(query.include);
+    if (query.sort === 'soonest') return soonestList(query, flags, ip, deps);
+    if (query.spread !== undefined)
+      throw AppError.validation({ spread: 'spread needs sort=soonest.' });
     const live = flags.nextFree || flags.services || query.when !== undefined;
     const limit = query.limit ?? (live ? LIVE_PAGE_SIZE : 24);
     if (live && limit > LIVE_PAGE_SIZE)
@@ -107,7 +190,10 @@ export const directoryService = {
           )
         : undefined;
       const svc = flags.services
-        ? await directoryRepo.servicesFor(page.map((r) => r.id), SERVICES_MAX)
+        ? await directoryRepo.servicesFor(
+            page.map((r) => r.id),
+            SERVICES_MAX,
+          )
         : undefined;
       return {
         businesses: page.map((b) => ({
@@ -149,7 +235,10 @@ export const directoryService = {
       cursor = lastExamined ? { name: lastExamined.name, id: lastExamined.id } : cursor;
     }
     const svc = flags.services
-      ? await directoryRepo.servicesFor(matches.map((m) => m.row.id), SERVICES_MAX)
+      ? await directoryRepo.servicesFor(
+          matches.map((m) => m.row.id),
+          SERVICES_MAX,
+        )
       : undefined;
     const more = rowsLeftInBatch || !exhausted;
     return {

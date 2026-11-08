@@ -8,6 +8,8 @@ import { rateLimiter, type RateLimiter } from './rateLimit';
 /** The category panel computes slots for the first N businesses of each category only (directory order). */
 export const CATEGORY_LIVE_BUSINESSES = 6;
 export const POPULAR_SERVICES = 5;
+/** Popular services are ranked by appointments booked in this many days before `now`. */
+export const POPULAR_WINDOW_DAYS = 30;
 
 export interface CategoriesDeps {
   now: () => Date;
@@ -26,7 +28,13 @@ export const categoriesService = {
     const now = deps.now();
     const [totals, popular, top] = await Promise.all([
       directoryRepo.categoryTotals(query.area, CATEGORY_KEYS),
-      directoryRepo.popularServices(query.area, CATEGORY_KEYS, POPULAR_SERVICES),
+      directoryRepo.popularServices(
+        query.area,
+        CATEGORY_KEYS,
+        POPULAR_SERVICES,
+        now,
+        POPULAR_WINDOW_DAYS,
+      ),
       directoryRepo.topBusinessIds(query.area, CATEGORY_KEYS, CATEGORY_LIVE_BUSINESSES),
     ]);
     const lives = await liveNextFree(

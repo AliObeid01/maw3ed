@@ -89,6 +89,15 @@ describe('token API routes and body.sig pairs (4)', () => {
     },
   );
 
+  it('PR-10: /api/links/<view token>/outcome is templated and keeps the trailing segment', () => {
+    const t = realToken('a');
+    expect(scrubString(`GET /api/links/${t}/outcome 200`)).toBe('GET /api/links/[token]/outcome 200');
+    expect(scrubUrl(`https://maw3ed.com/api/links/${t}/outcome?x=1`)).toBe(
+      'https://maw3ed.com/api/links/[token]/outcome',
+    );
+    expect(scrubString(`${t}`)).toBe('[token]');
+  });
+
   it('catches a bare body.sig pair whose halves are 20+ characters, anywhere', () => {
     const t = realToken();
     expect(scrubString(`bad token ${t} given`)).toBe('bad token [token] given');

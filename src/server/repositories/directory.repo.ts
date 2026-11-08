@@ -110,23 +110,49 @@ export const directoryRepo = {
   },
 
   /**
-   * Top services per category: a service counts once per business that offers it (name compared
-   * case-insensitively), ranked by number of businesses, then cheapest, then name. Top `perCategory` per key.
+   * Top services per category, ranked by RECENT DEMAND: the number of appointments created in the
+   * `windowDays` before `now` (BOOKED, CONFIRMED, ATTENDED, NO_SHOW, LATE_CANCEL; not CANCELLED, not
+   * PENDING_PAYMENT) for ACTIVE services of listed + ready businesses whose normalised name (lower(btrim))
+   * matches, within the category and the optional area. Ties: number of businesses offering it (desc), lowest
+   * from-price, then the key. The counts only order the result and are never returned. `now` is injected.
    */
-  async popularServices(area: string | undefined, keys: readonly string[], perCategory: number) {
+  async popularServices(
+    area: string | undefined,
+    keys: readonly string[],
+    perCategory: number,
+    now: Date,
+    windowDays: number,
+  ) {
+    const since = new Date(now.getTime() - windowDays * 86_400_000);
     const rows = await db.$queryRaw<
       { category: string; name: string; fromPrice: Prisma.Decimal | string | number }[]
     >`
-      WITH base AS (
-        SELECT lower(b."category") AS category, lower(btrim(s."name")) AS key, min(s."name") AS name,
-          count(DISTINCT b."id") AS businesses, min(s."price") AS "fromPrice"
+      WITH shops AS (
+        SELECT b."id", lower(b."category") AS category
         FROM "Business" b
-        JOIN "Service" s ON s."businessId" = b."id" AND s."active"
         WHERE b."listed" AND ${READY} AND lower(b."category") = ANY(${keys as string[]}::text[]) ${areaClause(area)}
-        GROUP BY lower(b."category"), lower(btrim(s."name"))
+      ), base AS (
+        SELECT sh.category, lower(btrim(s."name")) AS key, min(btrim(s."name")) AS name,
+          count(DISTINCT sh."id") AS businesses, min(s."price") AS "fromPrice"
+        FROM shops sh
+        JOIN "Service" s ON s."businessId" = sh."id" AND s."active"
+        GROUP BY sh.category, lower(btrim(s."name"))
+      ), demand AS (
+        SELECT sh.category, lower(btrim(s."name")) AS key, count(*) AS bookings
+        FROM shops sh
+        JOIN "Service" s ON s."businessId" = sh."id" AND s."active"
+        JOIN "Appointment" a ON a."businessId" = sh."id" AND a."serviceId" = s."id"
+          AND a."status" IN ('BOOKED', 'CONFIRMED', 'ATTENDED', 'NO_SHOW', 'LATE_CANCEL')
+          AND a."createdAt" >= ${since}
+        GROUP BY sh.category, lower(btrim(s."name"))
       ), ranked AS (
-        SELECT *, row_number() OVER (PARTITION BY category ORDER BY businesses DESC, "fromPrice" ASC, key ASC) AS rn
+        SELECT base.category, base.key, base.name, base."fromPrice",
+          row_number() OVER (
+            PARTITION BY base.category
+            ORDER BY coalesce(demand.bookings, 0) DESC, base.businesses DESC, base."fromPrice" ASC, base.key ASC
+          ) AS rn
         FROM base
+        LEFT JOIN demand ON demand.category = base.category AND demand.key = base.key
       )
       SELECT category, name, "fromPrice" FROM ranked WHERE rn <= ${perCategory} ORDER BY category, rn`;
     return rows.map((r) => ({
@@ -141,9 +167,15 @@ export const directoryRepo = {
    * Public fields only: name, duration, price.
    */
   async servicesFor(ids: readonly string[], perBusiness: number) {
-    if (ids.length === 0) return new Map<string, { name: string; durationMin: number; price: number }[]>();
+    if (ids.length === 0)
+      return new Map<string, { name: string; durationMin: number; price: number }[]>();
     const rows = await db.$queryRaw<
-      { businessId: string; name: string; durationMin: number; price: Prisma.Decimal | string | number }[]
+      {
+        businessId: string;
+        name: string;
+        durationMin: number;
+        price: Prisma.Decimal | string | number;
+      }[]
     >`
       SELECT "businessId", "name", "durationMin", "price" FROM (
         SELECT s."businessId", s."name", s."durationMin", s."price",
