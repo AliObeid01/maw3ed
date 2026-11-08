@@ -1,5 +1,16 @@
 @import 'tailwindcss';
 
+/* Motion tokens (PR-12). Subtle and fast: 150 to 400 ms, one ease-out curve, only transform and opacity move.
+   `static` so they are always emitted (they are read by plain CSS below, not by utilities). */
+@theme static {
+  --motion-fast: 150ms; /* hover, press, small state changes */
+  --motion-base: 220ms; /* fades, panel switch, sheets */
+  --motion-slow: 400ms; /* reveal on scroll */
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-rise: 12px; /* distance of the reveal rise (vertical only, so RTL needs no mirroring) */
+  --motion-stagger: 60ms; /* delay per step in a group */
+}
+
 @theme {
   /* Palette v2 (blue), approved 3 Nov 2026. Reference: the standalone maw3ed-palette-sample.html (design only).
      Flat fills only: no gradients, glows or gradient text. Cyan and Turquoise are NEVER text on white and never carry white text. */
@@ -66,10 +77,40 @@
   --radius-chip: 8px;
   --radius-pill: 999px; /* Switch, avatars, count badges and dots only */
 
-  --animate-sheet-in: sheet-in 220ms ease-out;
-  --animate-dialog-in: dialog-in 180ms ease-out;
-  --animate-fade-in: fade-in 180ms ease-out;
-  --animate-rise-in: rise-in 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  --animate-sheet-in: sheet-in var(--motion-base) var(--motion-ease);
+  --animate-dialog-in: dialog-in var(--motion-base) var(--motion-ease);
+  --animate-fade-in: fade-in var(--motion-base) var(--motion-ease);
+  --animate-rise-in: rise-in var(--motion-slow) var(--motion-ease) both;
+
+  /* These three had a name but no keyframes (so they never ran): sheets, dialogs, popovers and the category panel. */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   @keyframes rise-in {
     from {
@@ -98,10 +139,19 @@
     scroll-padding-top: 5.5rem;
   }
 
-  /* Smooth anchor scrolling only for people who have not asked for less motion. */
+  /* Smooth anchor scrolling, and the link underline offset easing out, only for people who have not asked for less
+     motion. (In the base layer on purpose: a link's own `transition-colors` utility wins over this.) */
   @media (prefers-reduced-motion: no-preference) {
     html {
       scroll-behavior: smooth;
+    }
+    a {
+      transition:
+        text-underline-offset var(--motion-fast) var(--motion-ease),
+        text-decoration-color var(--motion-fast) var(--motion-ease);
+    }
+    a:hover {
+      text-underline-offset: 0.28em;
     }
   }
 
@@ -132,13 +182,150 @@
     outline-offset: 2px;
   }
 
+  /* The one global safety net: with reduced motion every animation and transition is instant and runs once, with no
+     delay, and scrolling never smooths. (Reveal, row-in and the press/lift rules below are also gated to no-preference.) */
   @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto !important;
+    }
     *,
     *::before,
     *::after {
       animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
     }
+  }
+}
+
+/* ---- Motion (PR-12). Unlayered on purpose: it must win over the layered utilities on the same element, so each rule
+   lists every property it transitions. Only `transform` and `opacity` move; nothing animates layout, so no CLS.
+   No `will-change` anywhere. Everything is inside `prefers-reduced-motion: no-preference`. ---- */
+
+/* Stagger position, set by a data attribute (never an inline style). */
+[data-step='1'] { --step: 1; }
+[data-step='2'] { --step: 2; }
+[data-step='3'] { --step: 3; }
+[data-step='4'] { --step: 4; }
+[data-step='5'] { --step: 5; }
+[data-step='6'] { --step: 6; }
+
+@keyframes row-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Reveal on scroll (src/components/ui/Reveal.tsx). The server HTML carries no data-revealed, so it is fully
+     visible; the client sets it to "false" only for a block that starts below the fold. */
+  [data-revealed='false'] {
+    opacity: 0;
+    transform: translateY(var(--motion-rise));
+    transition: none;
+  }
+  [data-revealed='true'] {
+    transition:
+      opacity var(--motion-slow) var(--motion-ease),
+      transform var(--motion-slow) var(--motion-ease);
+    transition-delay: calc(var(--step, 0) * var(--motion-stagger));
+  }
+
+  /* Rows or chips that arrive with data: fade and rise, 60 ms apart. */
+  .motion-row-in {
+    animation: row-in var(--motion-base) var(--motion-ease) both;
+    animation-delay: calc(var(--step, 0) * var(--motion-stagger));
+  }
+  /* A soft fade for a thing that appears (new entry, chip, confirmation). */
+  .motion-fade-in {
+    animation: fade-in var(--motion-base) var(--motion-ease) both;
+  }
+  /* Check mark drawn once (SVG path with pathLength 24 and a 24 dash). */
+  .motion-check path {
+    stroke-dasharray: 24;
+    animation: check-draw var(--motion-slow) var(--motion-ease) 120ms both;
+  }
+
+  /* Press feedback on buttons and chips (all pointers). */
+  .motion-press {
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+  }
+  .motion-press:not(:disabled):not([aria-disabled='true']):active {
+    transform: scale(0.98);
+  }
+
+  /* Active tab indicator of the phone tab bar slides (transform only). */
+  .motion-slide {
+    transition: transform var(--motion-base) var(--motion-ease), translate var(--motion-base) var(--motion-ease);
+  }
+
+  /* Scrolled header: a soft shadow fades in via a pseudo-element's opacity (no layout change). */
+  [data-scrolled]::after {
+    transition: opacity var(--motion-base) var(--motion-ease);
+  }
+}
+
+/* Hover and focus lift: pointer devices only (a finger would leave the card raised). */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .motion-lift {
+    transition-property: color, background-color, border-color, opacity, transform, box-shadow;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
+  }
+  .motion-lift:hover,
+  .motion-lift:focus-visible {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 2px rgb(11 25 56 / 0.06),
+      0 8px 18px -6px rgb(11 25 56 / 0.18);
+  }
+  .motion-lift:has(:focus-visible) {
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 2px rgb(11 25 56 / 0.06),
+      0 8px 18px -6px rgb(11 25 56 / 0.18);
+  }
+  .motion-lift:active {
+    transform: translateY(0) scale(0.99);
+  }
+}
+
+/* The shadow under a scrolled header (opacity is the only thing that changes; the ring is part of the bar). */
+[data-scrolled]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  box-shadow: 0 8px 14px -10px rgb(11 25 56 / 0.35);
+  opacity: 0;
+}
+[data-scrolled='true']::after {
+  opacity: 1;
+}
+
+/* Paper and screenshots of the whole page: never print a block waiting to be revealed. */
+@media print {
+  [data-revealed] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
   }
 }
 

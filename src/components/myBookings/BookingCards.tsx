@@ -236,16 +236,16 @@ export function UpcomingCard({
   }
 
   return (
-    <Card as="li" padding="compact" className="flex min-w-0 flex-col gap-4" data-testid="upcoming-card">
+    <Card as="li" padding="compact" className="motion-fade-in flex min-w-0 flex-col gap-4" data-testid="upcoming-card">
       <Summary
         entry={entry}
         chip={
           entry.payToken && !holdOver ? (
-            <Chip tone="warning" data-testid="deposit-chip" className="px-3 py-1.5 text-[13px]">
+            <Chip tone="warning" data-testid="deposit-chip" className="motion-fade-in px-3 py-1.5 text-[13px]">
               {t('deposit.chip')}
             </Chip>
           ) : chipInfo ? (
-            <Chip tone={chipInfo.tone} data-testid="status-chip" className="px-3 py-1.5 text-[13px]">
+            <Chip tone={chipInfo.tone} data-testid="status-chip" className="motion-fade-in px-3 py-1.5 text-[13px]">
               {t(`status.${chipInfo.key}`)}
             </Chip>
           ) : state?.phase === 'error' ? null : (
@@ -328,7 +328,7 @@ export function UpcomingCard({
 export function PastCard({ entry }: { entry: SavedBooking }) {
   const t = useTranslations('myBookings');
   return (
-    <Card as="li" padding="compact" className="flex min-w-0 flex-col gap-3" data-testid="past-card">
+    <Card as="li" padding="compact" className="motion-fade-in flex min-w-0 flex-col gap-3" data-testid="past-card">
       <Summary
         entry={entry}
         chip={
@@ -337,7 +337,7 @@ export function PastCard({ entry }: { entry: SavedBooking }) {
               {t('status.cancelled')}
             </Chip>
           ) : entry.completed ? (
-            <Chip tone="success" data-testid="completed-chip" className="gap-1.5 px-3 py-1.5 text-[13px]">
+            <Chip tone="success" data-testid="completed-chip" className="motion-fade-in gap-1.5 px-3 py-1.5 text-[13px]">
               <Check size={14} strokeWidth={3} aria-hidden="true" />
               {t('status.completed')}
             </Chip>

@@ -3,6 +3,7 @@ import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Chip } from '@/components/ui/Chip';
+import { Reveal } from '@/components/ui/Reveal';
 import { FREE_FEATURES, PRO_FEATURES } from '@/components/pricing/planCopy';
 import { BOOKABLE_STAFF_LIMIT, PLAN_PRICE } from '@/server/domain/plan';
 
@@ -37,6 +38,7 @@ export function PricingTeaser() {
         </div>
 
         <div className="mt-10 grid gap-5 md:grid-cols-2">
+          <Reveal className="grid">
           <article aria-labelledby="teaser-free" className="grid content-start gap-[18px] rounded-[24px] bg-surface p-7">
             <div>
               <h3 id="teaser-free" className="m-0 text-[22px] font-bold">{t('pricing.free.name')}</h3>
@@ -52,7 +54,9 @@ export function PricingTeaser() {
               ))}
             </ul>
           </article>
+          </Reveal>
 
+          <Reveal step={1} className="grid">
           <article aria-labelledby="teaser-pro" className="grid content-start gap-[18px] rounded-[24px] bg-navy p-7 text-white">
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -75,9 +79,11 @@ export function PricingTeaser() {
             </ul>
             <p className="m-0 text-center text-[13px] text-hero-muted">{t('pricing.testNote')}</p>
           </article>
+          </Reveal>
         </div>
 
-        <section aria-labelledby="includes-title" className="mt-5 rounded-[24px] bg-surface p-7">
+        <Reveal className="mt-5">
+        <section aria-labelledby="includes-title" className="rounded-[24px] bg-surface p-7">
           <h3 id="includes-title" className="m-0 text-lg font-semibold">{t('home.pricing.includesTitle')}</h3>
           <ul className="m-0 mt-4 grid list-none gap-3.5 p-0 sm:grid-cols-2 lg:grid-cols-4">
             {INCLUDED.map((k) => (
@@ -85,6 +91,7 @@ export function PricingTeaser() {
             ))}
           </ul>
         </section>
+        </Reveal>
 
         <Link href="/pricing" className={buttonClasses({ variant: 'navy', size: 'hero', className: 'mt-7' })}>
           {t('home.pricing.seeAll')}

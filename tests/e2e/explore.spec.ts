@@ -48,8 +48,9 @@ test.describe('explore: results and cards', () => {
     await expect(chips).toHaveCount(2);
     await expect(chips.nth(1)).toContainText('Beard trim');
     await expect(chips.nth(1)).toContainText('12.50 USD');
-    await expect(c).toContainText('Free today');
-    await expect(c).toContainText(/for ⁨?Haircut/);
+    const label = c.getByTestId('free-label');
+    await expect(label.getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Haircut⁩?$/);
+    await expect(label.getByTestId('free-label-day')).toHaveText('Today');
     // HH:mm in the business zone, up to four, linking to the booking page.
     const times = c.getByRole('link', { name: /^\d\d:\d\d at / });
     await expect(times).toHaveText(['15:30', '16:00', '17:30', '18:00']);
@@ -58,7 +59,7 @@ test.describe('explore: results and cards', () => {
     await expect(book).toHaveAttribute('href', '/b/abu-karam');
     expect((await book.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     // Tomorrow's day label and a business with no free times (quiet wording, never "fully booked").
-    await expect(card(page, 'Fade Lab')).toContainText('Free tomorrow');
+    await expect(card(page, 'Fade Lab').getByTestId('free-label-day')).toHaveText('Tomorrow');
     const none = card(page, 'Studio Nour');
     await expect(none).toContainText('No free times soon');
     await expect(page.locator('body')).not.toContainText(/fully booked|no availability|sold out/i);
@@ -549,7 +550,8 @@ test.describe('explore: Arabic', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'استكشف الأنشطة التجارية' })).toBeVisible();
     const c = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Abu Karam Barbershop' }) });
     await expect(c).toContainText('الحلاقون · صيدا');
-    await expect(c).toContainText('متاح اليوم');
+    await expect(c.getByTestId('free-label-service')).toContainText('أوقات متاحة لخدمة');
+    await expect(c.getByTestId('free-label-day')).toHaveText('اليوم');
     await expect(c.getByRole('link', { name: /15:30/ })).toBeVisible();
     await expect(c.getByRole('link', { name: /^عرض واحجز لدى/ })).toBeVisible();
     await expect(page.getByTestId('explore-count')).toHaveText(/^عرض /);

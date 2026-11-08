@@ -2,6 +2,7 @@ import { BellRing, CalendarClock, Check, ChevronDown, Users, X } from 'lucide-re
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
+import { Reveal } from '@/components/ui/Reveal';
 
 const STEPS = [
   { id: 'choose', Icon: Users },
@@ -39,7 +40,7 @@ export function HowItWorks() {
       <h2 className="sr-only">{t('stepsTitle')}</h2>
       <ol className="m-0 mt-9 grid list-none gap-4 p-0 md:grid-cols-3">
         {STEPS.map(({ id, Icon }, i) => (
-          <li key={id} className="grid content-start gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[26px]">
+          <Reveal as="li" key={id} step={i} className="grid content-start gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[26px]">
             <div className="flex items-center justify-between">
               <span aria-hidden="true" className="grid size-[58px] place-items-center rounded-[18px] bg-mint/20">
                 <Icon size={28} />
@@ -53,12 +54,12 @@ export function HowItWorks() {
               {t(`steps.${id}.title`)}
             </h3>
             <p className="m-0 text-muted">{t(`steps.${id}.body`)}</p>
-          </li>
+          </Reveal>
         ))}
       </ol>
 
       <div id="reminders" className="mt-[72px] grid scroll-mt-4 items-center gap-10 lg:grid-cols-2 lg:gap-[72px]">
-        <div>
+        <Reveal>
           <h2 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
             {t('reminderTitle')}
           </h2>
@@ -70,8 +71,9 @@ export function HowItWorks() {
               </li>
             ))}
           </ul>
-        </div>
+        </Reveal>
 
+        <Reveal step={1}>
         <div aria-hidden="true" data-testid="email-preview" className="grid gap-3.5 rounded-[22px] border-[1.5px] border-divider bg-surface p-[22px]">
           <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-muted">
             <span className="flex items-center gap-3">
@@ -98,9 +100,11 @@ export function HowItWorks() {
             </span>
           </div>
         </div>
+        </Reveal>
       </div>
 
       <div id="faq" className="mt-16 max-w-[760px] scroll-mt-4">
+        <Reveal>
         <h2 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
           {t('faqTitle')}
         </h2>
@@ -122,6 +126,7 @@ export function HowItWorks() {
         <Link href="/directory" className={buttonClasses({ variant: 'secondary', size: 'hero', className: 'mt-6' })}>
           {t('explore')}
         </Link>
+        </Reveal>
       </div>
     </section>
   );

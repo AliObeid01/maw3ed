@@ -1,6 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 import { ExploreSkeleton } from '@/components/explore/ExploreView';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { LoadingFlag } from './LoadingFlag';
 
 type Variant = 'directory' | 'how' | 'business' | 'pricing';
 
@@ -12,9 +13,12 @@ type Variant = 'directory' | 'how' | 'business' | 'pricing';
 export async function PageLoading({ variant }: { variant: Variant }) {
   const t = await getTranslations('public');
   const status = (
-    <p role="status" className="sr-only">
-      {t('loadingPage')}
-    </p>
+    <>
+      <p role="status" className="sr-only">
+        {t('loadingPage')}
+      </p>
+      <LoadingFlag />
+    </>
   );
 
   if (variant === 'directory') {

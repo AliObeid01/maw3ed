@@ -3,6 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { CategoryExplorer } from '@/components/home/CategoryExplorer';
 import { FinalCta } from '@/components/home/FinalCta';
 import { HomeHero } from '@/components/home/HomeHero';
+import { Reveal } from '@/components/ui/Reveal';
 import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -23,6 +24,7 @@ export default async function Home() {
     <main id="main-content" className="flex-1">
       <HomeHero />
       <section aria-labelledby="categories-title" className="mx-auto max-w-[1200px] px-4 pt-16 md:px-6 md:pt-[88px]">
+        <Reveal>
         <div className="max-w-[640px]">
           <h2 id="categories-title" className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
             {t('title')}
@@ -30,6 +32,7 @@ export default async function Home() {
           <p className="m-0 mt-2 text-[17px] text-muted">{t('subtitle')}</p>
         </div>
         <CategoryExplorer />
+        </Reveal>
       </section>
       <FinalCta />
     </main>

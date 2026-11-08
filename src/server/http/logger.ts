@@ -2,7 +2,15 @@ import pino, { type Logger } from 'pino';
 
 export type { Logger };
 
-const SECRET_KEYS = ['token', 'tokenHash', 'passwordHash', 'password', 'secret'];
+const SECRET_KEYS = [
+  'token',
+  'tokenHash',
+  'passwordHash',
+  'password',
+  'secret',
+  'payToken',
+  'holdExpiresAt',
+];
 const HEADER_KEYS = ['cookie', 'authorization', 'set-cookie', 'x-cron-secret'];
 
 /** Redact secrets at the top level and up to two levels deep (e.g. `req.headers.cookie`, `err.meta.token`). */

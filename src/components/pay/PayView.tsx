@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Clock, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
+import { Clock, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -9,7 +9,9 @@ import { PageState } from '@/components/public/PageState';
 import { monogram } from '@/components/public/monogram';
 import { Bidi, isolate, MetaLine, TimeRange } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { PaymentProblem } from '@/components/billing/PaymentProblem';
 import { TestCardForm } from '@/components/billing/TestCardForm';
+import { DrawnCheck } from '@/components/ui/DrawnCheck';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
@@ -271,12 +273,12 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
       <>
         <BusinessHeader name={shown.business.name} address={shown.business.address} />
         <main className={cn(mainClass, 'lg:justify-center')}>
-          <Card className="flex w-full flex-col gap-4 lg:max-w-[560px]">
+          <Card className="motion-fade-in flex w-full flex-col gap-4 lg:max-w-[560px]">
             <span
               aria-hidden="true"
               className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand"
             >
-              <Check size={26} />
+              <DrawnCheck />
             </span>
             <h1
               ref={headingRef}
@@ -354,11 +356,11 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
               onPay={(scenario) => void pay(scenario)}
               alert={
                 outcome.kind === 'problem' ? (
-                  <div role="alert" data-testid="pay-problem">
+                  <PaymentProblem testId="pay-problem">
                     <Callout tone="danger" icon={<TriangleAlert />}>
                       {t(`errors.${outcome.failure}`)}
                     </Callout>
-                  </div>
+                  </PaymentProblem>
                 ) : null
               }
             />

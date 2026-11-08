@@ -5,9 +5,23 @@ import {
   formatExpiry,
   isLuhnValid,
   scenarioFor,
+  testExpiry,
   validateCard,
   validateExpiry,
 } from '@/lib/billing/testCard';
+
+describe('testExpiry (the "Fill test card" expiry, derived from an injected now)', () => {
+  it('is December, three years ahead, as MM/YY', () => {
+    expect(testExpiry(new Date('2026-11-08T10:00:00Z'))).toBe('12/29');
+    expect(testExpiry(new Date('2031-01-01T00:00:00Z'))).toBe('12/34');
+  });
+  it('uses the UTC year at the year boundary and always validates against the same now', () => {
+    expect(testExpiry(new Date('2026-12-31T23:30:00Z'))).toBe('12/29');
+    expect(testExpiry(new Date('2027-01-01T00:00:00Z'))).toBe('12/30');
+    for (const iso of ['2026-11-08T10:00:00Z', '2090-12-31T23:59:59Z', '2026-01-01T00:00:00Z'])
+      expect(validateExpiry(testExpiry(new Date(iso)), new Date(iso))).toBeNull();
+  });
+});
 
 const NOW = new Date('2026-11-08T10:00:00Z');
 

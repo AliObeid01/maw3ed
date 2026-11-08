@@ -2,10 +2,12 @@
 
 import { CalendarCheck, Compass, Info } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { cn } from '@/lib/cn';
+import { isScrolled, tabIndicator } from '@/lib/motion/scrolled';
 import { useSavedCount } from '@/components/myBookings/useSavedBookings';
 import { LanguageToggle } from './LanguageToggle';
 import { NavProgress } from './NavProgress';
@@ -16,6 +18,10 @@ export type PublicHeaderProps = {
   homeHref?: string;
   className?: string;
 };
+
+/** Sliding bar of the phone tab bar: one element, moved with a transform class per position (RTL mirrors the direction). */
+const INDICATOR_WIDTH = { 2: 'w-1/2', 3: 'w-1/3' } as Record<number, string>;
+const INDICATOR_SHIFT = ['', 'translate-x-full rtl:-translate-x-full', 'translate-x-[200%] rtl:-translate-x-[200%]'];
 
 const TAB_ICONS = { explore: Compass, how: Info, my: CalendarCheck } as const;
 
@@ -33,11 +39,34 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
   const pathname = usePathname() ?? '/';
   const current = activeTab(pathname);
   const tabs = showTabBar(pathname);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Soft shadow once the page has scrolled: a passive listener, one requestAnimationFrame per burst, and a data attribute
+  // (no state, no re-render, no layout change).
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      el.dataset.scrolled = String(isScrolled(window.scrollY));
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
 
   // 'My bookings' only shows on a device that has saved bookings (read after mount: the server renders without it).
   const hasSaved = useSavedCount() > 0;
   const links = navLinks(hasSaved);
   const tabItemList = tabItems(hasSaved);
+  const indicator = tabIndicator(tabItemList.map((i) => i.id), current);
 
   return (
     <>
@@ -51,6 +80,8 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
       </a>
       ) : null}
       <header
+        ref={headerRef}
+        data-testid="public-header"
         className={cn('sticky top-0 z-30 w-full border-b border-divider bg-surface', className)}
       >
         <div className="mx-auto flex min-h-16 max-w-[1200px] items-center gap-2 px-4 md:min-h-[68px] md:gap-4 md:px-6">
@@ -98,6 +129,16 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
           aria-label={t('tabsLabel')}
           className="public-tabbar fixed inset-x-0 bottom-0 z-40 grid grid-flow-col auto-cols-fr border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
+          {indicator ? (
+            <span
+              aria-hidden="true"
+              data-testid="tab-indicator"
+              data-index={indicator.index}
+              className={cn('motion-slide pointer-events-none absolute start-0 top-0 flex justify-center', INDICATOR_WIDTH[indicator.count], INDICATOR_SHIFT[indicator.index])}
+            >
+              <span className="h-[3px] w-9 rounded-b-[3px] bg-brand" />
+            </span>
+          ) : null}
           {tabItemList.map(({ id, href, key }) => {
             const Icon = TAB_ICONS[id];
             return (
@@ -105,7 +146,7 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
               key={id}
               href={href}
               aria-current={current === id ? 'page' : undefined}
-              className="relative flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-center text-xs font-medium text-muted no-underline aria-busy:opacity-60 aria-[current=page]:font-bold aria-[current=page]:text-brand aria-[current=page]:before:absolute aria-[current=page]:before:top-0 aria-[current=page]:before:h-[3px] aria-[current=page]:before:w-9 aria-[current=page]:before:rounded-b-[3px] aria-[current=page]:before:bg-brand aria-[current=page]:before:content-['']"
+              className="relative flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-center text-xs font-medium text-muted no-underline aria-busy:opacity-60 aria-[current=page]:font-bold aria-[current=page]:text-brand"
             >
               <Icon size={22} aria-hidden="true" />
               <span className="leading-tight">{t(key)}</span>

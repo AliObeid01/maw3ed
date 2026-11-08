@@ -2,13 +2,14 @@ import { ArrowRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { PendingLink as Link } from '@/components/public/PendingLink';
+import { Reveal } from '@/components/ui/Reveal';
 
 /** The navy closing band of the home page (owner design): a short pitch to business owners with the two actions. */
 export function FinalCta() {
   const t = useTranslations('home.final');
   return (
     <section data-surface="dark" aria-labelledby="final-cta-title" className="mt-16 bg-navy text-white md:mt-[88px]">
-      <div className="mx-auto grid max-w-[1200px] items-center gap-6 px-4 py-14 md:px-6 lg:grid-cols-[1fr_auto] lg:gap-16 lg:py-[72px]">
+      <Reveal className="mx-auto grid max-w-[1200px] items-center gap-6 px-4 py-14 md:px-6 lg:grid-cols-[1fr_auto] lg:gap-16 lg:py-[72px]">
         <div>
           <h2
             id="final-cta-title"
@@ -27,7 +28,7 @@ export function FinalCta() {
             {t('signIn')}
           </Link>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { ArrowRight } from 'lucide-react';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
+import { Reveal } from '@/components/ui/Reveal';
 import { cn } from '@/lib/cn';
 
 const ROWS = [
@@ -76,7 +77,7 @@ export function SetupSteps() {
         </div>
         <ol className="m-0 grid list-none gap-3 p-0">
           {STEPS.map((id, i) => (
-            <li key={id} className="flex items-center gap-3.5 rounded-[16px] border-[1.5px] border-divider bg-surface px-4 py-3.5 font-semibold">
+            <Reveal as="li" key={id} step={i} className="flex items-center gap-3.5 rounded-[16px] border-[1.5px] border-divider bg-surface px-4 py-3.5 font-semibold">
               <span aria-hidden="true" className="grid size-[34px] shrink-0 place-items-center rounded-full bg-navy text-white">
                 {i + 1}
               </span>
@@ -84,7 +85,7 @@ export function SetupSteps() {
                 {t(`setup.${id}.title`)}
                 <small className="block font-normal text-muted">{t(`setup.${id}.body`)}</small>
               </span>
-            </li>
+            </Reveal>
           ))}
         </ol>
       </div>

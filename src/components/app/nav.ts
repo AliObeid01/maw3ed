@@ -81,3 +81,8 @@ export const defaultHrefs: Record<ActiveId, string> = {
 export type NavBadges = { reminders?: number; outcomes?: number };
 
 export const badgeTone = { reminders: 'danger', outcomes: 'warning' } as const;
+
+/** Pages whose primary button sits at the bottom on phones: the floating New booking would cover it. */
+export function hidesNewBookingFab(pathname: string): boolean {
+  return pathname.replace(/\/+$/, '') === '/app/checkout';
+}

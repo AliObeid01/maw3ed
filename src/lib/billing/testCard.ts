@@ -79,6 +79,11 @@ export function validateExpiry(value: string, now: Date): CardFieldError | null 
   return null;
 }
 
+/** The expiry "Fill test card" types: December, three years after the injected `now` (UTC year, like validateExpiry). */
+export function testExpiry(now: Date): string {
+  return `12/${String((now.getUTCFullYear() + 3) % 100).padStart(2, '0')}`;
+}
+
 /** The simulated outcome for a typed number: the decline test number declines, any other valid number succeeds. */
 export function scenarioFor(number: string): Scenario | null {
   const digits = digitsOf(number);
