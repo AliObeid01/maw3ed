@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Bidi, isolate, ltr } from '@/components/ui/Bidi';
 import { ButtonLink } from '@/components/ui/Button';
+import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 import { useAreaLabel, profileLine } from '@/components/public/areaLabel';
 import { useCategoryLabel } from '@/components/public/categoryLabel';
 import type { DirectoryBusiness } from '@/lib/api/directory';
@@ -34,12 +35,7 @@ export function ResultCard({ business, now }: { business: DirectoryBusiness; now
   return (
     <li className="m-0 flex list-none flex-col gap-3.5 rounded-[20px] border-[1.5px] border-divider bg-surface p-[18px] transition-colors duration-200 ease-out hover:border-electric motion-reduce:transition-none">
       <div className="flex items-center gap-3.5">
-        <span
-          aria-hidden="true"
-          className="grid size-[52px] shrink-0 place-items-center rounded-tile bg-brand text-lg font-bold text-white"
-        >
-          {m.initials}
-        </span>
+        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={52} tone="brand" />
         <div className="min-w-0 flex-1">
           <h2 className="m-0 text-[19px] leading-tight font-semibold">
             <Link href={href} className="text-ink no-underline hover:text-brand hover:underline">

@@ -652,6 +652,32 @@
           "amount": "Enter an amount from {min} to {max} with at most two decimals.",
           "check": "Some details need another look. Check the fields and try again."
         }
+      },
+      "logo": {
+        "label": "Logo",
+        "upload": "Upload logo",
+        "change": "Change logo",
+        "preparing": "Preparing…",
+        "inputLabel": "Choose a logo image",
+        "empty": "No logo yet: your initials are shown instead. PNG, JPEG or WebP, up to 3 MB.",
+        "hint": "PNG, JPEG or WebP, up to 3 MB. Shown on your booking page and in the directory.",
+        "cropHint": "Preview: we keep the centre of your picture as a square.",
+        "save": "Save logo",
+        "remove": "Remove logo",
+        "removeTitle": "Remove your logo?",
+        "removeBody": "Your booking page and the directory will show your initials instead.",
+        "removeConfirm": "Remove logo",
+        "keep": "Keep logo",
+        "saved": "Logo saved",
+        "removed": "Logo removed",
+        "errors": {
+          "unsupported": "That file type is not supported. Use a PNG, JPEG or WebP image.",
+          "invalid": "We could not read that image. Try another file.",
+          "tooLarge": "That image is larger than 3 MB. Choose a smaller one.",
+          "rateLimited": "You have uploaded a lot of images in a short time. Try again later.",
+          "forbidden": "Only the owner can change the logo.",
+          "generic": "We could not save the logo. Check your connection and try again."
+        }
       }
     },
     "account": {
@@ -1236,6 +1262,7 @@
       "cancel": "Cancel my appointment",
       "linkNote": "These links stop working when your appointment starts."
     },
+    "confirmedNote": "You have confirmed this appointment.",
     "calendar": "A calendar file is attached so you can add this to your calendar.",
     "footer": "Sent by Maw3ed on behalf of {business}.",
     "booking": {
@@ -1267,6 +1294,8 @@
       "staffLogin": "Hi {name}, {business} has set up your login on Maw3ed.\nOpen this link to choose your password (it works once and is valid for 3 days):\n{url}\nYour login is this phone number: {phone}",
       "h24": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
       "h2": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}",
+      "h24Confirmed": "Hi {name}, a reminder from {business}: your {service} with {staff} is tomorrow, {when}.\n{note}\nCancel: {cancelUrl}",
+      "h2Confirmed": "Hi {name}, a reminder from {business}: your {service} with {staff} is today, {when}.\n{note}\nCancel: {cancelUrl}",
       "late": "Hi {name}, your {service} with {staff} at {business} is booked for {when}.\nConfirm: {confirmUrl}\nCancel: {cancelUrl}"
     },
     "invite": {

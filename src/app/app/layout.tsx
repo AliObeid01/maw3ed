@@ -33,6 +33,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           role: session.role,
           businessName: session.businessName,
           slug: session.businessSlug,
+          logoUrl: session.logoUrl,
           timezone: session.timezone,
         }}
       >

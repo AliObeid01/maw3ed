@@ -4,13 +4,12 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Bidi, ltr } from '@/components/ui/Bidi';
-import { cn } from '@/lib/cn';
 import type { DirectoryBusiness } from '@/lib/api/directory';
 import { priceLine } from '@/lib/home/categories';
 import { dayLabel, formatFreeTime } from '@/lib/home/freeTimes';
 import { useAppFormat } from '@/lib/useAppFormat';
 import { profileLine, useAreaLabel } from '@/components/public/areaLabel';
-import { monogram } from '@/components/public/monogram';
+import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 
 /**
  * One business with its next free times (home hero panel and category "Top places"). The times are formatted in
@@ -42,15 +41,7 @@ export function PlaceCard({
   return (
     <article className="grid content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
       <div className="flex items-center gap-3">
-        <span
-          aria-hidden="true"
-          className={cn(
-            'grid size-[46px] shrink-0 place-items-center rounded-tile text-base font-bold text-white',
-            avatar === 'navy' ? 'bg-navy' : 'bg-brand',
-          )}
-        >
-          {monogram(business.name)}
-        </span>
+        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} tone={avatar} />
         <div className="min-w-0 flex-1">
           <Heading className="m-0 truncate text-[17px] leading-tight font-semibold">
             <Link

@@ -28,12 +28,17 @@ export type ReminderEmailContext = Omit<EmailContext, 'clientName'> & {
   clientName: string | null;
   /**
    * BOOKING email only (F68; see `bookingEmailPlan` in domain/bookingPlan.ts): `'cancel'` when an H24 reminder
-   * will follow, so the email carries the Cancel link alone. Default `'both'`. Ignored for H24 and H2, which
-   * always carry both links.
+   * will follow, so the email carries the Cancel link alone. Default `'both'`. Ignored for H24 and H2 (which
+   * carry both links unless `confirmed`).
    */
   links?: 'both' | 'cancel' | undefined;
   /** BOOKING email only: add the "we will email you a reminder" sentence. Only when one is really planned. */
   reminderPromise?: boolean | undefined;
+  /**
+   * H24 / H2 only: the client already confirmed (see confirmedBeforeReminder). The email then carries the Cancel
+   * link alone and the line "You have confirmed this appointment."; subject and heading are unchanged.
+   */
+  confirmed?: boolean | undefined;
   /** BOOKING email only: the booking reference line. Stored value, so a retry renders the same bytes. */
   reference?: string | null | undefined;
 };
@@ -132,7 +137,9 @@ export function renderReminderEmail(c: ReminderEmailContext): RenderedEmail {
   if (isBooking && c.reference) details.push([m.labels.reference, oneLine(c.reference)]);
   const calendarNote = isBooking ? m.calendar : undefined;
   // F68: only the immediate booking email can be cancel-only (an H24 reminder with both links follows).
-  const cancelOnly = isBooking && c.links === 'cancel';
+  const confirmedVariant = !isBooking && c.confirmed === true;
+  const cancelOnly = (isBooking && c.links === 'cancel') || confirmedVariant;
+  const confirmedNote = confirmedVariant ? m.confirmedNote : undefined;
   const promise = isBooking && c.reminderPromise === true ? m.booking.reminderPromise : undefined;
   // Every email here carries at least the Cancel link, so the "links stop working" note always applies.
   const linkLines = [
@@ -149,6 +156,7 @@ export function renderReminderEmail(c: ReminderEmailContext): RenderedEmail {
     ...details.map(([k, val]) => `${k}: ${val}`),
     '',
     ...(promise ? [promise, ''] : []),
+    ...(confirmedNote ? [confirmedNote, ''] : []),
     ...linkLines,
     '',
     m.actions.linkNote,
@@ -168,6 +176,7 @@ export function renderReminderEmail(c: ReminderEmailContext): RenderedEmail {
       `<p style="${emailStyles.p}">${interpolateHtml(copy.intro, v, rtl)}</p>`,
       emailDetails(details, rtl),
       ...(promise ? [`<p style="${emailStyles.p}">${e(promise)}</p>`] : []),
+      ...(confirmedNote ? [`<p style="${emailStyles.p}">${e(confirmedNote)}</p>`] : []),
     ].join('\n'),
     // Cancel-only: Cancel is the single (primary) button; the brand-blue button on white passes AA.
     cta: cancelOnly
@@ -188,9 +197,17 @@ const WHATSAPP_KEY = { H24: 'h24', H2: 'h2', LATE: 'late' } as const;
  * text of a last-minute booking (LATE, no "reminder" wording). Plain text; the URL builder encodes it.
  */
 export function renderWhatsappMessage(
-  c: Omit<EmailContext, 'kind'> & { kind: 'H24' | 'H2' | 'LATE' },
+  c: Omit<EmailContext, 'kind'> & {
+    kind: 'H24' | 'H2' | 'LATE';
+    /** H24 / H2: the client already confirmed: no Confirm line, the confirmed note instead. LATE ignores it. */
+    confirmed?: boolean | undefined;
+  },
 ): string {
   const m = getEmailMessages(c.locale);
+  if (c.confirmed === true && c.kind !== 'LATE') {
+    const key = c.kind === 'H24' ? 'h24Confirmed' : 'h2Confirmed';
+    return interpolate(m.whatsapp[key], { ...vars(c), note: m.confirmedNote });
+  }
   return interpolate(m.whatsapp[WHATSAPP_KEY[c.kind]], vars(c));
 }
 

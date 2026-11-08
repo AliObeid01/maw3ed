@@ -22,6 +22,7 @@ const item = (id: string, extra: Partial<ReminderItem> = {}): ReminderItem => ({
   client: { name: 'Maya', phone: '+96170555218', noShows: 0 },
   whatsappUrl: 'https://wa.me/96170555218?text=hi',
   phoneInvalid: false,
+  confirmed: false,
   status: 'PENDING',
   sentBy: null,
   sentAt: null,

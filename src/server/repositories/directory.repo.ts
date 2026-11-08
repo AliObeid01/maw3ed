@@ -9,6 +9,8 @@ export interface DirectoryRow {
   address: string | null;
   serviceCount: number;
   fromPrice: number | null;
+  /** sha256 of the stored logo (never the bytes), or null. */
+  logoHash: string | null;
   /** Keyset position, used to build the next cursor. */
   id: string;
 }
@@ -64,11 +66,13 @@ export const directoryRepo = {
         address: string | null;
         serviceCount: bigint | number;
         fromPrice: Prisma.Decimal | string | number | null;
+        logoHash: string | null;
       }[]
     >`
       SELECT b."id", b."slug", b."name", b."category", b."area", b."address",
         (SELECT count(*) FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "serviceCount",
-        (SELECT min(s."price") FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "fromPrice"
+        (SELECT min(s."price") FROM "Service" s WHERE s."businessId" = b."id" AND s."active") AS "fromPrice",
+        (SELECT l."hash" FROM "BusinessLogo" l WHERE l."businessId" = b."id") AS "logoHash"
       FROM "Business" b
       WHERE b."listed" AND ${READY} ${searchSql} ${categorySql} ${areaSql} ${serviceSql} ${cursorSql}
       ORDER BY b."name" ASC, b."id" ASC
@@ -82,6 +86,7 @@ export const directoryRepo = {
       address: r.address,
       serviceCount: Number(r.serviceCount),
       fromPrice: r.fromPrice === null ? null : Number(r.fromPrice),
+      logoHash: r.logoHash,
     }));
   },
 

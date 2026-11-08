@@ -30,6 +30,8 @@ export const PublicBusinessDto = registry.register(
       category: z.string().optional(),
       area: z.string().optional(),
       address: z.string().optional(),
+      /** Versioned public logo url (`/api/public/<slug>/logo?v=<hash>`); null when the business has none. */
+      logoUrl: z.string().nullable(),
     }),
     services: z.array(
       z.object({

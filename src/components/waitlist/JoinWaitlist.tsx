@@ -168,6 +168,7 @@ export function JoinWaitlist({ slug }: { slug: string }) {
   const hero = (
     <BusinessHero
       name={data.business.name}
+      logoUrl={data.business.logoUrl}
       meta={
         <MetaLine
           items={[

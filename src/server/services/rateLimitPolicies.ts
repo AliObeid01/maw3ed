@@ -34,8 +34,26 @@ export const RATE_POLICIES = {
    * cap than `directory`; a plain directory read is counted by `directory` only.
    */
   directoryLive: { windowSec: 10 * MIN, limit: 60 },
+  /**
+   * PUT /api/business/logo, per ip. Each upload decodes and re-encodes an image (CPU), so far fewer than a
+   * normal write: a salon replaces its logo a handful of times, never 10 in an hour.
+   */
+  logoUpload: { windowSec: 60 * MIN, limit: 10 },
+  /**
+   * GET /api/public/{slug}/logo, per ip. Cached for a year by the browser and the CDN when the url carries the
+   * version, so this only counts real origin hits. A directory page shows up to 12 logos and Explore pages through
+   * them: 600 per 10 minutes is about 50 full pages, far above browsing, below a scraping loop.
+   */
+  logoRead: { windowSec: 10 * MIN, limit: 600 },
   /** GET /api/links/* and GET /api/offers/* */
   linkRead: { windowSec: 10 * MIN, limit: 120 },
+  /**
+   * GET /api/links/{token}/outcome. The My bookings screen asks once per past entry (up to 20 stored on a device,
+   * and Complete/Rebook cards re-ask on focus), alongside a few link reads. 300 per 10 minutes per ip leaves room
+   * for a few page loads (20 + 20 + 20 outcome reads) and for several clients behind one NAT, yet a token-guessing
+   * loop (each miss costs one HMAC compare) is still capped at 30 per minute.
+   */
+  linkOutcome: { windowSec: 10 * MIN, limit: 300 },
   /** POST /api/links/{token} and POST /api/offers/{token}/claim */
   linkAct: { windowSec: 10 * MIN, limit: 20 },
   /** GET /api/invites/{token} */
@@ -83,5 +101,7 @@ export const SOFT_POLICIES: ReadonlySet<RatePolicyName> = new Set([
   'directory',
   'directoryLive',
   'linkRead',
+  'linkOutcome',
+  'logoRead',
 ]);
 export const SOFT_THRESHOLD = 0.5;

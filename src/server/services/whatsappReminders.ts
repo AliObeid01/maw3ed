@@ -1,3 +1,4 @@
+import { confirmedBeforeReminder } from '@/server/domain/reminderConfirmed';
 import { sendDecision } from '@/server/domain/reminderWindows';
 import { expiryFor, signToken } from '@/server/domain/tokens';
 import { whatsappUrl } from '@/server/domain/whatsapp';
@@ -70,6 +71,8 @@ export const whatsappRemindersService = {
         `${appUrl}/l/${signToken({ a: a.id, act, exp: expiryFor(a.startAt) }, secret)}`;
       const text = renderWhatsappMessage({
         kind,
+        // Same rule as the email: confirmed at or before the job fell due (H24 / H2 only).
+        confirmed: kind !== 'LATE' && confirmedBeforeReminder(a.confirmedAt, r.dueAt),
         locale: business.locale,
         timezone: business.timezone,
         businessName: business.name,
@@ -98,6 +101,8 @@ export const whatsappRemindersService = {
         client: { name: a.client.name, phone: a.client.phone, noShows: a.client.noShows },
         whatsappUrl: url,
         phoneInvalid: url === null,
+        // Live state, for the chip: the client has confirmed (status CONFIRMED or a confirmation time).
+        confirmed: a.status === 'CONFIRMED' || a.confirmedAt != null,
         status: r.status as 'PENDING' | 'SENT',
         sentBy: r.sentBy,
         sentAt: r.sentAt,

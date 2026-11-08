@@ -286,6 +286,7 @@ export async function mockDashboardApi(page: Page, options: DashOptions = {}) {
           client: { name: a.client.name, phone: a.client.phone, noShows: a.client.noShows },
           whatsappUrl: r.phoneInvalid ? null : `https://wa.me/${a.client.phone.replace('+', '')}?text=hello`,
           phoneInvalid: !!r.phoneInvalid,
+          confirmed: a.status === 'CONFIRMED' || !!a.confirmedAt,
           status: r.status,
           sentBy: r.sentBy,
           sentAt: r.sentAt,

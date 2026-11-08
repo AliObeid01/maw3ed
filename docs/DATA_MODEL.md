@@ -24,6 +24,7 @@ No free-text notes columns anywhere (NFR-04). The ERD below is written by hand f
 | WaitlistEntry | serviceId, staffId?, fromDate, toDate, status (OPEN, FULFILLED, CANCELLED), contactEmail, claimingOfferId, claimingAt | Business, Client, Service, optional StaffMember | `contactEmail` is where offers go, is never copied onto the Client and is set to NULL when the client is anonymised; `claimingOfferId` / `claimingAt` are the atomic reservation held while one offer is being booked (a lease, released on failure) |
 | WaitlistOffer | entryId, staffId, startAt, endAt, expiresAt, status (OPEN, CLAIMED, EXPIRED, SUPERSEDED), claimedAppointmentId, freedFromAppointmentId, batch, emailedAt | Business | unique (entryId, freedFromAppointmentId): one open offer per entry per freed slot |
 | PilotBaseline | fromDate, toDate, appointments, noShows, lateCancels | Business | unique (businessId); entered by the owner from their own book |
+| BusinessLogo | mime, bytes (BYTEA, one processed 256x256 WebP of at most 150 KB), width, height, hash (sha256 of bytes = public version and ETag), updatedAt | Business (ON DELETE CASCADE) | primary key businessId (one logo per business); separate table so Business queries never load image bytes; no personal data (EXIF removed) |
 | Payment | purpose (DEPOSIT, PLAN), appointmentId?, provider, externalId, amount, currency, status (PENDING, PAID, FAILED, EXPIRED) | Business, optional Appointment | unique (provider, externalId); indexes (businessId, status), (businessId, appointmentId) |
 | RateLimitBucket | key, windowStart, count | — (no tenant) | PK (key, windowStart); index (windowStart); keys are hashed or HMAC-ed emails, IPs and phones, never raw, written by one atomic upsert, purged by `/api/jobs/cleanup` |
 
@@ -67,6 +68,7 @@ erDiagram
   Appointment ||--o{ WaitlistOffer : "freed slot of"
   Appointment |o--o{ WaitlistOffer : "claimed as"
   Business ||--o| PilotBaseline : measures
+  Business ||--o| BusinessLogo : brands
   Business ||--o{ Payment : collects
   Appointment |o--o{ Payment : "deposit for"
 
@@ -241,6 +243,15 @@ erDiagram
     int appointments
     int noShows
     int lateCancels
+  }
+  BusinessLogo {
+    string businessId PK "FK, ON DELETE CASCADE"
+    string mime
+    bytes bytes "256x256 WebP, at most 150 KB"
+    int width
+    int height
+    string hash "sha256 of bytes"
+    datetime updatedAt
   }
   Payment {
     string id PK

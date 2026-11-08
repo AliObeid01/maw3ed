@@ -43,6 +43,7 @@ const sendContextSelect = {
       businessId: true,
       reference: true,
       status: true,
+      confirmedAt: true,
       startAt: true,
       endAt: true,
       contactEmail: true,
@@ -67,6 +68,7 @@ const whatsappSelect = {
     select: {
       id: true,
       status: true,
+      confirmedAt: true,
       startAt: true,
       client: { select: { name: true, phone: true, noShows: true } },
       service: { select: { id: true, name: true } },

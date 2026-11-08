@@ -96,6 +96,12 @@ describe('NFR-04 privacy: no free-text personal data', () => {
     );
   });
 
+  it('BusinessLogo holds only the processed image, its size, a hash and a timestamp (no personal data)', async () => {
+    expect(await columns('BusinessLogo')).toEqual(
+      ['businessId', 'mime', 'bytes', 'width', 'height', 'hash', 'updatedAt'].sort(),
+    );
+  });
+
   it('no table anywhere has a notes/comment/memo/remarks column', async () => {
     const { rows } = await pg.query(
       `SELECT table_name, column_name FROM information_schema.columns

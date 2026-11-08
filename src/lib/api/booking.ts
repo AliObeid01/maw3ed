@@ -28,6 +28,8 @@ export const publicBusinessSchema = z.object({
     category: z.string().nullish(),
     area: z.string().nullish(),
     address: z.string().nullish(),
+    /** Versioned public logo url; null or absent shows the initials. */
+    logoUrl: z.string().nullish(),
   }),
   services: z.array(publicServiceSchema),
   staff: z.array(publicStaffSchema),

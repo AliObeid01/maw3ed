@@ -12,10 +12,21 @@ export type AppSession = {
   role: 'OWNER' | 'STAFF' | 'PRACTITIONER';
   businessName: string;
   slug: string;
+  /** Versioned public logo url; null shows the initials. Updated in place after an upload (ShellLogoContext). */
+  logoUrl?: string | null;
   timezone: string;
 };
 
 const SessionContext = createContext<AppSession | null>(null);
+
+/**
+ * The business logo shown in the sidebar chip. Lives beside the session so an upload or removal in Settings
+ * updates the chip at once, without a reload. The initial value is the server-rendered session's logoUrl.
+ */
+export type ShellLogo = { logoUrl: string | null; setLogoUrl: (url: string | null) => void };
+const ShellLogoContext = createContext<ShellLogo>({ logoUrl: null, setLogoUrl: () => undefined });
+export const ShellLogoProvider = ShellLogoContext.Provider;
+export const useShellLogo = () => useContext(ShellLogoContext);
 
 export const SessionProvider = SessionContext.Provider;
 

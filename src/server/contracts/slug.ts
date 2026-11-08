@@ -35,7 +35,7 @@ export const RESERVED_SLUGS: ReadonlySet<string> = new Set([
   'maw3ed',
 ]);
 
-const SLUG_FORMAT = /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/;
+export const SLUG_FORMAT = /^[a-z0-9](?:[a-z0-9-]{1,38})[a-z0-9]$/;
 
 export type SlugProblem = 'invalid' | 'reserved';
 

@@ -14,6 +14,8 @@ import { GET as linkGet, POST as linkPost } from '@/app/api/links/[token]/route'
 import { GET as linkOutcome } from '@/app/api/links/[token]/outcome/route';
 import { GET as offerGet } from '@/app/api/offers/[token]/route';
 import { POST as offerClaim } from '@/app/api/offers/[token]/claim/route';
+import { PUT as logoPut } from '@/app/api/business/logo/route';
+import { GET as logoGet } from '@/app/api/public/[slug]/logo/route';
 import { GET as categories } from '@/app/api/public/categories/route';
 import { GET as directory } from '@/app/api/public/directory/route';
 import { GET as publicPage } from '@/app/api/public/[slug]/route';
@@ -104,8 +106,8 @@ const CASES: Case[] = [
     opts: { params: { token: 'nope' } },
   },
   {
-    // PR-10: the outcome read shares the linkRead budget.
-    policy: 'linkRead',
+    // PR-10b: the outcome read has its own, larger budget (300 per 10 minutes).
+    policy: 'linkOutcome',
     handler: linkOutcome,
     path: '/api/links/nope/outcome',
     opts: { params: { token: 'nope' } },
@@ -116,6 +118,19 @@ const CASES: Case[] = [
     handler: directory,
     path: '/api/public/directory',
     opts: { query: { include: 'nextFree', sort: 'soonest' } },
+  },
+  {
+    // PR-10b: counted before auth, so a signed-out PUT still burns the budget.
+    policy: 'logoUpload',
+    handler: logoPut,
+    path: '/api/business/logo',
+    opts: { method: 'PUT', body: {} },
+  },
+  {
+    policy: 'logoRead',
+    handler: logoGet,
+    path: '/api/public/some-shop/logo',
+    opts: { params: { slug: 'some-shop' } },
   },
   {
     policy: 'linkRead',

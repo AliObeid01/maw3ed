@@ -47,6 +47,30 @@ test('lists due reminders with chips, the sent one and the no-phone one', async 
   await expect(lea.getByRole('link', { name: 'Call instead' })).toHaveAttribute('href', 'tel:+9613512774');
 });
 
+test('PR-10b: a Confirmed chip marks the clients who already confirmed, and nobody else', async ({ page }) => {
+  await mockDashboardApi(page);
+  await page.goto('/app/reminders');
+  await expect(page.getByRole('status').filter({ hasText: '3 to send' })).toBeVisible();
+  // Nadine (H2) and Lea (H24) confirmed; Maya and Rami did not.
+  await expect(row(page, 'Nadine Aoun').getByText('Confirmed', { exact: true })).toBeVisible();
+  await expect(row(page, 'Lea Saab').getByText('Confirmed', { exact: true })).toBeVisible();
+  await expect(row(page, 'Maya Haddad').getByText('Confirmed', { exact: true })).toHaveCount(0);
+  await expect(row(page, 'Rami Haddad').getByText('Confirmed', { exact: true })).toHaveCount(0);
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
+test('PR-10b: the Confirmed chip in Arabic (rtl)', async ({ page, context }) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: DASHBOARD }]);
+  await mockDashboardApi(page);
+  await page.goto('/app/reminders');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(row(page, 'Nadine Aoun').getByText('مؤكد', { exact: true })).toBeVisible();
+  await expect(row(page, 'Maya Haddad').getByText('مؤكد', { exact: true })).toHaveCount(0);
+});
+
 test('Send opens WhatsApp in a new tab (noopener), records it, and updates the counter and badge', async ({
   page,
 }) => {

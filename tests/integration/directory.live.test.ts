@@ -143,7 +143,7 @@ describe('directory?include=nextFree: the definition of "next free"', () => {
     const b = await makeBusiness(pg, { name: 'Plain' });
     const item = bySlug(await plain(), b.slug);
     expect(Object.keys(item).sort()).toEqual(
-      ['address', 'area', 'category', 'fromPrice', 'name', 'serviceCount', 'slug'].sort(),
+      ['address', 'area', 'category', 'fromPrice', 'logoUrl', 'name', 'serviceCount', 'slug'].sort(),
     );
   });
 
@@ -251,7 +251,7 @@ describe('directory filters', () => {
     // Without include the shape is the plain one even with when.
     const bare = await plain({ when: '2026-11-04' });
     expect(Object.keys(bare.body!.businesses[0]).sort()).toEqual(
-      ['address', 'area', 'category', 'fromPrice', 'name', 'serviceCount', 'slug'].sort(),
+      ['address', 'area', 'category', 'fromPrice', 'logoUrl', 'name', 'serviceCount', 'slug'].sort(),
     );
   });
 
@@ -611,6 +611,7 @@ describe('directory?include=services (PR-7b)', () => {
         'category',
         'freeTimes',
         'fromPrice',
+        'logoUrl',
         'name',
         'nextFree',
         'serviceCount',

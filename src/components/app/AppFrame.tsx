@@ -14,7 +14,7 @@ import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
 import { VerifyBanner } from './VerifyBanner';
-import { SessionProvider, type AppSession } from './SessionContext';
+import { SessionProvider, ShellLogoProvider, useShellLogo, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
 import { ViewedDayProvider, useViewedDay } from './ViewedDayContext';
 import { defaultHrefs, type ActiveId } from './nav';
@@ -68,6 +68,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   const activeId = activeIdFor(pathname);
   const { signOut, signingOut } = useSignOut();
   const { summary } = useSummary();
+  const { logoUrl } = useShellLogo();
   const { viewedDay, now } = useViewedDay();
   // The header follows the day the agenda shows; the greeting is only for the real today (business timezone).
   const header = headerDayFor(viewedDay, session.timezone, now);
@@ -92,6 +93,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       <AppShell
       business={{
         name: session.businessName,
+        logoUrl,
         subtitle: t('frame.subtitle', {
           name: session.userName,
           role: t(`frame.role.${session.role}`),
@@ -151,15 +153,18 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
 export function AppFrame({ session, children }: { session: AppSession; children: ReactNode }) {
   // A barber with a phone login gets the same shell with three destinations; their badge comes from their own queue.
   const fetcher = session.role === 'PRACTITIONER' ? getBarberSummary : getSummary;
+  const [logoUrl, setLogoUrl] = useState<string | null>(session.logoUrl ?? null);
   return (
     <SessionProvider value={session}>
-      <ToastProvider>
-        <SummaryProvider fetcher={fetcher}>
-          <ViewedDayProvider timezone={session.timezone}>
-            <Frame session={session}>{children}</Frame>
-          </ViewedDayProvider>
-        </SummaryProvider>
-      </ToastProvider>
+      <ShellLogoProvider value={{ logoUrl, setLogoUrl }}>
+        <ToastProvider>
+          <SummaryProvider fetcher={fetcher}>
+            <ViewedDayProvider timezone={session.timezone}>
+              <Frame session={session}>{children}</Frame>
+            </ViewedDayProvider>
+          </SummaryProvider>
+        </ToastProvider>
+      </ShellLogoProvider>
     </SessionProvider>
   );
 }

@@ -8,6 +8,7 @@ import { PlanCard } from '@/components/billing/PlanCard';
 import { useAreaLabel } from '@/components/public/areaLabel';
 import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { DepositSettings } from './DepositSettings';
+import { LogoSection } from './LogoSection';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
@@ -313,6 +314,7 @@ function SettingsForm({
           <h2 id={`${uid}-business`} className="m-0 text-lg font-semibold">
             {t('business')}
           </h2>
+          <LogoSection businessName={business.name} logoUrl={business.logoUrl} />
           <Input
             label={t('field.name')}
             name="name"
