@@ -125,6 +125,8 @@ test.describe('review fixes', () => {
   for (const path of ['/how-it-works', '/for-business']) {
     test(`${path}: exactly one h1, then h2 sections, then h3 (no level skipped)`, async ({ page }) => {
       await page.goto(path);
+      // The route streams a loading skeleton first; wait for the real page before reading the heading levels.
+      await expect(page.getByRole('main').getByRole('heading', { level: 1 })).toBeVisible();
       const levels = await page
         .getByRole('main')
         .getByRole('heading')
