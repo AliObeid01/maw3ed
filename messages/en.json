@@ -2043,7 +2043,7 @@
         "cta": "Be the first"
       },
       "loading": "Loading categories",
-      "freeTimesFor": "Free times for {service} · {day}"
+      "freeTimesFor": "Free times for {service}"
     },
     "how": {
       "kicker": "How it works",
@@ -2097,10 +2097,11 @@
         },
         "zone": {
           "q": "Which time zone are times in?",
-          "a": "Times are shown in the business's local time, which is Beirut time for businesses in Lebanon."
+          "a": "Times are shown in the business's local time."
         }
       },
-      "explore": "Explore businesses"
+      "explore": "Explore businesses",
+      "stepsTitle": "Book in three steps"
     },
     "owners": {
       "title": "Every no-show is a paid hour lost.",
@@ -2513,7 +2514,7 @@
     },
     "privacy": {
       "title": "What is saved on this device",
-      "body": "Only booking details, never your name, phone or email. For past visits we ask Maw3ed once whether the visit was completed and keep only that answer. Anyone using this browser can see this list.",
+      "body": "Only booking details, never your name, phone or email. For past visits we ask Maw3ed whether the visit was completed and keep only that answer and when we asked. Anyone using this browser can see this list.",
       "shared": "On a shared computer, forget your bookings when you are done."
     },
     "forget": {

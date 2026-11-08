@@ -393,9 +393,13 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(chips.first()).toContainText(/from .*8 USD/);
   await expect(top.first()).not.toContainText('Hidden fourth');
   // Free times are labelled with the service they belong to.
-  await expect(top.first()).toContainText('Free times for Haircut · Today');
+  const label = (card: ReturnType<typeof top.first>) => card.getByTestId('free-label');
+  await expect(label(top.first()).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Haircut⁩?$/);
+  await expect(label(top.first()).getByTestId('free-label-day')).toHaveText('Today');
+  await expect(label(top.first())).not.toContainText('·'); // no separator dot that could wrap to the start of a line
   await expect(top.first().getByRole('link', { name: /^\d\d:\d\d, / })).toHaveText(['10:30', '11:30', '14:00', '16:30']);
-  await expect(top.nth(1)).toContainText('Free times for Fade · Tomorrow');
+  await expect(label(top.nth(1)).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Fade⁩?$/);
+  await expect(label(top.nth(1)).getByTestId('free-label-day')).toHaveText('Tomorrow');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveAttribute('href', '/b/abu-karam');
   await expect(panel(page).getByRole('link', { name: 'See all barbers' })).toHaveAttribute('href', '/directory?category=barbers');
   await expect(panel(page)).toContainText('Free times can be taken before you book.');
@@ -649,4 +653,17 @@ test('wide screens: the hero does not jump when the Next free panel arrives, and
   await expect(page.getByTestId('next-free-panel')).toHaveCount(0);
   const column = hero(page).locator('xpath=./div/div[2]');
   await expect.poll(async () => (await column.boundingBox())!.height).toBeLessThan(5);
+});
+
+test('Arabic at 320: the free-times label wraps as two whole pieces (service, day), never a dot at the start of a line', async ({ page, context }) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+  await page.setViewportSize({ width: 320, height: 700 });
+  await mockHome(page, { directory: [barber({ name: 'Abu Karam Barbershop', nextFree: { startAt: beirut(0, 10, 30), service: { id: 's1', name: 'Hydrafacial deep cleansing', durationMin: 50 } } })] });
+  await page.goto('/');
+  const label = page.getByTestId('free-label').first();
+  await expect(label).toBeVisible();
+  await expect(label.getByTestId('free-label-service')).toContainText('أوقات متاحة لخدمة');
+  await expect(label.getByTestId('free-label-day')).toHaveText('اليوم');
+  await expect(label).not.toContainText('·');
+  await expectNoPageOverflow(page);
 });

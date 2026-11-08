@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { hashTargetId } from '@/lib/hashTarget';
 
 /**
  * Cross-page anchors (`/how-it-works#reminders` from the footer): Next scrolls to the hash as soon as the new route
@@ -10,7 +11,7 @@ import { useEffect } from 'react';
  */
 export function HashScroll() {
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    const id = hashTargetId(window.location.hash); // null for an empty or malformed hash: nothing to do, never throws
     if (!id) return;
     document.getElementById(id)?.scrollIntoView({ block: 'start' });
   }, []);

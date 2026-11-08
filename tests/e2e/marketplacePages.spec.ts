@@ -109,6 +109,54 @@ test.describe('/how-it-works', () => {
   });
 });
 
+test.describe('review fixes', () => {
+  test('a malformed hash renders the page normally: no error boundary, no console error', async ({ page }) => {
+    const problems: string[] = [];
+    page.on('pageerror', (e) => problems.push(e.message));
+    page.on('console', (m) => m.type() === 'error' && problems.push(m.text()));
+    for (const hash of ['%E0%A4%A', '%', '%ZZ']) {
+      await page.goto(`/how-it-works#${hash}`);
+      await expect(page.getByRole('heading', { level: 1 })).toHaveText('How Maw3ed works');
+      await expect(page.getByText('Something went wrong')).toHaveCount(0);
+    }
+    expect(problems).toEqual([]);
+  });
+
+  for (const path of ['/how-it-works', '/for-business']) {
+    test(`${path}: exactly one h1, then h2 sections, then h3 (no level skipped)`, async ({ page }) => {
+      await page.goto(path);
+      const levels = await page
+        .getByRole('main')
+        .getByRole('heading')
+        .evaluateAll((els) => els.map((e) => Number(e.tagName.slice(1))));
+      expect(levels.filter((l) => l === 1)).toHaveLength(1);
+      expect(levels[0]).toBe(1);
+      for (let i = 1; i < levels.length; i++) expect(levels[i]!, `heading ${i} after ${levels[i - 1]}`).toBeLessThanOrEqual(levels[i - 1]! + 1);
+      expect(levels).toContain(2);
+    });
+  }
+
+  test('the Pro card says TEST MODE in the same words on /for-business and /pricing', async ({ page }) => {
+    const note = 'Test mode: checkout is simulated and no card is charged.';
+    await page.goto('/for-business');
+    const pro = page.locator('#teaser-pro').locator('xpath=ancestor::article');
+    await expect(pro).toContainText('TEST MODE');
+    await expect(pro).toContainText(note);
+    await page.goto('/pricing');
+    await expect(page.locator('section[aria-labelledby="plan-pro"]')).toContainText(note);
+  });
+
+  test('the FAQ time zone answer promises no city, in en and ar', async ({ page, context }) => {
+    await page.goto('/how-it-works');
+    await page.locator('#faq details').nth(4).locator('summary').click();
+    await expect(page.locator('#faq details').nth(4)).toContainText("Times are shown in the business's local time.");
+    await expect(page.locator('main')).not.toContainText(/Beirut time/);
+    await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+    await page.goto('/how-it-works');
+    await expect(page.locator('main')).not.toContainText('بتوقيت بيروت');
+  });
+});
+
 test.describe('/for-business', () => {
   test('the Royal Blue band, the fake Today card, five TRUE steps, the same plans as /pricing, what every plan includes', async ({ page }) => {
     await page.goto('/for-business');

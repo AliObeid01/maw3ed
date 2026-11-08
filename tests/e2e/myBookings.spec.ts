@@ -312,7 +312,7 @@ test.describe('Forget, blocked and corrupted storage', () => {
     await expect(nav.getByRole('link', { name: 'My bookings' })).toBeVisible();
     // What is saved, said plainly.
     await expect(
-      page.getByText('Only booking details, never your name, phone or email. For past visits we ask Maw3ed once whether the visit was completed and keep only that answer. Anyone using this browser can see this list.'),
+      page.getByText('Only booking details, never your name, phone or email. For past visits we ask Maw3ed whether the visit was completed and keep only that answer and when we asked. Anyone using this browser can see this list.'),
     ).toBeVisible();
     await expect(page.getByText('On a shared computer, forget your bookings when you are done.')).toBeVisible();
 

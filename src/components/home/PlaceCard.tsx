@@ -3,7 +3,7 @@
 import { ArrowRight } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { PendingLink as Link } from '@/components/public/PendingLink';
-import { Bidi, ltr } from '@/components/ui/Bidi';
+import { Bidi, isolate, ltr } from '@/components/ui/Bidi';
 import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 import type { DirectoryBusiness } from '@/lib/api/directory';
 import { priceLine } from '@/lib/home/categories';
@@ -69,8 +69,10 @@ export function PlaceCard({ business, headingLevel = 3 }: { business: DirectoryB
 
       {times.length > 0 && dayText && first ? (
         <div>
-          <p className="m-0 mb-2 text-sm font-semibold text-muted">
-            {t('categories.freeTimesFor', { service: first.service.name, day: dayText })}
+          {/* Two whole pieces that wrap as units (no separator dot to strand at the start of a line); the service is an isolate so Latin names keep their order in Arabic. */}
+          <p data-testid="free-label" className="m-0 mb-2 flex flex-wrap gap-x-2 text-sm font-semibold text-muted">
+            <span data-testid="free-label-service">{t('categories.freeTimesFor', { service: isolate(first.service.name) })}</span>
+            <span data-testid="free-label-day" className="font-normal">{dayText}</span>
           </p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {times.map((iso) => {

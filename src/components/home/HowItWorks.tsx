@@ -36,6 +36,7 @@ export function HowItWorks() {
         <p className="m-0 mt-2 text-[17px] text-muted">{t('subtitle')}</p>
       </div>
 
+      <h2 className="sr-only">{t('stepsTitle')}</h2>
       <ol className="m-0 mt-9 grid list-none gap-4 p-0 md:grid-cols-3">
         {STEPS.map(({ id, Icon }, i) => (
           <li key={id} className="grid content-start gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[26px]">
@@ -58,9 +59,9 @@ export function HowItWorks() {
 
       <div id="reminders" className="mt-[72px] grid scroll-mt-4 items-center gap-10 lg:grid-cols-2 lg:gap-[72px]">
         <div>
-          <h3 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
+          <h2 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
             {t('reminderTitle')}
-          </h3>
+          </h2>
           <ul className="m-0 mt-5 grid list-none gap-3.5 p-0">
             {BULLETS.map((b) => (
               <li key={b} className="flex items-start gap-3 text-[17.5px]">
@@ -81,7 +82,7 @@ export function HowItWorks() {
             </span>
             <span className="rounded-chip bg-divider px-2.5 py-1 text-xs font-semibold">{t('mail.label')}</span>
           </div>
-          <h4 className="m-0 text-[21px] leading-tight font-semibold">{mail.heading}</h4>
+          <p className="m-0 text-[21px] leading-tight font-semibold">{mail.heading}</p>
           <p className="m-0 text-[15.5px] text-muted">{mail.intro}</p>
           <div className="grid gap-0.5 rounded-tile border border-divider p-3.5 text-[15.5px]">
             <b className="font-semibold">{t('mail.business')}</b>
@@ -100,9 +101,9 @@ export function HowItWorks() {
       </div>
 
       <div id="faq" className="mt-16 max-w-[760px] scroll-mt-4">
-        <h3 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
+        <h2 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
           {t('faqTitle')}
-        </h3>
+        </h2>
         <div className="mt-4" data-testid="faq">
           {FAQ.map((id) => (
             <details key={id} className="group border-b border-line">

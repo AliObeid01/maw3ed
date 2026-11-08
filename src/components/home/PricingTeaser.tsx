@@ -73,6 +73,7 @@ export function PricingTeaser() {
                 <Feature key={k} dark>{t(`pricing.pro.features.${k}`)}</Feature>
               ))}
             </ul>
+            <p className="m-0 text-center text-[13px] text-hero-muted">{t('pricing.testNote')}</p>
           </article>
         </div>
 
