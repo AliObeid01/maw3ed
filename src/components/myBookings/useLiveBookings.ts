@@ -29,6 +29,7 @@ export function useLiveBookings(tokens: readonly string[]) {
   const [pinned, setPinned] = useState<ReadonlySet<string>>(() => new Set());
   const controller = useRef<AbortController | null>(null);
   const requested = useRef(new Set<string>());
+  const timers = useRef(new Set<ReturnType<typeof setTimeout>>());
 
   /** Record what a link says now (also used after Confirm / Cancel). */
   const apply = useCallback((token: string, link: LinkView) => {
@@ -36,10 +37,14 @@ export function useLiveBookings(tokens: readonly string[]) {
     if (CANCELLED.has(status)) {
       setPinned((p) => new Set(p).add(token));
       // After the render that shows "Cancelled": from the next visit the entry is under "Previous visits".
-      setTimeout(() => myBookings.markEnded(token, 'cancelled'), 0);
+      const timer = setTimeout(() => {
+        timers.current.delete(timer);
+        myBookings.markEnded(token, 'cancelled');
+      }, 0);
+      timers.current.add(timer);
     } else if (OVER.has(status)) {
-      // Never show an outcome: just file it under previous.
-      setTimeout(() => myBookings.markEnded(token, 'closed'), 0);
+      // Never show an outcome and never leave the card on its skeleton: file it under previous at once.
+      myBookings.markEnded(token, 'closed');
       return;
     }
     setLive((l) => ({ ...l, [token]: { phase: 'ready', link } }));
@@ -83,11 +88,14 @@ export function useLiveBookings(tokens: readonly string[]) {
   useEffect(() => {
     const c = new AbortController();
     const seen = requested.current;
+    const pending = timers.current;
     controller.current = c;
     fetchTokens(latest.current);
     return () => {
       c.abort();
       seen.clear();
+      for (const timer of pending) clearTimeout(timer);
+      pending.clear();
       controller.current = null;
     };
   }, [fetchTokens]);

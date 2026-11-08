@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isValidSlugFormat } from '@/lib/auth/slug';
 
 /**
  * "My bookings on this device": a small list of the bookings made in THIS browser, kept in localStorage.
@@ -52,25 +53,61 @@ export interface EventTargetLike {
   removeEventListener(type: 'storage', listener: (event: StorageEventLike) => void): void;
 }
 
+/** Instants outside these years are corrupt or hostile, never a real booking. */
+const MIN_YEAR_MS = Date.UTC(2000, 0, 1);
+const MAX_YEAR_MS = Date.UTC(2101, 0, 1);
 const isoInstant = z
   .string()
   .max(40)
-  .refine((v) => Number.isFinite(Date.parse(v)));
+  .refine((v) => {
+    const ms = Date.parse(v);
+    return Number.isFinite(ms) && ms >= MIN_YEAR_MS && ms < MAX_YEAR_MS;
+  });
 const text = (max: number) => z.string().trim().min(1).max(max);
 
-const entrySchema = z.object({
-  token: z.string().min(1).max(1000),
-  slug: text(120),
-  businessName: text(200),
-  serviceName: text(200),
-  staffName: text(200),
-  startAt: isoInstant,
-  endAt: isoInstant,
-  timezone: text(64),
-  reference: z.string().max(32).nullable().catch(null),
-  savedAt: isoInstant,
-  ended: z.enum(['cancelled', 'closed']).optional().catch(undefined),
-});
+/**
+ * The signed link token is `base64url(body).base64url(signature)` (src/server/domain/tokens.ts, at most 512
+ * characters): letters, digits, `-`, `_` and at most one dot. Anything else (a path, a scheme, spaces, HTML) can
+ * never be a token and is never put in a request URL.
+ */
+export const TOKEN_MIN = 8;
+export const TOKEN_MAX = 512;
+const TOKEN_RE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)?$/;
+export const isValidToken = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  value.length >= TOKEN_MIN &&
+  value.length <= TOKEN_MAX &&
+  TOKEN_RE.test(value);
+
+const validZone = (zone: string) => {
+  try {
+    new Intl.DateTimeFormat('en', { timeZone: zone });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const entrySchema = z
+  .object({
+    token: z.string().refine(isValidToken),
+    // The signup contract's slug rules (lowercase letters, digits, single hyphens, 3 to 40 characters).
+    slug: z.string().refine(isValidSlugFormat),
+    businessName: text(200),
+    serviceName: text(200),
+    staffName: text(200),
+    startAt: isoInstant,
+    endAt: isoInstant,
+    timezone: text(64).refine(validZone),
+    reference: z
+      .string()
+      .regex(/^[A-Za-z0-9]{1,32}$/)
+      .nullable()
+      .catch(null),
+    savedAt: isoInstant,
+    ended: z.enum(['cancelled', 'closed']).optional().catch(undefined),
+  })
+  .refine((e) => Date.parse(e.endAt) >= Date.parse(e.startAt));
 
 const fileSchema = z.object({ v: z.literal(1), entries: z.array(z.unknown()) });
 
@@ -142,7 +179,7 @@ export function entryFromBooking(
   now: Date,
 ): SavedBooking | undefined {
   const token = tokenFromManageLink(result.links.manage);
-  if (!token) return undefined;
+  if (!token || !isValidToken(token) || !isValidSlugFormat(business.slug)) return undefined;
   return {
     token,
     slug: business.slug,

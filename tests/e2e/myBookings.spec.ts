@@ -13,6 +13,7 @@ import {
 } from './helpers/myBookings';
 import { linkBody, mockLinkApi, mockPublicApi, SLUG } from './helpers/publicMock';
 import { freezeClock } from './helpers/clock';
+import { mockExplore } from './helpers/explore';
 
 // "My bookings on this device" (/my-bookings, the header, tab bar and footer entries, the per-business strip).
 // Self-contained: the booking and link endpoints are answered by page.route on the frozen clock; localStorage is
@@ -135,7 +136,7 @@ test.describe('saving after a booking', () => {
     page,
   }) => {
     await mockPublicApi(page);
-    await seedBookings(page, [saved({ slug: 'some-other-place', token: 'tok-x', reference: 'OTH111' })]);
+    await seedBookings(page, [saved({ slug: 'some-other-place', token: 'tok-other-1', reference: 'OTH111' })]);
     await page.goto(`/b/${SLUG}`);
     await expect(page.getByRole('heading', { name: 'Choose a service' })).toBeVisible();
     await expect(page.getByTestId('your-bookings-strip')).toHaveCount(0);
@@ -224,9 +225,9 @@ test.describe('upcoming bookings (live)', () => {
   test('an expired or rejected link moves the booking to Previous visits quietly', async ({ page }) => {
     await seedBookings(page, [
       saved(),
-      saved({ token: 'tok-404', reference: 'GON404', serviceName: 'Colour' }, 3),
+      saved({ token: 'tok-gone-404', reference: 'GON404', serviceName: 'Colour' }, 3),
     ]);
-    await mockLinkApi(page, { act: 'view', gone: { 'tok-upcoming-1': 410, 'tok-404': 404 } });
+    await mockLinkApi(page, { act: 'view', gone: { 'tok-upcoming-1': 410, 'tok-gone-404': 404 } });
     await page.goto('/my-bookings');
     await expect(pastHeading(page)).toBeVisible();
     await expect(page.getByTestId('past-card')).toHaveCount(2);
@@ -273,7 +274,7 @@ test.describe('upcoming bookings (live)', () => {
     await seedBookings(
       page,
       Array.from({ length: 7 }, (_, i) =>
-        saved({ token: `tok-${i}`, reference: `REF00${i}`, serviceName: `Service ${i}` }, 2 + i),
+        saved({ token: `tok-many-${i}`, reference: `REF00${i}`, serviceName: `Service ${i}` }, 2 + i),
       ),
     );
     let running = 0;
@@ -371,7 +372,9 @@ test.describe('entry points and layout', () => {
     isMobile,
   }) => {
     test.skip(!isMobile, 'the tab bar is a phone control');
+    await mockExplore(page); // the home page loads live data: keep it still while measuring
     await page.goto('/');
+    await page.waitForLoadState('networkidle');
     const bar = page.getByRole('navigation', { name: 'Main' });
     await expect(bar.getByRole('link')).toHaveCount(3);
     const h1 = page.getByRole('heading', { level: 1 });
@@ -434,7 +437,7 @@ test.describe('entry points and layout', () => {
       await page.setViewportSize({ width, height });
       await seedBookings(page, [
         saved({ businessName: 'A very long business name that keeps going and going for the wrap' }),
-        saved({ token: 'tok-b', reference: 'BBB222', serviceName: 'Hydrafacial deep cleansing', staffName: 'Maryam' }, 3),
+        saved({ token: 'tok-second-1', reference: 'BBB222', serviceName: 'Hydrafacial deep cleansing', staffName: 'Maryam' }, 3),
         savedPast(),
       ]);
       await mockLinkApi(page, { act: 'view' });

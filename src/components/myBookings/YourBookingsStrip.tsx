@@ -30,9 +30,9 @@ export function YourBookingsStrip({ slug, className }: { slug: string; className
       >
         <CalendarCheck size={20} />
       </span>
-      <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-[15px] font-semibold">{t('title')}</span>
-        <span className="text-sm text-muted">{t('count', { count })}</span>
+      <span className="flex min-w-0 flex-1 flex-col break-words [overflow-wrap:anywhere]">
+        <span className="min-w-0 text-[15px] font-semibold break-words">{t('title')}</span>
+        <span className="min-w-0 text-sm text-muted break-words">{t('count', { count })}</span>
       </span>
       <ChevronRight size={20} aria-hidden="true" className="shrink-0 text-muted rtl:-scale-x-100" />
     </Link>

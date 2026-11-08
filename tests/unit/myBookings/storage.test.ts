@@ -4,6 +4,7 @@ import {
   STORAGE_KEY,
   createMyBookingsStore,
   entryFromBooking,
+  isValidToken,
   parseStored,
   tokenFromManageLink,
   type SavedBooking,
@@ -14,7 +15,7 @@ const NOW = new Date('2026-11-04T08:00:00Z');
 const DAY = 86_400_000;
 
 const entry = (over: Partial<SavedBooking> = {}): SavedBooking => ({
-  token: 'tok-1',
+  token: 'token-001',
   slug: 'studio-nour',
   businessName: 'Studio Nour',
   serviceName: 'Haircut',
@@ -78,15 +79,15 @@ describe('parseStored', () => {
         { token: 5 },
         null,
         'x',
-        entry({ token: 'tok-2', startAt: 'nope' }),
-        entry({ token: 'tok-3', reference: 'DEF567' }),
+        entry({ token: 'token-002', startAt: 'nope' }),
+        entry({ token: 'token-003', reference: 'DEF567' }),
       ],
     });
     expect(
       parseStored(raw, NOW)
         .map((e) => e.token)
         .sort(),
-    ).toEqual(['tok-1', 'tok-3']);
+    ).toEqual(['token-001', 'token-003']);
   });
 
   it('strips unknown fields so a name, phone or email can never ride along', () => {
@@ -115,10 +116,10 @@ describe('parseStored', () => {
     const raw = JSON.stringify({
       v: 1,
       entries: [
-        entry({ token: 'a', reference: 'XYZ', savedAt: '2026-11-01T00:00:00Z', serviceName: 'Old' }),
-        entry({ token: 'b', reference: 'XYZ', savedAt: '2026-11-02T00:00:00Z', serviceName: 'New' }),
-        entry({ token: 'b', reference: null, savedAt: '2026-11-01T12:00:00Z', serviceName: 'Older b' }),
-        entry({ token: 'c', slug: 'other', reference: 'XYZ', serviceName: 'Other business' }),
+        entry({ token: 'token-aaa1', reference: 'XYZ', savedAt: '2026-11-01T00:00:00Z', serviceName: 'Old' }),
+        entry({ token: 'token-bbb1', reference: 'XYZ', savedAt: '2026-11-02T00:00:00Z', serviceName: 'New' }),
+        entry({ token: 'token-bbb1', reference: null, savedAt: '2026-11-01T12:00:00Z', serviceName: 'Older b' }),
+        entry({ token: 'token-ccc1', slug: 'other', reference: 'XYZ', serviceName: 'Other business' }),
       ],
     });
     const out = parseStored(raw, NOW);
@@ -131,38 +132,154 @@ describe('parseStored', () => {
     const raw = JSON.stringify({
       v: 1,
       entries: [
-        entry({ token: 'edge', startAt: edge, reference: 'E1' }),
-        entry({ token: 'old', startAt: old, reference: 'O1' }),
+        entry({ token: 'token-edge', startAt: edge, reference: 'E1' }),
+        entry({ token: 'token-old1', startAt: old, reference: 'O1' }),
       ],
     });
-    expect(parseStored(raw, NOW).map((e) => e.token)).toEqual(['edge']);
+    expect(parseStored(raw, NOW).map((e) => e.token)).toEqual(['token-edge']);
   });
 
   it('caps at 20, keeping the most recently saved', () => {
     const entries = Array.from({ length: 25 }, (_, i) =>
       entry({
-        token: `t${i}`,
+        token: `token-t${i}`,
         reference: `R${i}`,
         savedAt: new Date(NOW.getTime() - (25 - i) * 1000).toISOString(),
       }),
     );
     const out = parseStored(JSON.stringify({ v: 1, entries }), NOW);
     expect(out).toHaveLength(MAX_ENTRIES);
-    expect(out.map((e) => e.token)).not.toContain('t0');
-    expect(out.map((e) => e.token)).toContain('t24');
+    expect(out.map((e) => e.token)).not.toContain('token-t0');
+    expect(out.map((e) => e.token)).toContain('token-t24');
   });
 
   it('keeps a valid ended marker and drops an invalid one', () => {
     const raw = JSON.stringify({
       v: 1,
       entries: [
-        entry({ token: 'a', reference: 'A1', ended: 'cancelled' }),
-        entry({ token: 'b', reference: 'B1', ended: 'weird' as never }),
+        entry({ token: 'token-aaa1', reference: 'A1', ended: 'cancelled' }),
+        entry({ token: 'token-bbb1', reference: 'B1', ended: 'weird' as never }),
       ],
     });
     const out = parseStored(raw, NOW);
-    expect(out.find((e) => e.token === 'a')?.ended).toBe('cancelled');
-    expect(out.find((e) => e.token === 'b')?.ended).toBeUndefined();
+    expect(out.find((e) => e.token === 'token-aaa1')?.ended).toBe('cancelled');
+    expect(out.find((e) => e.token === 'token-bbb1')?.ended).toBeUndefined();
+  });
+});
+
+describe('parseStored: stored values are untrusted (hostile input)', () => {
+  const only = (over: Record<string, unknown>) =>
+    parseStored(JSON.stringify({ v: 1, entries: [{ ...entry(), ...over }] }), NOW);
+
+  it.each([
+    ['path traversal', '../../etc/passwd'],
+    ['a javascript: URL', 'javascript:alert(1)'],
+    ['a scheme', 'https://evil.test/x'],
+    ['spaces', 'tok en token'],
+    ['a slash', 'abc/def12345'],
+    ['a query', 'abcdefgh?x=1'],
+    ['HTML', '<img src=x onerror=alert(1)>'],
+    ['too short', 'abc'],
+    ['huge', 'x'.repeat(5000)],
+    ['empty', ''],
+    ['non-ASCII', 'tokén-ünïcode-1'],
+  ])('drops a token with %s', (_label, token) => {
+    expect(only({ token })).toEqual([]);
+  });
+
+  it('accepts a real signed token shape (base64url body, dot, base64url signature)', () => {
+    const body = Buffer.from(JSON.stringify({ a: 'abc', act: 'view', exp: 1 })).toString('base64url');
+    const token = `${body}.${'A1b2-_'.repeat(7)}`;
+    expect(only({ token }).map((e) => e.token)).toEqual([token]);
+    expect(isValidToken('mock-manage-token')).toBe(true);
+  });
+
+  it.each([
+    ['path traversal', '../admin'],
+    ['a javascript: URL', 'javascript:alert(1)'],
+    ['uppercase', 'Studio-Nour'],
+    ['a slash', 'a/b/c'],
+    ['an underscore', 'studio_nour'],
+    ['a leading hyphen', '-studio'],
+    ['two hyphens', 'studio--nour'],
+    ['too short', 'ab'],
+    ['too long', 'a'.repeat(41)],
+    ['HTML', '<b>x</b>'],
+  ])('drops a slug with %s', (_label, slug) => {
+    expect(only({ slug })).toEqual([]);
+  });
+
+  it('keeps a real slug', () => {
+    expect(only({ slug: 'studio-nour' })).toHaveLength(1);
+  });
+
+  it.each([
+    ['year 275760', '+275760-09-13T00:00:00.000Z'],
+    ['year 0001', '0001-01-01T00:00:00.000Z'],
+    ['a plain word', 'never'],
+    ['an empty string', ''],
+    ['a number', 12345 as unknown as string],
+    ['null', null as unknown as string],
+  ])('drops an entry with an absurd start time (%s)', (_label, startAt) => {
+    expect(only({ startAt })).toEqual([]);
+  });
+
+  it('drops an end time that is not a real date, or ends before it starts', () => {
+    expect(only({ endAt: 'never' })).toEqual([]);
+    expect(only({ endAt: '2026-11-06T08:00:00.000Z' })).toEqual([]);
+  });
+
+  it('drops a timezone that is not an IANA zone', () => {
+    expect(only({ timezone: 'Not/AZone' })).toEqual([]);
+    expect(only({ timezone: '<script>' })).toEqual([]);
+    expect(only({ timezone: 'Asia/Beirut' })).toHaveLength(1);
+  });
+
+  it.each(['businessName', 'serviceName', 'staffName'])('drops an entry whose %s is huge, empty or not a string', (key) => {
+    expect(only({ [key]: 'x'.repeat(100_000) })).toEqual([]);
+    expect(only({ [key]: '' })).toEqual([]);
+    expect(only({ [key]: 5 })).toEqual([]);
+    expect(only({ [key]: { toString: 'x' } })).toEqual([]);
+    expect(only({ [key]: null })).toEqual([]);
+  });
+
+  it('keeps HTML in a name as plain text (React escapes it) and clamps nothing silently', () => {
+    const [kept] = only({ businessName: '<img src=x onerror=alert(1)>Shop' });
+    expect(kept!.businessName).toBe('<img src=x onerror=alert(1)>Shop');
+  });
+
+  it('accepts names up to the 200-character clamp and no more', () => {
+    expect(only({ businessName: 'x'.repeat(200) })).toHaveLength(1);
+    expect(only({ businessName: 'x'.repeat(201) })).toEqual([]);
+  });
+
+  it('a hostile reference is nulled, not trusted', () => {
+    expect(only({ reference: '<b>x</b>' })[0]!.reference).toBeNull();
+    expect(only({ reference: 'x'.repeat(33) })[0]!.reference).toBeNull();
+    expect(only({ reference: 'ABC234' })[0]!.reference).toBe('ABC234');
+  });
+
+  it('survives wrong container types and a million-entry array without throwing', () => {
+    for (const raw of ['null', '1', '[]', '{"v":1,"entries":"x"}', '{"v":1,"entries":{"a":1}}', '{"v":"1","entries":[]}'])
+      expect(parseStored(raw, NOW)).toEqual([]);
+    const big = JSON.stringify({ v: 1, entries: Array.from({ length: 50_000 }, () => ({ token: 5 })) });
+    expect(parseStored(big, NOW)).toEqual([]);
+  });
+
+  it('entryFromBooking refuses a token that would be rejected on read', () => {
+    const r = {
+      appointment: {
+        reference: 'ABC234',
+        startAt: '2026-11-06T08:30:00.000Z',
+        endAt: '2026-11-06T09:00:00.000Z',
+        service: { name: 'Haircut' },
+        staff: { displayName: 'Karim' },
+      },
+      links: { manage: 'https://x.test/l/..%2F..%2Fadmin' },
+    };
+    const business = { slug: 'studio-nour', name: 'Studio Nour', timezone: 'Asia/Beirut' };
+    expect(entryFromBooking(r, business, NOW)).toBeUndefined();
+    expect(entryFromBooking({ ...r, links: { manage: '/l/token-ok-1' } }, { ...business, slug: '../x' }, NOW)).toBeUndefined();
   });
 });
 
@@ -176,8 +293,8 @@ describe('createMyBookingsStore', () => {
     const { store } = make(storage);
     expect(store.save(entry())).toBe(true);
     expect(STORAGE_KEY).toBe('maw3ed:myBookings:v1');
-    expect(storage.getItem(STORAGE_KEY)).toContain('tok-1');
-    expect(store.getAll().map((e) => e.token)).toEqual(['tok-1']);
+    expect(storage.getItem(STORAGE_KEY)).toContain('token-001');
+    expect(store.getAll().map((e) => e.token)).toEqual(['token-001']);
     expect(store.count()).toBe(1);
   });
 
@@ -194,7 +311,7 @@ describe('createMyBookingsStore', () => {
     store.save(entry());
     expect(store.getAll()).toBe(store.getAll());
     const before = store.getAll();
-    store.save(entry({ token: 'tok-2', reference: 'ZZZ999' }));
+    store.save(entry({ token: 'token-002', reference: 'ZZZ999' }));
     expect(store.getAll()).not.toBe(before);
   });
 
@@ -203,7 +320,7 @@ describe('createMyBookingsStore', () => {
     let calls = 0;
     const off = store.subscribe(() => (calls += 1));
     store.save(entry());
-    store.markEnded('tok-1', 'cancelled');
+    store.markEnded('token-001', 'cancelled');
     expect(calls).toBe(2);
     off();
     store.clear();
@@ -237,7 +354,7 @@ describe('createMyBookingsStore', () => {
   it('markEnded keeps the summary and flags it; clear removes everything', () => {
     const { store } = make(storage);
     store.save(entry());
-    store.markEnded('tok-1', 'closed');
+    store.markEnded('token-001', 'closed');
     expect(store.getAll()[0]!.ended).toBe('closed');
     store.clear();
     expect(store.getAll()).toEqual([]);
@@ -257,7 +374,7 @@ describe('createMyBookingsStore', () => {
     expect(store.save(entry())).toBe(false);
     expect(store.availability()).toBe('blocked');
     expect(() => store.clear()).not.toThrow();
-    expect(() => store.markEnded('x', 'closed')).not.toThrow();
+    expect(() => store.markEnded('token-x01', 'closed')).not.toThrow();
   });
 
   it('survives every call throwing (blocked storage)', () => {
@@ -297,12 +414,12 @@ describe('createMyBookingsStore', () => {
     const { store } = make(small);
     for (let i = 0; i < 6; i += 1)
       store.save(
-        entry({ token: `t${i}`, reference: `R${i}`, savedAt: new Date(NOW.getTime() + i * 1000).toISOString() }),
+        entry({ token: `token-t${i}`, reference: `R${i}`, savedAt: new Date(NOW.getTime() + i * 1000).toISOString() }),
       );
     expect(store.getAll().length).toBeLessThanOrEqual(3);
-    expect(store.getAll().map((e) => e.token)).toContain('t5');
+    expect(store.getAll().map((e) => e.token)).toContain('token-t5');
     limit = 0;
-    expect(store.save(entry({ token: 'late', reference: 'LATE11' }))).toBe(false);
+    expect(store.save(entry({ token: 'token-late', reference: 'LATE11' }))).toBe(false);
   });
 
   it('availability is ok on working storage and the probe leaves nothing behind', () => {
@@ -343,9 +460,9 @@ describe('tokenFromManageLink / entryFromBooking', () => {
   const business = { slug: 'studio-nour', name: 'Studio Nour', timezone: 'Asia/Beirut' };
 
   it('builds an entry without any client identity', () => {
-    const e = entryFromBooking(result('https://x.test/l/tok-9'), business, NOW);
+    const e = entryFromBooking(result('https://x.test/l/token-009'), business, NOW);
     expect(e).toMatchObject({
-      token: 'tok-9',
+      token: 'token-009',
       slug: 'studio-nour',
       serviceName: 'Haircut',
       staffName: 'Karim',

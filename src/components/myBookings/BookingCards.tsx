@@ -2,7 +2,7 @@
 
 import { RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ConfirmSheet } from '@/components/app/ConfirmSheet';
 import { Bidi, isolate, ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -46,20 +46,20 @@ function Summary({ entry, chip }: { entry: SavedBooking; chip?: React.ReactNode 
   return (
     <div className="flex items-start gap-3.5">
       <DateTile month={when.month} day={when.dayOfMonth} />
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h3 className="m-0 text-lg leading-snug font-semibold">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 break-words [overflow-wrap:anywhere]">
+        <h3 className="m-0 min-w-0 text-lg leading-snug font-semibold break-words [overflow-wrap:anywhere]">
           <Bidi>{entry.businessName}</Bidi>
         </h3>
-        <p className="m-0 text-[15px] text-ink">
+        <p className="m-0 min-w-0 text-[15px] text-ink break-words [overflow-wrap:anywhere]">
           {t('with', { service: isolate(entry.serviceName), staff: isolate(entry.staffName) })}
         </p>
-        <p className="m-0 text-[15px] text-muted">
+        <p className="m-0 min-w-0 text-[15px] text-muted break-words">
           {t('when', { day: when.day, range: ltr(when.range) })}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           {chip}
           {entry.reference ? (
-            <span className="text-sm text-muted">{t('reference', { code: ltr(entry.reference) })}</span>
+            <span className="min-w-0 text-sm text-muted break-words [overflow-wrap:anywhere]">{t('reference', { code: ltr(entry.reference) })}</span>
           ) : null}
         </div>
       </div>
@@ -92,6 +92,14 @@ export function UpcomingCard({
   const t = useTranslations('myBookings');
   const tl = useTranslations('link');
   const guard = useRef(createSubmitGuard());
+  // Every request of this card is aborted when the card goes away (page closed, entry moved, Forget).
+  const aborter = useRef<AbortController | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    aborter.current = controller;
+    return () => controller.abort();
+  }, []);
+  const signal = () => aborter.current?.signal;
   const [pending, setPending] = useState<LinkAction>();
   const [problem, setProblem] = useState<ActionProblem>();
   const [dialog, setDialog] = useState(false);
@@ -120,7 +128,7 @@ export function UpcomingCard({
   async function openCancel() {
     setDialog(true);
     try {
-      onLink(entry.token, await getLink(entry.token));
+      onLink(entry.token, await getLink(entry.token, signal()));
     } catch {
       // keep what we have: the dialog still explains the rule from the last answer
     }
@@ -131,11 +139,12 @@ export function UpcomingCard({
     setPending(action);
     setProblem(undefined);
     try {
-      const { result, ...next } = await postLinkAction(entry.token, action);
+      const { result, ...next } = await postLinkAction(entry.token, action, signal());
       void result;
       onLink(entry.token, next);
       setDialog(false);
     } catch (error) {
+      if (signal()?.aborted) return; // the card is gone: nothing to show
       const kind = classifyLinkError(error);
       setDialog(false);
       if (kind === 'invalid' || kind === 'expired') {
@@ -145,7 +154,7 @@ export function UpcomingCard({
         if (kind === 'notAllowed') {
           // 409: it changed under us (cancelled elsewhere): show what it is now.
           try {
-            onLink(entry.token, await getLink(entry.token));
+            onLink(entry.token, await getLink(entry.token, signal()));
           } catch {
             // keep the message
           }

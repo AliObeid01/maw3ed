@@ -4,7 +4,7 @@ import { formatWhen, splitBookings } from '@/lib/myBookings/viewModel';
 
 const NOW = new Date('2026-11-04T08:00:00Z');
 const e = (over: Partial<SavedBooking>): SavedBooking => ({
-  token: 't',
+  token: 'token-001',
   slug: 'studio-nour',
   businessName: 'Studio Nour',
   serviceName: 'Haircut',
@@ -28,6 +28,18 @@ describe('splitBookings', () => {
     const { upcoming, past } = splitBookings(list, NOW);
     expect(upcoming.map((x) => x.token)).toEqual(['soon', 'later']);
     expect(past.map((x) => x.token)).toEqual(['recent', 'old']);
+  });
+
+  it('moves a booking out of Upcoming as the injected clock passes its start', () => {
+    const list = [e({ token: 'token-soon', startAt: '2026-11-04T08:01:30Z', endAt: '2026-11-04T08:31:30Z' })];
+    const before = new Date('2026-11-04T08:00:00Z');
+    const during = new Date('2026-11-04T08:01:00Z'); // one tick later: still 30 s to go
+    const after = new Date('2026-11-04T08:02:00Z'); // the next tick: it has started
+    expect(splitBookings(list, before).upcoming).toHaveLength(1);
+    expect(splitBookings(list, during).upcoming).toHaveLength(1);
+    const late = splitBookings(list, after);
+    expect(late.upcoming).toEqual([]);
+    expect(late.past).toHaveLength(1);
   });
 
   it('an appointment starting exactly now is past (its link stops working at the start)', () => {
