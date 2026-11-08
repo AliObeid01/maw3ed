@@ -232,6 +232,16 @@ export const appointmentRepo = {
     return row?.businessId ?? null;
   },
 
+  /**
+   * Outcome link (GET /api/links/{token}/outcome): is this appointment ATTENDED? The signed view token names
+   * only the appointment id, so this is a second unscoped-by-business lookup like `businessIdOf`. It is ONE
+   * statement whatever the answer (attended, any other status, or no such row), so the work never reveals
+   * the state, and it returns a boolean only.
+   */
+  async isAttended(appointmentId: string): Promise<boolean> {
+    return (await db.appointment.count({ where: { id: appointmentId, status: 'ATTENDED' } })) > 0;
+  },
+
   findForLink: (businessId: string, id: string) =>
     db.appointment.findFirst({
       where: { id, businessId },

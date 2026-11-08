@@ -19,7 +19,10 @@ const optionalText = (max: number) =>
 export const INCLUDE_VALUES = ['nextFree', 'services'] as const;
 
 /** Which optional blocks `include` asks for. */
-export function includeFlags(include: string | undefined): { nextFree: boolean; services: boolean } {
+export function includeFlags(include: string | undefined): {
+  nextFree: boolean;
+  services: boolean;
+} {
   const parts = (include ?? '').split(',');
   return { nextFree: parts.includes('nextFree'), services: parts.includes('services') };
 }
@@ -64,7 +67,8 @@ export const DirectoryQuery = z
       .string()
       .max(40)
       .refine(
-        (v) => v === '' || v.split(',').every((p) => (INCLUDE_VALUES as readonly string[]).includes(p)),
+        (v) =>
+          v === '' || v.split(',').every((p) => (INCLUDE_VALUES as readonly string[]).includes(p)),
         'Use nextFree, services or nextFree,services.',
       )
       .optional()
@@ -73,8 +77,17 @@ export const DirectoryQuery = z
         description:
           'Comma list of `nextFree` and/or `services`. `nextFree` adds `timezone`, `nextFree` and `freeTimes` to every item (computed live, so costlier). `services` adds `services`: up to 4 active services (cheapest first, then name) with name, durationMin and price. Both cap the page at 12. Off by default.',
       }),
+    sort: z.enum(['soonest']).optional().openapi({
+      description:
+        'Only `soonest` (requires `include` to contain `nextFree`). Computes the next free time for the first 24 matching businesses (by name, id: pilot scale, so beyond 24 matches the result is the soonest AMONG those 24), drops the ones with none, orders by that instant (ties by name, id) and returns the first `limit` (default 4, 1 to 12). No cursor: `cursor` is rejected and the response has no `nextCursor`. Unset: name order.',
+    }),
+    spread: z.enum(['category']).optional().openapi({
+      description:
+        'Only with `sort=soonest`. `category`: round-robin over categories, the soonest business of each category first (categories ordered by their soonest time), then the next-soonest of each, until `limit`.',
+    }),
     limit: z.coerce.number().int().min(1).max(50).optional().openapi({
-      description: 'Default 24; default 12 and at most 12 when `include` or `when` is set.',
+      description:
+        'Default 24; default 12 and at most 12 when `include` or `when` is set; default 4 with `sort=soonest`.',
     }),
     cursor: z
       .string()
@@ -142,7 +155,9 @@ export const DirectoryDto = registry.register(
         }),
       }),
     ),
-    nextCursor: z.string().nullable().openapi({ description: 'Opaque. Pass back as `cursor`.' }),
+    nextCursor: z.string().nullable().optional().openapi({
+      description: 'Opaque. Pass back as `cursor`. Absent with `sort=soonest`.',
+    }),
   }),
 );
 
@@ -151,7 +166,7 @@ registry.registerPath({
   path: '/api/public/directory',
   summary: 'Public directory of opted-in businesses that are ready to take bookings',
   description:
-    'Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id. No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.',
+    'Only businesses with `listed = true` that still have an active service and a bookable staff member with working hours. Sorted by name then id (or by soonest free time with sort=soonest). No owner, staff or client data. Cacheable for 60 s (`public, s-maxage=60, stale-while-revalidate=300`). `include` (`nextFree`, `services`) and `when` bound the page (at most 12 businesses; slots are computed for a scan of at most 36 candidates) and have their own per-IP rate limit.',
   tags: ['public'],
   request: { query: DirectoryQuery },
   responses: {
@@ -203,7 +218,7 @@ export const CategoriesDto = registry.register(
           popularServices: z
             .array(z.object({ name: z.string(), fromPrice: z.number() }))
             .max(5)
-            .openapi({ description: 'Top 5 service names by number of businesses offering them.' }),
+            .openapi({ description: 'Top 5 service names by recent demand: appointments booked in the last 30 days (cancelled and unpaid excluded), then by number of businesses offering them, then cheapest. Counts are never returned.' }),
         }),
       )
       .openapi({

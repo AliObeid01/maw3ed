@@ -5,7 +5,8 @@ import {
   linkActionAllowed,
   type LinkAction,
 } from '@/server/domain/linkPolicy';
-import type { TokenAction } from '@/server/domain/tokens';
+import { verifyOutcomeToken, type TokenAction } from '@/server/domain/tokens';
+import { requireLinkSecret } from '@/server/env';
 import { AppError } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
 import { appointmentRepo } from '@/server/repositories/appointment.repo';
@@ -66,6 +67,22 @@ async function load(ctx: LinkCtx, id: string): Promise<Row> {
 }
 
 export const linksService = {
+  /**
+   * `GET /api/links/{token}/outcome`: `{ completed: true }` only for an ATTENDED appointment, `{ completed: false }`
+   * for EVERY other state (including a missing row), so no-show, late cancellation, excused or cancelled can
+   * never be inferred. Accepts a signature-valid `view` token up to OUTCOME_GRACE_SEC (90 days) after the
+   * appointment start (verifyOutcomeToken); any invalid, wrong-action or too-old token is the same 404 as the
+   * other link routes. One repository statement in every valid case, so timing and load are the same.
+   */
+  async outcome(
+    rawToken: string,
+    now: () => Date = () => new Date(),
+  ): Promise<{ completed: boolean }> {
+    const verified = verifyOutcomeToken(rawToken, requireLinkSecret(), now());
+    if (!verified.ok || verified.payload.a === undefined) throw AppError.notFound();
+    return { completed: await appointmentRepo.isAttended(verified.payload.a) };
+  },
+
   /** No side effects: email scanners open these URLs. */
   async get(ctx: LinkCtx, token: LinkIdentity, now: () => Date = () => new Date()) {
     return view(await load(ctx, token.subjectId), now(), token.action);

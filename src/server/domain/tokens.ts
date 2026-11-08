@@ -65,13 +65,11 @@ function parsePayload(body: string): TokenPayload | null {
   return hasA ? { a: r.a as string, act, exp: r.exp } : { o: r.o as string, act, exp: r.exp };
 }
 
-/** Order: structure, signature (constant time), expiry, action. Expired when now >= exp. */
-export function verifyToken(
+/** Structure, signature (constant time) and payload shape. No expiry, no action check. */
+function decodeSigned(
   token: string,
   secret: string,
-  now: Date,
-  expectedAct: TokenAction,
-): VerifyResult {
+): { ok: true; payload: TokenPayload } | { ok: false; reason: 'malformed' | 'bad_signature' } {
   assertSecret(secret);
   if (token.length > MAX_TOKEN_LENGTH) return { ok: false, reason: 'malformed' };
   const parts = token.split('.');
@@ -88,9 +86,45 @@ export function verifyToken(
   }
   const payload = parsePayload(body);
   if (!payload) return { ok: false, reason: 'malformed' };
+  return { ok: true, payload };
+}
+
+/** Order: structure, signature (constant time), expiry, action. Expired when now >= exp. */
+export function verifyToken(
+  token: string,
+  secret: string,
+  now: Date,
+  expectedAct: TokenAction,
+): VerifyResult {
+  const decoded = decodeSigned(token, secret);
+  if (!decoded.ok) return decoded;
+  const { payload } = decoded;
   // Written so an Invalid Date (NaN) fails closed as expired.
   if (!(Math.floor(now.getTime() / 1000) < payload.exp)) return { ok: false, reason: 'expired' };
   if (payload.act !== expectedAct) return { ok: false, reason: 'wrong_action' };
+  return { ok: true, payload };
+}
+
+/**
+ * How long after the appointment start a `view` token may still ask for the OUTCOME of that appointment (and
+ * nothing else): 90 days. The token's own `exp` is the start, so the outcome window is `exp + grace`.
+ */
+export const OUTCOME_GRACE_SEC = 90 * 24 * 3600;
+
+/**
+ * Verifier for GET /api/links/{token}/outcome ONLY. Same structure and signature checks as `verifyToken`, but
+ * the token must be a `view` token for an appointment and is honoured until OUTCOME_GRACE_SEC after its expiry
+ * (the appointment start). Confirm, cancel, claim and every other action are `wrong_action`. `verifyToken`
+ * (used by view/confirm/cancel) is unchanged and still expires at the start.
+ */
+export function verifyOutcomeToken(token: string, secret: string, now: Date): VerifyResult {
+  const decoded = decodeSigned(token, secret);
+  if (!decoded.ok) return decoded;
+  const { payload } = decoded;
+  if (!(Math.floor(now.getTime() / 1000) < payload.exp + OUTCOME_GRACE_SEC))
+    return { ok: false, reason: 'expired' };
+  if (payload.act !== 'view' || payload.a === undefined)
+    return { ok: false, reason: 'wrong_action' };
   return { ok: true, payload };
 }
 

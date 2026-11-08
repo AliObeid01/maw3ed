@@ -28,7 +28,13 @@ export const ExpirySummaryDto = registry.register(
   z.object({
     expired: z.number().int(),
     offered: z.number().int(),
-    holdsExpired: z.number().int().openapi({ description: 'Lapsed deposit holds (PENDING_PAYMENT) cancelled and offered to the waitlist.' }),
+    holdsExpired: z
+      .number()
+      .int()
+      .openapi({
+        description:
+          'Lapsed deposit holds (PENDING_PAYMENT) cancelled and offered to the waitlist.',
+      }),
   }),
 );
 export const CleanupSummaryDto = registry.register(
@@ -37,7 +43,10 @@ export const CleanupSummaryDto = registry.register(
     sessions: z.number().int(),
     invites: z.number().int(),
     emailTokens: z.number().int(),
-    activationTokens: z.number().int().openapi({ description: 'Staff activation links used or expired more than 7 days ago.' }),
+    activationTokens: z
+      .number()
+      .int()
+      .openapi({ description: 'Staff activation links used or expired more than 7 days ago.' }),
     rateLimitBuckets: z.number().int(),
     truncated: z.boolean(),
   }),
@@ -47,7 +56,10 @@ const LinkView = z.object({
   act: z.enum(['view', 'confirm', 'cancel']),
   appointment: z.object({
     id: z.string(),
-    reference: z.string().nullable().openapi({ description: 'Short booking code. A label only, never a credential.' }),
+    reference: z
+      .string()
+      .nullable()
+      .openapi({ description: 'Short booking code. A label only, never a credential.' }),
     startAt: iso,
     endAt: iso,
     status: z.string(),
@@ -141,7 +153,8 @@ registry.registerPath({
 registry.registerPath({
   method: 'post',
   path: '/api/jobs/waitlist-expiry',
-  summary: 'Expire waitlist offers and lapsed deposit holds, then offer freed slots (cron every 5 min; idempotent)',
+  summary:
+    'Expire waitlist offers and lapsed deposit holds, then offer freed slots (cron every 5 min; idempotent)',
   tags: ['jobs'],
   security: cron,
   responses: {
@@ -194,6 +207,32 @@ registry.registerPath({
   request: { params: LinkParams },
   responses: { 200: { description: 'Appointment', content: json(LinkViewDto) }, ...linkErrors },
 });
+export const LinkOutcomeDto = registry.register(
+  'LinkOutcome',
+  z
+    .object({
+      completed: z.boolean().openapi({
+        description:
+          'true only when the appointment is ATTENDED. false for every other state (booked, confirmed, cancelled, late cancel, no-show, pending payment, not yet marked, or unknown): the outcome cannot be inferred from it.',
+      }),
+    })
+    .strict(),
+);
+registry.registerPath({
+  method: 'get',
+  path: '/api/links/{token}/outcome',
+  summary: 'Was this visit attended? (read-only, works up to 90 days after the start)',
+  description:
+    'Accepts a signed `view` token (and only `view`) until 90 days after the appointment start, unlike the other link routes which expire at the start. Answers exactly `{ "completed": true }` for an ATTENDED appointment and the byte-identical `{ "completed": false }` for every other state, including an unknown appointment, so no-show, late cancellation or an excused absence cannot be inferred. Invalid signature, wrong action (confirm, cancel, claim), a token older than the grace or a malformed token: 404 NOT_FOUND (never 410). `Cache-Control: no-store`. Shares the `linkRead` per-IP limit.',
+  tags: ['links'],
+  request: { params: LinkParams, query: NoQuery },
+  responses: {
+    200: { description: 'Outcome', content: json(LinkOutcomeDto) },
+    400: errorResponses[400],
+    404: errorResponses[404],
+    429: { description: 'RATE_LIMITED (Retry-After header)' },
+  },
+});
 registry.registerPath({
   method: 'post',
   path: '/api/links/{token}',
@@ -213,7 +252,8 @@ registry.registerPath({
 registry.registerPath({
   method: 'get',
   path: '/api/reminders/whatsapp-due',
-  summary: 'WhatsApp reminders and last-minute bookings due now, plus those sent in the last 12 hours',
+  summary:
+    'WhatsApp reminders and last-minute bookings due now, plus those sent in the last 12 hours',
   tags: ['reminders'],
   security: [{ session: [] }],
   responses: {
