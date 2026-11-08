@@ -11,7 +11,17 @@ export const BillingQuery = z.object({}).strict();
 
 export const CheckoutBody = registry.register(
   'CheckoutBody',
-  z.object({ plan: z.literal('PRO') }).strict(),
+  z
+    .object({
+      plan: z.literal('PRO'),
+      scenario: z
+        .enum(['success', 'declined'])
+        .optional()
+        .describe(
+          'TEST MODE simulation outcome chosen by the checkout page from the typed test card. Omitted means success. Card details are never part of the request.',
+        ),
+    })
+    .strict(),
 );
 export const DowngradeBody = registry.register(
   'DowngradeBody',
@@ -60,7 +70,7 @@ registry.registerPath({
     403: e[403],
     409: {
       description:
-        'PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)',
+        'PAYMENT_DECLINED (scenario "declined": nothing is charged or changed), PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)',
       content: json(ErrorResponse),
     },
   },

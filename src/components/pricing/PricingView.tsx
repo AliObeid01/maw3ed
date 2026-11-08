@@ -100,7 +100,7 @@ export function PricingView() {
               ))}
             </ul>
             <Link
-              href="/app/settings"
+              href="/signup?plan=pro"
               className={buttonClasses({
                 variant: 'accent',
                 size: 'lg',

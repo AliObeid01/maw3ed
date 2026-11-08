@@ -7,8 +7,14 @@ const json = <T extends z.ZodType>(schema: T) => ({ 'application/json': { schema
 const err = (description: string) => ({ description, content: json(ErrorResponse) });
 
 export const PayParams = LinkParams;
-/** POST /api/pay/{token} takes no body: the provider's answer decides, never the client. */
-export const PayBody = registry.register('PayBody', z.object({}).strict());
+/**
+ * POST /api/pay/{token} takes an empty body (success, the original contract) or ONLY `{ scenario }`: the outcome
+ * the TEST card form simulates. Card data is never part of it (unknown keys are a 400).
+ */
+export const PayBody = registry.register(
+  'PayBody',
+  z.object({ scenario: z.enum(['success', 'declined']).optional() }).strict(),
+);
 
 export const PayViewDto = registry.register(
   'PayView',
@@ -80,7 +86,9 @@ registry.registerPath({
     200: { description: 'Paid and confirmed (or already was)', content: json(PayViewDto) },
     400: errorResponses[400],
     404: errorResponses[404],
-    409: err('PAYMENT_NOT_COMPLETED: the provider did not report the payment as paid'),
+    409: err(
+      'PAYMENT_DECLINED (scenario "declined": the hold is kept, nothing changes) or PAYMENT_NOT_COMPLETED: the provider did not report the payment as paid',
+    ),
     410: expired,
   },
 });

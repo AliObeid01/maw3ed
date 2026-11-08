@@ -15,11 +15,11 @@ export type Billing = z.infer<typeof billingSchema>;
 export const getBilling = (signal?: AbortSignal) =>
   request('/api/billing', billingSchema, { signal });
 
-/** `idempotencyKey` makes a double tap harmless. */
-export const checkoutPro = (idempotencyKey: string) =>
+/** `idempotencyKey` makes a double tap harmless. Only the simulated scenario is sent, never card details. */
+export const checkoutPro = (idempotencyKey: string, scenario: 'success' | 'declined' = 'success') =>
   request('/api/billing/checkout', billingSchema, {
     method: 'POST',
-    body: { plan: 'PRO' },
+    body: { plan: 'PRO', scenario },
     headers: { 'Idempotency-Key': idempotencyKey },
   });
 

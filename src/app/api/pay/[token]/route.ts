@@ -12,5 +12,6 @@ export const GET = withRoute(
 
 export const POST = withRoute(
   { auth: 'public', rateLimit: { policy: 'linkAct' }, params: PayParams, body: PayBody },
-  async ({ ctx, params }) => ok(await payService.pay(ctx, params.token)),
+  async ({ ctx, params, body }) =>
+    ok(await payService.pay(ctx, params.token, undefined, body.scenario ?? 'success')),
 );

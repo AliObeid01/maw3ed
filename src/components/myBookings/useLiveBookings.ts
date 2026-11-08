@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getLink, type LinkView } from '@/lib/api/links';
 import { classifyLinkError } from '@/lib/links/state';
+import { holdStillOpen } from '@/lib/myBookings/hold';
 import { runPool } from '@/lib/myBookings/pool';
 import { myBookings } from '@/lib/myBookings/storage';
 
@@ -34,6 +35,8 @@ export function useLiveBookings(tokens: readonly string[]) {
   /** Record what a link says now (also used after Confirm / Cancel). */
   const apply = useCallback((token: string, link: LinkView) => {
     const status = link.appointment.status;
+    // Paid, cancelled or released: the pay token and the countdown are no longer wanted on this device.
+    if (!holdStillOpen(status)) myBookings.clearHold(token);
     if (CANCELLED.has(status)) {
       setPinned((p) => new Set(p).add(token));
       // After the render that shows "Cancelled": from the next visit the entry is under "Previous visits".

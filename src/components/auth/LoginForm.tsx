@@ -7,6 +7,7 @@ import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { login } from '@/lib/api/auth';
+import { safeNext } from '@/lib/auth/safeNext';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { validateLogin, type LoginField } from '@/lib/auth/validation';
@@ -16,7 +17,7 @@ import { PasswordField } from './PasswordField';
 
 const FIELDS: readonly LoginField[] = ['email', 'password'];
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string | null }) {
   const t = useTranslations('auth.login');
   const forgot = useTranslations('recovery.forgot')('link');
   const router = useRouter();
@@ -51,7 +52,8 @@ export function LoginForm() {
     setErrors({});
     try {
       await login({ identifier: email.trim(), password });
-      router.replace('/app');
+      // `next` was validated on the server (safeNext); validate again here so no caller can pass anything else.
+      router.replace(safeNext(next) ?? '/app');
     } catch (error) {
       const result = classifyAuthError(error, FIELDS);
       setErrors(result.fields as Partial<Record<LoginField, FieldError>>);
@@ -64,6 +66,7 @@ export function LoginForm() {
 
   return (
     <form ref={formRef} onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      {next ? <p className="m-0 text-sm text-muted">{t('nextNotice')}</p> : null}
       <FormBanner message={text.banner(banner)} />
 
       <Input

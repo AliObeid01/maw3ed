@@ -178,7 +178,8 @@
       "appointment": "Appointment",
       "client": "Client",
       "account": "Account",
-      "waitlist": "Waitlist"
+      "waitlist": "Waitlist",
+      "checkout": "Upgrade to Pro"
     },
     "frame": {
       "account": "Account",
@@ -1171,7 +1172,8 @@
       "timezoneHint": "You can change it later.",
       "timezoneCommon": "Common",
       "timezoneAll": "All timezones",
-      "submit": "Create account"
+      "submit": "Create account",
+      "proNotice": "You chose the Pro plan. After you sign up you go straight to a test checkout."
     },
     "login": {
       "title": "Welcome back",
@@ -1180,7 +1182,8 @@
       "emailPlaceholder": "you@example.com or 70 000 001",
       "password": "Password",
       "passwordPlaceholder": "Your password",
-      "submit": "Sign in"
+      "submit": "Sign in",
+      "nextNotice": "Sign in to continue where you left off."
     },
     "invite": {
       "invitedTo": "You're invited to",
@@ -1859,7 +1862,35 @@
     "upgradeLink": "See plans",
     "downgradeConfirmTitle": "Switch back to Free?",
     "downgradeConfirmBody": "Free includes one bookable staff member. Nobody is removed, but you cannot add more bookable staff.",
-    "downgradeConfirmCta": "Switch to Free"
+    "downgradeConfirmCta": "Switch to Free",
+    "checkout": {
+      "pageTitle": "Upgrade to Pro",
+      "title": "Upgrade to Pro",
+      "subtitle": "Check your order, then pay with a test card.",
+      "summary": "Your order",
+      "plan": "Plan",
+      "planValue": "Pro",
+      "price": "Price",
+      "total": "Total today",
+      "perk": "More than one bookable staff member.",
+      "loadFailed": "We could not load your plan.",
+      "declinedTitle": "Card declined",
+      "declined": "That test card was declined and nothing was charged. Try another card.",
+      "failed": "Something went wrong and nothing was charged. Please try again.",
+      "successTitle": "You are on Pro",
+      "successBody": "Your test payment went through. You can now add more bookable staff.",
+      "alreadyTitle": "You are already on Pro",
+      "alreadyBody": "There is nothing to pay.",
+      "goDashboard": "Go to dashboard",
+      "noAccessTitle": "Only the owner can change the plan",
+      "noAccessBody": "Ask the owner of this business to upgrade.",
+      "back": "Back to dashboard"
+    },
+    "finish": {
+      "title": "Finish upgrading to Pro",
+      "body": "You chose Pro when you signed up. Until you pay (test mode) you are on Free with one bookable staff member.",
+      "cta": "Finish upgrading"
+    }
   },
   "directory": {
     "pageTitle": "Explore businesses",
@@ -2182,7 +2213,7 @@
     "intro": "A small deposit confirms this booking. Your time is held for you until the countdown ends.",
     "total": "Service total",
     "amount": "Deposit now",
-    "testMode": "TEST MODE. No real payment is taken and no card details are asked for.",
+    "testMode": "Test mode: checkout is simulated and no card is charged.",
     "pay": "Pay deposit (test)",
     "paying": "Paying",
     "done": {
@@ -2207,7 +2238,8 @@
       "generic": "Something went wrong. Please try again.",
       "invalid": "This link no longer works.",
       "expired": "This hold has expired.",
-      "retry": "Try again"
+      "retry": "Try again",
+      "declined": "That test card was declined. Your time is still held, so you can try again."
     },
     "cancelled": {
       "title": "This booking was cancelled",
@@ -2220,7 +2252,8 @@
     "service": "Service",
     "whenLabel": "When",
     "withStaff": "with {staff}",
-    "releaseNote": "If the deposit isn't paid before the countdown ends, the time is released."
+    "releaseNote": "If the deposit isn't paid before the countdown ends, the time is released.",
+    "cardHeading": "Pay your deposit"
   },
   "notFound": {
     "title": "We can't find that page",
@@ -2532,6 +2565,62 @@
     "saved": {
       "hint": "Saved on this device. Find it later under My bookings.",
       "link": "My bookings"
+    },
+    "deposit": {
+      "chip": "Deposit due",
+      "timeLeft": "Time left {time}",
+      "pay": "Pay deposit",
+      "note": "Your time is held until the countdown ends.",
+      "announce": {
+        "t5m": "5 minutes left to pay the deposit.",
+        "t2m": "2 minutes left to pay the deposit.",
+        "t1m": "1 minute left to pay the deposit.",
+        "t30s": "30 seconds left to pay the deposit.",
+        "expired": "The deposit hold has ended."
+      },
+      "expired": "The deposit hold ended. Book again to pick a time."
     }
+  },
+  "testCard": {
+    "heading": "Pay with a test card",
+    "testMode": "Test mode: checkout is simulated and no card is charged.",
+    "privacy": "Nothing you type here is sent or saved. Only the test result is used.",
+    "scenarioLabel": "Simulated result",
+    "scenarioTitle": "Choose a test result",
+    "scenario": {
+      "success": "Payment succeeds",
+      "declined": "Card declined"
+    },
+    "hint": "Test card {number}",
+    "fill": "Fill test card",
+    "number": "Card number",
+    "numberPlaceholder": "1234 1234 1234 1234",
+    "expiry": "Expiry",
+    "expiryPlaceholder": "MM/YY",
+    "cvc": "CVC",
+    "cvcPlaceholder": "123",
+    "name": "Name on card",
+    "namePlaceholder": "Name on the card",
+    "errors": {
+      "number": {
+        "required": "Enter the card number.",
+        "invalid": "This card number is not valid."
+      },
+      "expiry": {
+        "required": "Enter the expiry date.",
+        "invalid": "Use the format MM/YY.",
+        "expired": "This card has expired."
+      },
+      "cvc": {
+        "required": "Enter the CVC.",
+        "invalid": "The CVC has 3 or 4 digits."
+      },
+      "name": {
+        "required": "Enter the name on the card.",
+        "invalid": "Enter the name as it is on the card."
+      }
+    },
+    "pay": "Pay {amount}",
+    "paying": "Paying"
   }
 }

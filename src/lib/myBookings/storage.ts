@@ -43,6 +43,12 @@ export type SavedBooking = {
   completed?: true;
   /** When the outcome was last asked about (any answer or failure): drives the 6 hour re-check of a visit that is not completed. */
   outcomeCheckedAt?: string;
+  /**
+   * Only while an unpaid deposit hold is open: the signed `pay` token (a bearer secret for ONE payment page, never logged)
+   * and when the 15 minute hold ends. Always set or dropped together; removed once the booking is no longer held.
+   */
+  payToken?: string;
+  holdExpiresAt?: string;
 };
 
 export interface StorageLike {
@@ -113,6 +119,8 @@ const entrySchema = z
     // Added after v1: optional, so v1 data reads unchanged. Anything but the literal true is dropped.
     completed: z.literal(true).optional().catch(undefined),
     outcomeCheckedAt: isoInstant.optional().catch(undefined),
+    payToken: z.string().refine(isValidToken).optional().catch(undefined),
+    holdExpiresAt: isoInstant.optional().catch(undefined),
   })
   .refine((e) => Date.parse(e.endAt) >= Date.parse(e.startAt));
 
@@ -124,10 +132,19 @@ const sameBooking = (a: SavedBooking, b: SavedBooking) =>
 
 const newestFirst = (a: SavedBooking, b: SavedBooking) => Date.parse(b.savedAt) - Date.parse(a.savedAt);
 
+/** A hold is kept only as a complete pair that has not ended yet; anything else is dropped (the booking stays). */
+function withoutDeadHold(item: SavedBooking, now: Date): SavedBooking {
+  const { payToken, holdExpiresAt, ...rest } = item;
+  if (payToken && holdExpiresAt && Date.parse(holdExpiresAt) > now.getTime())
+    return { ...rest, payToken, holdExpiresAt };
+  return rest;
+}
+
 /** Normalise a list: drop duplicates (newest save wins), expired entries and everything over the cap. */
 function tidy(list: SavedBooking[], now: Date): SavedBooking[] {
   const out: SavedBooking[] = [];
-  for (const item of [...list].sort(newestFirst)) {
+  for (const raw of [...list].sort(newestFirst)) {
+    const item = withoutDeadHold(raw, now);
     if (Date.parse(item.startAt) + KEEP_AFTER_START_MS < now.getTime()) continue;
     if (out.some((kept) => sameBooking(kept, item))) continue;
     out.push(item);
@@ -150,12 +167,13 @@ export function parseStored(raw: string | null, now: Date): SavedBooking[] {
   for (const candidate of file.data.entries) {
     const parsed = entrySchema.safeParse(candidate);
     if (!parsed.success) continue;
-    const { ended, completed, outcomeCheckedAt, ...rest } = parsed.data;
+    const { ended, completed, outcomeCheckedAt, payToken, holdExpiresAt, ...rest } = parsed.data;
     good.push({
       ...rest,
       ...(ended ? { ended } : {}),
       ...(completed ? { completed } : {}),
       ...(outcomeCheckedAt ? { outcomeCheckedAt } : {}),
+      ...(payToken && holdExpiresAt ? { payToken, holdExpiresAt } : {}),
     });
   }
   return tidy(good, now);
@@ -182,6 +200,10 @@ type BookingLike = {
     staff: { displayName: string };
   };
   links: { manage: string };
+  status?: string | undefined;
+  /** Present only when a deposit is needed first (the slot is held until `holdExpiresAt`). */
+  payToken?: string | undefined;
+  holdExpiresAt?: string | undefined;
 };
 
 /** The entry to save after a booking succeeds. Takes nothing about the client, so nothing about the client can leak. */
@@ -192,7 +214,12 @@ export function entryFromBooking(
 ): SavedBooking | undefined {
   const token = tokenFromManageLink(result.links.manage);
   if (!token || !isValidToken(token) || !isValidSlugFormat(business.slug)) return undefined;
+  const hold =
+    result.payToken && result.holdExpiresAt && isValidToken(result.payToken) && isoInstant.safeParse(result.holdExpiresAt).success
+      ? { payToken: result.payToken, holdExpiresAt: result.holdExpiresAt }
+      : {};
   return {
+    ...hold,
     token,
     slug: business.slug,
     businessName: business.name,
@@ -217,6 +244,9 @@ export interface MyBookingsStore {
   markEnded(token: string, how: EndedHow): void;
   /** Record what the outcome endpoint said. "false" also stands for a failed check: only the time is kept. "completed" is never erased. */
   markOutcome(token: string, completed: boolean): void;
+  /** The booking is no longer held (paid, cancelled, lapsed): forget the pay token and the hold end, keep the booking. */
+  clearHold(token: string): void;
+  clearHoldByPayToken(payToken: string): void;
   clear(): void;
   availability(): Availability;
   /** Same-tab writes and other tabs (the `storage` event). Returns the unsubscribe function. */
@@ -256,9 +286,11 @@ export function createMyBookingsStore(deps: {
     if (cache && cache.raw === raw && at.getTime() < cache.validUntil) return cache.list;
     const parsed = parseStored(raw, at);
     // The list stays valid until the first entry would expire.
+    // ...or the first hold would end (it is dropped from the list at that moment).
     const validUntil = Math.min(
       Infinity,
       ...parsed.map((e) => Date.parse(e.startAt) + KEEP_AFTER_START_MS),
+      ...parsed.flatMap((e) => (e.holdExpiresAt ? [Date.parse(e.holdExpiresAt)] : [])),
     );
     cache = { raw, list: parsed.length === 0 ? EMPTY : parsed, validUntil };
     return cache.list;
@@ -300,7 +332,16 @@ export function createMyBookingsStore(deps: {
     markEnded(token, how) {
       const all = getAll();
       if (!all.some((e) => e.token === token && e.ended !== how)) return;
-      write(all.map((e) => (e.token === token ? { ...e, ended: how } : e)));
+      // An ended entry is never held: forget the pay token and the hold end with it.
+      write(
+        all.map((e) => {
+          if (e.token !== token) return e;
+          const { payToken: _p, holdExpiresAt: _h, ...rest } = e;
+          void _p;
+          void _h;
+          return { ...rest, ended: how };
+        }),
+      );
     },
     markOutcome(token, completed) {
       const all = getAll();
@@ -318,6 +359,23 @@ export function createMyBookingsStore(deps: {
                 : { ...e, outcomeCheckedAt: checkedAt },
         ),
       );
+    },
+    clearHold(token) {
+      const all = getAll();
+      if (!all.some((e) => e.token === token && (e.payToken || e.holdExpiresAt))) return;
+      write(
+        all.map((e) => {
+          if (e.token !== token) return e;
+          const { payToken: _p, holdExpiresAt: _h, ...rest } = e;
+          void _p;
+          void _h;
+          return rest;
+        }),
+      );
+    },
+    clearHoldByPayToken(payToken) {
+      const hit = getAll().find((e) => e.payToken === payToken);
+      if (hit) this.clearHold(hit.token);
     },
     clear() {
       const s = storage();

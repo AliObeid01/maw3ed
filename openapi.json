@@ -4794,6 +4794,14 @@
             "enum": [
               "PRO"
             ]
+          },
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "success",
+              "declined"
+            ],
+            "description": "TEST MODE simulation outcome chosen by the checkout page from the typed test card. Omitted means success. Card details are never part of the request."
           }
         },
         "required": [
@@ -4880,7 +4888,15 @@
       },
       "PayBody": {
         "type": "object",
-        "properties": {},
+        "properties": {
+          "scenario": {
+            "type": "string",
+            "enum": [
+              "success",
+              "declined"
+            ]
+          }
+        },
         "additionalProperties": false
       },
       "PayView": {
@@ -10480,7 +10496,7 @@
             }
           },
           "409": {
-            "description": "PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)",
+            "description": "PAYMENT_DECLINED (scenario \"declined\": nothing is charged or changed), PAYMENT_NOT_COMPLETED (test payment did not complete) or CONFLICT (stale replayed session)",
             "content": {
               "application/json": {
                 "schema": {
@@ -10687,7 +10703,7 @@
             }
           },
           "409": {
-            "description": "PAYMENT_NOT_COMPLETED: the provider did not report the payment as paid",
+            "description": "PAYMENT_DECLINED (scenario \"declined\": the hold is kept, nothing changes) or PAYMENT_NOT_COMPLETED: the provider did not report the payment as paid",
             "content": {
               "application/json": {
                 "schema": {

@@ -7,5 +7,13 @@ export const dynamic = 'force-dynamic';
 
 export const POST = withRoute(
   { auth: 'session', roles: ['OWNER'], headers: OptionalIdempotencyHeaders, body: CheckoutBody },
-  async ({ ctx, headers }) => ok(await billingService.checkout(ctx, headers['idempotency-key'])),
+  async ({ ctx, headers, body }) =>
+    ok(
+      await billingService.checkout(
+        ctx,
+        headers['idempotency-key'],
+        undefined,
+        body.scenario ?? 'success',
+      ),
+    ),
 );

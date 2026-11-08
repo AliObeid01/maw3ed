@@ -6,12 +6,19 @@ const base =
   'flex h-11 items-center justify-center rounded-chip text-[15px] font-semibold no-underline transition-colors duration-200 ease-out';
 
 /** Sign in / Sign up switch from the boards. Two real links, so each state has its own URL; the current one has `aria-current`. */
-export function AuthTabs({ active }: { active: 'login' | 'signup' }) {
+export function AuthTabs({
+  active,
+  loginHref = '/login',
+}: {
+  active: 'login' | 'signup';
+  /** Where the Sign in tab goes (it keeps a safe `next`, for example the Pro checkout). */
+  loginHref?: string;
+}) {
   const t = useTranslations('auth.tabs');
   return (
     <nav aria-label={t('label')} className="grid grid-cols-2 gap-1 rounded-btn bg-canvas p-1">
       <Link
-        href="/login"
+        href={loginHref}
         aria-current={active === 'login' ? 'page' : undefined}
         className={cn(
           base,

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Clock, FlaskConical, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
+import { Check, Clock, LinkIcon, TriangleAlert, WifiOff } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -9,6 +9,7 @@ import { PageState } from '@/components/public/PageState';
 import { monogram } from '@/components/public/monogram';
 import { Bidi, isolate, MetaLine, TimeRange } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
+import { TestCardForm } from '@/components/billing/TestCardForm';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/cn';
@@ -22,6 +23,8 @@ import {
   type PayFailure,
   type PayView as Pay,
 } from '@/lib/api/pay';
+import type { Scenario } from '@/lib/billing/testCard';
+import { myBookings } from '@/lib/myBookings/storage';
 import { reminderPromiseKind } from '@/lib/reminders/promise';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { msLeft } from '@/lib/waitlist/offer';
@@ -220,12 +223,15 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
   // While a payment is in flight the server decides; the page never swaps to "expired" under it.
   const lapsed = timeUp && outcome.kind !== 'paid' && outcome.kind !== 'paying';
 
-  async function pay() {
+  async function pay(scenario: Scenario) {
     if (busy.current) return;
     busy.current = true;
     setOutcome({ kind: 'paying' });
     try {
-      const paid = await postPay(token);
+      // Only the simulated scenario is sent; the card fields never leave TestCardForm.
+      const paid = await postPay(token, scenario);
+      // Paid: this device no longer needs the pay link or the countdown in "My bookings".
+      myBookings.clearHoldByPayToken(token);
       setOutcome({ kind: 'paid', view: paid });
       window.scrollTo({ top: 0 });
     } catch (error) {
@@ -339,30 +345,24 @@ function PayBody({ token, view, offsetMs }: { token: string; view: Pay; offsetMs
             </div>
           </Card>
 
-          <Callout tone="warning" icon={<FlaskConical />}>
-            {t('testMode')}
-          </Callout>
-
-          {outcome.kind === 'problem' ? (
-            <div role="alert">
-              <Callout tone="danger" icon={<TriangleAlert />}>
-                {t(`errors.${outcome.failure}`)}
-              </Callout>
-            </div>
-          ) : null}
-
           <p className="m-0 text-sm leading-[1.45] text-muted">{t('releaseNote')}</p>
-          <Button
-            size="lg"
-            block
-            variant="accent"
-            onClick={pay}
-            loading={paying}
-            disabled={paying}
-            className="md:h-[58px] md:text-lg"
-          >
-            {paying ? t('paying') : t('pay')}
-          </Button>
+
+          <Card className="flex flex-col gap-4">
+            <TestCardForm
+              amountText={f.money(deposit.amount)}
+              busy={paying}
+              onPay={(scenario) => void pay(scenario)}
+              alert={
+                outcome.kind === 'problem' ? (
+                  <div role="alert" data-testid="pay-problem">
+                    <Callout tone="danger" icon={<TriangleAlert />}>
+                      {t(`errors.${outcome.failure}`)}
+                    </Callout>
+                  </div>
+                ) : null
+              }
+            />
+          </Card>
         </section>
       </main>
     </>
