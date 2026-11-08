@@ -29,7 +29,7 @@ export function OwnerBand() {
           </h1>
           <p className="m-0 mt-3.5 max-w-[46ch] text-lg text-brand-soft">{t('body')}</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero' })}>
+            <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
               {t('cta')}
               <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
             </Link>

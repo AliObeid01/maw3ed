@@ -19,7 +19,7 @@ export function FinalCta() {
           <p className="m-0 mt-3 max-w-[48ch] text-[17px] text-hero-muted">{t('body')}</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero' })}>
+          <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
             {t('cta')}
             <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
           </Link>

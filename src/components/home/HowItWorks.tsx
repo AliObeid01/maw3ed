@@ -72,7 +72,7 @@ export function HowItWorks() {
         </div>
 
         <div aria-hidden="true" data-testid="email-preview" className="grid gap-3.5 rounded-[22px] border-[1.5px] border-divider bg-surface p-[22px]">
-          <div className="flex items-center justify-between gap-3 text-sm text-muted">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-muted">
             <span className="flex items-center gap-3">
               <span className="grid size-9 place-items-center rounded-nav bg-brand text-white">
                 <BellRing size={18} />
@@ -89,10 +89,10 @@ export function HowItWorks() {
             <span className="text-muted">{t('mail.when')}</span>
           </div>
           <div className="flex flex-wrap gap-2.5">
-            <span className={buttonClasses({ variant: 'navy', size: 'hero', className: 'flex-1 basis-[140px]' })}>
+            <span className={buttonClasses({ variant: 'navy', size: 'hero', className: 'h-auto min-h-12 min-w-0 flex-1 shrink basis-[140px] py-2 text-center whitespace-normal' })}>
               <Check size={18} /> {mail.confirm}
             </span>
-            <span className={buttonClasses({ variant: 'secondary', size: 'hero', className: 'flex-1 basis-[140px]' })}>
+            <span className={buttonClasses({ variant: 'secondary', size: 'hero', className: 'h-auto min-h-12 min-w-0 flex-1 shrink basis-[140px] py-2 text-center whitespace-normal' })}>
               <X size={18} /> {mail.cancel}
             </span>
           </div>
