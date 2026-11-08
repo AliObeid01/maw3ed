@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Field';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { signup } from '@/lib/api/auth';
+import { setProIntent } from '@/lib/billing/proIntent';
 import { createSubmitGuard } from '@/lib/auth/submitGuard';
 import { classifyAuthError, type BannerKey } from '@/lib/auth/errors';
 import { PASSWORD_MIN } from '@/lib/auth/password';
@@ -38,7 +39,7 @@ let cachedZones: string[] | undefined;
 /** Stable reference per page load, as useSyncExternalStore requires. */
 const clientTimezones = () => (cachedZones ??= allTimezones());
 
-export function SignupForm() {
+export function SignupForm({ plan }: { plan?: 'pro' | undefined }) {
   const t = useTranslations('auth.signup');
   const router = useRouter();
   const text = useErrorText();
@@ -107,7 +108,13 @@ export function SignupForm() {
         password,
       });
       // Keep the button busy until the navigation lands.
-      router.replace('/app/setup');
+      // Pro was chosen on /pricing: remember it on this device (for the "Finish upgrading" card) and pay first.
+      if (plan === 'pro') {
+        setProIntent(slug);
+        router.replace('/app/checkout?plan=pro');
+      } else {
+        router.replace('/app/setup');
+      }
     } catch (error) {
       const result = classifyAuthError(error, FIELDS);
       setErrors(result.fields as Partial<Record<SignupField, FieldError>>);
@@ -126,6 +133,15 @@ export function SignupForm() {
         <div className="md:col-span-2">
           <FormBanner message={bannerText} />
         </div>
+      ) : null}
+
+      {plan === 'pro' ? (
+        <p
+          data-testid="pro-notice"
+          className="m-0 rounded-card-sm bg-brand-soft p-3.5 text-sm font-medium text-brand-deep md:col-span-2"
+        >
+          {t('proNotice')}
+        </p>
       ) : null}
 
       <Input

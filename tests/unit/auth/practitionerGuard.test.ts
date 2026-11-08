@@ -25,6 +25,8 @@ describe('practitionerGate', () => {
       '/app/clients/x',
       '/app/welcome',
       '/app/book',
+      '/app/checkout',
+      '/app/checkout?plan=pro',
       '/api/me',
     ])
       expect(practitionerGate('PRACTITIONER', p)).toEqual({

@@ -109,6 +109,38 @@ describe('POST /api/billing/checkout', () => {
     expect(fakePaymentProvider.calls).toHaveLength(1);
   });
 
+  it('scenario "success" is the same as no scenario; "declined" is a 409 that changes nothing', async () => {
+    const declined = await checkout(free.cookie, undefined, { plan: 'PRO', scenario: 'declined' });
+    expect(declined.status).toBe(409);
+    expect(declined.body!.error.code).toBe('PAYMENT_DECLINED');
+    expect(JSON.stringify(declined.body)).not.toMatch(/\d{12,}/);
+    expect(await planOf('free-biz')).toBe('FREE');
+    expect(await paymentCount('free-biz')).toBe(0);
+    expect(fakePaymentProvider.calls).toHaveLength(0);
+
+    const ok = await checkout(free.cookie, undefined, { plan: 'PRO', scenario: 'success' });
+    expect(ok.status).toBe(200);
+    expect(ok.body!.plan).toBe('PRO');
+    expect(await paymentCount('free-biz')).toBe(1);
+    // A second success while already Pro is a no-op: never a second charge.
+    const again = await checkout(free.cookie, undefined, { plan: 'PRO', scenario: 'success' });
+    expect(again.status).toBe(200);
+    expect(await paymentCount('free-biz')).toBe(1);
+    expect(fakePaymentProvider.calls).toHaveLength(1);
+  });
+
+  it('400 for an unknown scenario or card-like fields; nothing is stored', async () => {
+    for (const body of [
+      { plan: 'PRO', scenario: 'maybe' },
+      { plan: 'PRO', scenario: 'success', card: '4242424242424242' },
+      { plan: 'PRO', scenario: 'success', cvc: '123', expiry: '12/30' },
+    ]) {
+      const res = await checkout(free.cookie, undefined, body);
+      expect(res.status).toBe(400);
+    }
+    expect(await paymentCount('free-biz')).toBe(0);
+  });
+
   it('concurrent calls with the same Idempotency-Key still record one Payment', async () => {
     const results = await Promise.all([
       checkout(free.cookie, 'key-12345678'),

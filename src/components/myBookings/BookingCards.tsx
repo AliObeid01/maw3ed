@@ -1,8 +1,8 @@
 'use client';
 
-import { Check, RefreshCw } from 'lucide-react';
+import { Check, Clock, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ConfirmSheet } from '@/components/app/ConfirmSheet';
 import { Bidi, isolate, ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
@@ -19,6 +19,12 @@ import {
   type LinkAction,
   type LinkFailure,
 } from '@/lib/links/state';
+import {
+  formatCountdown,
+  holdMsLeft,
+  holdThresholdKey,
+  type HoldThreshold,
+} from '@/lib/myBookings/hold';
 import { myBookings, type SavedBooking } from '@/lib/myBookings/storage';
 import { formatWhen } from '@/lib/myBookings/viewModel';
 import { formatClock } from '@/lib/time/clock';
@@ -74,6 +80,67 @@ function statusChip(status: string): { key: 'booked' | 'confirmed' | 'cancelled'
   return { key: 'booked', tone: 'warning' };
 }
 
+/**
+ * An unpaid deposit hold kept on this device: "Deposit due", a live mm:ss countdown and the Pay deposit button, only
+ * while the hold has not ended. The ticking digits are hidden from assistive technology; a polite live region speaks
+ * only when the countdown crosses a threshold (5, 2, 1 minutes, 30 seconds, ended). The server (the pay page) stays
+ * the authority: this is a convenience on top of it.
+ */
+function HoldPanel({ entry, onEnd }: { entry: SavedBooking; onEnd: () => void }) {
+  const t = useTranslations('myBookings.deposit');
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  const left = holdMsLeft(entry, new Date(nowMs));
+  const over = left === 0;
+  useEffect(() => {
+    if (over) return; // stops at 0
+    const timer = setInterval(() => setNowMs(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [over]);
+  useEffect(() => {
+    if (over) onEnd();
+  }, [over, onEnd]);
+  const key: HoldThreshold = holdThresholdKey(left);
+  // Announce only a change of threshold, never the first "plenty of time" state.
+  const spoken = key === 'tmore' ? '' : t(`announce.${key}`);
+  if (!entry.payToken) return null;
+  return (
+    <div
+      data-testid="hold-panel"
+      className="flex flex-col gap-3 rounded-card-sm border border-warning-line bg-warning-soft p-3.5 text-warning-deep"
+    >
+      {over ? (
+        <p data-testid="hold-expired" className="m-0 text-[15px] font-semibold">
+          {t('expired')}
+        </p>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+            <span className="flex items-center gap-2 text-[15px] font-semibold">
+              <Clock size={18} aria-hidden="true" />
+              <span aria-hidden="true" data-testid="hold-countdown">
+                {t('timeLeft', { time: ltr(formatCountdown(left)) })}
+              </span>
+            </span>
+          </div>
+          <p className="m-0 text-sm">{t('note')}</p>
+          <ButtonLink
+            href={`/pay/${encodeURIComponent(entry.payToken)}`}
+            variant="primary"
+            size="row"
+            block
+            data-testid="hold-pay"
+          >
+            {t('pay')}
+          </ButtonLink>
+        </>
+      )}
+      <span role="status" aria-live="polite" className="sr-only">
+        {spoken}
+      </span>
+    </div>
+  );
+}
+
 type ActionProblem = Exclude<LinkFailure, 'invalid' | 'expired'>;
 
 /** An upcoming booking with its live status, Confirm and Cancel (what the link page offers), and a link to the booking page. */
@@ -103,6 +170,8 @@ export function UpcomingCard({
   const [pending, setPending] = useState<LinkAction>();
   const [problem, setProblem] = useState<ActionProblem>();
   const [dialog, setDialog] = useState(false);
+  const [holdOver, setHoldOver] = useState(false);
+  const endHold = useCallback(() => setHoldOver(true), []);
   const locale = useLocale();
 
   const link = state?.phase === 'ready' ? state.link : undefined;
@@ -171,7 +240,11 @@ export function UpcomingCard({
       <Summary
         entry={entry}
         chip={
-          chipInfo ? (
+          entry.payToken && !holdOver ? (
+            <Chip tone="warning" data-testid="deposit-chip" className="px-3 py-1.5 text-[13px]">
+              {t('deposit.chip')}
+            </Chip>
+          ) : chipInfo ? (
             <Chip tone={chipInfo.tone} data-testid="status-chip" className="px-3 py-1.5 text-[13px]">
               {t(`status.${chipInfo.key}`)}
             </Chip>
@@ -180,6 +253,8 @@ export function UpcomingCard({
           )
         }
       />
+
+      {entry.payToken ? <HoldPanel entry={entry} onEnd={endHold} /> : null}
 
       {state === undefined ? <span className="sr-only">{t('status.checking')}</span> : null}
 

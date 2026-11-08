@@ -475,6 +475,13 @@ export function BookingFlow({ slug }: { slug: string }) {
       if (result.payToken) {
         // Deposit needed (FR-26): the slot is held for 15 minutes. Nothing is "booked" yet, so no
         // confirmation screen; the pay page confirms it. Stay in the pending state while navigating.
+        // "My bookings on this device" keeps the hold (pay token + end) so the client can come back within the 15 minutes.
+        const held = entryFromBooking(
+          result,
+          { slug, name: data?.business.name ?? slug, timezone },
+          new Date(),
+        );
+        if (held) myBookings.save(held);
         router.push(`/pay/${encodeURIComponent(result.payToken)}`);
         return;
       }

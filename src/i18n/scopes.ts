@@ -32,6 +32,8 @@ export const INTL_SCOPES = {
     'home',
     'myBookings',
     'billing',
+    // The TEST card form on /pay.
+    'testCard',
     // Shared money/duration formatting (useAppFormat); the rest of `app` is dashboard-only.
     'app.format',
   ],
@@ -46,6 +48,7 @@ export const INTL_SCOPES = {
     'verify',
     'directory',
     'billing',
+    'testCard',
     'booking',
     // Category and area labels in Settings (PR-1).
     'public.category',

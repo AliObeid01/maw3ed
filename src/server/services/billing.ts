@@ -7,6 +7,8 @@ import { getPaymentProvider, type PaymentProvider } from '@/server/providers/pay
 import { billingRepo, PlanLimitError } from '@/server/repositories/billing.repo';
 import { planLimit } from './staffService';
 
+export type CheckoutScenario = 'success' | 'declined';
+
 interface Deps {
   payments: () => PaymentProvider;
 }
@@ -34,12 +36,21 @@ export const billingService = {
    * Fake hosted test checkout, then the Payment row and the plan change in one transaction.
    * Idempotent: already on Pro, or a repeated Idempotency-Key, changes nothing.
    */
-  async checkout(ctx: SessionContext, idempotencyKey?: string, deps: Deps = defaultDeps) {
+  async checkout(
+    ctx: SessionContext,
+    idempotencyKey?: string,
+    deps: Deps = defaultDeps,
+    scenario: CheckoutScenario = 'success',
+  ) {
     requireRole(ctx, 'OWNER');
     const provider = deps.payments();
     const current = await billingRepo.summary(ctx.businessId);
     if (!current) throw AppError.notFound();
     if (current.plan === 'PRO') return summary(ctx, provider);
+    // TEST MODE simulation: the page derived "declined" from the test decline card. Honoured only while the
+    // provider is a test provider; nothing is opened, charged or changed.
+    if (scenario === 'declined' && provider.testMode)
+      throw AppError.conflict('PAYMENT_DECLINED', undefined, 'The test card was declined.');
 
     const session = await provider.createCheckout({
       businessId: ctx.businessId,

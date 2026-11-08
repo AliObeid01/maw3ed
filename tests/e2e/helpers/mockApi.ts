@@ -247,7 +247,12 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
 
     if (path.startsWith('/api/billing')) {
       const bookable = state.staff.filter((s) => s.active && s.bookable).length;
-      if (path === '/api/billing/checkout' && method === 'POST') plan = 'PRO';
+      if (path === '/api/billing/checkout' && method === 'POST') {
+        // TEST MODE simulation: a declined scenario changes nothing (the server answers 409 PAYMENT_DECLINED).
+        if ((body as { scenario?: string } | undefined)?.scenario === 'declined')
+          return error(route, 409, 'PAYMENT_DECLINED', {});
+        plan = 'PRO';
+      }
       if (path === '/api/billing/downgrade' && method === 'POST') plan = 'FREE';
       return json(route, 200, {
         plan,

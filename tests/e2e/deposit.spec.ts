@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './helpers/test';
 import { nowDate, nowMs, ORIGIN } from './helpers/clock';
+import { readStored } from './helpers/myBookings';
 import { IDS, mockPublicApi, SLUG } from './helpers/publicMock';
 
 // Self-contained: every /api call is answered by page.route, so no database is needed. The server-side rules
@@ -16,7 +17,7 @@ const json = (status: number, body: unknown) => ({
   body: JSON.stringify(body),
 });
 
-async function mockDeposit(page: Page) {
+async function mockDeposit(page: Page, opts: { declineFirst?: boolean } = {}) {
   const calls: { method: string; body: unknown }[] = [];
   const startAt = new Date(nowMs() + 2 * 24 * 3600_000).toISOString();
   const endAt = new Date(nowMs() + 2 * 24 * 3600_000 + 30 * 60_000).toISOString();
@@ -59,7 +60,12 @@ async function mockDeposit(page: Page) {
   await page.route('**/api/pay/**', (route) => {
     const method = route.request().method();
     calls.push({ method, body: JSON.parse(route.request().postData() ?? 'null') });
-    if (method === 'POST') paid = true;
+    if (method === 'POST') {
+      const scenario = (JSON.parse(route.request().postData() ?? '{}') as { scenario?: string }).scenario;
+      if (scenario === 'declined' && opts.declineFirst)
+        return route.fulfill(json(409, { error: { code: 'PAYMENT_DECLINED', message: 'declined', fields: {} } }));
+      paid = true;
+    }
     return route.fulfill(json(200, view(paid ? 'PAID' : 'PENDING')));
   });
   return { calls };
@@ -85,24 +91,58 @@ test.describe('deposit journey', () => {
     // The booking is held, not confirmed: the journey goes to the pay page.
     await expect(page).toHaveURL(new RegExp(`/pay/${PAY_TOKEN}$`));
     await expect(page.getByText('Studio Nour', { exact: true })).toBeVisible();
-    await expect(page.getByText('TEST MODE', { exact: false })).toBeVisible();
+    await expect(page.getByText('Test mode: checkout is simulated and no card is charged.')).toBeVisible();
     await expect(page.getByTestId('countdown')).toHaveText(/^1[45]:\d\d$|^[0-9]:\d\d$/);
-    // Never a card form: no inputs at all, exactly one action.
-    await expect(page.locator('input')).toHaveCount(0);
-    const pay = page.getByRole('button', { name: 'Pay deposit (test)' });
-    await expect(pay).toBeVisible();
-    await expect(pay).toHaveCount(1);
+    // The hold is also kept on this device (pay token + end only), so the client can come back within 15 minutes.
+    const stored = JSON.parse((await readStored(page)) ?? '{}');
+    expect(stored.entries[0]).toMatchObject({ payToken: PAY_TOKEN });
+    expect(typeof stored.entries[0].holdExpiresAt).toBe('string');
+    expect(JSON.stringify(stored)).not.toContain('Nadia');
+
+    const form = page.getByTestId('test-card-form');
+    await expect(form.getByLabel('Card number')).toHaveAttribute('autocomplete', 'cc-number');
+    const pay = form.getByRole('button', { name: /^Pay/ });
+    await expect(pay).toHaveText(/^Pay\D*\$5\D*$/);
     const box = await pay.boundingBox();
     expect(box!.height).toBeGreaterThanOrEqual(44);
 
+    await form.getByRole('button', { name: 'Fill test card' }).click();
     await pay.click();
     await expect(page.getByRole('heading', { name: "You're booked" })).toBeVisible();
     await expect(page.getByText('We will email you reminders 24 hours and 2 hours before.')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pay deposit (test)' })).toHaveCount(0);
+    await expect(page.getByTestId('test-card-form')).toHaveCount(0);
 
-    // The POST carries an empty body: whether it was paid is the server's call, never the page's.
+    // The POST carries ONLY the simulated scenario, never a card digit.
     const posts = calls.filter((c) => c.method === 'POST');
-    expect(posts).toEqual([{ method: 'POST', body: {} }]);
+    expect(posts).toEqual([{ method: 'POST', body: { scenario: 'success' } }]);
+    // Paid: the hold is gone from this device.
+    expect(JSON.parse((await readStored(page)) ?? '{}').entries[0]).not.toHaveProperty('payToken');
+  });
+
+  test('a declined test card keeps the hold and can be retried; the digits are never sent', async ({ page }) => {
+    await mockDeposit(page, { declineFirst: true });
+    const sent: string[] = [];
+    page.on('request', (req) => {
+      if (req.method() === 'POST') sent.push(`${req.url()} ${req.postData() ?? ''}`);
+    });
+    await page.goto(`/pay/${PAY_TOKEN}`);
+    const form = page.getByTestId('test-card-form');
+    await form.getByLabel('Card number').fill('4000000000000002');
+    await form.getByLabel('Expiry').fill('1230');
+    await form.getByLabel('CVC').fill('123');
+    await form.getByLabel('Name on card').fill('Test Person');
+    await form.getByRole('button', { name: /^Pay/ }).click();
+    await expect(page.getByTestId('pay-problem')).toContainText('declined');
+    await expect(page.getByTestId('countdown')).toBeVisible(); // still held
+    await form.getByLabel('Card number').fill('4242424242424242');
+    await form.getByRole('button', { name: /^Pay/ }).click();
+    await expect(page.getByRole('heading', { name: "You're booked" })).toBeVisible();
+    expect(sent).toHaveLength(2);
+    for (const body of sent) {
+      expect(body.replaceAll(/\s/g, '')).not.toMatch(/\d{9,}/);
+    }
+    expect(sent[0]).toContain('"scenario":"declined"');
+    expect(sent[1]).toContain('"scenario":"success"');
   });
 
   test('the pay page shows the business address and, apart from the deposit, the service total (board 5.2)', async ({

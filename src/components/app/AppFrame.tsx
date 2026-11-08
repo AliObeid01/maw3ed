@@ -13,6 +13,7 @@ import { greetingFor } from '@/lib/dashboard/agenda';
 import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
 import { HEADER_SLOT_ID } from './HeaderActions';
+import { FinishUpgradeBanner } from '@/components/billing/FinishUpgradeBanner';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, ShellLogoProvider, useShellLogo, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
@@ -22,6 +23,8 @@ import { useSignOut } from './useSignOut';
 
 /** Which nav entry is active for a pathname (longest matching href wins; unknown pages fall back to Today). */
 export function activeIdFor(pathname: string): ActiveId {
+  // The Pro checkout is reached from Settings, so Settings stays highlighted.
+  if (pathname === '/app/checkout') return 'settings';
   const entries = (Object.entries(defaultHrefs) as [ActiveId, string][])
     .filter(([id]) => id !== 'today')
     .sort((a, b) => b[1].length - a[1].length);
@@ -81,6 +84,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
   // Detail pages keep their parent's nav item but carry their own title (board 4.5, 4.7).
   const isAppointment = pathname.startsWith('/app/appointments/');
   const isClient = pathname.startsWith('/app/clients/');
+  const isCheckout = pathname === '/app/checkout';
   const isToday = activeId === 'today' && !isAppointment;
   const announcement = summary
     ? [
@@ -122,7 +126,9 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
                 part: greetingFor(session.timezone, now),
               })
             : t('today.agendaTitle')
-          : isAppointment
+          : isCheckout
+            ? t('titles.checkout')
+            : isAppointment
             ? t('titles.appointment')
             : isClient
               ? t('titles.client')
@@ -139,6 +145,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       }
     >
       <VerifyBanner />
+      <FinishUpgradeBanner />
       {children}
       </AppShell>
       {/* Polite announcement when the badge counts change (the visible digits are hidden from AT). */}

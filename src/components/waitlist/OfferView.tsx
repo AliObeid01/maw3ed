@@ -176,6 +176,8 @@ function OfferBody({ token, view }: { token: string; view: Offer }) {
       const result = await runner.current.run();
       if (result.payToken) {
         // This client needs a deposit first (FR-26): the slot is held, the pay page confirms it.
+        const held = entryFromBooking(result, business, new Date());
+        if (held) myBookings.save(held);
         router.push(`/pay/${encodeURIComponent(result.payToken)}`);
         return;
       }

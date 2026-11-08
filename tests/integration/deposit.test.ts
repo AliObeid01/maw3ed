@@ -1072,6 +1072,32 @@ describe('token scopes', () => {
     expect((await payPost(long)).status).toBe(400);
     const hold = await holdSlot();
     expect((await payPost(tokenOf(hold), { amount: 0 })).status).toBe(400);
+    // The test card form never sends card data: any card-like field, or an unknown scenario, is a 400.
+    for (const body of [
+      { scenario: 'maybe' },
+      { scenario: 'success', cardNumber: '4242424242424242' },
+      { scenario: 'success', cvc: '123' },
+    ])
+      expect((await payPost(tokenOf(hold), body)).status).toBe(400);
+  });
+
+  it('scenario "declined" is a 409 PAYMENT_DECLINED that keeps the hold; "success" and an empty body pay', async () => {
+    const hold = await holdSlot();
+    const id = hold.body!.appointment.id;
+    const token = tokenOf(hold);
+    const declined = await payPost(token, { scenario: 'declined' });
+    expect(declined.status).toBe(409);
+    expect(declined.body!.error.code).toBe('PAYMENT_DECLINED');
+    expect((await row(id)).status).toBe('PENDING_PAYMENT');
+    expect((await payments(id))[0].status).toBe('PENDING');
+    expect((await jobs(id)).length).toBe(0);
+    // The hold is intact, so the retry works and an empty body (the old contract) still pays.
+    expect((await payPost(token)).status).toBe(200);
+    expect((await row(id)).status).toBe('BOOKED');
+    // Already paid: a later "declined" is a no-op that answers the paid view.
+    const late = await payPost(token, { scenario: 'declined' });
+    expect(late.status).toBe(200);
+    expect(late.body!.state).toBe('PAID');
   });
 
   it('cross-tenant: another business cannot see or cancel the hold (404)', async () => {

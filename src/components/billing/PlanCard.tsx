@@ -3,10 +3,9 @@
 import { CircleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useErrorMessage } from '@/components/app/states';
-import { ltr } from '@/components/ui/Bidi';
-import { Button } from '@/components/ui/Button';
+import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
 import { Chip } from '@/components/ui/Chip';
@@ -14,7 +13,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
-import { checkoutPro, downgradeToFree, getBilling, type Billing } from '@/lib/api/billing';
+import { downgradeToFree, getBilling, type Billing } from '@/lib/api/billing';
 import { useResource } from '@/lib/api/useResource';
 
 /** Numbers from a PLAN_LIMIT error's `data`, or null when the payload is not as expected. */
@@ -30,13 +29,9 @@ export function PlanCard() {
   const toast = useToast();
   const errorText = useErrorMessage();
   const billing = useResource(getBilling, 'billing');
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [downOpen, setDownOpen] = useState(false);
-  const [pending, setPending] = useState<'upgrade' | 'downgrade' | null>(null);
+  const [pending, setPending] = useState<'downgrade' | null>(null);
   const [error, setError] = useState<string>();
-  const [justUpgraded, setJustUpgraded] = useState(false);
-  // One key per confirmation, reused if the owner taps again, so a retry can never charge twice.
-  const keyRef = useRef<string>(undefined);
 
   if (billing.error && !billing.data)
     return (
@@ -54,26 +49,6 @@ export function PlanCard() {
   const data: Billing = billing.data;
   const pro = data.plan === 'PRO';
   const limit = data.limits.bookableStaff;
-  // LRI..PDI isolates the price so the currency sign stays in front of the number in Arabic text.
-  const price = ltr(t('price', { amount: data.price.amount }));
-
-  const upgrade = async () => {
-    if (pending) return;
-    keyRef.current ??= crypto.randomUUID();
-    setPending('upgrade');
-    setError(undefined);
-    try {
-      billing.setData(await checkoutPro(keyRef.current));
-      keyRef.current = undefined;
-      setConfirmOpen(false);
-      setJustUpgraded(true);
-      toast.show(t('upgraded'));
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setPending(null);
-    }
-  };
 
   const downgrade = async () => {
     if (pending) return;
@@ -81,7 +56,6 @@ export function PlanCard() {
     setError(undefined);
     try {
       billing.setData(await downgradeToFree());
-      setJustUpgraded(false);
       toast.show(t('downgraded'));
     } catch (e) {
       const counts =
@@ -116,18 +90,13 @@ export function PlanCard() {
           </span>
         </div>
         {pro ? null : (
-          <Button variant="accent" size="row" onClick={() => setConfirmOpen(true)}>
+          <ButtonLink href="/app/checkout?plan=pro" variant="accent" size="row">
             {t('upgradeCta')}
-          </Button>
+          </ButtonLink>
         )}
       </div>
 
-      {justUpgraded && pro ? (
-        <Callout tone="brand">
-          <span role="status">{t('successBody')}</span>
-        </Callout>
-      ) : null}
-      {error && !confirmOpen ? (
+      {error ? (
         <div role="alert">
           <Callout tone="danger" icon={<CircleAlert />}>
             {error}
@@ -153,42 +122,6 @@ export function PlanCard() {
           </button>
         ) : null}
       </div>
-
-      <Sheet
-        open={confirmOpen}
-        onOpenChange={(open) => (pending ? undefined : setConfirmOpen(open))}
-        title={t('confirmTitle')}
-        description={t('confirmBody', { price })}
-        closeLabel={t('close')}
-      >
-        <div className="flex flex-col gap-4">
-          <Callout tone="warning" icon={<CircleAlert />}>
-            {t('testModeNote')}
-          </Callout>
-          {error && confirmOpen ? (
-            <p role="alert" className="m-0 text-sm text-danger">
-              {error}
-            </p>
-          ) : null}
-          <Button
-            variant="accent"
-            size="lg"
-            block
-            loading={pending === 'upgrade'}
-            onClick={upgrade}
-          >
-            {t('confirmCta')}
-          </Button>
-          <Button
-            variant="secondary"
-            block
-            disabled={pending !== null}
-            onClick={() => setConfirmOpen(false)}
-          >
-            {t('cancel')}
-          </Button>
-        </div>
-      </Sheet>
 
       <Sheet
         open={downOpen}

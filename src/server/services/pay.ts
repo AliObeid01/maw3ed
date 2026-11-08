@@ -195,10 +195,15 @@ export const payService = {
 
   /**
    * Complete the deposit. The ONLY thing that flips the appointment is the provider's answer
-   * (getStatus === PAID); the request body carries nothing. Idempotent: a repeat finds BOOKED (paid) and
+   * (getStatus === PAID); the body carries at most the simulated TEST scenario. Idempotent: a repeat finds BOOKED (paid) and
    * changes nothing (no second set of reminder jobs).
    */
-  async pay(ctx: PayCtx, token: string, deps: PayDeps = defaultPayDeps) {
+  async pay(
+    ctx: PayCtx,
+    token: string,
+    deps: PayDeps = defaultPayDeps,
+    scenario: 'success' | 'declined' = 'success',
+  ) {
     const r = await resolve(token, deps);
     const now = deps.now();
     const provider = deps.payments();
@@ -220,6 +225,10 @@ export const payService = {
 
     if (row.status !== 'PENDING_PAYMENT') throw await expired(row, r.businessId, now);
     if (r.tokenExpired || !holdIsLive(row.holdExpiresAt, now)) throw await lapsed();
+
+    // TEST MODE simulation chosen by the card form: a declined card leaves the hold exactly as it was.
+    if (scenario === 'declined' && provider.testMode)
+      throw AppError.conflict('PAYMENT_DECLINED', undefined, 'The test card was declined.');
 
     const payment = row.payments[0];
     if (!payment) throw AppError.notFound();
