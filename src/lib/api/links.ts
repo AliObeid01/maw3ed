@@ -57,5 +57,5 @@ const path = (token: string) => `/api/links/${encodeURIComponent(token)}`;
 export const getLink = (token: string, signal?: AbortSignal) =>
   request(path(token), linkSchema, { signal });
 
-export const postLinkAction = (token: string, action: 'confirm' | 'cancel') =>
-  request(path(token), linkActionResultSchema, { method: 'POST', body: { action } });
+export const postLinkAction = (token: string, action: 'confirm' | 'cancel', signal?: AbortSignal) =>
+  request(path(token), linkActionResultSchema, { method: 'POST', body: { action }, signal });

@@ -74,7 +74,7 @@ export function Sheet({
             </Dialog.Close>
           </div>
           {description ? (
-            <Dialog.Description className="px-5 pb-2 text-sm text-muted md:px-6">
+            <Dialog.Description className="px-5 pb-2 text-sm text-muted [overflow-wrap:anywhere] md:px-6">
               {description}
             </Dialog.Description>
           ) : null}

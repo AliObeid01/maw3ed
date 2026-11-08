@@ -58,6 +58,15 @@ export function useExploreResults(filters: ExploreFilters) {
   const moreAbort = useRef<AbortController | null>(null);
   const url = requestUrl(filters);
 
+  // A failure belongs to the request that failed. Going A (failed) -> B -> back to A starts a NEW request for A, so
+  // the old banner must not greet the visitor while it runs: clear it the moment the request URL changes (before
+  // the effect below starts that request). Adjusting state during render is React's pattern for "reset on change".
+  const [startedFor, setStartedFor] = useState(url);
+  if (startedFor !== url) {
+    setStartedFor(url);
+    if (core.failure) setCore({ ...core, failure: null });
+  }
+
   useEffect(() => {
     const controller = new AbortController();
     const delay = immediate.current ? 0 : EXPLORE_DEBOUNCE_MS;

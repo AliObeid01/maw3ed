@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clearBooked, loadBooked, saveBooked, type BookedState } from '@/lib/booking/bookedStore';
+import { clearAllBooked, clearBooked, loadBooked, saveBooked, type BookedState } from '@/lib/booking/bookedStore';
 
 const memory = () => {
   const m = new Map<string, string>();
@@ -64,5 +64,35 @@ describe('bookedStore (F17)', () => {
     };
     expect(() => saveBooked('nour', state('2026-11-03T09:00:00Z'), broken)).not.toThrow();
     expect(loadBooked('nour', now, broken)).toBeUndefined();
+  });
+
+  it('clearAllBooked removes every business confirmation (they hold the client name) and nothing else', () => {
+    const base = memory();
+    const store = {
+      ...base,
+      get length() {
+        return base.m.size;
+      },
+      key: (i: number) => [...base.m.keys()][i] ?? null,
+    };
+    saveBooked('nour', state('2026-11-03T09:00:00Z'), store);
+    saveBooked('fade-lab', state('2026-11-03T09:00:00Z'), store);
+    base.m.set('unrelated', 'keep');
+    clearAllBooked(store);
+    expect([...base.m.keys()]).toEqual(['unrelated']);
+  });
+
+  it('clearAllBooked never throws on blocked or missing storage', () => {
+    const broken = {
+      getItem: () => null,
+      setItem: () => undefined,
+      removeItem: () => {
+        throw new Error('blocked');
+      },
+      length: 1,
+      key: () => 'maw3ed:booked:x',
+    };
+    expect(() => clearAllBooked(broken)).not.toThrow();
+    expect(() => clearAllBooked(undefined)).not.toThrow();
   });
 });

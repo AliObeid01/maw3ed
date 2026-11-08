@@ -9,7 +9,7 @@ const STEPS = [
   { id: 'remind', Icon: BellRing },
 ] as const;
 const BULLETS = ['confirm', 'cancel', 'details'] as const;
-const FAQ = ['account', 'cancel', 'taken', 'zone'] as const;
+const FAQ = ['account', 'cancel', 'mine', 'taken', 'zone'] as const;
 
 /** Board "How it works": three steps, the reminder email preview (static illustration), and the FAQ accordion. */
 export function HowItWorks() {

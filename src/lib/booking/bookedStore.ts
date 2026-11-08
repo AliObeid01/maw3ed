@@ -41,6 +41,26 @@ export function clearBooked(slug: string, storage: Store | undefined = browserSt
   }
 }
 
+/**
+ * Remove the saved confirmation of EVERY business in this tab (each holds the client's name). Used by "Forget my
+ * bookings on this device". Other keys are untouched; blocked storage is ignored.
+ */
+export function clearAllBooked(
+  storage: (Store & Partial<Pick<Storage, 'length' | 'key'>>) | undefined = browserStore(),
+) {
+  try {
+    if (!storage || typeof storage.length !== 'number' || !storage.key) return;
+    const keys: string[] = [];
+    for (let i = 0; i < storage.length; i += 1) {
+      const k = storage.key(i);
+      if (k?.startsWith('maw3ed:booked:')) keys.push(k);
+    }
+    for (const k of keys) storage.removeItem(k);
+  } catch {
+    // nothing to do
+  }
+}
+
 /** The saved confirmation, or undefined when absent, malformed, or the appointment has already started. */
 export function loadBooked(
   slug: string,

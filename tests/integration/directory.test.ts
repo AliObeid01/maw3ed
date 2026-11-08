@@ -8,6 +8,7 @@ import { POST as acceptInvite } from '@/app/api/invites/[token]/accept/route';
 import { fakeEmailProvider } from '@/server/providers/email';
 import { call, PASSWORD, signup } from './helpers/api';
 import { newClient, setupSchema, truncateAll } from './helpers/db';
+import { privateKeysIn } from './helpers/directory';
 
 let pg: Client;
 beforeAll(async () => {
@@ -142,6 +143,13 @@ describe('GET /api/public/directory', () => {
     expect(names(await list({ search: 'a_b' }))).toEqual(['100% Hair']);
     expect(names(await list({ search: 'a\\b' }))).toEqual([]);
     expect(names(await list({ search: "x' OR '1'='1" }))).toEqual([]);
+    // A LITERAL backslash (the LIKE escape character) in the data is found as a backslash, not as an escape.
+    await tenant('Back Slash', { category: 'Salon', address: 'C:\\temp' });
+    expect(names(await list({ search: '\\' }))).toEqual(['Back Slash']);
+    expect(names(await list({ search: 'C:\\te' }))).toEqual(['Back Slash']);
+    expect(names(await list({ search: '\\%' }))).toEqual([]);
+    expect(names(await list({ search: '\\_' }))).toEqual([]);
+    expect(names(await list({ search: 'C:\\\\te' }))).toEqual([]); // two backslashes are two literal characters
     expect(names(await list({ category: 'barber' }))).toEqual(['Alpha Barber']);
     expect(names(await list({ category: 'bar' }))).toEqual([]);
     expect(names(await list({ search: 'beta', category: 'salon' }))).toEqual([]);
@@ -205,7 +213,9 @@ describe('GET /api/public/directory', () => {
       'serviceCount',
       'slug',
     ]);
-    expect(text).not.toMatch(/owner|@example\.test|passwordHash|timezone/i);
+    expect(privateKeysIn(res.body)).toEqual([]); // exact keys: a business named "Owner's Staff" must not trip this
+    expect(Object.keys(res.body!.businesses[0])).not.toContain('timezone');
+    expect(text).not.toContain('@example.test');
     expect(text).not.toContain(t.businessId);
     expect(text).not.toContain(t.staffId);
   });
@@ -291,7 +301,8 @@ describe('GET /api/public/directory: category and area filters (PR-1)', () => {
         fromPrice: 10,
       },
     ]);
-    expect(JSON.stringify(res.body)).not.toMatch(/@|phone|owner/i);
+    expect(JSON.stringify(res.body)).not.toContain('@');
+    expect(privateKeysIn(res.body)).toEqual([]);
   });
 
   it('keeps cursor pagination under a filter', async () => {
