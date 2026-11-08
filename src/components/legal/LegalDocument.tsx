@@ -1,6 +1,7 @@
 import { FileWarning, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
+import { LegalToc } from './LegalToc';
 import { ltr } from '@/components/ui/Bidi';
 import { Callout } from '@/components/ui/Callout';
 import { legalKeys, type LegalSection } from '@/lib/legal';
@@ -42,23 +43,12 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
       </header>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-14">
-        <nav aria-labelledby="legal-toc" className="lg:sticky lg:top-24 lg:self-start">
-          <h2 id="legal-toc" className="m-0 mb-2 text-sm font-semibold text-muted">{t('common.toc')}</h2>
-          <ol className="m-0 grid list-none gap-0.5 p-0 text-[15px]">
-            {sections.map((s) => (
-              <li key={s.id}>
-                <a href={`#${s.id}`} className="inline-flex min-h-11 items-center text-ink no-underline hover:text-brand hover:underline">
-                  {t(key(`${s.id}.title`))}
-                </a>
-              </li>
-            ))}
-          </ol>
-        </nav>
+        <LegalToc title={t('common.toc')} items={sections.map((s) => ({ id: s.id, title: t(key(`${s.id}.title`)) }))} />
 
         <div className="grid max-w-[760px] gap-9">
           {sections.map((s) => (
-            <section key={s.id} aria-labelledby={`h-${s.id}`} className="scroll-mt-24">
-              <h2 id={s.id} className="m-0 mb-3 flex items-center gap-2 text-[22px] leading-tight font-semibold">
+            <section key={s.id} aria-labelledby={`h-${s.id}`}>
+              <h2 id={s.id} className="m-0 mb-3 flex scroll-mt-4 items-center gap-2 text-[22px] leading-tight font-semibold">
                 <span id={`h-${s.id}`}>{t(key(`${s.id}.title`))}</span>
                 <a
                   href={`#${s.id}`}

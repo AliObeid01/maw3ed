@@ -37,10 +37,27 @@ export function homeDirectoryUrl({ area, category }: { area?: string; category?:
   const q = new URLSearchParams();
   if (area) q.set('area', area);
   if (category) q.set('category', category);
-  q.set('include', 'nextFree');
+  q.set('include', 'nextFree,services'); // encoded as nextFree%2Cservices
   q.set('limit', String(HOME_LIMIT));
   return `/api/public/directory?${q.toString()}`;
 }
+
+/** Rows in the hero's "Next free" panel (one business per row, spread across categories). */
+export const PANEL_ROWS = 4;
+
+/**
+ * The hero panel: the soonest business of each category. Same URL for every visitor (fixed param order, no per-user
+ * values), so the CDN serves one cache entry. `sort=soonest` needs `include=nextFree` and has no cursor.
+ */
+export const nextFreePanelUrl = (area?: string): string => {
+  const q = new URLSearchParams();
+  if (area) q.set('area', area);
+  q.set('include', 'nextFree');
+  q.set('sort', 'soonest');
+  q.set('spread', 'category');
+  q.set('limit', String(PANEL_ROWS));
+  return `/api/public/directory?${q.toString()}`;
+};
 
 export const getHomeCategories = (signal?: AbortSignal) =>
   request(categoriesUrl(), categoriesSchema, { signal });
@@ -66,6 +83,22 @@ export function getHomeDirectory(params: { area?: string; category?: string } = 
   return promise;
 }
 
+const panelCache = new Map<string, { at: number; data: Directory }>();
+
+/**
+ * The hero panel for an area (or all areas): kept in memory for 60 s per area, like the CDN does. Unlike the shared
+ * promises above this request IS cancellable (the area select aborts the previous one); only a finished answer is
+ * cached, so an aborted or failed request leaves nothing behind.
+ */
+export async function getNextFreePanel(area = '', signal?: AbortSignal): Promise<Directory> {
+  const key = nextFreePanelUrl(area);
+  const hit = panelCache.get(key);
+  if (hit && Date.now() - hit.at < CACHE_MS) return hit.data;
+  const data = await request(key, directorySchema, { signal });
+  panelCache.set(key, { at: Date.now(), data });
+  return data;
+}
+
 const catCache = new Map<string, { at: number; promise: Promise<HomeCategories> }>();
 
 /**
@@ -87,5 +120,6 @@ export function getCategoriesCached(area = ''): Promise<HomeCategories> {
 /** Test hook: forget what was cached. */
 export const clearHomeCache = () => {
   cache.clear();
+  panelCache.clear();
   catCache.clear();
 };

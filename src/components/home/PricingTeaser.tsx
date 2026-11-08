@@ -1,10 +1,13 @@
 import { ArrowRight, Check } from 'lucide-react';
-import Link from 'next/link';
+import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Chip } from '@/components/ui/Chip';
 import { FREE_FEATURES, PRO_FEATURES } from '@/components/pricing/planCopy';
 import { BOOKABLE_STAFF_LIMIT, PLAN_PRICE } from '@/server/domain/plan';
+
+/** Every plan includes these: the Free features that do not depend on a staff count (Pro is "Everything in Free"). */
+const INCLUDED = FREE_FEATURES.filter((k) => k !== 'staff');
 
 function Feature({ children, dark }: { children: string; dark?: boolean }) {
   return (
@@ -70,8 +73,18 @@ export function PricingTeaser() {
                 <Feature key={k} dark>{t(`pricing.pro.features.${k}`)}</Feature>
               ))}
             </ul>
+            <p className="m-0 text-center text-[13px] text-hero-muted">{t('pricing.testNote')}</p>
           </article>
         </div>
+
+        <section aria-labelledby="includes-title" className="mt-5 rounded-[24px] bg-surface p-7">
+          <h3 id="includes-title" className="m-0 text-lg font-semibold">{t('home.pricing.includesTitle')}</h3>
+          <ul className="m-0 mt-4 grid list-none gap-3.5 p-0 sm:grid-cols-2 lg:grid-cols-4">
+            {INCLUDED.map((k) => (
+              <Feature key={k}>{t(`pricing.free.features.${k}`)}</Feature>
+            ))}
+          </ul>
+        </section>
 
         <Link href="/pricing" className={buttonClasses({ variant: 'navy', size: 'hero', className: 'mt-7' })}>
           {t('home.pricing.seeAll')}

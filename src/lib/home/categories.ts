@@ -15,16 +15,27 @@ export type HomeCategory = (typeof HOME_CATEGORIES)[number];
 export const isHomeCategory = (value: unknown): value is HomeCategory =>
   typeof value === 'string' && (HOME_CATEGORIES as readonly string[]).includes(value);
 
-/** The selected category: the wanted one when it is a home category, else the first. */
-export function resolveSelected(
-  _list: readonly { category: string }[],
-  wanted: string | null | undefined,
-): HomeCategory {
-  return isHomeCategory(wanted) ? wanted : HOME_CATEGORIES[0];
+type Entry = { category: string; places: number };
+
+/** The categories that have at least one place, in the design order ("other" is never listed). Empty ones are hidden on the home. */
+export function listedCategories(list: readonly Entry[]): HomeCategory[] {
+  return HOME_CATEGORIES.filter((key) => (list.find((c) => c.category === key)?.places ?? 0) > 0);
 }
 
-/** A category with no places gets the honest empty state instead of a blank panel. */
-export const panelState = (entry: { places: number }): 'empty' | 'full' => (entry.places > 0 ? 'full' : 'empty');
+/**
+ * The selected category. With data: the wanted one when it has places, else the first category with places.
+ * Without data (loading or failed): a known wanted category, else the first.
+ */
+export function resolveSelected(list: readonly Entry[], wanted: string | null | undefined): HomeCategory {
+  if (list.length === 0) return isHomeCategory(wanted) ? wanted : HOME_CATEGORIES[0];
+  const listed = listedCategories(list);
+  if (isHomeCategory(wanted) && listed.includes(wanted)) return wanted;
+  return listed[0] ?? HOME_CATEGORIES[0];
+}
+
+/** Under the category panel's chips: "Popular services" only once a category has at least 3 places, else plain "Services". */
+export const POPULAR_MIN_PLACES = 3;
+export const headingKey = (places: number): 'popular' | 'services' => (places >= POPULAR_MIN_PLACES ? 'popular' : 'services');
 
 /**
  * The "Next free" tile: HH:mm in the business zone, or null (tile omitted). "Next free" only considers each

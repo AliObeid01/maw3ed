@@ -1,69 +1,47 @@
 'use client';
 
-import { CalendarCheck, Compass, Info, Store } from 'lucide-react';
-import Link from 'next/link';
+import { CalendarCheck, Compass, Info } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
 import { Logo } from '@/components/brand/Logo';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { cn } from '@/lib/cn';
 import { useSavedCount } from '@/components/myBookings/useSavedBookings';
 import { LanguageToggle } from './LanguageToggle';
-import { activeTab, showTabBar } from './publicNav';
+import { NavProgress } from './NavProgress';
+import { PendingLink as Link } from './PendingLink';
+import { activeTab, navLinks, showTabBar, tabItems } from './publicNav';
 
 export type PublicHeaderProps = {
   homeHref?: string;
   className?: string;
 };
 
-const TABS = [
-  { id: 'explore', href: '/directory', key: 'explore', Icon: Compass },
-  { id: 'how', href: '/#how', key: 'howItWorks', Icon: Info },
-  { id: 'owners', href: '/signup', key: 'forBusinesses', Icon: Store },
-] as const;
+const TAB_ICONS = { explore: Compass, how: Info, my: CalendarCheck } as const;
 
 const linkClass =
-  'relative flex min-h-11 items-center rounded-nav px-4 text-[15px] font-medium text-muted no-underline transition-colors duration-200 ease-out hover:text-ink after:absolute after:inset-x-4 after:bottom-1 after:h-[3px] after:rounded-[3px] after:bg-brand after:transition-transform after:duration-200 after:ease-out after:content-[""] hover:after:scale-x-100 aria-[current=page]:font-semibold aria-[current=page]:text-ink motion-reduce:transition-none';
-
-/** The hash of the current URL (`#how` while the visitor is on that section); empty on the server. */
-function useHash(): [string, (hash: string) => void] {
-  const [hash, setHash] = useState('');
-  useEffect(() => {
-    const read = () => setHash(window.location.hash);
-    read();
-    window.addEventListener('hashchange', read);
-    return () => window.removeEventListener('hashchange', read);
-  }, []);
-  return [hash, setHash];
-}
+  'relative flex min-h-11 items-center rounded-nav px-4 text-[15px] font-medium text-muted no-underline transition-colors duration-200 ease-out hover:text-ink after:absolute after:inset-x-4 after:bottom-1 after:h-[3px] after:rounded-[3px] after:bg-brand after:transition-transform after:duration-200 after:ease-out after:content-[""] hover:after:scale-x-100 aria-[current=page]:font-semibold aria-[current=page]:text-ink motion-reduce:transition-none aria-busy:opacity-60';
 
 /**
- * The marketplace header (owner design, home page). Wide: logo, Explore / How it works / Pricing, language toggle,
- * a small Sign in link (owners and staff) and the navy "For business owners" button. Phone: logo, language toggle and
- * the owners button, with a fixed bottom tab bar on the marketplace pages (`/`, `/directory`, `/pricing`).
+ * The marketplace header (owner design). Wide: logo, Explore / My bookings (only with saved bookings) / How it works,
+ * language toggle, a small Sign in link (owners and staff) and the navy 'For business owners' button. Phone: logo,
+ * language toggle and the owners button, with a fixed bottom tab bar (Explore, How it works, and My bookings when
+ * saved) on the marketplace pages. Links report their navigation to the top progress bar (`PendingLink`).
  */
 export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
   const t = useTranslations('public.header');
   const pathname = usePathname() ?? '/';
-  const [hash, setHash] = useHash();
-  const current = activeTab(pathname, hash);
+  const current = activeTab(pathname);
   const tabs = showTabBar(pathname);
 
-  // "My bookings" only shows on a device that has saved bookings (read after mount: the server renders without it).
+  // 'My bookings' only shows on a device that has saved bookings (read after mount: the server renders without it).
   const hasSaved = useSavedCount() > 0;
-  const links = [
-    { id: 'explore', href: '/directory', label: t('explore') },
-    { id: 'how', href: '/#how', label: t('howItWorks') },
-    { id: 'pricing', href: '/pricing', label: t('pricing') },
-    ...(hasSaved ? [{ id: 'my', href: '/my-bookings', label: t('myBookings') }] : []),
-  ] as const;
-  const tabItems = hasSaved
-    ? [...TABS, { id: 'my', href: '/my-bookings', key: 'myBookings', Icon: CalendarCheck } as const]
-    : TABS;
+  const links = navLinks(hasSaved);
+  const tabItemList = tabItems(hasSaved);
 
   return (
     <>
+      <NavProgress />
       {tabs ? (
       <a
         href="#main-content"
@@ -85,11 +63,10 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
               <Link
                 key={l.id}
                 href={l.href}
-                onClick={() => setHash(l.id === 'how' ? '#how' : '')}
                 aria-current={current === l.id ? 'page' : undefined}
                 className={cn(linkClass, current === l.id ? 'after:scale-x-100' : 'after:scale-x-0')}
               >
-                {l.label}
+                {t(l.key)}
               </Link>
             ))}
           </nav>
@@ -97,16 +74,17 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
           <LanguageToggle className="max-md:px-3" />
           <Link
             href="/login"
-            className="hidden min-h-11 items-center px-3 text-[15px] font-medium text-muted no-underline hover:text-ink lg:inline-flex"
+            className="hidden min-h-11 items-center px-3 text-[15px] font-medium text-muted no-underline hover:text-ink aria-busy:opacity-60 lg:inline-flex"
           >
             {t('signIn')}
           </Link>
           <Link
-            href="/signup"
+            href="/for-business"
+            aria-current={current === 'owners' ? 'page' : undefined}
             className={buttonClasses({
               variant: 'navy',
               size: 'hero',
-              className: 'h-11 px-3.5 text-[14px] md:px-[18px] md:text-[15px]',
+              className: 'h-11 px-3.5 text-[14px] aria-busy:opacity-70 aria-[current=page]:bg-brand md:px-[18px] md:text-[15px]',
             })}
           >
             <span className="sm:hidden">{t('forBusinessesShort')}</span>
@@ -120,18 +98,20 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
           aria-label={t('tabsLabel')}
           className="public-tabbar fixed inset-x-0 bottom-0 z-40 grid grid-flow-col auto-cols-fr border-t border-divider bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
         >
-          {tabItems.map(({ id, href, key, Icon }) => (
+          {tabItemList.map(({ id, href, key }) => {
+            const Icon = TAB_ICONS[id];
+            return (
             <Link
               key={id}
               href={href}
-              onClick={() => setHash(id === 'how' ? '#how' : '')}
               aria-current={current === id ? 'page' : undefined}
-              className="relative flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-center text-xs font-medium text-muted no-underline aria-[current=page]:font-bold aria-[current=page]:text-brand aria-[current=page]:before:absolute aria-[current=page]:before:top-0 aria-[current=page]:before:h-[3px] aria-[current=page]:before:w-9 aria-[current=page]:before:rounded-b-[3px] aria-[current=page]:before:bg-brand aria-[current=page]:before:content-['']"
+              className="relative flex min-h-[62px] flex-col items-center justify-center gap-1 px-1 text-center text-xs font-medium text-muted no-underline aria-busy:opacity-60 aria-[current=page]:font-bold aria-[current=page]:text-brand aria-[current=page]:before:absolute aria-[current=page]:before:top-0 aria-[current=page]:before:h-[3px] aria-[current=page]:before:w-9 aria-[current=page]:before:rounded-b-[3px] aria-[current=page]:before:bg-brand aria-[current=page]:before:content-['']"
             >
               <Icon size={22} aria-hidden="true" />
               <span className="leading-tight">{t(key)}</span>
             </Link>
-          ))}
+            );
+          })}
         </nav>
       ) : null}
     </>

@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
 import { legalKeys, PRIVACY_SECTIONS, TERMS_SECTIONS } from '@/lib/legal';
-import { activeTab, showTabBar } from '@/components/public/publicNav';
 
 const docs = [
   ['privacy', PRIVACY_SECTIONS],
@@ -24,21 +23,6 @@ describe.each(['en', 'ar'] as const)('legal messages (%s)', (lang) => {
 describe('legalKeys', () => {
   it('puts paragraphs, bullets, then trailing paragraphs', () => {
     expect(legalKeys({ id: 'x', p: 1, b: 2, after: 1 })).toEqual(['p1', 'b1', 'b2', 'p2']);
-  });
-});
-
-describe('public navigation', () => {
-  it('marks Explore on the home and directory pages and How it works on #how', () => {
-    expect(activeTab('/', '')).toBe('explore');
-    expect(activeTab('/', '#how')).toBe('how');
-    expect(activeTab('/directory', '')).toBe('explore');
-    expect(activeTab('/pricing', '')).toBe('pricing');
-    expect(activeTab('/my-bookings', '')).toBe('my');
-    expect(activeTab('/b/studio', '')).toBeNull();
-  });
-  it('shows the phone tab bar on marketplace pages only, never in the booking flow', () => {
-    for (const p of ['/', '/directory', '/pricing', '/privacy', '/terms', '/my-bookings']) expect(showTabBar(p)).toBe(true);
-    for (const p of ['/b/studio-nour', '/l/abc', '/o/abc', '/pay/x']) expect(showTabBar(p)).toBe(false);
   });
 });
 

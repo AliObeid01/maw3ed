@@ -13,6 +13,21 @@ export function formatFreeTime(iso: string, timeZone: string): string {
   return inZone(iso, timeZone).setLocale('en').toFormat('HH:mm');
 }
 
+export type ChipDay = { kind: 'today' } | { kind: 'tomorrow' } | { kind: 'weekday'; text: string };
+
+/**
+ * The text of the outlined chip on a hero row: today, tomorrow or the weekday ("Mon"), and HH:mm, both on the
+ * BUSINESS calendar and clock, Latin digits. The next free time is within 7 days, so a weekday is unambiguous.
+ */
+export function chipTime(iso: string, timeZone: string, now: Date, locale: string): { day: ChipDay; time: string } {
+  const at = inZone(iso, timeZone);
+  const label = dayLabel(iso, timeZone, now, locale);
+  const time = formatFreeTime(iso, timeZone);
+  if (label.kind === 'today' || label.kind === 'tomorrow') return { day: { kind: label.kind }, time };
+  const loc = locale === 'ar' ? 'ar-u-nu-latn' : 'en';
+  return { day: { kind: 'weekday', text: at.setLocale(loc).toFormat('ccc') }, time };
+}
+
 export type DayLabel = { kind: 'today' | 'tomorrow' } | { kind: 'date'; text: string };
 type DayLabelOut = { kind: 'today' | 'tomorrow'; text?: undefined } | { kind: 'date'; text: string };
 

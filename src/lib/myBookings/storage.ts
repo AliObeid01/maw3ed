@@ -39,6 +39,10 @@ export type SavedBooking = {
   savedAt: string;
   /** Set once the live link no longer applies: the booking was cancelled, or the link was refused/expired. Shown under "Previous visits". */
   ended?: EndedHow;
+  /** True once the business marked the visit attended (asked of the outcome endpoint, which says nothing else). Cached for good. */
+  completed?: true;
+  /** When the outcome was last asked about (any answer or failure): drives the 6 hour re-check of a visit that is not completed. */
+  outcomeCheckedAt?: string;
 };
 
 export interface StorageLike {
@@ -106,6 +110,9 @@ const entrySchema = z
       .catch(null),
     savedAt: isoInstant,
     ended: z.enum(['cancelled', 'closed']).optional().catch(undefined),
+    // Added after v1: optional, so v1 data reads unchanged. Anything but the literal true is dropped.
+    completed: z.literal(true).optional().catch(undefined),
+    outcomeCheckedAt: isoInstant.optional().catch(undefined),
   })
   .refine((e) => Date.parse(e.endAt) >= Date.parse(e.startAt));
 
@@ -143,8 +150,13 @@ export function parseStored(raw: string | null, now: Date): SavedBooking[] {
   for (const candidate of file.data.entries) {
     const parsed = entrySchema.safeParse(candidate);
     if (!parsed.success) continue;
-    const { ended, ...rest } = parsed.data;
-    good.push(ended ? { ...rest, ended } : rest);
+    const { ended, completed, outcomeCheckedAt, ...rest } = parsed.data;
+    good.push({
+      ...rest,
+      ...(ended ? { ended } : {}),
+      ...(completed ? { completed } : {}),
+      ...(outcomeCheckedAt ? { outcomeCheckedAt } : {}),
+    });
   }
   return tidy(good, now);
 }
@@ -203,6 +215,8 @@ export interface MyBookingsStore {
   /** False when nothing could be saved (blocked or full); never throws. */
   save(entry: SavedBooking): boolean;
   markEnded(token: string, how: EndedHow): void;
+  /** Record what the outcome endpoint said. "false" also stands for a failed check: only the time is kept. "completed" is never erased. */
+  markOutcome(token: string, completed: boolean): void;
   clear(): void;
   availability(): Availability;
   /** Same-tab writes and other tabs (the `storage` event). Returns the unsubscribe function. */
@@ -287,6 +301,23 @@ export function createMyBookingsStore(deps: {
       const all = getAll();
       if (!all.some((e) => e.token === token && e.ended !== how)) return;
       write(all.map((e) => (e.token === token ? { ...e, ended: how } : e)));
+    },
+    markOutcome(token, completed) {
+      const all = getAll();
+      const checkedAt = deps.now().toISOString();
+      const target = all.find((e) => e.token === token);
+      if (!target || (target.completed && completed)) return;
+      write(
+        all.map((e) =>
+          e.token !== token
+            ? e
+            : e.completed
+              ? e
+              : completed
+                ? { ...e, completed: true as const, outcomeCheckedAt: checkedAt }
+                : { ...e, outcomeCheckedAt: checkedAt },
+        ),
+      );
     },
     clear() {
       const s = storage();

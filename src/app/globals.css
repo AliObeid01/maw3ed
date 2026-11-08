@@ -93,6 +93,18 @@
 }
 
 @layer base {
+  /* The sticky header (65 px) must never cover the target of an in-page anchor. */
+  html {
+    scroll-padding-top: 5.5rem;
+  }
+
+  /* Smooth anchor scrolling only for people who have not asked for less motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
   body {
     margin: 0;
     background-color: var(--color-canvas);
@@ -127,5 +139,25 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
+  }
+}
+
+/* Top progress bar for client navigations (NavProgress). It starts after a short delay so instant navigations show
+   nothing, then creeps toward 90 %. Flat colour, no glow. Unlayered on purpose. With reduced motion it is static. */
+@keyframes nav-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.9);
+  }
+}
+.nav-progress {
+  animation: nav-progress 8s cubic-bezier(0.1, 0.6, 0.2, 1) 150ms both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress {
+    animation: none !important;
+    transform: scaleX(0.6);
   }
 }
