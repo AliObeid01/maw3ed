@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, CircleAlert, FlaskConical } from 'lucide-react';
+import { Check, CircleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -35,7 +35,6 @@ export function CheckoutView() {
 
 function OwnerCheckout() {
   const t = useTranslations('billing');
-  const testMode = useTranslations('testCard')('testMode');
   const router = useRouter();
   const errorText = useErrorMessage();
   const { money } = useAppFormat();
@@ -108,13 +107,13 @@ function OwnerCheckout() {
         >
           <Check size={26} />
         </span>
-        <h1
+        <h2
           ref={headingRef}
           tabIndex={-1}
           className="m-0 text-[22px] font-semibold outline-none md:text-[26px]"
         >
           {justNow ? t('checkout.successTitle') : t('checkout.alreadyTitle')}
-        </h1>
+        </h2>
         <p role="status" className="m-0 text-[15px] text-muted">
           {justNow ? t('checkout.successBody') : t('checkout.alreadyBody')}
         </p>
@@ -127,10 +126,8 @@ function OwnerCheckout() {
 
   return (
     <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-5">
-      <header className="flex flex-col gap-1.5">
-        <h1 className="m-0 text-[26px] leading-tight font-semibold md:text-[30px]">{t('checkout.title')}</h1>
-        <p className="m-0 text-base text-muted">{t('checkout.subtitle')}</p>
-      </header>
+      {/* The page title is the shell header's h1. */}
+      <p className="m-0 text-base text-muted">{t('checkout.subtitle')}</p>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:items-start">
         <Card as="section" aria-labelledby="checkout-summary" className="flex flex-col gap-4">
@@ -157,10 +154,6 @@ function OwnerCheckout() {
               {priceText}
             </span>
           </div>
-          <p className="m-0 flex items-start gap-2 text-sm text-muted">
-            <FlaskConical size={18} aria-hidden="true" className="mt-px shrink-0" />
-            {testMode}
-          </p>
         </Card>
 
         <Card as="section" className="flex flex-col gap-4">

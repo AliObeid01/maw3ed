@@ -1881,10 +1881,7 @@
       "successBody": "Your test payment went through. You can now add more bookable staff.",
       "alreadyTitle": "You are already on Pro",
       "alreadyBody": "There is nothing to pay.",
-      "goDashboard": "Go to dashboard",
-      "noAccessTitle": "Only the owner can change the plan",
-      "noAccessBody": "Ask the owner of this business to upgrade.",
-      "back": "Back to dashboard"
+      "goDashboard": "Go to dashboard"
     },
     "finish": {
       "title": "Finish upgrading to Pro",
@@ -2591,7 +2588,7 @@
       "success": "Payment succeeds",
       "declined": "Card declined"
     },
-    "hint": "Test card {number}",
+    "hint": "Test card",
     "fill": "Fill test card",
     "number": "Card number",
     "numberPlaceholder": "1234 1234 1234 1234",

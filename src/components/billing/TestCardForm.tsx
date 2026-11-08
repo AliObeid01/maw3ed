@@ -134,11 +134,14 @@ export function TestCardForm({
           value={pick}
           onChange={(v) => setPick(v === 'declined' ? 'declined' : 'success')}
           options={options}
-          hint={t('hint', {
-            number: ltr(pick === 'declined' ? TEST_CARD_DECLINED : TEST_CARD_SUCCESS),
-          })}
           disabled={busy}
         />
+        <p className="m-0 text-[13px] text-muted">
+          {t('hint')}{' '}
+          <bdi dir="ltr" className="tabular-nums">
+            {pick === 'declined' ? TEST_CARD_DECLINED : TEST_CARD_SUCCESS}
+          </bdi>
+        </p>
         <Button type="button" variant="secondary" size="row" disabled={busy} onClick={fill}>
           {t('fill')}
         </Button>

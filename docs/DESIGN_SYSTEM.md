@@ -72,6 +72,10 @@ Built from the PR-7a/7b parts (header, footer, `Card`, `Chip`, `Callout`, `Confi
 - **Privacy copy (always visible):** "Only booking details, never your name, phone or email. For past visits we ask Maw3ed whether the visit was completed and keep only that answer and when we asked. Anyone using this browser can see this list." and the shared-computer line. Previous visits show at most a muted success "Completed" chip (text with a check mark, from `GET /api/links/{token}/outcome`, PR-11) and never any other outcome.
 - **Entry points:** header nav (lg), phone tab bar (4th tab, `grid-flow-col auto-cols-fr` so 3 and 4 tabs share the same bar), footer Support column, the per-business strip, the booked-step hint. All render only when the device has saved bookings.
 
+## TestCardForm and checkout (PR-11b)
+
+`src/components/billing/TestCardForm.tsx` is the one card form (Pro checkout and `/pay/[token]`). Order: heading + privacy line, warning Callout (test mode), a canvas tile with the custom `Select` "Simulated result" (Payment succeeds / Card declined, hint "Test card 4242 4242 4242 4242") and a secondary "Fill test card" button, then Card number, Expiry + CVC (two columns), Name on card, an optional alert slot (danger Callout, `role="alert"`), and the accent Pay button (`lg`, block, 52 px). Card number, expiry and CVC are `dir="ltr"`, `inputMode="numeric"`, `tabular-nums`, with `cc-number`, `cc-exp`, `cc-csc`, `cc-name` autofill hints; errors are inline (`aria-invalid`, focus moves to the first). No `name` attributes. Flat colours only; no motion beyond the shared button spinner. `/app/checkout` is an order-summary Card (plan, price, perk, total, test note) beside the form (stacked below `lg`); the success state is a centred Card with the check badge and a "Go to dashboard" button. The "Finish upgrading to Pro" banner is a brand-soft bordered section with an accent button, never dismissible. In My bookings a held entry gets a warning "Deposit due" chip and a warning-soft panel with the clock, "Time left m:ss" and a primary full-width "Pay deposit" button.
+
 ## Board → route map
 | # | Board | Route | Component root |
 |---|---|---|---|
