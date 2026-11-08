@@ -59,3 +59,11 @@ export const getLink = (token: string, signal?: AbortSignal) =>
 
 export const postLinkAction = (token: string, action: 'confirm' | 'cancel', signal?: AbortSignal) =>
   request(path(token), linkActionResultSchema, { method: 'POST', body: { action }, signal });
+
+/**
+ * `GET /api/links/{token}/outcome` (view tokens only, up to 90 days after the start): `{ completed: true }` only for an
+ * attended visit, a byte-identical `{ completed: false }` for every other state. Shares nothing else.
+ */
+export const outcomeSchema = z.object({ completed: z.boolean() });
+export const getOutcome = (token: string, signal?: AbortSignal) =>
+  request(`${path(token)}/outcome`, outcomeSchema, { signal });

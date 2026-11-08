@@ -427,6 +427,8 @@ export type LinkMock = {
   alreadyCancelledLate?: boolean;
   /** The first GET says "free", every later GET says "late": time passed while the page was open. */
   cutoffPassesAfterFirstGet?: boolean;
+  /** `GET /api/links/{token}/outcome` per token: true = attended, false (default) = anything else, or an error status. */
+  outcome?: Record<string, boolean | 404 | 429 | 500>;
 };
 
 export function linkBody(
@@ -460,11 +462,21 @@ export function linkBody(
 export async function mockLinkApi(page: Page, mock: LinkMock = {}) {
   await freezeClock(page);
   const calls: { method: string; token: string; body?: unknown }[] = [];
+  /** Tokens asked about on the outcome endpoint, in order. */
+  const outcomeCalls: string[] = [];
   let gets = 0;
   let conflicted = false;
   await page.route('**/api/links/**', async (route) => {
     const request = route.request();
-    const token = decodeURIComponent(new URL(request.url()).pathname.split('/').pop()!);
+    const segments = new URL(request.url()).pathname.split('/');
+    if (segments.at(-1) === 'outcome') {
+      const who = decodeURIComponent(segments.at(-2)!);
+      outcomeCalls.push(who);
+      const answer = mock.outcome?.[who] ?? false;
+      if (typeof answer === 'number') return apiError(route, answer, answer === 429 ? 'RATE_LIMITED' : 'NOT_FOUND');
+      return json(route, 200, { completed: answer });
+    }
+    const token = decodeURIComponent(segments.pop()!);
     const method = request.method();
     const body = request.postData() ? JSON.parse(request.postData()!) : undefined;
     calls.push({ method, token, body });
@@ -521,5 +533,5 @@ export async function mockLinkApi(page: Page, mock: LinkMock = {}) {
       result: mock.pastCutoff ? 'late_cancelled' : 'cancelled',
     });
   });
-  return { calls };
+  return { calls, outcomeCalls };
 }

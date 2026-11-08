@@ -1,5 +1,4 @@
 import { ArrowUp, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
 import { FooterMyBookingsLink } from '@/components/myBookings/FooterMyBookingsLink';
@@ -7,11 +6,12 @@ import { AREA_KEYS } from '@/lib/business/profile';
 import { HOME_CATEGORIES } from '@/lib/home/categories';
 import { contactHref, COPYRIGHT_YEAR, SITE, socialLinks, type SocialId } from '@/lib/site';
 import { LanguageToggle } from './LanguageToggle';
+import { PendingLink as Link } from './PendingLink';
 
 const AREAS = AREA_KEYS.filter((k) => k !== 'other');
 
 const linkClass =
-  'inline-flex min-h-11 items-center text-[15px] text-hero-muted no-underline transition-colors duration-200 ease-out hover:text-white hover:underline';
+  'inline-flex min-h-11 items-center text-[15px] text-hero-muted no-underline transition-colors duration-200 ease-out hover:text-white hover:underline aria-busy:opacity-60';
 
 function InstagramIcon() {
   return (
@@ -124,10 +124,11 @@ export function PublicFooter() {
               {t('public.footer.owners')}
             </h2>
             <ul className="m-0 list-none p-0">
+              <li><Link href="/for-business" className={linkClass}>{t('public.footer.ownersPage')}</Link></li>
               <li><Link href="/pricing" className={linkClass}>{t('public.footer.pricing')}</Link></li>
               <li><Link href="/signup" className={linkClass}>{t('public.footer.putOnMaw3ed')}</Link></li>
               <li><Link href="/login" className={linkClass}>{t('public.footer.businessSignIn')}</Link></li>
-              <li><Link href="/#how" className={linkClass}>{t('public.footer.reminders')}</Link></li>
+              <li><Link href="/how-it-works#reminders" className={linkClass}>{t('public.footer.reminders')}</Link></li>
             </ul>
           </nav>
           <nav aria-labelledby="footer-support">
@@ -135,7 +136,7 @@ export function PublicFooter() {
               {t('public.footer.support')}
             </h2>
             <ul className="m-0 list-none p-0">
-              <li><Link href="/#how" className={linkClass}>{t('public.footer.howItWorks')}</Link></li>
+              <li><Link href="/how-it-works" className={linkClass}>{t('public.footer.howItWorks')}</Link></li>
               <li><a href={contactHref()} className={linkClass}>{t('public.footer.contactUs')}</a></li>
               <FooterMyBookingsLink className={linkClass} />
             </ul>

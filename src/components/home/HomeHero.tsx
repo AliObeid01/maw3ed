@@ -1,73 +1,23 @@
 'use client';
 
 import { ArrowRight, MapPin, Search } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, useTransition, type FormEvent } from 'react';
 import { cn } from '@/lib/cn';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Select, type SelectOption } from '@/components/ui/Select';
-import { Skeleton } from '@/components/ui/Skeleton';
-import { getHomeDirectory } from '@/lib/api/home';
+import { PendingLink as Link, useNavigationFlag } from '@/components/public/PendingLink';
+import { getCategoriesCached } from '@/lib/api/home';
 import { useResource } from '@/lib/api/useResource';
-import { AREA_KEYS, isAreaKey } from '@/lib/business/profile';
+import { AREA_KEYS } from '@/lib/business/profile';
 import { DIRECTORY_SEARCH_MAX } from '@/lib/directory/params';
+import { heroChips } from '@/lib/home/popular';
 import { buildDirectoryUrl, POPULAR_SEARCHES } from '@/lib/home/search';
 import { useIsDesktop } from '@/lib/useMediaQuery';
-import { PlaceCard } from './PlaceCard';
+import { NextFreePanel } from './NextFreePanel';
 
 const AREAS = AREA_KEYS.filter((k) => k !== 'other');
-
-/** Right column of the hero (lg and up): live next-free cards. Hidden when there is nothing to show. */
-/** Cards shown in the hero panel. Space for exactly this many is reserved from the first paint (no layout shift). */
-const PANEL_CARDS = 2;
-
-function NextFreePanel({ area, onEmpty }: { area: string; onEmpty: (empty: boolean) => void }) {
-  const t = useTranslations('home.nextFree');
-  const areaName = useTranslations('public.area');
-  const { data, error, loading } = useResource(
-    () => getHomeDirectory(area ? { area } : {}),
-    `nextfree:${area}`,
-  );
-  const items = data?.businesses.filter((b) => (b.freeTimes?.length ?? 0) > 0) ?? [];
-  const empty = !loading && (Boolean(error) || items.length === 0);
-  useEffect(() => {
-    onEmpty(empty);
-  }, [empty, onEmpty]);
-  if (empty) return null;
-
-  const title = isAreaKey(area) ? t('titleIn', { area: areaName(area) }) : t('title');
-  return (
-    <section
-      aria-labelledby="next-free-title"
-      aria-busy={loading}
-      data-testid="next-free-panel"
-      className="rounded-[28px] bg-brand p-6 text-white lg:min-h-[720px]"
-    >
-      <h2 id="next-free-title" className="m-0 mb-1 text-[22px] font-semibold">
-        {title}
-      </h2>
-      <p className="m-0 mb-4 text-[15.5px] text-brand-soft">{t('hint')}</p>
-      {loading ? (
-        <div role="status" className="grid gap-3">
-          <span className="sr-only">{t('loading')}</span>
-          <Skeleton className="h-[188px] rounded-[18px] bg-white/20" />
-          <Skeleton className="h-[188px] rounded-[18px] bg-white/20" />
-        </div>
-      ) : (
-        <ul className="m-0 grid list-none gap-3 p-0">
-          {items.slice(0, PANEL_CARDS).map((b) => (
-            <li key={b.slug}>
-              <PlaceCard business={b} avatar="navy" />
-            </li>
-          ))}
-        </ul>
-      )}
-      {!loading ? <p className="m-0 mt-3 text-[13.5px] text-brand-soft">{t('note')}</p> : null}
-    </section>
-  );
-}
 
 /** Board "Home": navy hero with the search card, popular chips and (lg+) the live Next free panel. */
 export function HomeHero() {
@@ -78,8 +28,16 @@ export function HomeHero() {
   const [text, setText] = useState('');
   const [area, setArea] = useState('');
   const [pending, setPending] = useState(false);
+  const [navigating, startNavigation] = useTransition();
+  useNavigationFlag(navigating); // the top progress bar shows while the search page loads
   // The right column is reserved while the panel loads or shows; it collapses only when there is nothing to show.
-  const [panelEmpty, setPanelEmpty] = useState(false);
+  const [panelHidden, setPanelHidden] = useState(false);
+  // Popular chips come from the live categories (the same cached request the category list uses); the static list is the fallback.
+  const cats = useResource(() => getCategoriesCached(''), 'categories');
+  const chips = useMemo(
+    () => heroChips(cats.data?.categories, POPULAR_SEARCHES.map((key) => t(`popularItems.${key}`))),
+    [cats.data, t],
+  );
 
   const options = useMemo<SelectOption[]>(
     () => [{ value: '', label: t('areaAll') }, ...AREAS.map((k) => ({ value: k, label: areaName(k) }))],
@@ -90,13 +48,13 @@ export function HomeHero() {
     e.preventDefault();
     if (pending) return;
     setPending(true);
-    router.push(buildDirectoryUrl({ search: text, area }));
+    startNavigation(() => router.push(buildDirectoryUrl({ search: text, area })));
   };
 
   return (
     <section data-surface="dark" className="bg-navy text-white">
       <div className="mx-auto grid max-w-[1200px] items-center gap-10 px-4 py-12 md:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14 lg:py-[72px] lg:pb-[88px]">
-        <div>
+        <div className="min-w-0">
           <h1 className="m-0 max-w-[13ch] text-[clamp(38px,6.2vw,64px)] leading-[1.05] font-bold tracking-[-0.03em] rtl:max-w-[14ch] rtl:leading-[1.2] rtl:tracking-normal">
             {t('titleLead')} <span className="text-hero-accent">{t('titleAccent')}</span>
           </h1>
@@ -158,22 +116,27 @@ export function HomeHero() {
             </button>
           </form>
 
-          <div className="mt-[18px] flex flex-wrap items-center gap-2 text-[15px] text-hero-muted">
-            <span>{t('popular')}</span>
-            {POPULAR_SEARCHES.map((key) => (
+          {/* One line, never wraps: the row keeps its height whether the chips are the fallback or live names. */}
+          <div
+            data-allow-overflow
+            data-testid="hero-chips"
+            className="mt-[18px] flex min-h-11 flex-nowrap items-center gap-2 overflow-x-auto text-[15px] text-hero-muted"
+          >
+            <span className="shrink-0">{t('popular')}</span>
+            {chips.map((name) => (
               <Link
-                key={key}
-                href={buildDirectoryUrl({ search: t(`popularItems.${key}`) })}
-                className="inline-flex min-h-11 items-center rounded-pill border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15"
+                key={name.toLowerCase()}
+                href={buildDirectoryUrl({ search: name })}
+                className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 motion-reduce:transition-none"
               >
-                {t(`popularItems.${key}`)}
+                <span className="truncate">{name}</span>
               </Link>
             ))}
           </div>
         </div>
 
-        <div className={cn('hidden lg:block', !panelEmpty && 'lg:min-h-[720px]')}>
-          {desktop ? <NextFreePanel area={area} onEmpty={setPanelEmpty} /> : null}
+        <div className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[480px]')}>
+          {desktop ? <NextFreePanel area={area} onHidden={setPanelHidden} /> : null}
         </div>
       </div>
     </section>

@@ -56,7 +56,7 @@ test.describe('first-time visitor', () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
     await expect(page.getByRole('link', { name: 'My bookings' })).toHaveCount(0);
-    if (isMobile) await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveCount(3);
+    if (isMobile) await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveCount(2); // Explore, How it works
 
     await page.goto('/my-bookings');
     await expect(page.getByRole('heading', { level: 1, name: 'My bookings' })).toBeVisible();
@@ -70,8 +70,8 @@ test.describe('first-time visitor', () => {
     await shot(page, 'empty');
   });
 
-  test('home FAQ answers "Can I see my bookings later?" honestly', async ({ page }) => {
-    await page.goto('/');
+  test('the How it works FAQ answers "Can I see my bookings later?" honestly', async ({ page }) => {
+    await page.goto('/how-it-works');
     const faq = page.getByTestId('faq');
     await expect(faq.getByText('Can I see my bookings later?')).toBeAttached();
     await faq.getByText('Can I see my bookings later?').click();
@@ -312,7 +312,7 @@ test.describe('Forget, blocked and corrupted storage', () => {
     await expect(nav.getByRole('link', { name: 'My bookings' })).toBeVisible();
     // What is saved, said plainly.
     await expect(
-      page.getByText('Only booking details, never your name, phone or email. Anyone using this browser can see this list.'),
+      page.getByText('Only booking details, never your name, phone or email. For past visits we ask Maw3ed once whether the visit was completed and keep only that answer. Anyone using this browser can see this list.'),
     ).toBeVisible();
     await expect(page.getByText('On a shared computer, forget your bookings when you are done.')).toBeVisible();
 
@@ -366,7 +366,7 @@ test.describe('Forget, blocked and corrupted storage', () => {
 });
 
 test.describe('entry points and layout', () => {
-  test('the phone tab bar goes from 3 to 4 tabs without moving the page (and across tabs)', async ({
+  test('the phone tab bar goes from 2 to 3 tabs without moving the page (and across tabs)', async ({
     page,
     context,
     isMobile,
@@ -376,7 +376,7 @@ test.describe('entry points and layout', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     const bar = page.getByRole('navigation', { name: 'Main' });
-    await expect(bar.getByRole('link')).toHaveCount(3);
+    await expect(bar.getByRole('link')).toHaveCount(2);
     const h1 = page.getByRole('heading', { level: 1 });
     const before = {
       bar: await bar.boundingBox(),
@@ -391,8 +391,8 @@ test.describe('entry points and layout', () => {
       ([key, value]) => localStorage.setItem(key!, value!),
       [STORAGE_KEY, JSON.stringify({ v: 1, entries: [saved()] })],
     );
-    await expect(bar.getByRole('link')).toHaveCount(4);
-    await shot(page, 'home-tabbar-4');
+    await expect(bar.getByRole('link')).toHaveCount(3);
+    await shot(page, 'home-tabbar-3');
 
     const after = {
       bar: await bar.boundingBox(),
@@ -416,9 +416,9 @@ test.describe('entry points and layout', () => {
     expect(Math.min(...boxes.map((b) => b.left))).toBeGreaterThanOrEqual(0);
     expect(Math.max(...boxes.map((b) => b.right))).toBeLessThanOrEqual(page.viewportSize()!.width + 1);
 
-    // And back to 3 when the other tab forgets.
+    // And back to 2 when the other tab forgets.
     await other.evaluate((key) => localStorage.removeItem(key), STORAGE_KEY);
-    await expect(bar.getByRole('link')).toHaveCount(3);
+    await expect(bar.getByRole('link')).toHaveCount(2);
   });
 
   test('on /my-bookings the tab is the current page', async ({ page, isMobile }) => {

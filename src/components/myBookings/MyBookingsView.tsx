@@ -14,6 +14,7 @@ import { splitBookings } from '@/lib/myBookings/viewModel';
 import { PastCard, UpcomingCard } from './BookingCards';
 import { useLiveBookings } from './useLiveBookings';
 import { useNow } from './useNow';
+import { useOutcomes } from './useOutcomes';
 import { useMounted, useSavedBookings, useStorageAvailability } from './useSavedBookings';
 
 /** The list area: a skeleton of the same rough size until the browser has read the saved bookings (no flash of "empty"). */
@@ -44,6 +45,7 @@ function Loaded() {
   const upcomingTokens = splitBookings(entries, now).upcoming.map((e) => e.token);
   const { live, pinned, apply, retry } = useLiveBookings(upcomingTokens);
   const { upcoming, past } = splitBookings(entries, now, pinned);
+  useOutcomes(past, now); // "Completed" chips: once per previous visit, see lib/myBookings/outcome.ts
   const [forgetOpen, setForgetOpen] = useState(false);
 
   return (

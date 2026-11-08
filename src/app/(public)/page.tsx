@@ -1,10 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { CategoryExplorer } from '@/components/home/CategoryExplorer';
+import { FinalCta } from '@/components/home/FinalCta';
 import { HomeHero } from '@/components/home/HomeHero';
-import { HowItWorks } from '@/components/home/HowItWorks';
-import { OwnerBand, SetupSteps } from '@/components/home/OwnerSections';
-import { PricingTeaser } from '@/components/home/PricingTeaser';
 import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-/** The marketplace home: hero search, browse by category, how it works, owners, pricing. The header and footer come from the layout. */
+/** The marketplace home, short like the design: hero search and live panel, browse by category, closing owners band. Header and footer come from the layout. */
 export default async function Home() {
   const t = await getTranslations('home.categories');
   return (
@@ -33,10 +31,7 @@ export default async function Home() {
         </div>
         <CategoryExplorer />
       </section>
-      <HowItWorks />
-      <OwnerBand />
-      <SetupSteps />
-      <PricingTeaser />
+      <FinalCta />
     </main>
   );
 }

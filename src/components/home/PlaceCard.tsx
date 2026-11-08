@@ -1,32 +1,26 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
+import { PendingLink as Link } from '@/components/public/PendingLink';
 import { Bidi, ltr } from '@/components/ui/Bidi';
+import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
 import type { DirectoryBusiness } from '@/lib/api/directory';
 import { priceLine } from '@/lib/home/categories';
 import { dayLabel, formatFreeTime } from '@/lib/home/freeTimes';
-import { useAppFormat } from '@/lib/useAppFormat';
 import { profileLine, useAreaLabel } from '@/components/public/areaLabel';
-import { BusinessAvatar } from '@/components/ui/BusinessAvatar';
+
+/** Service chips on a card: up to this many, cheapest first (the order the API returns). */
+export const CARD_SERVICES = 3;
 
 /**
- * One business with its next free times (home hero panel and category "Top places"). The times are formatted in
+ * One business with its services and next free times (the category panel's "Top places"). The times are formatted in
  * the BUSINESS time zone the API returns and link to the business page: the booking page shows what is free now.
+ * The free times belong to the shortest service (`nextFree.service`), and the label says which.
  */
-export function PlaceCard({
-  business,
-  headingLevel = 3,
-  avatar = 'brand',
-}: {
-  business: DirectoryBusiness;
-  headingLevel?: 3 | 4;
-  avatar?: 'brand' | 'navy';
-}) {
+export function PlaceCard({ business, headingLevel = 3 }: { business: DirectoryBusiness; headingLevel?: 3 | 4 }) {
   const t = useTranslations('home');
   const locale = useLocale();
-  const { duration } = useAppFormat();
   const areaLabel = useAreaLabel();
   const Heading = headingLevel === 3 ? 'h3' : 'h4';
   const href = `/b/${encodeURIComponent(business.slug)}`;
@@ -35,13 +29,13 @@ export function PlaceCard({
   const first = business.nextFree ?? null;
   const day = times[0] ? dayLabel(times[0], zone, new Date(), locale) : null;
   const dayText = day ? (day.kind === 'today' ? t('nextFree.today') : day.kind === 'tomorrow' ? t('nextFree.tomorrow') : day.text) : null;
-  const price = priceLine(business.fromPrice);
   const meta = profileLine(areaLabel(business.area), business.address);
+  const services = (business.services ?? []).slice(0, CARD_SERVICES);
 
   return (
     <article className="grid content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
       <div className="flex items-center gap-3">
-        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} tone={avatar} />
+        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} />
         <div className="min-w-0 flex-1">
           <Heading className="m-0 truncate text-[17px] leading-tight font-semibold">
             <Link
@@ -55,24 +49,29 @@ export function PlaceCard({
         </div>
       </div>
 
-      {first || price ? (
-        <p className="m-0 flex flex-wrap items-center justify-between gap-x-3 text-[15px]">
-          {first ? (
-            <span className="text-muted">
-              <Bidi>{first.service.name}</Bidi> · {duration(first.service.durationMin)}
-            </span>
-          ) : (
-            <span />
-          )}
-          {price ? (
-            <b className="font-semibold">{t('categories.openNow', { price: ltr(price) })}</b>
-          ) : null}
-        </p>
+      {services.length > 0 ? (
+        <ul data-testid="card-services" className="m-0 flex list-none flex-wrap gap-1.5 p-0">
+          {services.map((s) => (
+            <li
+              key={s.name}
+              className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-pill bg-divider px-3 text-[14px] font-medium"
+            >
+              <span className="truncate">
+                <Bidi>{s.name}</Bidi>
+              </span>
+              <em className="shrink-0 font-bold text-brand not-italic">
+                {t('categories.popularPrice', { price: ltr(priceLine(s.price) ?? '') })}
+              </em>
+            </li>
+          ))}
+        </ul>
       ) : null}
 
-      {times.length > 0 && dayText ? (
+      {times.length > 0 && dayText && first ? (
         <div>
-          <p className="m-0 mb-2 text-sm font-semibold text-muted">{dayText}</p>
+          <p className="m-0 mb-2 text-sm font-semibold text-muted">
+            {t('categories.freeTimesFor', { service: first.service.name, day: dayText })}
+          </p>
           <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
             {times.map((iso) => {
               const time = formatFreeTime(iso, zone);

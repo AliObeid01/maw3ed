@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
+import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { cn } from '@/lib/cn';
@@ -21,12 +21,12 @@ const statusTone = {
 export function OwnerBand() {
   const t = useTranslations('home.owners');
   return (
-    <section data-surface="dark" aria-labelledby="owners-title" className="mt-16 bg-brand text-white md:mt-[88px]">
+    <section data-surface="dark" aria-labelledby="owners-title" className="bg-brand text-white">
       <div className="mx-auto grid max-w-[1200px] items-center gap-8 px-4 py-14 md:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:py-[72px]">
         <div>
-          <h2 id="owners-title" className="m-0 max-w-[17ch] text-[clamp(32px,6vw,52px)] leading-[1.08] font-bold tracking-[-0.025em] rtl:max-w-[20ch] rtl:leading-[1.25] rtl:tracking-normal">
+          <h1 id="owners-title" className="m-0 max-w-[17ch] text-[clamp(32px,6vw,52px)] leading-[1.08] font-bold tracking-[-0.025em] rtl:max-w-[20ch] rtl:leading-[1.25] rtl:tracking-normal">
             {t('title')}
-          </h2>
+          </h1>
           <p className="m-0 mt-3.5 max-w-[46ch] text-lg text-brand-soft">{t('body')}</p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero' })}>

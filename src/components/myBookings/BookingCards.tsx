@@ -1,6 +1,6 @@
 'use client';
 
-import { RefreshCw } from 'lucide-react';
+import { Check, RefreshCw } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ConfirmSheet } from '@/components/app/ConfirmSheet';
@@ -246,7 +246,10 @@ export function UpcomingCard({
   );
 }
 
-/** A previous visit from the local summary only: never a status or an outcome the business recorded. */
+/**
+ * A previous visit from the local summary. The only thing ever added from the server is a muted "Completed" chip when the
+ * outcome endpoint said the visit was attended; nothing is shown for anything else (no no-show, late cancel or excused).
+ */
 export function PastCard({ entry }: { entry: SavedBooking }) {
   const t = useTranslations('myBookings');
   return (
@@ -257,6 +260,11 @@ export function PastCard({ entry }: { entry: SavedBooking }) {
           entry.ended === 'cancelled' ? (
             <Chip tone="neutral" className="px-3 py-1.5 text-[13px]">
               {t('status.cancelled')}
+            </Chip>
+          ) : entry.completed ? (
+            <Chip tone="success" data-testid="completed-chip" className="gap-1.5 px-3 py-1.5 text-[13px]">
+              <Check size={14} strokeWidth={3} aria-hidden="true" />
+              {t('status.completed')}
             </Chip>
           ) : undefined
         }

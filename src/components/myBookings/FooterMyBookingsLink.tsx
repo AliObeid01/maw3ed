@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { useSavedCount } from './useSavedBookings';
 

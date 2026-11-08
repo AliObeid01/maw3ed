@@ -50,7 +50,6 @@
       "howItWorks": "How it works",
       "forBusinesses": "For business owners",
       "forBusinessesShort": "For owners",
-      "pricing": "Pricing",
       "signIn": "Sign in",
       "skip": "Skip to content",
       "tabsLabel": "Main",
@@ -120,8 +119,10 @@
       "terms": "Terms of use",
       "top": "Back to top",
       "legalNav": "Legal",
-      "myBookings": "My bookings"
-    }
+      "myBookings": "My bookings",
+      "ownersPage": "Overview for businesses"
+    },
+    "loadingPage": "Loading the page"
   },
   "app": {
     "nav": {
@@ -2033,11 +2034,16 @@
         "spa-massage": "Massage, hot stone and relaxation treatments.",
         "physiotherapy": "Assessments, rehab and sports therapy."
       },
-      "empty": {
-        "title": "No places here yet",
-        "body": "No business in this category is listed yet. Run one? Put it on Maw3ed and clients can book you.",
+      "services": "Services",
+      "moreSoon": "More categories are coming soon.",
+      "moreSoonCta": "Own a salon or clinic? List your business.",
+      "first": {
+        "title": "Be the first on Maw3ed",
+        "body": "No business is listed yet. Put yours on Maw3ed and clients can book you online.",
         "cta": "Be the first"
-      }
+      },
+      "loading": "Loading categories",
+      "freeTimesFor": "Free times for {service} · {day}"
     },
     "how": {
       "kicker": "How it works",
@@ -2067,13 +2073,9 @@
       "mail": {
         "label": "Illustration",
         "brand": "Maw3ed · Reminder",
-        "heading": "Your appointment is tomorrow",
         "business": "Abu Karam Barbershop",
         "service": "Haircut · 30 min · with Karam",
-        "when": "Tomorrow · 10:30",
-        "confirm": "Confirm my appointment",
-        "cancel": "Cancel my appointment",
-        "intro": "This is a reminder of your appointment at Abu Karam Barbershop."
+        "when": "Tomorrow · 10:30"
       },
       "faqTitle": "Common questions",
       "faq": {
@@ -2155,7 +2157,22 @@
       "kicker": "For business owners",
       "title": "Simple pricing",
       "subtitle": "Start free with one bookable staff member. Upgrade when your team grows.",
-      "seeAll": "See all plans"
+      "seeAll": "See all plans",
+      "includesTitle": "Every plan includes"
+    },
+    "howPage": {
+      "pageTitle": "How Maw3ed works: booking and reminders",
+      "metaDescription": "See how booking works on Maw3ed in three steps, what the reminder email looks like, and the answers to common questions."
+    },
+    "ownersPage": {
+      "pageTitle": "For business owners: fewer no-shows with Maw3ed",
+      "metaDescription": "Put your business on Maw3ed: a booking page, email reminders with Confirm and Cancel links, one-tap WhatsApp reminders and a waitlist. Start free."
+    },
+    "final": {
+      "title": "Run a salon, barbershop or clinic?",
+      "body": "Put your business on Maw3ed and let the reminders do the chasing.",
+      "cta": "Put your business on Maw3ed",
+      "signIn": "Business sign in"
     }
   },
   "deposit": {
@@ -2471,7 +2488,8 @@
       "confirmed": "Confirmed",
       "cancelled": "Cancelled",
       "pending": "Awaiting payment",
-      "checking": "Checking the latest status"
+      "checking": "Checking the latest status",
+      "completed": "Completed"
     },
     "manage": "Manage this booking",
     "actions": {
@@ -2495,7 +2513,7 @@
     },
     "privacy": {
       "title": "What is saved on this device",
-      "body": "Only booking details, never your name, phone or email. Anyone using this browser can see this list.",
+      "body": "Only booking details, never your name, phone or email. For past visits we ask Maw3ed once whether the visit was completed and keep only that answer. Anyone using this browser can see this list.",
       "shared": "On a shared computer, forget your bookings when you are done."
     },
     "forget": {

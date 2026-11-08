@@ -1,5 +1,5 @@
 import { BellRing, CalendarClock, Check, ChevronDown, Users, X } from 'lucide-react';
-import Link from 'next/link';
+import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 
@@ -11,16 +11,28 @@ const STEPS = [
 const BULLETS = ['confirm', 'cancel', 'details'] as const;
 const FAQ = ['account', 'cancel', 'mine', 'taken', 'zone'] as const;
 
-/** Board "How it works": three steps, the reminder email preview (static illustration), and the FAQ accordion. */
+/**
+ * The "How it works" page: three steps, the reminder email preview (static illustration made of the REAL email texts), what
+ * the reminder lets you do, and the FAQ accordion. Anchors `#reminders` and `#faq` (the sticky header is cleared by
+ * `scroll-padding-top` on `html`, plus `scroll-mt-4`).
+ */
 export function HowItWorks() {
   const t = useTranslations('home.how');
+  const te = useTranslations('email');
+  // The preview is made of the REAL reminder texts (email.h24 and email.actions), read here so they cannot drift.
+  const mail = {
+    heading: te('h24.heading'),
+    intro: te('h24.intro', { business: t('mail.business') }),
+    confirm: te('actions.confirm'),
+    cancel: te('actions.cancel'),
+  };
   return (
-    <section id="how" aria-labelledby="how-title" className="mx-auto max-w-[1200px] scroll-mt-20 px-4 pt-16 md:px-6 md:pt-[88px]">
+    <section aria-labelledby="how-title" className="mx-auto max-w-[1200px] px-4 pt-12 pb-16 md:px-6 md:pt-[72px] md:pb-[88px]">
       <div className="max-w-[640px]">
         <span className="mb-2.5 inline-block text-[15px] font-bold text-brand">{t('kicker')}</span>
-        <h2 id="how-title" className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
+        <h1 id="how-title" className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
           {t('title')}
-        </h2>
+        </h1>
         <p className="m-0 mt-2 text-[17px] text-muted">{t('subtitle')}</p>
       </div>
 
@@ -44,7 +56,7 @@ export function HowItWorks() {
         ))}
       </ol>
 
-      <div className="mt-[72px] grid items-center gap-10 lg:grid-cols-2 lg:gap-[72px]">
+      <div id="reminders" className="mt-[72px] grid scroll-mt-4 items-center gap-10 lg:grid-cols-2 lg:gap-[72px]">
         <div>
           <h3 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
             {t('reminderTitle')}
@@ -69,8 +81,8 @@ export function HowItWorks() {
             </span>
             <span className="rounded-chip bg-divider px-2.5 py-1 text-xs font-semibold">{t('mail.label')}</span>
           </div>
-          <h4 className="m-0 text-[21px] leading-tight font-semibold">{t('mail.heading')}</h4>
-          <p className="m-0 text-[15.5px] text-muted">{t('mail.intro')}</p>
+          <h4 className="m-0 text-[21px] leading-tight font-semibold">{mail.heading}</h4>
+          <p className="m-0 text-[15.5px] text-muted">{mail.intro}</p>
           <div className="grid gap-0.5 rounded-tile border border-divider p-3.5 text-[15.5px]">
             <b className="font-semibold">{t('mail.business')}</b>
             <span className="text-muted">{t('mail.service')}</span>
@@ -78,16 +90,16 @@ export function HowItWorks() {
           </div>
           <div className="flex flex-wrap gap-2.5">
             <span className={buttonClasses({ variant: 'navy', size: 'hero', className: 'flex-1 basis-[140px]' })}>
-              <Check size={18} /> {t('mail.confirm')}
+              <Check size={18} /> {mail.confirm}
             </span>
             <span className={buttonClasses({ variant: 'secondary', size: 'hero', className: 'flex-1 basis-[140px]' })}>
-              <X size={18} /> {t('mail.cancel')}
+              <X size={18} /> {mail.cancel}
             </span>
           </div>
         </div>
       </div>
 
-      <div className="mt-16 max-w-[760px]">
+      <div id="faq" className="mt-16 max-w-[760px] scroll-mt-4">
         <h3 className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
           {t('faqTitle')}
         </h3>

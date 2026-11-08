@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HOME_CATEGORIES, nextFreeTile, panelState, priceLine, resolveSelected } from '@/lib/home/categories';
+import { HOME_CATEGORIES, nextFreeTile, priceLine, resolveSelected } from '@/lib/home/categories';
 
 const entry = (category: string, places: number, fromPrice: number | null = null) => ({
   category,
@@ -23,7 +23,7 @@ describe('HOME_CATEGORIES', () => {
 });
 
 describe('resolveSelected', () => {
-  const list = [entry('barbers', 3), entry('other', 9), entry('physiotherapy', 0)];
+  const list = [entry('barbers', 3), entry('other', 9), entry('physiotherapy', 2)];
   it('keeps a known selection', () => expect(resolveSelected(list, 'physiotherapy')).toBe('physiotherapy'));
   it('falls back to the first home category when the key is unknown or "other"', () => {
     expect(resolveSelected(list, 'other')).toBe('barbers');
@@ -31,13 +31,6 @@ describe('resolveSelected', () => {
     expect(resolveSelected(list, undefined)).toBe('barbers');
   });
   it('defaults to the first home category with no data', () => expect(resolveSelected([], null)).toBe('barbers'));
-});
-
-describe('panelState', () => {
-  it('is empty for 0 places, full otherwise', () => {
-    expect(panelState(entry('barbers', 0))).toBe('empty');
-    expect(panelState(entry('barbers', 1))).toBe('full');
-  });
 });
 
 describe('nextFreeTile', () => {
