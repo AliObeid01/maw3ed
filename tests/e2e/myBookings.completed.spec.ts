@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { ORIGIN } from './helpers/clock';
+import { nowMs, ORIGIN } from './helpers/clock';
 import { expectNoPageOverflow } from './helpers/layout';
 import { readStored, saved, savedPast, seedBookings, seedRaw } from './helpers/myBookings';
 import { mockLinkApi } from './helpers/publicMock';
@@ -66,7 +66,7 @@ test('false, 404, 429 and 500 show nothing and no error, and are not retried wit
 });
 
 test('a "not completed" answer is asked again after 6 hours, and then the chip can appear (attended is marked later)', async ({ page }) => {
-  const checkedLongAgo = new Date(Date.now() - 7 * 3_600_000).toISOString();
+  const checkedLongAgo = new Date(nowMs() - 7 * 3_600_000).toISOString(); // on the page's frozen clock
   await seedRaw(
     page,
     JSON.stringify({

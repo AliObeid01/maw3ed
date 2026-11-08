@@ -135,7 +135,7 @@ export function HomeHero() {
           </div>
         </div>
 
-        <div className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[480px]')}>
+        <div className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[496px]')}>
           {desktop ? <NextFreePanel area={area} onHidden={setPanelHidden} /> : null}
         </div>
       </div>

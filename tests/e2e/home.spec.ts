@@ -152,10 +152,11 @@ async function mockHome(page: Page, opts: Opts = {}): Promise<Mock> {
     let businesses: unknown[] = [];
     if (soonest) businesses = opts.panel ?? opts.directory ?? [barber(), salon, dental, beauty];
     else if (url.searchParams.get('include')) businesses = opts.directory ?? [barber(), fade];
+    // Like the real server: `sort=soonest` has no paging, so its answer carries NO `nextCursor` key at all.
     return route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ businesses, nextCursor: null }),
+      body: JSON.stringify(soonest ? { businesses } : { businesses, nextCursor: null }),
     });
   });
   return seen;

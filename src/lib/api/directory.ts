@@ -29,7 +29,8 @@ export const directorySchema =z.object({
         .optional(),
     }),
   ),
-  nextCursor: z.string().nullable(),
+  /** Absent with `sort=soonest` (the hero panel has no paging): read as null. */
+  nextCursor: z.string().nullable().default(null),
 });
 export type DirectoryPage = z.infer<typeof directorySchema>;
 export type DirectoryBusiness = DirectoryPage['businesses'][number];

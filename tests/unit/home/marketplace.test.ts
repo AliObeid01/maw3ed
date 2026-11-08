@@ -7,6 +7,7 @@ import {
 } from '@/lib/home/categories';
 import { heroChips } from '@/lib/home/popular';
 import { chipTime } from '@/lib/home/freeTimes';
+import { directorySchema } from '@/lib/api/directory';
 import { homeDirectoryUrl, nextFreePanelUrl } from '@/lib/api/home';
 
 const entry = (category: string, places: number, popular: string[] = []) => ({
@@ -118,5 +119,16 @@ describe('request builders (identical URL for every visitor, fixed param order)'
     expect(homeDirectoryUrl({ area: 'sidon', category: 'barbers' })).toBe(
       '/api/public/directory?area=sidon&category=barbers&include=nextFree%2Cservices&limit=3',
     );
+  });
+});
+
+describe('directory response schema', () => {
+  it('accepts the sort=soonest answer, which has NO nextCursor key (the server omits it), and fills null', () => {
+    const parsed = directorySchema.parse({ businesses: [] });
+    expect(parsed.nextCursor).toBeNull();
+  });
+  it('still reads a cursor on a normal page', () => {
+    expect(directorySchema.parse({ businesses: [], nextCursor: 'abc' }).nextCursor).toBe('abc');
+    expect(directorySchema.parse({ businesses: [], nextCursor: null }).nextCursor).toBeNull();
   });
 });

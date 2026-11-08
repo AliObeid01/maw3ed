@@ -90,12 +90,17 @@ for (const [width, height] of [
           return Math.abs(a - (await heading.boundingBox())!.y) < 0.5 ? Math.round(a) : -9999;
         })
         .toBeGreaterThanOrEqual(Math.floor(header));
-      expect((await heading.boundingBox())!.y).toBeGreaterThanOrEqual(header);
+      // It really scrolled there: just under the header (88 px scroll-padding + 16 px scroll-margin = 104), not left far below.
+      const landed = (await heading.boundingBox())!.y;
+      expect(landed).toBeGreaterThanOrEqual(header);
+      // The last section may be too short to reach the top (the page ends first): then it is simply in view.
+      expect(landed).toBeLessThan(index === hrefs.length - 1 ? page.viewportSize()!.height - 100 : 140);
       if (!phone || index === hrefs.length - 1) {
-        // Highlight: exactly one link is the current location (the visible list on desktop; re-open on a phone).
-        if (phone) await mobile.locator('summary').click();
-        await expect(toc.locator('a[aria-current="location"]')).toHaveCount(1);
-        await expect(toc.locator('a[aria-current="location"]')).toHaveAttribute('href', hrefs[index]!);
+        // Highlight: exactly one link is the current location. On a phone the disclosure closed after the choice, and
+        // re-opening it would push the page down, so read the attribute of the (hidden) list as it is.
+        const current = page.locator(phone ? '[data-testid="toc-mobile"] a[aria-current="location"]' : '[data-testid="toc-desktop"] a[aria-current="location"]');
+        await expect(current).toHaveCount(1);
+        await expect(current).toHaveAttribute('href', hrefs[index]!);
       }
     }
     await expectNoPageOverflow(page);

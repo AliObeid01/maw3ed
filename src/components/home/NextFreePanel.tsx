@@ -76,7 +76,7 @@ function Row({ business }: { business: DirectoryBusiness }) {
       >
         <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} tone="navy" />
         <span className="min-w-0">
-          <b className="block truncate text-[16px] leading-tight font-semibold">
+          <b className="line-clamp-2 block text-[16px] leading-tight font-semibold break-words">
             <Bidi>{business.name}</Bidi>
           </b>
           {meta ? <small className="mt-0.5 block truncate text-[13.5px] text-muted">{meta}</small> : null}
@@ -118,7 +118,7 @@ export function NextFreePanel({ area, onHidden }: { area: string; onHidden: (hid
       aria-labelledby="next-free-title"
       aria-busy={loading}
       data-testid="next-free-panel"
-      className="rounded-[28px] bg-brand p-6 text-white lg:min-h-[480px]"
+      className="rounded-[28px] bg-brand p-6 text-white lg:min-h-[496px]"
     >
       <h2 id="next-free-title" className="m-0 mb-1 text-[22px] font-semibold">
         {title}

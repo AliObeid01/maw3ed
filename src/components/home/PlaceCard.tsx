@@ -33,11 +33,11 @@ export function PlaceCard({ business, headingLevel = 3 }: { business: DirectoryB
   const services = (business.services ?? []).slice(0, CARD_SERVICES);
 
   return (
-    <article className="grid content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
+    <article className="grid grid-cols-[minmax(0,1fr)] content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
       <div className="flex items-center gap-3">
         <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} />
         <div className="min-w-0 flex-1">
-          <Heading className="m-0 truncate text-[17px] leading-tight font-semibold">
+          <Heading className="m-0 line-clamp-2 text-[17px] leading-tight font-semibold break-words">
             <Link
               href={href}
               className="text-ink no-underline hover:text-brand hover:underline"

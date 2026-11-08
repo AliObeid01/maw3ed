@@ -16,7 +16,13 @@ function useActiveSection(ids: readonly string[]): [string | null, (id: string) 
     const headings = ids.map((id) => document.getElementById(id)).filter((el): el is HTMLElement => el !== null);
     if (headings.length === 0) return;
     const update = () =>
-      setActive(activeSection(headings.map((el) => ({ id: el.id, top: el.getBoundingClientRect().top })), TOC_OFFSET_PX));
+      setActive(
+        activeSection(
+          headings.map((el) => ({ id: el.id, top: el.getBoundingClientRect().top })),
+          TOC_OFFSET_PX,
+          window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2,
+        ),
+      );
     update();
     const observer = new IntersectionObserver(update, {
       rootMargin: `-${TOC_OFFSET_PX}px 0px -55% 0px`,

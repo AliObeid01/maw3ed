@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { HowItWorks } from '@/components/home/HowItWorks';
+import { HashScroll } from '@/components/public/HashScroll';
 import { pageMetadata } from '@/lib/seo';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default function HowItWorksPage() {
   return (
     <main id="main-content" className="flex-1">
+      <HashScroll />
       <HowItWorks />
     </main>
   );

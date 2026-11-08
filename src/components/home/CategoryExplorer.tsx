@@ -71,7 +71,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
     );
   }
   return (
-    <ul className="m-0 grid list-none gap-3 p-0 sm:grid-cols-[repeat(auto-fit,minmax(min(250px,100%),1fr))]">
+    <ul className="m-0 grid list-none grid-cols-[minmax(0,1fr)] gap-3 p-0 sm:grid-cols-[repeat(auto-fit,minmax(min(250px,100%),1fr))]">
       {data.businesses.map((b) => (
         <li key={b.slug} className="grid">
           <PlaceCard business={b} headingLevel={4} />
@@ -201,7 +201,7 @@ function ExplorerSkeleton() {
       <span className="sr-only">{t('loading')}</span>
       <div aria-hidden="true" className="flex gap-2 overflow-hidden lg:flex-col">
         {[0, 1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-[66px] w-[236px] flex-none rounded-[16px] lg:w-full" />
+          <Skeleton key={i} className="h-[66px] w-[256px] flex-none rounded-[16px] lg:w-full" />
         ))}
       </div>
       <Skeleton aria-hidden="true" className="h-[480px] rounded-[20px] lg:h-[560px]" />
@@ -294,7 +294,7 @@ export function CategoryExplorer() {
                       aria-pressed={active}
                       onClick={() => setSelected(key)}
                       className={cn(
-                        'grid min-h-[66px] w-full cursor-pointer grid-cols-[48px_1fr_20px] items-center gap-3 rounded-[16px] border-0 px-3.5 py-2 text-start transition-colors duration-200 ease-out max-lg:w-[236px] motion-reduce:transition-none',
+                        'grid min-h-[66px] w-full cursor-pointer grid-cols-[48px_1fr] items-center gap-3 rounded-[16px] border-0 px-3.5 py-2 text-start transition-colors duration-200 ease-out max-lg:w-[256px] lg:grid-cols-[48px_1fr_20px] motion-reduce:transition-none',
                         active ? 'bg-navy text-white' : 'bg-transparent text-ink hover:bg-divider',
                       )}
                     >
@@ -314,7 +314,7 @@ export function CategoryExplorer() {
                       <ChevronRight
                         size={20}
                         aria-hidden="true"
-                        className={cn('rtl:-scale-x-100', active ? 'text-hero-accent' : 'opacity-0')}
+                        className={cn('rtl:-scale-x-100 max-lg:hidden', active ? 'text-hero-accent' : 'opacity-0')}
                       />
                     </button>
                   </li>
