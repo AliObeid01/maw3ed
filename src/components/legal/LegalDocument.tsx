@@ -2,7 +2,7 @@ import { FileWarning, Link2 } from 'lucide-react';
 import Link from 'next/link';
 import { getFormatter, getTranslations } from 'next-intl/server';
 import { LegalToc } from './LegalToc';
-import { ltr } from '@/components/ui/Bidi';
+import { isolate, ltr } from '@/components/ui/Bidi';
 import { Callout } from '@/components/ui/Callout';
 import { legalKeys, type LegalSection } from '@/lib/legal';
 import { LEGAL_DRAFT, LEGAL_UPDATED, SITE } from '@/lib/site';
@@ -33,8 +33,11 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
     timeZone: 'Asia/Beirut',
     numberingSystem: 'latn',
   });
-  // Latin runs (address, phone, placeholders) stay left to right inside Arabic text.
-  const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: ltr(SITE.address) };
+  // The address is displayed from the SAME message key as the footer (`public.footer.address`), so both languages agree.
+  const address = (await getTranslations('public.footer'))('address');
+  // Latin runs (email, phone) stay left to right inside Arabic text; the address follows its own first strong letter
+  // (Arabic reads right to left, English left to right).
+  const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: isolate(address) };
   const key = (path: string) => `${doc}.sections.${path}`;
 
   return (

@@ -1491,7 +1491,7 @@
     "booked": {
       "eyebrow": "All done",
       "title": "You're booked, {name}!",
-      "subtitle": "{day} · {range} · {service} with {staff}",
+      "subtitle": "{day} ·\u00a0{range} ·\u00a0{service} with {staff}",
       "calendar": "Your booking email has a calendar invite ({ics}) attached, so you can add this to your calendar.",
       "nextTitle": "What happens next",
       "next3Title": "Can't make it?",
