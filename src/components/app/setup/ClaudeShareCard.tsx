@@ -80,7 +80,7 @@ export function ClaudeShareCard({
               <textarea
                 id={fieldId}
                 readOnly
-                rows={4}
+                rows={8}
                 dir="auto"
                 value={message}
                 data-testid="claude-share-message"

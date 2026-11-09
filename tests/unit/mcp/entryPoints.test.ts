@@ -35,7 +35,7 @@ describe('claudeBookPrompt', () => {
 
   it('ar: a natural Arabic sentence with the same two values', () => {
     const text = claudeBookPrompt(promptT('ar'), { name: 'صالون نور', slug: 'salon-nour' });
-    expect(text).toBe('احجز لي موعدًا في "صالون نور" على موعد (صفحة الحجز: salon-nour). اعرض لي الأوقات المتاحة أولًا.');
+    expect(text).toBe('احجز لي موعدًا في "صالون نور" على موعد. صفحة الحجز: salon-nour. اعرض لي الأوقات المتاحة أولًا.');
   });
 
   it('a hostile name is sanitized: no control, bidi or zero-width characters, no markup, one line, capped at 80', () => {

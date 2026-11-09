@@ -28,7 +28,7 @@ const LANGS = [
     strip: 'احجز بالمحادثة مع Claude',
     see: 'اعرف الطريقة',
     button: 'احجز عبر Claude',
-    prompt: 'احجز لي موعدًا في "Studio Nour" على موعد (صفحة الحجز: studio-nour). اعرض لي الأوقات المتاحة أولًا.',
+    prompt: 'احجز لي موعدًا في "Studio Nour" على موعد. صفحة الحجز: studio-nour. اعرض لي الأوقات المتاحة أولًا.',
     how: 'كيف تربط Claude',
     open: 'افتح Claude',
     announce: 'تم النسخ إلى الحافظة',
