@@ -2,7 +2,7 @@
 
 import { useId, useMemo } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
-import { control, describedByIds, FieldShell } from '@/components/ui/Field';
+import { control, describedByIds, FieldShell, ltrNumericEnd } from '@/components/ui/Field';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { PHONE_MAX } from '@/lib/booking/errors';
 import { COUNTRIES } from '@/lib/booking/phone';
@@ -75,7 +75,7 @@ export function PhoneField({
           onChange={(e) => onChange(e.target.value)}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedByIds(id, error, undefined, undefined)}
-          className={cn(control, border, 'min-w-0 flex-1')}
+          className={cn(control, border, 'min-w-0 flex-1', ltrNumericEnd)}
         />
       </div>
     </FieldShell>

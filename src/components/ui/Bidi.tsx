@@ -40,7 +40,7 @@ export function Bidi({
 /** "9:00 – 9:30", always read start to end, also in an Arabic line. */
 export function TimeRange({ start, end, className }: { start: string; end?: string; className?: string }) {
   return (
-    <Bidi dir="ltr" className={className}>
+    <Bidi dir="ltr" className={cn('whitespace-nowrap', className)}>
       {end ? `${start} – ${end}` : start}
     </Bidi>
   );

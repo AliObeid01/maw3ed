@@ -2507,7 +2507,7 @@
     },
     "reference": "Reference {code}",
     "with": "{service} with {staff}",
-    "when": "{day} · {range}",
+    "when": "{day} · <r>{range}</r>",
     "status": {
       "booked": "Booked",
       "confirmed": "Confirmed",

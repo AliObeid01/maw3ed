@@ -7,7 +7,7 @@ import { Bidi, isolate } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Chip } from '@/components/ui/Chip';
-import { Input } from '@/components/ui/Field';
+import { Input, ltrNumericEnd } from '@/components/ui/Field';
 import { Sheet } from '@/components/ui/Sheet';
 import { useToast } from '@/components/ui/Toast';
 import { ApiError } from '@/lib/api/auth';
@@ -154,6 +154,7 @@ export function StaffLoginSection({
             type="tel"
             dir="ltr"
             inputMode="tel"
+            className={ltrNumericEnd}
             autoComplete="off"
             placeholder={t('phonePlaceholder')}
             hint={t('phoneHint')}
