@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { CategoryExplorer } from '@/components/home/CategoryExplorer';
+import { ClaudeStrip } from '@/components/home/ClaudeStrip';
+import { isAssistantEnabled } from '@/lib/assistant';
 import { FinalCta } from '@/components/home/FinalCta';
 import { HomeHero } from '@/components/home/HomeHero';
 import { Reveal } from '@/components/ui/Reveal';
@@ -23,6 +25,7 @@ export default async function Home() {
   return (
     <main id="main-content" className="flex-1">
       <HomeHero />
+      {isAssistantEnabled() ? <ClaudeStrip /> : null}
       <section aria-labelledby="categories-title" className="mx-auto max-w-[1200px] px-4 pt-16 md:px-6 md:pt-[88px]">
         <Reveal>
         <div className="max-w-[640px]">

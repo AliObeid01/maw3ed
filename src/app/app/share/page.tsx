@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { ShareView } from '@/components/app/setup/ShareView';
+import { isAssistantEnabled } from '@/lib/assistant';
 import { assertPractitionerPath } from '@/app/app/practitionerGuard';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,5 +11,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   await assertPractitionerPath('/app/share');
-  return <ShareView />;
+  return <ShareView assistantEnabled={isAssistantEnabled()} />;
 }

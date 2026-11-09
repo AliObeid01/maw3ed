@@ -21,6 +21,10 @@ export const publicBusinessRepo = {
   findBySlug: (slug: string) =>
     db.business.findUnique({ where: { slug }, select: businessConfigSelect }),
 
+  /** The public catalogue read: the config plus whether the business opted in to the directory (PR-15b). */
+  findPublicBySlug: (slug: string) =>
+    db.business.findUnique({ where: { slug }, select: { ...businessConfigSelect, listed: true } }),
+
   /** The assistant (MCP) sees only businesses that opted in to the directory (`listed`). Unlisted = not found. */
   findListedBySlug: (slug: string) =>
     db.business.findFirst({

@@ -32,6 +32,8 @@ export const PublicBusinessDto = registry.register(
       address: z.string().optional(),
       /** Versioned public logo url (`/api/public/<slug>/logo?v=<hash>`); null when the business has none. */
       logoUrl: z.string().nullable(),
+      /** True when the business opted in to the public directory (and so can be found and booked by Claude). */
+      listed: z.boolean(),
     }),
     services: z.array(
       z.object({

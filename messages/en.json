@@ -733,6 +733,20 @@
       "copied": "Booking link copied",
       "copyFailed": "Could not copy. Select the link and copy it manually.",
       "open": "Open page",
+      "claude": {
+        "title": "Let clients book from Claude",
+        "body": "Clients who use Claude can book you by chatting. Send them this message, or let them scan the code.",
+        "messageLabel": "Message to share",
+        "message": "You can also book me by chatting with Claude: open {assistantUrl} and add the link, then ask Claude to book at {name}. My booking page: {bookingUrl}",
+        "copy": "Copy message",
+        "whatsapp": "Send on WhatsApp",
+        "copied": "Message copied",
+        "qrTitle": "Scan to see how",
+        "qrBody": "This code opens the page that explains how to book through Claude.",
+        "qrAlt": "QR code that opens the Claude booking page",
+        "unlisted": "Claude can only find listed businesses. List your business to let clients book from Claude.",
+        "listLink": "Go to the listing switch"
+      },
       "where": "Put it where clients find you",
       "whatsapp": {
         "title": "WhatsApp status",
@@ -1405,6 +1419,17 @@
   },
   "booking": {
     "pageTitle": "Book an appointment",
+    "claude": {
+      "button": "Book with Claude",
+      "title": "Book with Claude",
+      "close": "Close",
+      "intro": "Add Maw3ed to Claude once. Then paste this message and Claude looks for free times here.",
+      "promptLabel": "Message to paste into Claude",
+      "prompt": "Book an appointment at {name} on Maw3ed (booking page: {slug}). Show me the free times first.",
+      "how": "How to connect Claude",
+      "open": "Open Claude",
+      "note": "Works with Claude. Claude normally asks your approval before it books."
+    },
     "loading": "Loading the booking page",
     "heroFactReminders": "Reminders 24 h and 2 h before",
     "stepAnnounce": "Step {current} of {total}: {label}",
@@ -1980,6 +2005,11 @@
   },
   "home": {
     "pageTitle": "Maw3ed: book salons, barbers and clinics in Lebanon",
+    "claude": {
+      "title": "Book by chatting with Claude",
+      "body": "Tell Claude what you need and it books it for you.",
+      "link": "See how"
+    },
     "metaDescription": "Book barbers, salons, dental and beauty clinics, spas and physiotherapists in Lebanon in minutes. No account needed, and you get a reminder you can act on.",
     "hero": {
       "titleLead": "Book your next appointment in",
@@ -2682,6 +2712,22 @@
         "q": "How do I remove it?",
         "a": "In Claude open Customize, then Connectors, and remove Maw3ed."
       }
+    },
+    "demo": {
+      "title": "What it can look like",
+      "intro": "A made-up chat with made-up names. Your own chat in Claude will look different.",
+      "label": "Illustration",
+      "business": "Beauty Center",
+      "staff": "Leen",
+      "client": "Sara",
+      "ask": "Book me a haircut tomorrow evening",
+      "offer": "<n>{business}</n> has two free times tomorrow with <n>{staff}</n>: 6:00 pm or 6:30 pm. Which one?",
+      "pick": "6:30 pm, please",
+      "searching": "Searching businesses",
+      "checking": "Checking free times",
+      "approval": "Asking for your approval",
+      "booked": "Booked",
+      "done": "Done, <n>{client}</n>. Your haircut with <n>{staff}</n> at <n>{business}</n> is booked for tomorrow at 6:30 pm. A confirmation email is on its way."
     },
     "fallback": "Prefer to book on the website?",
     "explore": "Explore businesses"

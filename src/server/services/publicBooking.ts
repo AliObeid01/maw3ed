@@ -20,7 +20,8 @@ const num = (v: { toString(): string }) => Number(v.toString());
 
 export const publicBookingService = {
   async getBusiness(ctx: RouteContext, slug: string) {
-    const business = await resolve(slug);
+    const business = await publicBusinessRepo.findPublicBySlug(slug);
+    if (!business) throw AppError.notFound();
     ctx.logger = ctx.logger.child({ businessId: business.id });
     const [{ services, staff }, logoHash] = await Promise.all([
       publicBusinessRepo.catalogue(business.id),
@@ -35,6 +36,7 @@ export const publicBookingService = {
         bookingWindowDays: business.bookingWindowDays,
         cancelCutoffMin: business.cancelCutoffMin,
         logoUrl: logoUrlFor(business.slug, logoHash),
+        listed: business.listed,
         ...(business.category ? { category: business.category } : {}),
         ...(business.area ? { area: business.area } : {}),
         ...(business.address ? { address: business.address } : {}),

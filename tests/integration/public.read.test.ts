@@ -74,6 +74,7 @@ describe('GET /api/public/{slug}', () => {
       area: 'sidon',
       address: 'Hamra, Beirut',
       logoUrl: null, // PR-10b: null when the business has no logo
+      listed: false, // PR-15b: opted in to the directory (the Claude button on the booking page needs it)
     });
     const serviceIds = res.body!.services.map((s: any) => s.id);
     expect(serviceIds).toContain(serviceId);
@@ -104,6 +105,16 @@ describe('GET /api/public/{slug}', () => {
     const missing = await getBusiness('no-such-business');
     expect(missing.status).toBe(404);
     expect(missing.body!.error.code).toBe('NOT_FOUND');
+  });
+
+  it('publishes `listed` true only after the business opted in to the directory (PR-15b)', async () => {
+    expect((await getBusiness('studio-other')).body!.business.listed).toBe(false);
+    await prisma.business.update({ where: { id: other.businessId }, data: { listed: true } });
+    try {
+      expect((await getBusiness('studio-other')).body!.business.listed).toBe(true);
+    } finally {
+      await prisma.business.update({ where: { id: other.businessId }, data: { listed: false } });
+    }
   });
 });
 

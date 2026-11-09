@@ -133,8 +133,8 @@ No card data is ever taken in the tool.
   emails that are only QUEUED. Without more, 20 bookings a day for three days, all aimed at one target date, would queue
   120 reminders (H24 + H2 each) for that date, over Resend's ~100 a day, and real reminders would be rejected. So
   `create_booking` also checks the two UTC days its emails will land on: the H24 email is due on the UTC day of
-  (start - 24 h) and the H2 email on the UTC day of the start (the day boundaries reminders.ts uses for its daily
-  budget). For each day it counts, across ALL tenants (the one allowed global count,
+  (start - 24 h) and the H2 email on the UTC day of (start - 2 h) (see `reminderWindows.ts`; the day boundaries reminders.ts uses for its daily
+  budget). When both fall on the same UTC day (a start between 00:00 and 02:00 UTC) that single day takes TWO emails (load + 2 reaches 70); otherwise each day takes one. For each day it counts, across ALL tenants (the one allowed global count,
   `reminderJobRepo.emailLoadForUtcDay`, using the (status, dueAt) index), email jobs still PENDING or SENDING with
   `dueAt` on that day plus emails already SENT that day (plus waitlist offers for today), and refuses with "Booking by
   chat is temporarily unavailable for that day. Please use the business booking page instead." when that count plus this

@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, Copy, Download, ExternalLink, MapPin, MessageCircle } from 'lucide-react';
+import { Check, Copy, ExternalLink, MapPin, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
@@ -20,7 +20,9 @@ import {
 } from '@/lib/setup/clipboard';
 import { shareSeenKey } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
+import { ClaudeShareCard } from './ClaudeShareCard';
 import { DirectoryCard } from './DirectoryCard';
+import { QrCard } from './QrCard';
 import { LoadError, OwnerOnly } from '../states';
 
 const noopSubscribe = () => () => undefined;
@@ -106,71 +108,6 @@ function ChannelCard({
   );
 }
 
-function QrCard({ url, name }: { url: string; name: string }) {
-  const t = useTranslations('app.share.qr');
-  const [dataUrl, setDataUrl] = useState<string>();
-  const [failed, setFailed] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    import('qrcode')
-      .then((QR) =>
-        QR.toDataURL(url, {
-          width: 352,
-          margin: 1,
-          errorCorrectionLevel: 'M',
-          color: { dark: '#0B1938', light: '#FFFFFF' },
-        }),
-      )
-      .then((value) => {
-        if (!cancelled) setDataUrl(value);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
-
-  return (
-    <Card size="sm" className="flex flex-wrap items-center gap-5 p-5">
-      <div className="size-44 shrink-0 overflow-hidden rounded-2xl border border-line bg-white">
-        {dataUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- a generated data URL, nothing to optimise
-          <img
-            src={dataUrl}
-            width={176}
-            height={176}
-            alt={t('alt', { name })}
-            className="size-full"
-          />
-        ) : failed ? (
-          <span className="flex size-full items-center justify-center p-3 text-center text-[13px] text-muted">
-            {t('failed')}
-          </span>
-        ) : (
-          <Skeleton className="size-full rounded-none" />
-        )}
-      </div>
-      <div className="flex min-w-0 flex-[1_1_200px] flex-col gap-1.5">
-        <h3 className="m-0 text-[17px] font-semibold">{t('title')}</h3>
-        <p className="m-0 text-sm leading-[1.45] text-muted">{t('body')}</p>
-        {dataUrl ? (
-          <a
-            href={dataUrl}
-            download="booking-qr.png"
-            className={buttonClasses({ variant: 'secondary', className: 'mt-2 w-fit' })}
-          >
-            <Download size={18} aria-hidden="true" />
-            {t('download')}
-          </a>
-        ) : null}
-      </div>
-    </Card>
-  );
-}
-
 function ShareSkeleton() {
   return (
     <div aria-hidden="true" className="flex flex-col gap-5">
@@ -189,10 +126,14 @@ function ShareBody({
   ready,
   businessName,
   directory,
+  listed,
+  assistantEnabled,
 }: {
   ready: boolean;
   businessName: string;
   directory: ReactNode;
+  listed: boolean;
+  assistantEnabled: boolean;
 }) {
   const t = useTranslations('app.share');
   const { slug } = useAppSession();
@@ -326,6 +267,9 @@ function ShareBody({
         />
       </div>
       <QrCard url={url} name={businessName} />
+      {assistantEnabled ? (
+        <ClaudeShareCard name={businessName} listed={listed} origin={origin} bookingUrl={url} />
+      ) : null}
     </>
   );
 }
@@ -351,15 +295,16 @@ function InstagramGlyph() {
   );
 }
 
-export function ShareView() {
+/** `assistantEnabled` is the server's `isAssistantEnabled()` (the page passes it): false renders none of the Claude card. */
+export function ShareView({ assistantEnabled = false }: { assistantEnabled?: boolean }) {
   return (
     <OwnerOnly>
-      <ShareInner />
+      <ShareInner assistantEnabled={assistantEnabled} />
     </OwnerOnly>
   );
 }
 
-function ShareInner() {
+function ShareInner({ assistantEnabled }: { assistantEnabled: boolean }) {
   const business = useResource(getBusiness, 'business');
   if (business.error && !business.data)
     return <LoadError error={business.error} onRetry={business.reload} />;
@@ -371,6 +316,8 @@ function ShareInner() {
       directory={<DirectoryCard business={current} onChange={business.setData} />}
       ready={setup.hasServices && setup.hasBookableStaff && setup.hasHours}
       businessName={name}
+      listed={current.listed}
+      assistantEnabled={assistantEnabled}
     />
   );
 }

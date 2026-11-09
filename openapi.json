@@ -1473,6 +1473,9 @@
                   "string",
                   "null"
                 ]
+              },
+              "listed": {
+                "type": "boolean"
               }
             },
             "required": [
@@ -1482,7 +1485,8 @@
               "locale",
               "bookingWindowDays",
               "cancelCutoffMin",
-              "logoUrl"
+              "logoUrl",
+              "listed"
             ]
           },
           "services": {
