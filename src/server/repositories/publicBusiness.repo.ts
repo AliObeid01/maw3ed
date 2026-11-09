@@ -21,6 +21,19 @@ export const publicBusinessRepo = {
   findBySlug: (slug: string) =>
     db.business.findUnique({ where: { slug }, select: businessConfigSelect }),
 
+  /** The assistant (MCP) sees only businesses that opted in to the directory (`listed`). Unlisted = not found. */
+  findListedBySlug: (slug: string) =>
+    db.business.findFirst({
+      where: { slug, listed: true },
+      select: { ...businessConfigSelect, currency: true },
+    }),
+
+  findListedById: (businessId: string) =>
+    db.business.findFirst({
+      where: { id: businessId, listed: true },
+      select: { ...businessConfigSelect, currency: true },
+    }),
+
   findById: (businessId: string) =>
     db.business.findUnique({ where: { id: businessId }, select: businessConfigSelect }),
 

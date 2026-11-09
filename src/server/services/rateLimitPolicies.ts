@@ -88,6 +88,20 @@ export const RATE_POLICIES = {
   loginIp: { windowSec: 15 * MIN, limit: 20 },
   /** Attempts per email across all IPs (rotating-IP guessing). Counted before the check, refunded on success. */
   loginEmail: { windowSec: 60 * MIN, limit: 30 },
+  /**
+   * POST /api/mcp (the assistant connector). NEVER per ip: every Claude user arrives from Anthropic's few
+   * addresses, so an ip bucket would lock everyone out at once. These are global, per business and per phone.
+   * All tool calls, one bucket for the whole connector.
+   */
+  mcpGlobal: { windowSec: 10 * MIN, limit: 600 },
+  /** Tools that change data (create_booking, join_waitlist, confirm_booking, cancel_booking), whole connector. */
+  mcpWrite: { windowSec: 10 * MIN, limit: 120 },
+  /** create_booking and join_waitlist, per HMAC of the normalized phone (any caller). */
+  mcpPhone: { windowSec: 60 * MIN, limit: 5 },
+  /** create_booking, per business. */
+  mcpBookBusiness: { windowSec: 60 * MIN, limit: 60 },
+  /** Business-scoped reads (get_business, get_free_times, prepare_booking), per business. */
+  mcpReadBusiness: { windowSec: 10 * MIN, limit: 300 },
 } as const;
 
 /**

@@ -10,6 +10,10 @@ const SECRET_KEYS = [
   'secret',
   'payToken',
   'holdExpiresAt',
+  // PR-15a: assistant tool arguments (the connector logs none of them; this is the safety net).
+  'confirmationToken',
+  'phone',
+  'email',
 ];
 const HEADER_KEYS = ['cookie', 'authorization', 'set-cookie', 'x-cron-secret'];
 
