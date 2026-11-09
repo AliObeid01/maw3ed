@@ -13,7 +13,7 @@ describe('plan limits', () => {
     expect(BOOKABLE_STAFF_LIMIT.PRO).toBeNull();
     expect(bookableStaffLimit('FREE')).toBe(1);
     expect(bookableStaffLimit('PRO')).toBeNull();
-    expect(PLAN_PRICE.PRO.amount).toBeGreaterThan(0);
+    expect(PLAN_PRICE.PRO).toEqual({ amount: 20, currency: 'USD' }); // PR-13: Pro is $20 a month
   });
 
   it('FREE allows the first bookable staff member and blocks the second', () => {

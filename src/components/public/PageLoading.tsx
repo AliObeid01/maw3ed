@@ -3,7 +3,7 @@ import { ExploreSkeleton } from '@/components/explore/ExploreView';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { LoadingFlag } from './LoadingFlag';
 
-type Variant = 'directory' | 'how' | 'business' | 'pricing';
+type Variant = 'directory' | 'how' | 'business';
 
 /**
  * Route `loading.tsx` skeletons for the public pages: the same wrapper and block sizes as the real page, so the
@@ -53,38 +53,18 @@ export async function PageLoading({ variant }: { variant: Variant }) {
     );
   }
 
-  if (variant === 'business') {
-    return (
-      <main id="main-content" className="flex-1">
-        {status}
-        <div aria-hidden="true">
-          <Skeleton className="h-[460px] rounded-none sm:h-[420px] lg:h-[380px]" />
-          <div className="mx-auto max-w-[1200px] px-4 pt-16 md:px-6 md:pt-[88px]">
-            <Skeleton className="h-[46px] w-[300px] max-w-full rounded-nav" />
-            <div className="mt-8 grid gap-3">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-[68px] rounded-[16px]" />
-              ))}
-            </div>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main id="main-content" className="flex-1">
       {status}
-      <div aria-hidden="true" className="flex flex-1 flex-col">
-        <div className="bg-hero px-4 pt-10 pb-20 md:px-8 md:pt-14 md:pb-24">
-          <div className="mx-auto flex max-w-[1000px] flex-col items-center gap-3.5">
-            <Skeleton className="h-[40px] w-[300px] max-w-full rounded-nav bg-white/15 md:h-[56px]" />
-            <Skeleton className="h-6 w-[420px] max-w-full rounded-nav bg-white/15" />
+      <div aria-hidden="true">
+        <Skeleton className="h-[460px] rounded-none sm:h-[420px] lg:h-[380px]" />
+        <div className="mx-auto max-w-[1200px] px-4 pt-16 md:px-6 md:pt-[88px]">
+          <Skeleton className="h-[46px] w-[300px] max-w-full rounded-nav" />
+          <div className="mt-8 grid gap-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-[68px] rounded-[16px]" />
+            ))}
           </div>
-        </div>
-        <div className="mx-auto grid w-full max-w-[1000px] gap-5 px-4 py-10 md:grid-cols-2 md:px-8">
-          <Skeleton className="h-[420px] rounded-[24px]" />
-          <Skeleton className="h-[420px] rounded-[24px]" />
         </div>
       </div>
     </main>

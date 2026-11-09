@@ -18,7 +18,7 @@ Live: https://maw3edlb.com
 - Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and an Account page (`/app/account`, every role) with change password and sign out of other devices; team access: the owner removes a departed member (their sessions for that business end in the same transaction), lists and revokes pending invites, and anyone can sign out their other devices.
 - Pilot report: baseline entry, weekly no-show rate versus baseline with raw counts, CSV export.
 - Deposits (test mode): optional deposit for clients with past no-shows, 15 minute slot hold, pay page.
-- Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and a `/pricing` page.
+- Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and the plans on `/for-business#plans`.
 - Rate limiting shared across serverless instances (Postgres), login throttling, argon2 password hashing.
 
 ## Tech stack

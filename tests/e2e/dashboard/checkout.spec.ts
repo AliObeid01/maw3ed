@@ -3,6 +3,7 @@ import { expect, test } from '../helpers/test';
 import { expectNoHorizontalOverflow } from '../helpers/layout';
 import { watchCardLeaks } from '../helpers/cardLeak';
 import { mockSetupApi, setRole } from '../helpers/mockApi';
+import { PLAN_PRICE } from '../../../src/server/domain/plan';
 
 // Runs against the fake-session dev server; /api is answered by page.route (no database).
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
@@ -13,17 +14,6 @@ const OK_CARD = '4242424242424242';
 const DECLINE_CARD = '4000000000000002';
 
 test.describe('Pro checkout (TEST MODE)', () => {
-  test('/pricing Pro goes to signup with the plan; Free stays plain', async ({ page }) => {
-    await page.setViewportSize({ width: 360, height: 800 });
-    await page.goto('/pricing');
-    await expect(page.getByRole('link', { name: 'Start free' })).toHaveAttribute('href', '/signup');
-    await expect(page.getByRole('link', { name: 'Upgrade to Pro' })).toHaveAttribute(
-      'href',
-      '/signup?plan=pro',
-    );
-    await expect(page.locator('input')).toHaveCount(0);
-  });
-
   test('Settings has one way to Pro: a link to the checkout page, no direct upgrade', async ({
     page,
   }) => {
@@ -31,7 +21,9 @@ test.describe('Pro checkout (TEST MODE)', () => {
     await page.setViewportSize({ width: 360, height: 800 });
     const { calls } = await mockSetupApi(page);
     await page.goto('/app/settings');
-    const link = page.getByRole('link', { name: 'Upgrade (test checkout)' });
+    // PR-13: the plan is a chip in the page header; its menu holds the only way to Pro.
+    await page.getByTestId('plan-chip').click();
+    const link = page.getByRole('menuitem', { name: 'Upgrade to Pro' });
     await expect(link).toHaveAttribute('href', '/app/checkout?plan=pro');
     expect(calls.filter((c) => c.path === '/api/billing/checkout')).toHaveLength(0);
   });
@@ -49,7 +41,7 @@ test.describe('Pro checkout (TEST MODE)', () => {
 
     // Exactly one h1 (the shell header's title).
     await expect(page.getByRole('heading', { name: 'Upgrade to Pro', level: 1 })).toHaveCount(1);
-    await expect(page.getByText('$9 / month')).toBeVisible();
+    await expect(page.getByText(`$${PLAN_PRICE.PRO.amount} / month`)).toBeVisible();
     // ONE test-mode note on the page (PR-12: the order summary used to add a second "TEST MODE" chip).
     await expect(page.getByText('Test mode: checkout is simulated and no card is charged.')).toHaveCount(1);
     await expect(page.getByText('Test mode: checkout is simulated and no card is charged.')).toBeVisible();
@@ -283,7 +275,7 @@ test.describe('Pro checkout (TEST MODE)', () => {
     await page.getByTestId('test-card-form').getByRole('button', { name: /^Pay/ }).click();
     await expect(page.getByTestId('checkout-done')).toBeVisible();
     await page.goto('/app/settings');
-    await expect(page.getByText('Your plan')).toBeVisible();
+    await expect(page.getByTestId('plan-chip')).toContainText('Pro');
     await expect(page.getByTestId('finish-upgrade')).toHaveCount(0);
   });
 
@@ -291,7 +283,7 @@ test.describe('Pro checkout (TEST MODE)', () => {
     await setRole(page, 'OWNER', DASHBOARD);
     await mockSetupApi(page);
     await page.goto('/app/settings');
-    await expect(page.getByText('Your plan')).toBeVisible();
+    await expect(page.getByTestId('plan-chip')).toContainText('Free');
     await expect(page.getByTestId('finish-upgrade')).toHaveCount(0);
   });
 

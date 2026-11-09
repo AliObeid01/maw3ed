@@ -17,6 +17,7 @@ import {
 } from '@/lib/api/setup';
 import { ApiError } from '@/lib/api/auth';
 import { cn } from '@/lib/cn';
+import { PRO_CHECKOUT_HREF } from '@/lib/links';
 import { errorKey, invalidFields } from '@/lib/setup/errors';
 import { useErrorMessage, useSharedText } from '../states';
 import { StaffLoginSection } from './StaffLoginSection';
@@ -159,7 +160,7 @@ export function StaffForm({
                   <strong className="text-[15px] font-semibold">{limitTitle}</strong>
                   <span>{banner}</span>
                 </div>
-                <ButtonLink href="/pricing" variant="accent" className="self-start">
+                <ButtonLink href={PRO_CHECKOUT_HREF} variant="accent" className="self-start">
                   {upgradeLabel}
                 </ButtonLink>
               </div>

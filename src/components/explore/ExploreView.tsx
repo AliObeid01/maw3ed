@@ -23,6 +23,7 @@ import {
   type ExploreFilters,
 } from '@/lib/directory/explore';
 import { useMediaQuery } from '@/lib/useMediaQuery';
+import { OWNER_START_HREF } from '@/lib/links';
 import { FilterControls, type FilterPatch } from './FilterControls';
 import { ResultCard } from './ResultCard';
 import { useExploreResults } from './useExploreResults';
@@ -91,7 +92,7 @@ function OwnerLink({ variant }: { variant: 'empty' | 'list' }) {
   if (variant === 'empty')
     return (
       <div className="mt-2 flex flex-col items-center gap-2" data-testid="directory-owner-cta">
-        <ButtonLink href="/signup" variant="secondary">
+        <ButtonLink href={OWNER_START_HREF} variant="secondary">
           {t('link')}
         </ButtonLink>
         <p className="m-0 max-w-sm text-[13px] text-muted">{t('hint')}</p>
@@ -103,7 +104,7 @@ function OwnerLink({ variant }: { variant: 'empty' | 'list' }) {
       data-testid="directory-owner-cta"
     >
       {t('own')}
-      <ButtonLink href="/signup" variant="ghost" size="row" className="font-semibold text-brand">
+      <ButtonLink href={OWNER_START_HREF} variant="ghost" size="row" className="font-semibold text-brand">
         {t('listYours')}
       </ButtonLink>
     </p>

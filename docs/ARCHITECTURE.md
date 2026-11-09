@@ -29,7 +29,7 @@ src/app/(public)/b/[slug]/booked/[token]/     1.5 (shareable)
 src/app/(public)/l/[token]/                   2.1–2.2 confirm / cancel
 src/app/(public)/o/[token]/                   2.3 waitlist offer
 src/app/(public)/pay/[token]/                 5.2 deposit
-src/app/(public)/pricing/                     5.1
+next.config.ts redirects()                   /pricing -> /for-business#plans (308), PR-13
 src/app/(auth)/signup|login|invite/[token]/   3.1–3.3
 src/app/app/                                  dashboard (AppShell) 3.4–3.9, 4.1–4.8
 src/app/api/**/route.ts                       route handlers only

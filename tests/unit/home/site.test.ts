@@ -2,10 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { COPYRIGHT_YEAR, LEGAL_DRAFT, LEGAL_UPDATED, SITE, socialLinks } from '@/lib/site';
 
 describe('site config', () => {
-  it('keeps the owner placeholders until they are replaced', () => {
-    expect(SITE.email).toBe('hello@[YOUR-DOMAIN]');
-    expect(SITE.phone).toBe('+961 [XX XXX XXX]');
-    expect(SITE.address).toBe('[YOUR ADDRESS], Lebanon');
+  it('holds the owner contact details (public by intent)', () => {
+    expect(SITE.email).toBe('hello@maw3edlb.com');
+    expect(SITE.phone).toBe('+961 81958526');
+    expect(SITE.address).toBe('Beirut, Lebanon');
   });
   it('shows no social link until a URL is configured', () => {
     expect(socialLinks({ instagram: '', whatsapp: '', facebook: '' })).toEqual([]);
@@ -18,7 +18,7 @@ describe('site config', () => {
     expect(socialLinks({ instagram: 'javascript:alert(1)', whatsapp: '', facebook: '' })).toEqual([]);
   });
   it('has fixed legal constants', () => {
-    expect(LEGAL_DRAFT).toBe(true);
+    expect(LEGAL_DRAFT).toBe(false);
     expect(LEGAL_UPDATED).toBe('2026-11-07');
     expect(COPYRIGHT_YEAR).toBe(2026);
   });

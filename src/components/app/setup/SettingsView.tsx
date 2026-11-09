@@ -4,7 +4,7 @@ import { CircleAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useId, useMemo, useRef, useState, type FormEvent } from 'react';
-import { PlanCard } from '@/components/billing/PlanCard';
+import { PlanMenu } from '@/components/billing/PlanMenu';
 import { useAreaLabel } from '@/components/public/areaLabel';
 import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { DepositSettings } from './DepositSettings';
@@ -117,8 +117,6 @@ function SettingsSkeleton() {
     <div aria-hidden="true" className="grid gap-5 lg:grid-cols-2">
       <Skeleton className="h-[360px] rounded-card" />
       <Skeleton className="h-[360px] rounded-card" />
-      <Skeleton className="h-[220px] rounded-card" />
-      <Skeleton className="h-[220px] rounded-card" />
     </div>
   );
 }
@@ -296,6 +294,7 @@ function SettingsForm({
         noValidate
         className="grid grid-cols-1 content-start gap-5 lg:grid-cols-2"
       >
+        <PlanMenu />
         {banner ? (
           <div role="alert" className="lg:col-span-2">
             <Callout tone="danger" icon={<CircleAlert />}>
@@ -442,10 +441,9 @@ function SettingsForm({
             onChange={(v) => set('cutoff', v)}
             error={errors.cutoff}
           />
+          <DepositSettings embedded business={business} onSaved={onSaved} />
         </Card>
 
-        <DepositSettings business={business} onSaved={onSaved} />
-        <PlanCard />
       </form>
       {dirty ? <StickySaveBar>{saveButton({ block: true })}</StickySaveBar> : null}
     </>

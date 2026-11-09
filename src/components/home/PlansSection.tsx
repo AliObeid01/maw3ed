@@ -1,14 +1,12 @@
-import { ArrowRight, Check } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Chip } from '@/components/ui/Chip';
 import { Reveal } from '@/components/ui/Reveal';
 import { FREE_FEATURES, PRO_FEATURES } from '@/components/pricing/planCopy';
+import { FREE_START_HREF, PRO_START_HREF } from '@/lib/links';
 import { BOOKABLE_STAFF_LIMIT, PLAN_PRICE } from '@/server/domain/plan';
-
-/** Every plan includes these: the Free features that do not depend on a staff count (Pro is "Everything in Free"). */
-const INCLUDED = FREE_FEATURES.filter((k) => k !== 'staff');
 
 function Feature({ children, dark }: { children: string; dark?: boolean }) {
   return (
@@ -20,14 +18,15 @@ function Feature({ children, dark }: { children: string; dark?: boolean }) {
 }
 
 /**
- * The real plans, Free and Pro, from the SAME messages and constants as /pricing (`pricing.*`, `PLAN_PRICE`), so the
- * numbers cannot drift. Pro's price is the test-mode placeholder and says so.
+ * The real plans, Free and Pro (`pricing.*` messages, `PLAN_PRICE`): the ONE plans component, the only place plans are
+ * shown (the old /pricing page redirects here). `id="plans"` sits on this wrapper, OUTSIDE any Reveal, so a link to
+ * `/for-business#plans` always finds a visible target. Each card carries its own call to action, pinned to the bottom.
  */
-export function PricingTeaser() {
+export function PlansSection() {
   const t = useTranslations();
   const freeLimit = BOOKABLE_STAFF_LIMIT.FREE ?? 1;
   return (
-    <section aria-labelledby="teaser-title" className="mt-16 bg-divider py-16 md:mt-[88px] md:py-[88px]">
+    <section id="plans" aria-labelledby="teaser-title" className="mt-16 bg-divider py-16 md:mt-[88px] md:py-[88px]">
       <div className="mx-auto max-w-[1200px] px-4 md:px-6">
         <div className="max-w-[640px]">
           <span className="mb-2.5 inline-block text-[15px] font-bold text-brand">{t('home.pricing.kicker')}</span>
@@ -39,7 +38,7 @@ export function PricingTeaser() {
 
         <div className="mt-10 grid gap-5 md:grid-cols-2">
           <Reveal className="grid">
-          <article aria-labelledby="teaser-free" className="grid content-start gap-[18px] rounded-[24px] bg-surface p-7">
+          <article aria-labelledby="teaser-free" className="flex flex-col gap-[18px] rounded-[24px] bg-surface p-7">
             <div>
               <h3 id="teaser-free" className="m-0 text-[22px] font-bold">{t('pricing.free.name')}</h3>
               <p className="m-0 mt-1 text-muted">{t('pricing.free.tagline')}</p>
@@ -53,11 +52,14 @@ export function PricingTeaser() {
                 <Feature key={k}>{t(`pricing.free.features.${k}`, { count: freeLimit })}</Feature>
               ))}
             </ul>
+            <Link href={FREE_START_HREF} data-testid="plan-cta-free" className={buttonClasses({ variant: 'secondary', size: 'hero', block: true, className: 'mt-auto' })}>
+              {t('pricing.free.cta')}
+            </Link>
           </article>
           </Reveal>
 
           <Reveal step={1} className="grid">
-          <article aria-labelledby="teaser-pro" className="grid content-start gap-[18px] rounded-[24px] bg-navy p-7 text-white">
+          <article aria-labelledby="teaser-pro" className="flex flex-col gap-[18px] rounded-[24px] bg-navy p-7 text-white">
             <div>
               <div className="flex flex-wrap items-center justify-between gap-2.5">
                 <h3 id="teaser-pro" className="m-0 text-[22px] font-bold">{t('pricing.pro.name')}</h3>
@@ -77,26 +79,13 @@ export function PricingTeaser() {
                 <Feature key={k} dark>{t(`pricing.pro.features.${k}`)}</Feature>
               ))}
             </ul>
-            <p className="m-0 text-center text-[13px] text-hero-muted">{t('pricing.testNote')}</p>
+            <p className="m-0 text-[13px] text-hero-muted">{t('pricing.testNote')}</p>
+            <Link href={PRO_START_HREF} data-testid="plan-cta-pro" className={buttonClasses({ variant: 'turquoise', size: 'hero', block: true, className: 'mt-auto' })}>
+              {t('pricing.pro.cta')}
+            </Link>
           </article>
           </Reveal>
         </div>
-
-        <Reveal className="mt-5">
-        <section aria-labelledby="includes-title" className="rounded-[24px] bg-surface p-7">
-          <h3 id="includes-title" className="m-0 text-lg font-semibold">{t('home.pricing.includesTitle')}</h3>
-          <ul className="m-0 mt-4 grid list-none gap-3.5 p-0 sm:grid-cols-2 lg:grid-cols-4">
-            {INCLUDED.map((k) => (
-              <Feature key={k}>{t(`pricing.free.features.${k}`)}</Feature>
-            ))}
-          </ul>
-        </section>
-        </Reveal>
-
-        <Link href="/pricing" className={buttonClasses({ variant: 'navy', size: 'hero', className: 'mt-7' })}>
-          {t('home.pricing.seeAll')}
-          <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
-        </Link>
       </div>
     </section>
   );

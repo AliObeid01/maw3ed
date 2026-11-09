@@ -157,8 +157,8 @@ test.describe('staff: invites and partial saves', () => {
     await page.getByRole('button', { name: 'Add staff member' }).last().click();
     const card = page.getByRole('alert').filter({ hasText: 'Your Free plan is full' });
     await expect(card).toBeVisible();
-    const link = card.getByRole('link', { name: 'See plans' });
-    await expect(link).toHaveAttribute('href', '/pricing');
+    const link = card.getByRole('link', { name: 'Upgrade to Pro' });
+    await expect(link).toHaveAttribute('href', '/app/checkout?plan=pro');
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 

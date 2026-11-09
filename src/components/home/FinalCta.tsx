@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { Reveal } from '@/components/ui/Reveal';
+import { OWNER_START_HREF } from '@/lib/links';
 
 /** The navy closing band of the home page (owner design): a short pitch to business owners with the two actions. */
 export function FinalCta() {
@@ -20,7 +21,7 @@ export function FinalCta() {
           <p className="m-0 mt-3 max-w-[48ch] text-[17px] text-hero-muted">{t('body')}</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
+          <Link href={OWNER_START_HREF} className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
             {t('cta')}
             <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
           </Link>

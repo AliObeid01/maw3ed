@@ -108,7 +108,7 @@ export function SignupForm({ plan }: { plan?: 'pro' | undefined }) {
         password,
       });
       // Keep the button busy until the navigation lands.
-      // Pro was chosen on /pricing: remember it on this device (for the "Finish upgrading" card) and pay first.
+      // Pro was chosen in the plans on /for-business: remember it on this device (for the "Finish upgrading" card) and pay first.
       if (plan === 'pro') {
         setProIntent(slug);
         router.replace('/app/checkout?plan=pro');

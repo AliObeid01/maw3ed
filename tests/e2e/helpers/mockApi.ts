@@ -1,5 +1,6 @@
 import type { Page, Route } from '@playwright/test';
 import { freezeClock, nowMs } from './clock';
+import { PLAN_PRICE } from '../../../src/server/domain/plan';
 import { profileMissing } from '../../../src/lib/business/profile';
 import { mergeWeekIntervals } from '../../../src/lib/setup/hoursMerge';
 import { rules, validate, validateHours } from './serverRules';
@@ -202,6 +203,8 @@ const error = (route: Route, status: number, code: string, fields?: Record<strin
 
 export type MockOptions = {
   state?: MockState;
+  /** Starting plan for /api/billing (default FREE). */
+  plan?: 'FREE' | 'PRO';
   /** Answer every request with this status: 401, 403 or 429 use the real error codes. */
   forceStatus?: number;
   /** Delay every answer (ms) to look at loading states. */
@@ -221,7 +224,7 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
   const state = options.state ?? defaultState();
   const calls: MockCalls = [];
   let counter = 100;
-  let plan: 'FREE' | 'PRO' = 'FREE';
+  let plan: 'FREE' | 'PRO' = options.plan ?? 'FREE';
 
   await page.route('**/api/**', async (route) => {
     const request = route.request();
@@ -258,7 +261,7 @@ export async function mockSetupApi(page: Page, options: MockOptions = {}) {
         plan,
         limits: { bookableStaff: plan === 'PRO' ? null : 1 },
         usage: { bookableStaff: bookable },
-        price: { amount: 9, currency: 'USD' },
+        price: { amount: PLAN_PRICE.PRO.amount, currency: PLAN_PRICE.PRO.currency },
         testMode: true,
       });
     }

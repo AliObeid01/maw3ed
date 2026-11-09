@@ -28,15 +28,18 @@ export function parseAmount(raw: string): number | null {
 }
 
 /**
- * Settings card for no-show deposits (FR-26, owner only). Saves on its own button (its own PATCH), so it
- * never mixes with the business form it sits next to. The amount is a USD placeholder: nothing real is charged.
+ * No-show deposits (FR-26, owner only). Saves on its own button (its own PATCH), so it never mixes with the business
+ * form around it. PR-13: it sits INSIDE the Booking rules card (`embedded`: a divider and its own heading, no card of
+ * its own); only the layout changed, the state, validation and save are the same. The amount is a USD placeholder: nothing real is charged.
  */
 export function DepositSettings({
   business,
   onSaved,
+  embedded = false,
 }: {
   business: Business;
   onSaved: (b: Business) => void;
+  embedded?: boolean;
 }) {
   const t = useTranslations('app.settings.deposit');
   const errorText = useErrorMessage();
@@ -87,16 +90,16 @@ export function DepositSettings({
     }
   }
 
+  const Wrapper = embedded ? 'section' : Card;
+  const wrapperProps = embedded
+    ? { className: 'mt-1 flex flex-col gap-4 border-t border-divider pt-5' }
+    : { padding: 'none' as const, as: 'section' as const, className: 'flex flex-col gap-4 p-[22px]' };
+  const Heading = embedded ? 'h3' : 'h2';
   return (
-    <Card
-      padding="none"
-      as="section"
-      aria-labelledby={`${uid}-deposit`}
-      className="flex flex-col gap-4 p-[22px]"
-    >
-      <h2 id={`${uid}-deposit`} className="m-0 text-lg font-semibold">
+    <Wrapper aria-labelledby={`${uid}-deposit`} {...wrapperProps}>
+      <Heading id={`${uid}-deposit`} className="m-0 text-lg font-semibold">
         {t('title')}
-      </h2>
+      </Heading>
       {banner ? (
         <div role="alert">
           <Callout tone="danger" icon={<CircleAlert />}>
@@ -139,6 +142,6 @@ export function DepositSettings({
       <Button type="button" onClick={save} loading={pending} disabled={!dirty}>
         {t('save')}
       </Button>
-    </Card>
+    </Wrapper>
   );
 }

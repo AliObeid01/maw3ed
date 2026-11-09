@@ -2,18 +2,19 @@ import { ORIGIN } from './helpers/clock';
 import { expectNoPageOverflow } from './helpers/layout';
 import { expect, test } from './helpers/test';
 
-// /privacy and /terms: server-rendered drafts, en and ar, with the "Draft - under review" notice.
+// /privacy and /terms: server-rendered drafts, en and ar, (the "Draft - under review" notice is hidden while LEGAL_DRAFT is false).
 
 const PAGES = [
   { path: '/privacy', en: 'Privacy policy', ar: 'سياسة الخصوصية', sections: 14, mentions: ['Vercel', 'Neon', 'Resend', 'Sentry (EU region)', 'where possible', 'rate-limit', 'a phone number', 'not by Maw3ed', 'The business owner can delete a client'] },
-  { path: '/terms', en: 'Terms of use', ar: 'شروط الاستخدام', sections: 12, mentions: ['[GOVERNING LAW]', 'test mode'] },
+  { path: '/terms', en: 'Terms of use', ar: 'شروط الاستخدام', sections: 12, mentions: ['the laws of Lebanon', 'test mode'] },
 ] as const;
 
 for (const p of PAGES) {
-  test(`${p.path} (en): heading, draft notice, date, anchors, contact placeholders`, async ({ page }) => {
+  test(`${p.path} (en): heading, no draft notice, date, anchors, contact details`, async ({ page }) => {
     await page.goto(p.path);
     await expect(page.getByRole('heading', { level: 1, name: p.en })).toBeVisible();
-    await expect(page.getByTestId('legal-draft')).toContainText('Draft - under review');
+    await expect(page.getByTestId('legal-draft')).toHaveCount(0);
+    await expect(page.getByText('Draft - under review')).toHaveCount(0);
     await expect(page.getByText('Last updated November 7, 2026')).toBeVisible();
     await expect(page.getByRole('main').locator('section')).toHaveCount(p.sections);
     // Phones: a collapsed "On this page" disclosure; lg and up: the sticky sidebar, already open.
@@ -22,7 +23,7 @@ for (const p of PAGES) {
     await expect(toc.getByRole('link')).toHaveCount(p.sections);
     const text = await page.getByRole('main').innerText();
     for (const m of p.mentions) expect(text).toContain(m);
-    expect(text).toContain('hello@[YOUR-DOMAIN]');
+    expect(text).toContain('hello@maw3edlb.com');
     // Each table-of-contents link points at a heading that exists.
     for (const href of await toc.getByRole('link').evaluateAll((els) => els.map((e) => e.getAttribute('href')!))) {
       await expect(page.locator(`h2${href}`)).toHaveCount(1);
@@ -37,7 +38,8 @@ for (const p of PAGES) {
     await page.goto(p.path);
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { level: 1, name: p.ar })).toBeVisible();
-    await expect(page.getByTestId('legal-draft')).toContainText('مسودة - قيد المراجعة');
+    await expect(page.getByTestId('legal-draft')).toHaveCount(0);
+    if (p.path === '/terms') await expect(page.getByRole('main')).toContainText('تخضع هذه الشروط لقوانين لبنان.');
     const text = await page.getByRole('main').innerText();
     expect(text).toMatch(/7/);
     expect(text).not.toMatch(/[٠-٩]/);
@@ -45,9 +47,9 @@ for (const p of PAGES) {
   });
 }
 
-test('the draft notice is the only thing a lawyer has to flip: it is driven by LEGAL_DRAFT', async () => {
+test('the draft notice is driven by LEGAL_DRAFT, which the owner has switched off', async () => {
   const { LEGAL_DRAFT } = await import('../../src/lib/site');
-  expect(LEGAL_DRAFT).toBe(true);
+  expect(LEGAL_DRAFT).toBe(false);
 });
 
 // PR-11 Part B: a table-of-contents link must land with the heading BELOW the 65 px sticky header, the current section is

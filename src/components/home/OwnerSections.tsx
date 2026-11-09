@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Reveal } from '@/components/ui/Reveal';
 import { cn } from '@/lib/cn';
+import { OWNER_START_HREF } from '@/lib/links';
 
 const ROWS = [
   { id: 'one', time: '09:00', tone: 'success' },
@@ -22,15 +23,15 @@ const statusTone = {
 export function OwnerBand() {
   const t = useTranslations('home.owners');
   return (
-    <section data-surface="dark" aria-labelledby="owners-title" className="bg-brand text-white">
+    <section data-surface="dark" aria-labelledby="owners-title" className="bg-navy text-white">
       <div className="mx-auto grid max-w-[1200px] items-center gap-8 px-4 py-14 md:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:py-[72px]">
         <div>
           <h1 id="owners-title" className="m-0 max-w-[17ch] text-[clamp(32px,6vw,52px)] leading-[1.08] font-bold tracking-[-0.025em] rtl:max-w-[20ch] rtl:leading-[1.25] rtl:tracking-normal">
             {t('title')}
           </h1>
-          <p className="m-0 mt-3.5 max-w-[46ch] text-lg text-brand-soft">{t('body')}</p>
+          <p className="m-0 mt-3.5 max-w-[46ch] text-lg text-hero-muted">{t('body')}</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href="/signup" className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
+            <Link href={OWNER_START_HREF} className={buttonClasses({ variant: 'turquoise', size: 'hero', className: 'h-auto min-h-12 max-w-full min-w-0 shrink py-2 text-center whitespace-normal' })}>
               {t('cta')}
               <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
             </Link>

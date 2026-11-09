@@ -3,8 +3,8 @@ import { expect, test } from '../helpers/test';
 import { expectNoPageOverflow } from '../helpers/layout';
 import { mockSetupApi, setRole } from '../helpers/mockApi';
 
-// F66 parts B and C: Settings puts the Plan box beside Deposits, Account puts its two cards side by side, both
-// only from `lg` (1024 px) up. Below that everything is one column. Every API call is answered by page.route.
+// F66 part C and PR-13: Settings is Business | Booking rules (with Deposits inside), Account puts its two cards side by
+// side, both only from `lg` (1024 px) up. Below that everything is one column. Every API call is answered by page.route.
 const DASHBOARD = `http://localhost:${process.env.DASHBOARD_PORT ?? 3100}`;
 test.skip(!!process.env.BASE_URL, 'needs the fake-session dev server');
 test.use({ baseURL: DASHBOARD });
@@ -20,38 +20,67 @@ async function settings(page: Page) {
   await setRole(page, 'OWNER', DASHBOARD);
   await mockSetupApi(page);
   await page.goto('/app/settings');
+  const business = page.getByRole('region', { name: 'Business', exact: true });
+  const rules = page.getByRole('region', { name: 'Booking rules' });
   const deposits = page.getByRole('region', { name: 'Deposits for repeat no-shows' });
-  const plan = page.locator('section[aria-labelledby="plan-card-title"]');
+  await expect(business).toBeVisible();
+  await expect(rules).toBeVisible();
   await expect(deposits).toBeVisible();
-  await expect(plan).toBeVisible();
-  return { deposits, plan };
+  return { business, rules, deposits };
 }
 
-test.describe('Settings (part B)', () => {
-  test('at lg+ the Plan box sits next to Deposits in the right column, top aligned', async ({ page }) => {
+// PR-13: Deposits moved INTO the Booking rules card and the separate "Your plan" card became a chip in the page header.
+test.describe('Settings (PR-13)', () => {
+  test('at lg+ Business is on the left, Booking rules (with Deposits inside) on the right, top aligned', async ({ page }) => {
     await page.setViewportSize(WIDE);
-    const { deposits, plan } = await settings(page);
+    const { business, rules, deposits } = await settings(page);
+    const b = await box(business);
+    const r = await box(rules);
     const d = await box(deposits);
-    const p = await box(plan);
-    expect(p.x, 'Plan starts after Deposits ends (side by side)').toBeGreaterThanOrEqual(d.x + d.width);
-    expect(Math.abs(p.y - d.y), 'same top edge').toBeLessThanOrEqual(1);
-    // The right column is the same one the Rules card uses.
-    const rules = await box(page.getByRole('region', { name: 'Booking rules' }));
-    expect(Math.abs(p.x - rules.x)).toBeLessThanOrEqual(1);
+    expect(r.x, 'Booking rules is beside Business').toBeGreaterThanOrEqual(b.x + b.width);
+    expect(Math.abs(r.y - b.y), 'same top edge').toBeLessThanOrEqual(1);
+    // Deposits is INSIDE the Booking rules card (same card, below the other rules), not a card of its own.
+    expect(d.x).toBeGreaterThanOrEqual(r.x);
+    expect(d.x + d.width).toBeLessThanOrEqual(r.x + r.width + 1);
+    expect(d.y).toBeGreaterThan(r.y + 150);
+    expect(d.y + d.height).toBeLessThanOrEqual(r.y + r.height + 1);
+    expect(await rules.getByRole('region', { name: 'Deposits for repeat no-shows' }).count()).toBe(1);
+    // No separate plan card any more.
+    await expect(page.locator('section[aria-labelledby="plan-card-title"]')).toHaveCount(0);
+    await expect(page.getByRole('main').getByText('Your plan', { exact: true })).toHaveCount(0);
     await expectNoPageOverflow(page);
   });
 
   for (const [name, viewport] of [['900', BELOW_LG], ['360', PHONE]] as const) {
-    test(`below lg (${name}) it is one column: Deposits, then Plan`, async ({ page }) => {
+    test(`below lg (${name}) it is one column: Business, then Booking rules with Deposits`, async ({ page }) => {
       await page.setViewportSize(viewport);
-      const { deposits, plan } = await settings(page);
+      const { business, rules, deposits } = await settings(page);
+      const b = await box(business);
+      const r = await box(rules);
       const d = await box(deposits);
-      const p = await box(plan);
-      expect(Math.abs(p.x - d.x)).toBeLessThanOrEqual(1);
-      expect(p.y).toBeGreaterThanOrEqual(d.y + d.height - 1);
+      expect(Math.abs(r.x - b.x)).toBeLessThanOrEqual(1);
+      expect(r.y).toBeGreaterThanOrEqual(b.y + b.height - 1);
+      expect(d.y).toBeGreaterThan(r.y);
+      expect(d.y + d.height).toBeLessThanOrEqual(r.y + r.height + 1);
       await expectNoPageOverflow(page);
     });
   }
+
+  test('Deposits keeps its OWN save button and PATCH, separate from Save settings', async ({ page }) => {
+    await page.setViewportSize(WIDE);
+    await setRole(page, 'OWNER', DASHBOARD);
+    const { calls } = await mockSetupApi(page);
+    await page.goto('/app/settings');
+    const deposits = page.getByRole('region', { name: 'Deposits for repeat no-shows' });
+    const save = deposits.getByRole('button', { name: 'Save deposit rules' });
+    await expect(save).toBeDisabled();
+    await deposits.getByRole('switch').click();
+    await expect(save).toBeEnabled();
+    await save.click();
+    await expect.poll(() => calls.filter((c) => c.method === 'PATCH' && c.path === '/api/business').length).toBe(1);
+    const patch = calls.find((c) => c.method === 'PATCH' && c.path === '/api/business')!;
+    expect(Object.keys(patch.body as object).sort()).toEqual(['depositAmount', 'depositEnabled', 'depositThreshold']);
+  });
 });
 
 test.describe('Account (part C)', () => {

@@ -16,7 +16,6 @@ const MARKETPLACE = new Set([
   '/directory',
   '/how-it-works',
   '/for-business',
-  '/pricing',
   '/privacy',
   '/terms',
   '/my-bookings',
@@ -25,7 +24,7 @@ const MARKETPLACE = new Set([
 /** The marketplace pages carry the phone tab bar and the skip link target; the booking flow (`/b`, `/l`, `/o`, `/pay`) does not. */
 export const showTabBar = (pathname: string): boolean => MARKETPLACE.has(pathname);
 
-/** Which nav item is the current page (Pricing, legal and the booking flow have none). */
+/** Which nav item is the current page (legal and the booking flow have none). */
 export function activeTab(pathname: string): NavId | null {
   if (pathname === '/' || pathname === '/directory') return 'explore';
   if (pathname === '/how-it-works') return 'how';

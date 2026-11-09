@@ -66,6 +66,7 @@ describe('GET /api/billing', () => {
       plan: 'FREE',
       limits: { bookableStaff: 1 },
       usage: { bookableStaff: 1 },
+      price: { amount: 20, currency: 'USD' }, // PR-13: Pro is $20 a month (PLAN_PRICE, single source)
       testMode: true,
     });
   });
@@ -105,8 +106,10 @@ describe('POST /api/billing/checkout', () => {
     expect(second.body!.plan).toBe('PRO');
     expect(await paymentCount('free-biz')).toBe(1);
     const row = (await pg.query(`SELECT * FROM "Payment"`)).rows[0];
-    expect(row).toMatchObject({ purpose: 'PLAN', status: 'PAID', provider: 'fake' });
+    expect(row).toMatchObject({ purpose: 'PLAN', status: 'PAID', provider: 'fake', currency: 'USD' });
+    expect(Number(row.amount)).toBe(20);
     expect(fakePaymentProvider.calls).toHaveLength(1);
+    expect(fakePaymentProvider.calls[0]).toMatchObject({ purpose: 'PLAN', amount: 20, currency: 'USD' });
   });
 
   it('scenario "success" is the same as no scenario; "declined" is a 409 that changes nothing', async () => {

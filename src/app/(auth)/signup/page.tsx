@@ -19,7 +19,7 @@ export default async function SignupPage({
 }) {
   // Only the whitelisted value "pro" is kept; anything else is ignored.
   const plan = safePlan((await searchParams).plan);
-  // Someone who is already signed in and picked Pro on /pricing goes straight to the checkout.
+  // Someone who is already signed in and picked Pro in the plans on /for-business goes straight to the checkout.
   if (plan === 'pro') {
     const session = await getCurrentSession().catch(() => null);
     if (session) redirect(session.role === 'OWNER' ? '/app/checkout?plan=pro' : '/app');

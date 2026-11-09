@@ -115,7 +115,7 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
             className={buttonClasses({
               variant: 'navy',
               size: 'hero',
-              className: 'h-11 px-3.5 text-[14px] aria-busy:opacity-70 aria-[current=page]:bg-brand md:px-[18px] md:text-[15px]',
+              className: 'h-11 px-3.5 text-[14px] aria-busy:opacity-70 md:px-[18px] md:text-[15px]',
             })}
           >
             <span className="sm:hidden">{t('forBusinessesShort')}</span>

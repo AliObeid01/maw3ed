@@ -77,7 +77,7 @@ The build code is merged and **inert**: it uploads source maps only when all thr
 ## Security headers check and the CSP kill switch (F7)
 
 After every deploy that touches headers (and once after the first one):
-1. `node scripts/check-security-headers.mjs` (default `https://maw3edlb.com`; pass another base URL as the argument, `--no-hsts` for plain http). It checks `/`, `/login`, `/signup`, `/pricing`, `/directory` and `/api/health`, prints PASS/FAIL per header per URL, and exits non-zero on any failure. It sends no cookies or credentials.
+1. `node scripts/check-security-headers.mjs` (default `https://maw3edlb.com`; pass another base URL as the argument, `--no-hsts` for plain http). It checks `/`, `/login`, `/signup`, `/for-business`, `/directory` and `/api/health`, prints PASS/FAIL per header per URL, and exits non-zero on any failure. It sends no cookies or credentials.
 2. Open https://securityheaders.com and scan `https://maw3edlb.com`. Expect an A or better (it may mention `style-src 'unsafe-inline'`: deliberate, see ARCHITECTURE).
 3. Click through the site once (home, directory, a booking page, login) with the browser console open: there must be no "Content Security Policy" or "Refused to" messages.
 
