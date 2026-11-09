@@ -166,7 +166,7 @@ function assertSameOrigin(req: Request, url: URL) {
 export const MAX_BODY_BYTES = 64 * 1024;
 
 /** Read the body as text, refusing more than `max` bytes (content-length first, then the real bytes). */
-async function readLimitedText(req: Request, max: number): Promise<string> {
+export async function readLimitedText(req: Request, max: number): Promise<string> {
   const declared = Number(req.headers.get('content-length'));
   if (Number.isFinite(declared) && declared > max) throw AppError.payloadTooLarge();
   if (!req.body) return '';

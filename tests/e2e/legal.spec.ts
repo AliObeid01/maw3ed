@@ -5,7 +5,7 @@ import { expect, test } from './helpers/test';
 // /privacy and /terms: server-rendered drafts, en and ar, (the "Draft - under review" notice is hidden while LEGAL_DRAFT is false).
 
 const PAGES = [
-  { path: '/privacy', en: 'Privacy policy', ar: 'سياسة الخصوصية', sections: 14, mentions: ['Vercel', 'Neon', 'Resend', 'Sentry (EU region)', 'where possible', 'rate-limit', 'a phone number', 'not by Maw3ed', 'The business owner can delete a client'] },
+  { path: '/privacy', en: 'Privacy policy', ar: 'سياسة الخصوصية', sections: 14, mentions: ['Vercel', 'Neon', 'Resend', 'Sentry (EU region)', 'where possible', 'rate-limit', 'a phone number', 'not by Maw3ed', 'The business owner can delete a client', 'AI assistant'] },
   { path: '/terms', en: 'Terms of use', ar: 'شروط الاستخدام', sections: 12, mentions: ['the laws of Lebanon', 'test mode'] },
 ] as const;
 
@@ -15,7 +15,7 @@ for (const p of PAGES) {
     await expect(page.getByRole('heading', { level: 1, name: p.en })).toBeVisible();
     await expect(page.getByTestId('legal-draft')).toHaveCount(0);
     await expect(page.getByText('Draft - under review')).toHaveCount(0);
-    await expect(page.getByText('Last updated November 7, 2026')).toBeVisible();
+    await expect(page.getByText('Last updated November 9, 2026')).toBeVisible();
     await expect(page.getByRole('main').locator('section')).toHaveCount(p.sections);
     // Phones: a collapsed "On this page" disclosure; lg and up: the sticky sidebar, already open.
     if ((page.viewportSize()?.width ?? 1280) < 1024) await page.getByTestId('toc-mobile').locator('summary').click();
@@ -46,7 +46,7 @@ for (const p of PAGES) {
     // The contact line shows the Arabic address, not the Latin machine value.
     expect(text).toContain('بيروت، لبنان');
     expect(text).not.toContain('Beirut, Lebanon');
-    expect(text).toMatch(/7/);
+    expect(text).toMatch(/9/);
     expect(text).not.toMatch(/[٠-٩]/);
     await expectNoPageOverflow(page);
   });

@@ -54,6 +54,9 @@ tests/{unit,integration,e2e}
 3. Handler calls one service. Services enforce roles and pass `ctx.businessId` to repositories.
 4. Errors → `{ error: { code, message, fields } }` with the status table in the `api-endpoint` skill. Unexpected errors (non-AppError, or an AppError with status 500 or above except `SERVICE_BUSY`) → 500, logged with pino and reported to Sentry (see "Error monitoring" in the key decisions); 4xx are never reported.
 
+## Assistant adapter layer (PR-15a)
+`POST /api/mcp` is the one route outside the `{ error: { code, message } }` envelope: protocol answers are JSON-RPC. It keeps the layering: the route (`src/app/api/mcp/route.ts`) applies the kill switch and delegates to `src/server/mcp/` (protocol parsing and validation, tool definitions, sanitizer), which calls ONE service, `src/server/services/assistant.ts`, which reuses the existing services (directory, slots, `publicBookingService.book`, waitlist, links). Only repositories import Prisma. No per-IP limits (policies `mcp*` are global, per phone and per business). Details: docs/MCP.md.
+
 ## Engineering heart
 
 ### 1. Slot generation (`domain/slots.ts`)

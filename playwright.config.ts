@@ -60,6 +60,9 @@ export default defineConfig({
               {
                 command: 'pnpm start',
                 url: baseURL,
+                // The assistant page and footer link exist only while the connector is on. The journey server
+                // below inherits NO such variable, so it is the "switched off" server of assistant.spec.ts.
+                env: { MCP_ENABLED: 'true' },
                 reuseExistingServer: !process.env.CI,
                 timeout: 120_000,
               },

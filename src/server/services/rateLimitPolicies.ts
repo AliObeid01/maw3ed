@@ -88,6 +88,47 @@ export const RATE_POLICIES = {
   loginIp: { windowSec: 15 * MIN, limit: 20 },
   /** Attempts per email across all IPs (rotating-IP guessing). Counted before the check, refunded on success. */
   loginEmail: { windowSec: 60 * MIN, limit: 30 },
+
+  // ---- POST /api/mcp (the assistant connector): ALL its numbers, in one place ---------------------------------
+  // NEVER per ip: every Claude user arrives from Anthropic's few addresses, so an ip bucket would lock everyone
+  // out at once. Keys are global ('all'), per business, per HMAC of a phone / an email / a link token.
+  //
+  // EMAIL ARITHMETIC. Resend's free tier is about 100 emails a day for ALL tenants (reminders.ts counts it:
+  // EMAIL_BUDGET_WARN 80, EMAIL_BUDGET_SKIP_BOOKING 95; H24/H2 reminders have no budget check). One chat booking
+  // queues up to 3 emails (1 confirmation + H24 + H2). So at most 20 chat bookings a day = 60 emails, even if every
+  // reminder lands on the same day, which leaves 40 of the 100 for real traffic. Waitlist joins send nothing at
+  // join time (only a claim-offer email when a slot frees), so 40 a day is at most 40 more offer emails in the
+  // worst case but in practice far fewer; the guard below stops chat writes at 80 sent anyway.
+  // SHARED FATE: because the daily caps are global, an anonymous caller CAN use them up and make chat booking
+  // unavailable for everyone until the next UTC day. Accepted for the rollout (the alternative is starving real
+  // reminders); MCP_ENABLED is the emergency stop. Tune the numbers here.
+
+  /** Valid read calls (search_businesses, get_business, get_free_times, prepare_booking, get_booking), whole connector. */
+  mcpRead: { windowSec: 10 * MIN, limit: 600 },
+  /** Malformed or invalid calls (bad arguments, bad tokens, not found): bounds junk, never touches the write buckets. */
+  mcpInvalid: { windowSec: 10 * MIN, limit: 300 },
+  /** Business-scoped reads (get_business, get_free_times, prepare_booking), per business. */
+  mcpReadBusiness: { windowSec: 10 * MIN, limit: 300 },
+  /** create_booking, whole connector: 10 an hour. */
+  mcpBookHour: { windowSec: 60 * MIN, limit: 10 },
+  /** create_booking, whole connector: 20 a day (20 x 3 emails = 60 of ~100). */
+  mcpBookDay: { windowSec: 24 * 60 * MIN, limit: 20 },
+  /** join_waitlist, whole connector: 20 an hour. */
+  mcpWaitHour: { windowSec: 60 * MIN, limit: 20 },
+  /** join_waitlist, whole connector: 40 a day. */
+  mcpWaitDay: { windowSec: 24 * 60 * MIN, limit: 40 },
+  /** create_booking, per business: 8 a day (the real cap on filling one business's free slots). */
+  mcpBookBusinessDay: { windowSec: 24 * 60 * MIN, limit: 8 },
+  /** create_booking and join_waitlist, per HMAC of the normalized phone: 5 an hour. */
+  mcpPhone: { windowSec: 60 * MIN, limit: 5 },
+  /** Same, 3 a day. */
+  mcpPhoneDay: { windowSec: 24 * 60 * MIN, limit: 3 },
+  /** create_booking, per HMAC of the lowercased email: 2 a day (a victim's inbox cannot be flooded by rotating phones). */
+  mcpEmail: { windowSec: 24 * 60 * MIN, limit: 2 },
+  /** join_waitlist, per HMAC of the lowercased email: 3 a day (offer emails). */
+  mcpEmailWait: { windowSec: 24 * 60 * MIN, limit: 3 },
+  /** get_booking, confirm_booking, cancel_booking, per HMAC of the link token: 20 an hour. */
+  mcpLinkToken: { windowSec: 60 * MIN, limit: 20 },
 } as const;
 
 /**

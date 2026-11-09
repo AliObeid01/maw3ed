@@ -11,7 +11,7 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
   { id: 'business', p: 1 },
   { id: 'use', p: 1, b: 4 },
   { id: 'reminders', p: 2 },
-  { id: 'sharing', p: 1, b: 4, after: 1 },
+  { id: 'sharing', p: 1, b: 4, after: 2 },
   { id: 'cookies', p: 1 },
   { id: 'keep', p: 2 },
   { id: 'security', p: 2 },

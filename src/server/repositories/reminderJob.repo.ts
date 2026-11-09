@@ -279,6 +279,27 @@ export const reminderJobRepo = {
   countSentEmailsSince: (since: Date) =>
     db.reminderJob.count({ where: { channel: 'EMAIL', status: 'SENT', sentAt: { gte: since } } }),
 
+  /**
+   * Projected email load of one UTC day, ALL tenants (the Resend quota is global, so this is the one allowed
+   * global count, like countSentEmailsSince): email jobs still queued (PENDING or SENDING) and due in
+   * [dayStart, dayEnd) plus emails already SENT in that range. The queued half uses the (status, dueAt) index.
+   */
+  emailLoadForUtcDay: async (dayStart: Date, dayEnd: Date) => {
+    const [queued, sent] = await Promise.all([
+      db.reminderJob.count({
+        where: {
+          channel: 'EMAIL',
+          status: { in: ['PENDING', 'SENDING'] },
+          dueAt: { gte: dayStart, lt: dayEnd },
+        },
+      }),
+      db.reminderJob.count({
+        where: { channel: 'EMAIL', status: 'SENT', sentAt: { gte: dayStart, lt: dayEnd } },
+      }),
+    ]);
+    return queued + sent;
+  },
+
   // ---- WhatsApp (tenant-scoped, session routes) -----------------------------------------------------
 
   /** Due PENDING WhatsApp jobs plus those sent since `sentSince`. The service applies the send window. */
