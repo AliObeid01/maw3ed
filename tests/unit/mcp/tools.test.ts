@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '@/server/http/errors';
 import type { HitResult } from '@/server/repositories/rateLimit.repo';
 import type { AssistantService } from '@/server/services/assistant';
-import { phoneSubject, spend, spendMany } from '@/server/services/assistantLimits';
+import { emailSubject, phoneSubject, spend, spendMany } from '@/server/services/assistantLimits';
 import { createRateLimiter, type RateLimitStore } from '@/server/services/rateLimit';
 import { RATE_POLICIES } from '@/server/services/rateLimitPolicies';
 import { callTool } from '@/server/mcp/tools';
@@ -228,5 +228,38 @@ describe('logging carries no personal data', () => {
       expect(logged, secret).not.toContain(secret);
     expect(info.mock.calls[0]![0]).toMatchObject({ tool: 'create_booking', outcome: 'ok', requestId: 'req-12345678' });
     expect(typeof info.mock.calls[0]![0].durationMs).toBe('number');
+  });
+});
+
+describe('email subject normalisation (one inbox, one bucket)', () => {
+  const s = (e: string) => emailSubject('x'.repeat(40), e);
+  it('ignores case, spaces and +tags', () => {
+    expect(s('victim+1@x.com')).toBe(s('victim+2@x.com'));
+    expect(s('  Victim@X.com ')).toBe(s('victim@x.com'));
+    expect(s('victim+a+b@x.com')).toBe(s('victim@x.com'));
+  });
+  it('gmail: dots in the local part are ignored and googlemail is gmail', () => {
+    expect(s('v.i.c.t.i.m@gmail.com')).toBe(s('victim@gmail.com'));
+    expect(s('victim@googlemail.com')).toBe(s('victim@gmail.com'));
+    expect(s('v.ictim+z@googlemail.com')).toBe(s('victim@gmail.com'));
+  });
+  it('other providers keep their dots; different people stay different', () => {
+    expect(s('v.ictim@x.com')).not.toBe(s('victim@x.com'));
+    expect(s('victim@x.com')).not.toBe(s('victim@y.com'));
+    expect(s('a@gmail.com')).not.toBe(s('b@gmail.com'));
+  });
+});
+
+describe('spendMany refund is one-shot', () => {
+  it('a second refund() does nothing (replay refund plus catch refund cannot double-refund)', async () => {
+    const ok = limiterOf(memStore());
+    const spent = await spendMany(ok, [{ policy: 'mcpEmail', subject: 'e' }], 'closed');
+    await spend(ok, 'mcpEmail', 'e', 'closed'); // a second, real booking by the same email
+    await spent.refund();
+    await spent.refund();
+    await spent.refund();
+    // count was 2, one refund -> 1: exactly one more is allowed (limit 2), not two
+    await spend(ok, 'mcpEmail', 'e', 'closed');
+    await expect(spend(ok, 'mcpEmail', 'e', 'closed')).rejects.toMatchObject({ code: 'RATE_LIMITED' });
   });
 });

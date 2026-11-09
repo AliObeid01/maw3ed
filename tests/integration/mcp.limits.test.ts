@@ -25,9 +25,16 @@ const logger = createLogger({ level: 'silent' });
 const secret = () => process.env.LINK_SECRET!;
 let seq = 0;
 
+/** Projected email load per UTC day (yyyy-MM-dd) for the guard tests; days not listed have no load. */
+let dayLoad: Record<string, number> = {};
+let loadFails = false;
 const service = createAssistantService({
   ...defaultAssistantDeps,
   emailsSentToday: async () => budgetUsed,
+  emailLoadOnDay: async (dayStart) => {
+    if (loadFails) throw new Error('count failed');
+    return dayLoad[dayStart.toISOString().slice(0, 10)] ?? 0;
+  },
 });
 
 async function tool(name: string, args: Record<string, unknown>) {
@@ -75,6 +82,8 @@ beforeAll(async () => {
 });
 afterEach(async () => {
   budgetUsed = 0;
+  dayLoad = {};
+  loadFails = false;
   await pg.query(`DELETE FROM "RateLimitBucket"`);
   await pg.query(`DELETE FROM "ReminderJob"`);
   await pg.query(`DELETE FROM "Appointment"`);
@@ -281,5 +290,72 @@ describe('link tools are limited per token, not per connector', () => {
       vi.setSystemTime(NOW);
     }
     expect((await tool('get_booking', { token: url })).isError).toBe(false);
+  });
+});
+
+// A booking queues an H24 email due the day BEFORE the start and an H2 email due ON the start day (UTC days, as the
+// sender's daily budget counts). Slot at 07:00Z on 4 Nov: H24 lands on 3 Nov, H2 on 4 Nov.
+describe('projected email load guard (queued + sent per target day)', () => {
+  it('refuses a booking whose H24 day already carries 69 emails (69 + 1 = 70), and says so', async () => {
+    const token = await prep('07:00');
+    dayLoad = { '2026-11-03': 69 };
+    const r = await book('07:00', who(), token);
+    expect(r.isError).toBe(true);
+    expect(r.data.code).toBe('CHAT_BOOKING_UNAVAILABLE');
+    expect(r.text).toBe('Booking by chat is temporarily unavailable for that day. Please use the business booking page instead.');
+    expect(Number((await pg.query(`SELECT count(*) FROM "Appointment" WHERE "startAt" = $1`, [slot('07:00')])).rows[0].count)).toBe(0);
+  });
+
+  it('refuses when the START day (H2) is the loaded one, allows 68, and a day with no load is unaffected', async () => {
+    const token = await prep('07:00');
+    dayLoad = { '2026-11-04': 69 };
+    expect((await book('07:00', who(), token)).data.code).toBe('CHAT_BOOKING_UNAVAILABLE');
+    dayLoad = { '2026-11-04': 68, '2026-11-03': 68 };
+    expect((await book('07:00', who(), token)).isError).toBe(false);
+    dayLoad = { '2026-11-03': 69, '2026-11-04': 69 };
+    const other = await tool('prepare_booking', { slug: a.slug, serviceId: scn.serviceId, staffId: scn.staffIds[0], startAt: '2026-11-09T07:00:00.000Z' });
+    expect(other.isError, other.text).toBe(false);
+    expect((await tool('create_booking', { confirmationToken: other.data.confirmationToken, ...who() })).isError).toBe(false);
+  });
+
+  it('a refused booking spends no limit bucket, and a failing count fails CLOSED', async () => {
+    const token = await prep('07:00');
+    dayLoad = { '2026-11-03': 70 };
+    const before = await buckets();
+    expect((await book('07:00', who(), token)).data.code).toBe('CHAT_BOOKING_UNAVAILABLE');
+    expect(await buckets()).toBe(before);
+    dayLoad = {};
+    loadFails = true;
+    const r = await book('07:00', who(), token);
+    expect(r.isError).toBe(true);
+    expect(Number((await pg.query(`SELECT count(*) FROM "Appointment" WHERE "startAt" = $1`, [slot('07:00')])).rows[0].count)).toBe(0);
+  });
+
+  it('the repository counts queued (PENDING/SENDING) email jobs due that UTC day plus emails SENT that day, and nothing else', async () => {
+    const { reminderJobRepo } = await import('@/server/repositories/reminderJob.repo');
+    const mk = async (hhmm: string) => {
+      const r = await book(hhmm);
+      expect(r.isError, r.text).toBe(false);
+      return (await pg.query(`SELECT id FROM "Appointment" WHERE reference = $1`, [r.data.reference])).rows[0].id as string;
+    };
+    const id1 = await mk('07:00');
+    const id2 = await mk('07:30');
+    await pg.query(`DELETE FROM "ReminderJob"`);
+    const ins = (id: string, kind: string, channel: string, status: string, due: string, sent: string | null) =>
+      pg.query(
+        `INSERT INTO "ReminderJob" (id, "businessId", "appointmentId", kind, channel, "dueAt", status, "sentAt") VALUES ($1,$2,$3,$4::"ReminderKind",$5::"ReminderChannel",$6,$7::"ReminderStatus",$8)`,
+        [`rj${++seq}${unique()}`, a.businessId, id, kind, channel, due, status, sent],
+      );
+    const D = '2026-11-03T';
+    await ins(id1, 'H24', 'EMAIL', 'PENDING', `${D}07:00:00Z`, null); // counts (queued on the day)
+    await ins(id1, 'H2', 'EMAIL', 'SENDING', `${D}23:59:00Z`, null); // counts (queued on the day)
+    await ins(id2, 'H24', 'EMAIL', 'SENT', `${D}01:00:00Z`, `${D}01:05:00Z`); // counts (sent on the day)
+    await ins(id2, 'H2', 'EMAIL', 'PENDING', '2026-11-04T00:00:00Z', null); // next day: no
+    await ins(id1, 'BOOKING', 'EMAIL', 'FAILED', `${D}08:00:00Z`, null); // failed: no
+    await ins(id2, 'BOOKING', 'EMAIL', 'SKIPPED', `${D}08:00:00Z`, null); // skipped: no
+    await ins(id1, 'LATE', 'WHATSAPP', 'PENDING', `${D}08:00:00Z`, null); // other channel: no
+    expect(await reminderJobRepo.emailLoadForUtcDay(new Date('2026-11-03T00:00:00Z'), new Date('2026-11-04T00:00:00Z'))).toBe(3);
+    expect(await reminderJobRepo.emailLoadForUtcDay(new Date('2026-11-04T00:00:00Z'), new Date('2026-11-05T00:00:00Z'))).toBe(1);
+    expect(await reminderJobRepo.emailLoadForUtcDay(new Date('2026-11-06T00:00:00Z'), new Date('2026-11-07T00:00:00Z'))).toBe(0);
   });
 });

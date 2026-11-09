@@ -62,6 +62,8 @@ export interface AssistantDeps {
    * daily budget. The chat connector refuses writes once it reaches EMAIL_BUDGET_WARN.
    */
   emailsSentToday: (now: Date) => Promise<number>;
+  /** Queued + sent emails (all tenants) of one UTC day, see reminderJobRepo.emailLoadForUtcDay. */
+  emailLoadOnDay: (dayStart: Date, now: Date) => Promise<number>;
   /** Test seam for the booking path (fake payments, fixed clock). */
   bookDeps?: BookDeps | undefined;
 }
@@ -71,6 +73,12 @@ export const defaultAssistantDeps: AssistantDeps = {
   limiter: rateLimiter,
   linkSecret: () => requireLinkSecret(),
   appUrl: () => getServerEnv().APP_URL,
+  emailLoadOnDay: async (dayStart, now) => {
+    const dayEnd = new Date(dayStart.getTime() + 24 * 3_600_000);
+    const load = await reminderJobRepo.emailLoadForUtcDay(dayStart, dayEnd);
+    // Today also carries the waitlist offers sent so far (the daily budget counts them).
+    return now >= dayStart && now < dayEnd ? load + (await waitlistRepo.countOffersSince(dayStart)) : load;
+  },
   emailsSentToday: async (now) => {
     const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     return (
@@ -123,6 +131,29 @@ async function guardEmailBudget(deps: AssistantDeps): Promise<void> {
   const used = await deps.emailsSentToday(deps.now());
   if (used >= EMAIL_BUDGET_WARN)
     throw new AppError(503, 'CHAT_BOOKING_UNAVAILABLE', CHAT_UNAVAILABLE_MESSAGE);
+}
+
+/** A day is full for chat bookings at EMAIL_BUDGET_WARN - 10 = 70 queued + sent emails (after adding this booking's). */
+export const PROJECTED_DAY_LIMIT = EMAIL_BUDGET_WARN - 10;
+export const DAY_UNAVAILABLE_MESSAGE =
+  'Booking by chat is temporarily unavailable for that day. Please use the business booking page instead.';
+
+const utcDayStart = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+
+/**
+ * Projected load: a booking at T queues an H24 email due on the UTC day of T - 24 h and an H2 email due on the UTC day
+ * of T (the days the sender's daily budget counts). Reminders are never budget-gated, so refuse when either day
+ * already carries queued + sent emails that, with this booking's one, reach PROJECTED_DAY_LIMIT. Global (all
+ * tenants) because the Resend quota is. Fails CLOSED: a failing count refuses the booking.
+ */
+async function guardProjectedLoad(deps: AssistantDeps, start: Date): Promise<void> {
+  const now = deps.now();
+  const days = [new Date(start.getTime() - 24 * 3_600_000), start].map(utcDayStart);
+  for (const day of days) {
+    const load = await deps.emailLoadOnDay(day, now);
+    if (load + 1 >= PROJECTED_DAY_LIMIT)
+      throw new AppError(503, 'CHAT_BOOKING_UNAVAILABLE', DAY_UNAVAILABLE_MESSAGE);
+  }
 }
 
 export function createAssistantService(deps: AssistantDeps = defaultAssistantDeps) {
@@ -350,6 +381,7 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
       // per email, phone, business and the global hour and day caps. All fail closed; a refused or failed call
       // gives back every hit (see below), so only a real booking is counted.
       await guardEmailBudget(deps);
+      await guardProjectedLoad(deps, new Date(p.t));
       const spent = await spendMany(
         deps.limiter,
         [

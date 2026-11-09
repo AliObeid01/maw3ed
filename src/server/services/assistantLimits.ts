@@ -43,9 +43,28 @@ export async function spend(
 export const phoneSubject = (secret: string, e164: string) =>
   createHmac('sha256', secret).update(`mcp-phone:${e164}`).digest('hex');
 
-/** Bucket subject for an email: an HMAC of the trimmed, lowercased address. Never the address. */
+/**
+ * The mailbox an address delivers to, as far as we can tell without asking the provider: lowercased, the `+tag`
+ * removed from the local part and, for gmail.com and googlemail.com only (which ignore dots), dots removed and
+ * googlemail read as gmail. So victim+1@x.com and victim+2@x.com share one bucket, as do v.i.c.t.i.m@gmail.com and
+ * victim@gmail.com; dots stay significant on every other provider.
+ */
+export function normalizedMailbox(email: string): string {
+  const lower = email.trim().toLowerCase();
+  const at = lower.lastIndexOf('@');
+  if (at < 1) return lower;
+  let local = lower.slice(0, at);
+  let domain = lower.slice(at + 1);
+  const plus = local.indexOf('+');
+  if (plus > 0) local = local.slice(0, plus);
+  if (domain === 'googlemail.com') domain = 'gmail.com';
+  if (domain === 'gmail.com') local = local.replace(/\./g, '');
+  return `${local}@${domain}`;
+}
+
+/** Bucket subject for an email: an HMAC of the normalized mailbox (see normalizedMailbox). Never the address. */
 export const emailSubject = (secret: string, email: string) =>
-  createHmac('sha256', secret).update(`mcp-email:${email.trim().toLowerCase()}`).digest('hex');
+  createHmac('sha256', secret).update(`mcp-email:${normalizedMailbox(email)}`).digest('hex');
 
 /** Bucket subject for a link token: an HMAC of the token text (the token itself is a bearer secret). */
 export const tokenSubject = (secret: string, token: string) =>
@@ -66,7 +85,11 @@ export async function spendMany(
   mode: 'open' | 'closed',
 ): Promise<Spent> {
   const spent: Spent[] = [];
+  // One-shot: a replay refund and a later catch refund can never both run.
+  let refunded = false;
   const refund = async () => {
+    if (refunded) return;
+    refunded = true;
     for (const s of spent) await s.refund();
   };
   try {
