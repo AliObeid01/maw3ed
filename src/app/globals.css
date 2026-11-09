@@ -326,8 +326,35 @@
   opacity: 1;
 }
 
+/* Demo chat on /assistant (PR-15b, AssistantDemo + DemoPlayer). The server HTML is the finished conversation. Only
+   with motion allowed does the client arm it (steps hidden) and later switch it to play: each step then fades in with
+   an 8 px rise (the row-in keyframes), 800 ms apart, once, never looping, about 6 s in all. Transform and opacity only.
+   The step number is a data attribute (never an inline style). */
+[data-demo-step='1'] { --demo-i: 1; }
+[data-demo-step='2'] { --demo-i: 2; }
+[data-demo-step='3'] { --demo-i: 3; }
+[data-demo-step='4'] { --demo-i: 4; }
+[data-demo-step='5'] { --demo-i: 5; }
+[data-demo-step='6'] { --demo-i: 6; }
+[data-demo-step='7'] { --demo-i: 7; }
+@media (prefers-reduced-motion: no-preference) {
+  [data-demo='armed'] [data-demo-step] {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  [data-demo='play'] [data-demo-step] {
+    animation: row-in 400ms var(--motion-ease) both;
+    animation-delay: calc(var(--demo-i, 0) * 800ms);
+  }
+}
+
 /* Paper and screenshots of the whole page: never print a block waiting to be revealed. */
 @media print {
+  [data-demo-step] {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
   [data-revealed] {
     opacity: 1 !important;
     transform: none !important;

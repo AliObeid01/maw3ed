@@ -141,17 +141,20 @@ export const DAY_UNAVAILABLE_MESSAGE =
 const utcDayStart = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 
 /**
- * Projected load: a booking at T queues an H24 email due on the UTC day of T - 24 h and an H2 email due on the UTC day
- * of T (the days the sender's daily budget counts). Reminders are never budget-gated, so refuse when either day
+ * Projected load: a booking at T queues an H24 email due at T - 24 h and an H2 email due at T - 2 h (see
+ * reminderWindows.ts), each counted on the UTC day it falls on (the days the sender's daily budget counts). Reminders are never budget-gated, so refuse when either day
  * already carries queued + sent emails that, with this booking's one, reach PROJECTED_DAY_LIMIT. Global (all
  * tenants) because the Resend quota is. Fails CLOSED: a failing count refuses the booking.
  */
-async function guardProjectedLoad(deps: AssistantDeps, start: Date): Promise<void> {
+export async function guardProjectedLoad(deps: AssistantDeps, start: Date): Promise<void> {
   const now = deps.now();
-  const days = [new Date(start.getTime() - 24 * 3_600_000), start].map(utcDayStart);
-  for (const day of days) {
+  const h24 = utcDayStart(new Date(start.getTime() - 24 * 3_600_000));
+  const h2 = utcDayStart(new Date(start.getTime() - 2 * 3_600_000));
+  // Both reminders on one UTC day (start between 00:00 and 02:00 UTC): that day takes two emails.
+  const checks: [Date, number][] = h24.getTime() === h2.getTime() ? [[h24, 2]] : [[h24, 1], [h2, 1]];
+  for (const [day, added] of checks) {
     const load = await deps.emailLoadOnDay(day, now);
-    if (load + 1 >= PROJECTED_DAY_LIMIT)
+    if (load + added >= PROJECTED_DAY_LIMIT)
       throw new AppError(503, 'CHAT_BOOKING_UNAVAILABLE', DAY_UNAVAILABLE_MESSAGE);
   }
 }

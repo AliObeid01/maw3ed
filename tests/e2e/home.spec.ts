@@ -180,7 +180,8 @@ test('the page is complete and SHORT: one h1, landmarks, skip link, the design s
   await expect(skip).toBeVisible();
   await expect(page.locator('#main-content')).toHaveCount(1);
   // Hero, Browse by category, the navy closing band: nothing else (how it works, owners, pricing moved to their pages).
-  await expect(page.locator('main > section')).toHaveCount(3);
+  // PR-15b: plus the slim Claude strip, because the default e2e server runs with MCP_ENABLED=true (3 while it is off).
+  await expect(page.locator('main > section')).toHaveCount(4);
   await expect(page.getByRole('heading', { level: 2, name: 'Browse by category' })).toBeVisible();
   await expect(page.getByRole('heading', { level: 2, name: 'Run a salon, barbershop or clinic?' })).toBeVisible();
   for (const gone of ['How Maw3ed works', 'Common questions', 'Set up in five steps', 'Simple pricing', 'Every no-show is a paid hour lost.']) {

@@ -30,6 +30,8 @@ export const publicBusinessSchema = z.object({
     address: z.string().nullish(),
     /** Versioned public logo url; null or absent shows the initials. */
     logoUrl: z.string().nullish(),
+    /** Opted in to the directory; false from an older server. Gates the "Book with Claude" button. */
+    listed: z.boolean().default(false),
   }),
   services: z.array(publicServiceSchema),
   staff: z.array(publicStaffSchema),

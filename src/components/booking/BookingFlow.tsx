@@ -55,6 +55,7 @@ import { YourBookingsStrip } from '@/components/myBookings/YourBookingsStrip';
 import { entryFromBooking, myBookings } from '@/lib/myBookings/storage';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { BookedView } from './BookedView';
+import { ClaudeButton } from './ClaudeButton';
 import { DetailsStep, type DetailsValues } from './DetailsStep';
 import { ServiceSkeleton, ServiceStep } from './ServiceStep';
 import { StaffStep } from './StaffStep';
@@ -72,7 +73,7 @@ type FreshDays = { key: string; days: Record<string, Slot[]> };
 const NO_FRESH: FreshDays = { key: '', days: {} };
 
 /** The public booking flow (boards 1.1 to 1.6) at /b/[slug]. State lives in the URL so Back works and links are shareable. */
-export function BookingFlow({ slug }: { slug: string }) {
+export function BookingFlow({ slug, assistantEnabled = false }: { slug: string; assistantEnabled?: boolean }) {
   const categoryLabel = useCategoryLabel();
   const areaLabel = useAreaLabel();
   const t = useTranslations('booking');
@@ -571,6 +572,12 @@ export function BookingFlow({ slug }: { slug: string }) {
         />
       }
       facts={[t('heroFactReminders')]}
+      action={
+        // PR-15b: only while the connector is switched on (server flag) AND this business is listed.
+        assistantEnabled && data.business.listed ? (
+          <ClaudeButton name={data.business.name} slug={data.business.slug} />
+        ) : undefined
+      }
     />
   );
 

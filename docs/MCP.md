@@ -133,8 +133,8 @@ No card data is ever taken in the tool.
   emails that are only QUEUED. Without more, 20 bookings a day for three days, all aimed at one target date, would queue
   120 reminders (H24 + H2 each) for that date, over Resend's ~100 a day, and real reminders would be rejected. So
   `create_booking` also checks the two UTC days its emails will land on: the H24 email is due on the UTC day of
-  (start - 24 h) and the H2 email on the UTC day of the start (the day boundaries reminders.ts uses for its daily
-  budget). For each day it counts, across ALL tenants (the one allowed global count,
+  (start - 24 h) and the H2 email on the UTC day of (start - 2 h) (see `reminderWindows.ts`; the day boundaries reminders.ts uses for its daily
+  budget). When both fall on the same UTC day (a start between 00:00 and 02:00 UTC) that single day takes TWO emails (load + 2 reaches 70); otherwise each day takes one. For each day it counts, across ALL tenants (the one allowed global count,
   `reminderJobRepo.emailLoadForUtcDay`, using the (status, dueAt) index), email jobs still PENDING or SENDING with
   `dueAt` on that day plus emails already SENT that day (plus waitlist offers for today), and refuses with "Booking by
   chat is temporarily unavailable for that day. Please use the business booking page instead." when that count plus this
@@ -213,3 +213,16 @@ tools under Tool permissions (reads run without prompts; the four writes prompt)
 ## Next version
 
 Owner tools through Claude's lazy authentication in the same connector, a Claude directory listing, ChatGPT.
+
+## Entry points (PR-15b)
+
+All of them follow the same switch as the endpoint and the page: `isAssistantEnabled()` (`MCP_ENABLED` exactly `true`). Off: none of them renders and the existing pages behave as before. The routes were already dynamic (the layout reads cookies), so the flag is read per request and no static page became dynamic (route table before and after: `/`, `/b/[slug]`, `/how-it-works`, `/for-business`, `/assistant`, `/app/share` all dynamic).
+
+- Home `/`: a slim strip to `/assistant` between the hero and the categories.
+- Booking page `/b/[slug]`: "Book with Claude" button and sheet, only when the business is LISTED. `GET /api/public/{slug}` gained an additive `business.listed` boolean (OpenAPI regenerated; an older server or a mock without it reads as `false`, so the button stays hidden). The sheet holds a prefilled, read-only prompt with the quoted business name (sanitized by `src/server/mcp/sanitize.ts` `quote`: no control, bidi or zero-width characters, Markdown and HTML characters removed, whitespace collapsed, 80 characters), a Copy button, a link to `/assistant`, an "Open Claude" link to `https://claude.ai` (no prefill parameter) and "Claude normally asks your approval before it books."
+- Booking link page `/app/share` (owner): the card "Let clients book from Claude": listed businesses get a share message, Copy, WhatsApp and a QR code to `/assistant`; unlisted ones a note and a link to the listing switch. The message avoids a comma after URLs so chat apps do not swallow punctuation into the link.
+- `/assistant`: an "Illustration" demo chat with made-up names (decorative, `aria-hidden`).
+
+### Guard edge fix
+
+`guardProjectedLoad` now computes the two due days as `utcDayStart(start - 24 h)` (H24) and `utcDayStart(start - 2 h)` (H2), as `reminderWindows.ts` schedules them. For a start between 00:00 and 02:00 UTC both land on the same (previous) UTC day, which is checked once with `load + 2 >= 70`; otherwise each day is checked with `load + 1 >= 70`. Before, the second day was the UTC day of the start itself, so that edge under-counted by one. Proof: `tests/unit/mcp/guardProjectedLoad.test.ts` (01:00 UTC with 68 refuses and 67 allows; 12:00 and 23:30 UTC unchanged; 02:00 UTC exactly is two days) and the existing `tests/integration/mcp.limits.test.ts`.

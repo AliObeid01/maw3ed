@@ -3,6 +3,7 @@ import { useTranslations } from 'next-intl';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Reveal } from '@/components/ui/Reveal';
+import { AssistantDemo } from './AssistantDemo';
 import { CopyField } from './CopyField';
 import { PromptChips } from './PromptChips';
 
@@ -55,6 +56,8 @@ export function AssistantPage({ connectorUrl }: { connectorUrl: string }) {
       <p className="m-0 mt-5 max-w-[640px] text-[15.5px] text-muted" data-testid="assistant-requirements">
         {t('requirements')}
       </p>
+
+      <AssistantDemo />
 
       <Reveal>
         <div className="mt-12 flex max-w-[760px] items-start gap-3.5 rounded-[22px] border-[1.5px] border-divider bg-surface p-[22px]" data-testid="assistant-privacy">

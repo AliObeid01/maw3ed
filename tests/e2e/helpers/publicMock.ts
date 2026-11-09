@@ -107,6 +107,10 @@ export type PublicMockOptions = {
   refreshedBookingWindowDays?: number;
   /** Published as business.cancelCutoffMin (omitted when unset). */
   cancelCutoffMin?: number;
+  /** Published as business.listed (PR-15b); omitted when unset, like an older server. */
+  listed?: boolean;
+  /** Overrides business.name (PR-15b: a hostile name for the Claude prompt). */
+  name?: string;
   /** Published as business.logoUrl (a versioned /api/public/<slug>/logo url); omitted when unset. */
   logoUrl?: string | null;
   /** Business timezone (default Asia/Beirut); slots, the booking day and the window limit follow it. */
@@ -190,6 +194,8 @@ export async function mockPublicApi(page: Page, options: PublicMockOptions = {})
     business: {
       ...catalogue.business,
       timezone: tz,
+      ...(options.listed === undefined ? {} : { listed: options.listed }),
+      ...(options.name === undefined ? {} : { name: options.name }),
       ...(options.logoUrl === undefined ? {} : { logoUrl: options.logoUrl }),
       ...(options.bookingWindowDays === undefined
         ? {}

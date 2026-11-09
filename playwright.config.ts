@@ -96,6 +96,8 @@ export default defineConfig({
                 command: `pnpm exec next dev -p ${dashboardPort}`,
                 url: `${dashboardURL}/login`,
                 env: {
+                  // PR-15b: the "Let clients book from Claude" card on the Share page (dashboard/claudeShare.spec.ts).
+                  MCP_ENABLED: 'true',
                   E2E_FAKE_SESSION: '1',
                   // Same virtual clock as the browser (see tests/e2e/helpers/clock.ts), so server-rendered
                   // greeting and dates match what the frozen browser clock renders.

@@ -10,11 +10,13 @@ export type BusinessHeroProps = {
   facts?: string[];
   /** Versioned public logo url; null or absent shows the cyan monogram tile. */
   logoUrl?: string | null | undefined;
+  /** An optional control after the facts (the "Book with Claude" button). */
+  action?: ReactNode;
   className?: string;
 };
 
 /** Navy hero band with the cyan monogram tile (board 02, palette v2). */
-export function BusinessHero({ name, meta, facts = [], logoUrl, className }: BusinessHeroProps) {
+export function BusinessHero({ name, meta, facts = [], logoUrl, action, className }: BusinessHeroProps) {
   return (
     // Named, so it is a region landmark and its content is not orphaned outside <main>.
     <section aria-label={name} className={cn('bg-hero text-white', className)}>
@@ -33,6 +35,7 @@ export function BusinessHero({ name, meta, facts = [], logoUrl, className }: Bus
             ))}
           </ul>
         ) : null}
+        {action}
       </div>
     </section>
   );
