@@ -1932,7 +1932,7 @@
       "filtersButton": "Filters",
       "filtersApplied": "{count, plural, one {# filter applied} other {# filters applied}}",
       "searchLabel": "Service or business",
-      "searchPlaceholder": "Search service or place",
+      "searchPlaceholder": "Search service or business",
       "searchSubmit": "Search",
       "area": "Area",
       "areaAll": "All areas",

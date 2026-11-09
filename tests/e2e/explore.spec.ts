@@ -628,3 +628,30 @@ test.describe('explore: follow-ups from the PR #83 review', () => {
     await expect(page).toHaveURL(/when=2026-11-05/);
   });
 });
+
+// PR-12: the search placeholder is the TRUE wording (the text search matches name, category, address and services,
+// not the area) and it must fit its field, not be cut, down to 320 px.
+for (const locale of ['en', 'ar'] as const) {
+  for (const width of [320, 360, 390]) {
+    test(`the search placeholder fits its field at ${width} (${locale})`, async ({ page, context }) => {
+      if (locale === 'ar') await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
+      await mockExplore(page);
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('/directory');
+      const input = page.getByRole('searchbox');
+      await expect(input).toHaveAttribute(
+        'placeholder',
+        locale === 'en' ? 'Search service or business' : 'ابحث عن خدمة أو نشاط تجاري',
+      );
+      const { text, needed, room } = await input.evaluate((el) => {
+        const field = el as HTMLInputElement;
+        const cs = getComputedStyle(field);
+        const ctx = document.createElement('canvas').getContext('2d')!;
+        ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+        const room = field.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        return { text: field.placeholder, needed: ctx.measureText(field.placeholder).width, room };
+      });
+      expect(needed, `"${text}" needs ${Math.round(needed)} px, the field has ${Math.round(room)} px`).toBeLessThanOrEqual(room);
+    });
+  }
+}

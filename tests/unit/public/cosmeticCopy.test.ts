@@ -28,10 +28,11 @@ describe.each(['en', 'ar'])('PR-12 cosmetic copy (%s)', (locale) => {
     expect(text).not.toMatch(/fully booked|no availability|sold out|محجوز بالكامل|لا توجد مواعيد/i);
   });
 
-  it('the footer heading for owners and the Explore placeholder are short enough for a 320 px phone', () => {
-    // Footer column at 320 px is about 130 px wide at 16 px semibold: about 15 characters in Latin, 18 in Arabic.
-    expect([...m.public.footer.owners].length).toBeLessThanOrEqual(locale === 'en' ? 15 : 18);
-    // Search field at 320 px shows about 24 characters at 15 px.
-    expect([...(m.directory.explore.searchPlaceholder ?? '')].length).toBeLessThanOrEqual(24);
+  it('the Explore placeholder keeps the TRUE wording (the text search matches names, categories, addresses and services, not areas)', () => {
+    expect(m.directory.explore.searchPlaceholder).toBe(
+      locale === 'en' ? 'Search service or business' : 'ابحث عن خدمة أو نشاط تجاري',
+    );
+    // That it FITS at 320, 360 and 390 px is measured in a browser (tests/e2e/explore.spec.ts), not guessed here.
+    expect(m.public.footer.owners).toBe(locale === 'en' ? 'For businesses' : 'للأعمال');
   });
 });

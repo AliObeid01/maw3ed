@@ -296,13 +296,19 @@
       0 1px 2px rgb(11 25 56 / 0.06),
       0 8px 18px -6px rgb(11 25 56 / 0.18);
   }
-  .motion-lift:has(:focus-visible) {
+  /* A card lifts while the pointer or focus is on the card itself, not while it is on a nested lifting chip (the chip
+     lifts alone). */
+  .motion-lift:hover:has(.motion-lift:hover) {
+    transform: none;
+    box-shadow: none;
+  }
+  .motion-lift:has(:focus-visible):not(:has(.motion-lift:focus-visible)) {
     transform: translateY(-2px);
     box-shadow:
       0 1px 2px rgb(11 25 56 / 0.06),
       0 8px 18px -6px rgb(11 25 56 / 0.18);
   }
-  .motion-lift:active {
+  .motion-lift:active:not(:has(.motion-lift:active)) {
     transform: translateY(0) scale(0.99);
   }
 }

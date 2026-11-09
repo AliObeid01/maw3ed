@@ -233,6 +233,13 @@ test.describe('Reveal (motion allowed)', () => {
     await expect
       .poll(() => card.evaluate((el) => getComputedStyle(el).transform))
       .toBe(canHover ? 'matrix(1, 0, 0, 1, 0, -2)' : 'none');
+    // Hovering a time chip inside the card lifts the chip alone, not the card as well.
+    if (canHover) {
+      const chip = card.getByRole('link', { name: /^\d\d:\d\d, / }).first();
+      await chip.hover();
+      await expect.poll(() => chip.evaluate((el) => getComputedStyle(el).transform)).toBe('matrix(1, 0, 0, 1, 0, -2)');
+      await expect.poll(() => card.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+    }
   });
 });
 

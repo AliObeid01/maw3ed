@@ -132,6 +132,7 @@ export function PublicHeader({ homeHref = '/', className }: PublicHeaderProps) {
           {indicator ? (
             <span
               aria-hidden="true"
+              key={indicator.count} /* 2 to 3 tabs (My bookings appears): a new element, no sliding jump */
               data-testid="tab-indicator"
               data-index={indicator.index}
               className={cn('motion-slide pointer-events-none absolute start-0 top-0 flex justify-center', INDICATOR_WIDTH[indicator.count], INDICATOR_SHIFT[indicator.index])}

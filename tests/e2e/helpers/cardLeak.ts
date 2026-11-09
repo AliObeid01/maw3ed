@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { findCardLeak } from './cardDigits';
 
 /**
  * The card-digits guard, end to end (PR-12; replaces the unit test that only pinned two function signatures).
@@ -13,15 +14,6 @@ export type CardLeakWatch = {
   /** Number of requests recorded (so a spec can prove the watcher saw traffic). */
   requestCount: () => number;
 };
-
-const RUN = 8;
-
-function windows(card: string): string[] {
-  const digits = card.replaceAll(/\D/g, '');
-  const out: string[] = [];
-  for (let i = 0; i + RUN <= digits.length; i += 1) out.push(digits.slice(i, i + RUN));
-  return out;
-}
 
 export async function watchCardLeaks(page: Page): Promise<CardLeakWatch> {
   const haystack: string[] = [];
@@ -64,10 +56,10 @@ export async function watchCardLeaks(page: Page): Promise<CardLeakWatch> {
         ];
       });
       const cookies = JSON.stringify(await page.context().cookies());
-      const all = [...haystack, ...inPage, cookies].join('\n').replaceAll(/[\s-]/g, '');
+      const all = [...haystack, ...inPage, cookies].join('\n');
       expect(requests, 'the watcher saw no traffic: it is not attached').toBeGreaterThan(0);
-      for (const card of typedCards)
-        for (const w of windows(card)) expect(all, `a run of card digits (${w.slice(0, 2)}...) leaked`).not.toContain(w);
+      // Runs of one repeated digit are ignored (see cardDigits.ts): they match every all-zero id.
+      expect(findCardLeak(all, typedCards), 'a run of 8 card digits leaked').toBeNull();
     },
   };
 }
