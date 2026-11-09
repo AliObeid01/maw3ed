@@ -158,7 +158,7 @@ test.describe('staff: invites and partial saves', () => {
     const card = page.getByRole('alert').filter({ hasText: 'Your Free plan is full' });
     await expect(card).toBeVisible();
     const link = card.getByRole('link', { name: 'See plans' });
-    await expect(link).toHaveAttribute('href', '/pricing');
+    await expect(link).toHaveAttribute('href', '/app/checkout?plan=pro');
     expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 

@@ -4,6 +4,7 @@ import { Logo } from '@/components/brand/Logo';
 import { FooterMyBookingsLink } from '@/components/myBookings/FooterMyBookingsLink';
 import { AREA_KEYS } from '@/lib/business/profile';
 import { HOME_CATEGORIES } from '@/lib/home/categories';
+import { OWNER_START_HREF } from '@/lib/links';
 import { contactHref, COPYRIGHT_YEAR, SITE, socialLinks, type SocialId } from '@/lib/site';
 import { LanguageToggle } from './LanguageToggle';
 import { PendingLink as Link } from './PendingLink';
@@ -125,8 +126,7 @@ export function PublicFooter() {
             </h2>
             <ul className="m-0 list-none p-0">
               <li><Link href="/for-business" className={linkClass}>{t('public.footer.ownersPage')}</Link></li>
-              <li><Link href="/pricing" className={linkClass}>{t('public.footer.pricing')}</Link></li>
-              <li><Link href="/signup" className={linkClass}>{t('public.footer.putOnMaw3ed')}</Link></li>
+              <li><Link href={OWNER_START_HREF} className={linkClass}>{t('public.footer.putOnMaw3ed')}</Link></li>
               <li><Link href="/login" className={linkClass}>{t('public.footer.businessSignIn')}</Link></li>
               <li><Link href="/how-it-works#reminders" className={linkClass}>{t('public.footer.reminders')}</Link></li>
             </ul>

@@ -401,7 +401,7 @@ test.describe('explore: empty and error states', () => {
     await page.goto('/directory');
     await expect(page.getByRole('heading', { name: 'No businesses listed yet' })).toBeVisible();
     const own = page.getByRole('link', { name: 'Own a business? List yours' });
-    await expect(own).toHaveAttribute('href', '/signup');
+    await expect(own).toHaveAttribute('href', '/for-business#plans');
     expect((await own.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 

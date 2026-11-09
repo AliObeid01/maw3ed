@@ -198,7 +198,7 @@ test('the navy closing band: pitch, Put your business on Maw3ed and Business sig
   await page.goto('/');
   const band = page.getByRole('region', { name: 'Run a salon, barbershop or clinic?' });
   await expect(band).toContainText('Put your business on Maw3ed and let the reminders do the chasing.');
-  await expect(band.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/signup');
+  await expect(band.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/for-business#plans');
   await expect(band.getByRole('link', { name: 'Business sign in' })).toHaveAttribute('href', '/login');
   for (const link of await band.getByRole('link').all()) expect((await link.boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
 });
@@ -431,7 +431,7 @@ test('empty categories are hidden, with one quiet line to list a business; no "0
   await expect(categoryList(page).getByRole('button', { name: /Physiotherapy/ })).toHaveCount(0);
   const soon = page.getByTestId('categories-soon');
   await expect(soon).toContainText('More categories are coming soon.');
-  await expect(soon.getByRole('link', { name: 'Own a salon or clinic? List your business.' })).toHaveAttribute('href', '/signup');
+  await expect(soon.getByRole('link', { name: 'Own a salon or clinic? List your business.' })).toHaveAttribute('href', '/for-business#plans');
   await expect(page.locator('main')).not.toContainText(/\b0 places|0 أماكن/);
   expect(seen.directory.some((q) => q.includes('physiotherapy'))).toBe(false);
   // The Explore filter keeps all six (tests/e2e/explore.spec.ts); the home footer lists them too.
@@ -470,7 +470,7 @@ test('no category has a place: a friendly "Be the first" block instead of the tw
   await expect(page.getByTestId('category-first')).toBeVisible();
   const first = page.getByTestId('category-first');
   await expect(first).toContainText('Be the first on Maw3ed');
-  await expect(first.getByRole('link', { name: 'Be the first' })).toHaveAttribute('href', '/signup');
+  await expect(first.getByRole('link', { name: 'Be the first' })).toHaveAttribute('href', '/for-business#plans');
   await expect(categoryList(page)).toHaveCount(0);
   await expect(page.getByTestId('categories-soon')).toHaveCount(0);
   await expect(page.locator('main')).not.toContainText(/\b0 places/);
@@ -508,9 +508,9 @@ test('footer: real links, one config for contact placeholders, no dead social li
   const footer = page.getByRole('contentinfo');
   await expect(footer.getByRole('link', { name: 'Hair salons' })).toHaveAttribute('href', '/directory?category=hair-salons');
   await expect(footer.getByRole('link', { name: 'Zahle' })).toHaveAttribute('href', '/directory?area=zahle');
-  await expect(footer.getByRole('link', { name: 'Pricing' })).toHaveAttribute('href', '/pricing');
+  await expect(footer.getByRole('link', { name: 'Pricing' })).toHaveCount(0); // /pricing was removed in PR-13
   await expect(footer.getByRole('link', { name: 'Overview for businesses' })).toHaveAttribute('href', '/for-business');
-  await expect(footer.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/signup');
+  await expect(footer.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/for-business#plans');
   await expect(footer.getByRole('link', { name: 'Business sign in' })).toHaveAttribute('href', '/login');
   await expect(footer.getByRole('link', { name: 'Reminders and confirmations' })).toHaveAttribute('href', '/how-it-works#reminders');
   await expect(footer.getByRole('link', { name: 'How it works' })).toHaveAttribute('href', '/how-it-works');

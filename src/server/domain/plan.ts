@@ -9,7 +9,7 @@ export const BOOKABLE_STAFF_LIMIT: Record<PlanName, number | null> = {
 
 /** Plain placeholder price for the Pro plan (test mode only; no card is ever charged). */
 export const PLAN_PRICE = {
-  PRO: { amount: 9, currency: 'USD' },
+  PRO: { amount: 20, currency: 'USD' },
 } as const;
 
 export const bookableStaffLimit = (plan: PlanName): number | null => BOOKABLE_STAFF_LIMIT[plan];

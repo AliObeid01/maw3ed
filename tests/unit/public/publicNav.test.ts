@@ -36,16 +36,16 @@ describe('activeTab', () => {
     ['/how-it-works', 'how'],
     ['/for-business', 'owners'],
     ['/my-bookings', 'my'],
-    ['/pricing', null],
+    ['/pricing', null], // removed in PR-13 (redirects to /for-business#plans): no tab
     ['/privacy', null],
     ['/b/studio-nour', null],
   ])('%s -> %s', (path, id) => expect(activeTab(path)).toBe(id));
 });
 
 describe('showTabBar', () => {
-  it.each(['/', '/directory', '/how-it-works', '/for-business', '/pricing', '/privacy', '/terms', '/my-bookings'])(
+  it.each(['/', '/directory', '/how-it-works', '/for-business', '/privacy', '/terms', '/my-bookings'])(
     'shows on %s',
     (p) => expect(showTabBar(p)).toBe(true),
   );
-  it.each(['/b/x', '/l/t', '/o/t', '/pay/t'])('hides on %s', (p) => expect(showTabBar(p)).toBe(false));
+  it.each(['/pricing', '/b/x', '/l/t', '/o/t', '/pay/t'])('hides on %s', (p) => expect(showTabBar(p)).toBe(false));
 });

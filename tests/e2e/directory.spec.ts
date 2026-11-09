@@ -217,7 +217,7 @@ test.describe('public directory', () => {
     await page.goto('/directory');
     await expect(page.getByRole('heading', { name: 'No businesses listed yet' })).toBeVisible();
     const own = page.getByRole('link', { name: 'Own a business? List yours' });
-    await expect(own).toHaveAttribute('href', '/signup');
+    await expect(own).toHaveAttribute('href', '/for-business#plans');
     await expect(page.getByText('switch your listing on from Share')).toBeVisible();
     expect((await own.boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
@@ -228,7 +228,7 @@ test.describe('public directory', () => {
     await expect(heading(page, 'Sidon Barber')).toBeVisible();
     const cta = page.getByTestId('directory-owner-cta');
     await expect(cta).toContainText('Own a business?');
-    await expect(cta.getByRole('link', { name: 'List yours' })).toHaveAttribute('href', '/signup');
+    await expect(cta.getByRole('link', { name: 'List yours' })).toHaveAttribute('href', '/for-business#plans');
     expect((await cta.getByRole('link').boundingBox())!.height).toBeGreaterThanOrEqual(44);
   });
 
@@ -237,7 +237,7 @@ test.describe('public directory', () => {
     await mockExplore(page, { all: [] });
     await page.goto('/directory');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-    await expect(page.getByRole('link', { name: 'تملك نشاطًا تجاريًا؟ أضف نشاطك' })).toHaveAttribute('href', '/signup');
+    await expect(page.getByRole('link', { name: 'تملك نشاطًا تجاريًا؟ أضف نشاطك' })).toHaveAttribute('href', '/for-business#plans');
     await expectNoPageOverflow(page);
   });
 

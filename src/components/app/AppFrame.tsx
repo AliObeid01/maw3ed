@@ -12,7 +12,7 @@ import { PRACTITIONER_HOME } from '@/lib/auth/practitionerPaths';
 import { greetingFor } from '@/lib/dashboard/agenda';
 import { headerDayFor } from '@/lib/dashboard/viewedDay';
 import { AppShell } from './AppShell';
-import { HEADER_SLOT_ID } from './HeaderActions';
+import { HEADER_SLOT_ID, TITLE_SLOT_ID } from './HeaderActions';
 import { FinishUpgradeBanner } from '@/components/billing/FinishUpgradeBanner';
 import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, ShellLogoProvider, useShellLogo, type AppSession } from './SessionContext';
@@ -135,6 +135,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
               ? t('titles.client')
               : t(`titles.${activeId}`)
       }
+      titleSlot={pathname === '/app/settings' ? <div id={TITLE_SLOT_ID} className="contents" /> : undefined}
       hideBusiness={session.role !== 'OWNER'}
       onSignOut={signOut}
       signingOut={signingOut}

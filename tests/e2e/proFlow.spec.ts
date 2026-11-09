@@ -2,7 +2,7 @@ import { type Route } from '@playwright/test';
 import { expect, test } from './helpers/test';
 import { expectNoPageOverflow } from './helpers/layout';
 
-// The Pro entry flow: /pricing -> /signup?plan=pro -> /app/checkout, and /login?next=. Every API call is answered by
+// The Pro entry flow: /for-business#plans -> /signup?plan=pro -> /app/checkout, and /login?next=. Every API call is answered by
 // page.route; /app pages are not rendered here (the production build has no fake session), only the navigation target
 // is asserted. The checkout page itself is covered by tests/e2e/dashboard/checkout.spec.ts.
 
@@ -24,8 +24,8 @@ async function fillSignup(page: import('@playwright/test').Page) {
 }
 
 test.describe('Pro flow: signup', () => {
-  test('/pricing Pro button leads to /signup?plan=pro', async ({ page }) => {
-    await page.goto('/pricing');
+  test('the Upgrade to Pro button in the plans leads to /signup?plan=pro', async ({ page }) => {
+    await page.goto('/for-business#plans');
     await page.getByRole('link', { name: 'Upgrade to Pro' }).click();
     await expect(page).toHaveURL(/\/signup\?plan=pro$/);
     await expect(page.getByTestId('pro-notice')).toBeVisible();

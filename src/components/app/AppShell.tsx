@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { cn } from '@/lib/cn';
 import { AppSidebar, type ShellBusiness } from './AppSidebar';
 import { AppTabBar } from './AppTabBar';
 import { MoreSheet } from './MoreSheet';
@@ -17,6 +18,8 @@ export type AppShellProps = {
   /** Header strip (board 22): small line above the title, usually the formatted date. */
   eyebrow?: string;
   title: string;
+  /** A control right after the title (the plan chip on Settings). */
+  titleSlot?: ReactNode;
   /** Right side of the header on `md+` (date nav, etc.). */
   actions?: ReactNode;
   onSignOut?: () => void;
@@ -41,6 +44,7 @@ export function AppShell({
   hrefs: hrefOverrides,
   eyebrow,
   title,
+  titleSlot,
   actions,
   onSignOut,
   signingOut,
@@ -64,9 +68,12 @@ export function AppShell({
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex flex-wrap items-center gap-3 border-b border-divider bg-surface px-4 py-3.5 md:px-8">
-          <div className="flex min-w-0 flex-[1_1_auto] flex-col">
-            {eyebrow ? <span className="text-[13px] text-muted">{eyebrow}</span> : null}
-            <h1 className="text-[22px] leading-tight font-semibold">{title}</h1>
+          <div className={cn('flex min-w-0 items-center gap-2.5', titleSlot ? 'flex-1' : 'flex-[1_1_auto]')}>
+            <div className="flex min-w-0 flex-col">
+              {eyebrow ? <span className="text-[13px] text-muted">{eyebrow}</span> : null}
+              <h1 className="text-[22px] leading-tight font-semibold">{title}</h1>
+            </div>
+            {titleSlot}
           </div>
           {actions}
         </header>

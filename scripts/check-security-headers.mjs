@@ -10,7 +10,7 @@
 const args = process.argv.slice(2);
 const flags = new Set(args.filter((a) => a.startsWith('--')));
 const base = (args.find((a) => !a.startsWith('--')) ?? 'https://maw3edlb.com').replace(/\/+$/, '');
-const PAGES = ['/', '/login', '/signup', '/pricing', '/directory'];
+const PAGES = ['/', '/login', '/signup', '/for-business', '/directory'];
 const API = ['/api/health'];
 // Token routes (a made-up token renders the "invalid link" page with HTTP 200): no-referrer + no-store.
 const TOKENS = ['/l/x', '/o/x', '/pay/x', '/invite/x'];

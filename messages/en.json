@@ -107,7 +107,6 @@
       "categories": "Categories",
       "areas": "Areas",
       "owners": "For businesses",
-      "pricing": "Pricing",
       "putOnMaw3ed": "Put your business on Maw3ed",
       "businessSignIn": "Business sign in",
       "reminders": "Reminders and confirmations",
@@ -1803,9 +1802,6 @@
     }
   },
   "pricing": {
-    "pageTitle": "Pricing",
-    "title": "Simple plans for every chair",
-    "subtitle": "Start free with one bookable staff member. Upgrade when your team grows.",
     "popular": "Recommended",
     "testBadge": "TEST MODE",
     "testNote": "Test mode: checkout is simulated and no card is charged.",
@@ -1814,7 +1810,7 @@
       "name": "Free",
       "tagline": "For a one-chair business",
       "price": "$0",
-      "cta": "Start free",
+      "cta": "Start Free",
       "features": {
         "staff": "{count} bookable staff member",
         "page": "Your own booking page",
@@ -1842,7 +1838,7 @@
     "usage": "Bookable staff: {current} of {limit}",
     "usageUnlimited": "Bookable staff: {current} (no limit)",
     "price": "${amount} / month",
-    "upgradeCta": "Upgrade (test checkout)",
+    "upgradeCta": "Upgrade to Pro",
     "comparePlans": "Compare plans",
     "downgradeLink": "Switch back to Free",
     "downgradeBlocked": "Free allows {limit} bookable staff member but {current} are active. Turn some off first, then switch back.",
@@ -2101,8 +2097,8 @@
       "mail": {
         "label": "Illustration",
         "brand": "Maw3ed · Reminder",
-        "business": "Abu Karam Barbershop",
-        "service": "Haircut · 30 min · with Karam",
+        "business": "Beauty Center",
+        "service": "Haircut · 30 min · with Leen",
         "when": "Tomorrow · 10:30"
       },
       "faqTitle": "Common questions",
@@ -2147,12 +2143,12 @@
           },
           "two": {
             "name": "Lina Saab",
-            "detail": "Cut + beard · Hadi",
+            "detail": "Nails + Mask · Maria",
             "status": "Booked"
           },
           "three": {
             "name": "Karim Awad",
-            "detail": "Beard trim · Karam",
+            "detail": "Check-up · Dr. Elias",
             "status": "Cancelled"
           }
         }
@@ -2185,9 +2181,7 @@
     "pricing": {
       "kicker": "For business owners",
       "title": "Simple pricing",
-      "subtitle": "Start free with one bookable staff member. Upgrade when your team grows.",
-      "seeAll": "See all plans",
-      "includesTitle": "Every plan includes"
+      "subtitle": "Start free with one bookable staff member. Upgrade when your team grows."
     },
     "howPage": {
       "pageTitle": "How Maw3ed works: booking and reminders",

@@ -33,6 +33,7 @@ import {
 } from '@/lib/home/categories';
 import { dayLabel } from '@/lib/home/freeTimes';
 import { categoryServiceUrl } from '@/lib/home/search';
+import { OWNER_START_HREF } from '@/lib/links';
 import { PlaceCard } from './PlaceCard';
 
 const ICONS: Record<HomeCategory, LucideIcon> = {
@@ -216,7 +217,7 @@ function BeFirst() {
     <div data-testid="category-first" className="grid justify-items-start gap-3 rounded-[20px] bg-divider p-6 sm:p-8">
       <h3 className="m-0 text-[26px] leading-tight font-bold">{t('first.title')}</h3>
       <p className="m-0 max-w-[52ch] text-[16px] text-muted">{t('first.body')}</p>
-      <Link href="/signup" className={buttonClasses({ variant: 'navy', size: 'hero' })}>
+      <Link href={OWNER_START_HREF} className={buttonClasses({ variant: 'navy', size: 'hero' })}>
         {t('first.cta')}
         <ArrowRight size={20} aria-hidden="true" className="rtl:-scale-x-100" />
       </Link>
@@ -327,7 +328,7 @@ export function CategoryExplorer() {
           {loaded && listed.length < HOME_CATEGORIES.length ? (
             <p data-testid="categories-soon" className="m-0 mt-3 flex flex-wrap items-center gap-x-1.5 px-1 text-[14.5px] text-muted">
               {t('moreSoon')}
-              <Link href="/signup" className="inline-flex min-h-11 items-center font-semibold text-brand no-underline hover:underline">
+              <Link href={OWNER_START_HREF} className="inline-flex min-h-11 items-center font-semibold text-brand no-underline hover:underline">
                 {t('moreSoonCta')}
               </Link>
             </p>

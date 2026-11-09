@@ -87,7 +87,7 @@ export function HowItWorks() {
           <p className="m-0 text-[21px] leading-tight font-semibold">{mail.heading}</p>
           <p className="m-0 text-[15.5px] text-muted">{mail.intro}</p>
           <div className="grid gap-0.5 rounded-tile border border-divider p-3.5 text-[15.5px]">
-            <b className="font-semibold">{t('mail.business')}</b>
+            <bdi className="font-semibold">{t('mail.business')}</bdi>
             <span className="text-muted">{t('mail.service')}</span>
             <span className="text-muted">{t('mail.when')}</span>
           </div>

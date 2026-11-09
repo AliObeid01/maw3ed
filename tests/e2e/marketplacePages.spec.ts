@@ -4,6 +4,7 @@ import { mockExplore } from './helpers/explore';
 import { expectNoPageOverflow } from './helpers/layout';
 import { expect, test } from './helpers/test';
 import { saved, seedBookings } from './helpers/myBookings';
+import { PLAN_PRICE } from '../../src/server/domain/plan';
 
 // PR-11: /how-it-works, /for-business, the header and phone tab bar on every marketplace page, cross-page anchors and
 // navigation feedback. Static pages: nothing here needs the API except the header's saved-bookings lookup (local).
@@ -36,7 +37,7 @@ test.describe('/how-it-works', () => {
     await expect(preview).toHaveAttribute('aria-hidden', 'true');
     // The words are the real ones (email.h24 and email.actions), labelled as an illustration.
     await expect(preview).toContainText('Your appointment is tomorrow');
-    await expect(preview).toContainText('This is a reminder of your appointment at Abu Karam Barbershop.');
+    await expect(preview).toContainText('This is a reminder of your appointment at Beauty Center.');
     await expect(preview).toContainText('Confirm my appointment');
     await expect(preview).toContainText('Cancel my appointment');
     await expect(preview).toContainText('Illustration');
@@ -163,14 +164,12 @@ test.describe('review fixes', () => {
     });
   }
 
-  test('the Pro card says TEST MODE in the same words on /for-business and /pricing', async ({ page }) => {
+  test('the Pro card on /for-business says TEST MODE with the test-checkout sentence', async ({ page }) => {
     const note = 'Test mode: checkout is simulated and no card is charged.';
     await page.goto('/for-business');
     const pro = page.locator('#teaser-pro').locator('xpath=ancestor::article');
     await expect(pro).toContainText('TEST MODE');
     await expect(pro).toContainText(note);
-    await page.goto('/pricing');
-    await expect(page.locator('section[aria-labelledby="plan-pro"]')).toContainText(note);
   });
 
   test('the FAQ time zone answer promises no city, in en and ar', async ({ page, context }) => {
@@ -185,13 +184,13 @@ test.describe('review fixes', () => {
 });
 
 test.describe('/for-business', () => {
-  test('the Royal Blue band, the fake Today card, five TRUE steps, the same plans as /pricing, what every plan includes', async ({ page }) => {
+  test('the navy band, the fake Today card, five TRUE steps, the Free and Pro plans', async ({ page }) => {
     await page.goto('/for-business');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Every no-show is a paid hour lost.');
     await expect(page).toHaveTitle(/business owners/i);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', /\/for-business$/);
     const band = page.getByRole('region', { name: 'Every no-show is a paid hour lost.' });
-    await expect(band.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/signup');
+    await expect(band.getByRole('link', { name: 'Put your business on Maw3ed' })).toHaveAttribute('href', '/for-business#plans');
     await expect(band.getByRole('link', { name: 'Business sign in' })).toHaveAttribute('href', '/login');
     await expect(band.getByTestId('owner-phone')).toHaveAttribute('aria-hidden', 'true');
     await expect(band.getByTestId('owner-phone')).toContainText('Example');
@@ -210,28 +209,13 @@ test.describe('/for-business', () => {
     await expect(teaser).toContainText('Free');
     await expect(teaser).toContainText('Pro');
     await expect(teaser).not.toContainText(/Solo|Clinic|\[XX\]|\[N\]/);
-    await expect(teaser.getByRole('link', { name: 'See all plans' })).toHaveAttribute('href', '/pricing');
+    // PR-13: no "See all plans" button and no "Every plan includes" card any more; the plans carry their own buttons.
+    await expect(teaser.getByRole('link', { name: 'See all plans' })).toHaveCount(0);
+    await expect(teaser.getByText('Every plan includes')).toHaveCount(0);
     const free = await teaser.locator('#teaser-free').locator('xpath=ancestor::article').innerText();
     const pro = await teaser.locator('#teaser-pro').locator('xpath=ancestor::article').innerText();
-    // Only real features: every item of "Every plan includes" is a Free feature key (Pro is "Everything in Free").
-    const includes = teaser.getByRole('region', { name: 'Every plan includes' });
-    await expect(includes.getByRole('listitem')).toHaveText([
-      'Your own booking page',
-      'Email reminders 24 h and 2 h before',
-      'One-tap WhatsApp reminders',
-      'Waitlist and no-show history',
-    ]);
-    await page.goto('/pricing');
-    const freePlan = await page.locator('section[aria-labelledby="plan-free"]').innerText();
-    const proPlan = await page.locator('section[aria-labelledby="plan-pro"]').innerText();
-    for (const line of ['$0', '/ month', 'Your own booking page', 'Email reminders 24 h and 2 h before']) {
-      expect(free).toContain(line);
-      expect(freePlan).toContain(line);
-    }
-    for (const line of ['$9', 'Everything in Free', 'More than one bookable staff member', 'TEST MODE']) {
-      expect(pro).toContain(line);
-      expect(proPlan).toContain(line);
-    }
+    for (const line of ['$0', '/ month', 'Your own booking page', 'Email reminders 24 h and 2 h before']) expect(free).toContain(line);
+    for (const line of [`$${PLAN_PRICE.PRO.amount}`, 'Everything in Free', 'More than one bookable staff member', 'TEST MODE']) expect(pro).toContain(line);
   });
 
   for (const [w, h] of WIDTHS) {
@@ -259,7 +243,6 @@ test.describe('header and tab bar per page', () => {
     { path: '/directory', current: 'Explore' },
     { path: '/how-it-works', current: 'How it works' },
     { path: '/for-business', current: 'For business owners' },
-    { path: '/pricing', current: null },
     { path: '/privacy', current: null },
     { path: '/my-bookings', current: null },
   ] as const;
@@ -285,9 +268,7 @@ test.describe('header and tab bar per page', () => {
       }
       await expect(nav.getByRole('link', { name: 'Explore' })).toHaveAttribute('href', '/');
       await expect(nav.getByRole('link', { name: 'How it works' })).toHaveAttribute('href', '/how-it-works');
-      await expect(page.getByRole('link', { name: 'Pricing' }).first()).toBeVisible(); // the footer still has it
-      await expect(header(page).getByRole('link', { name: 'Pricing' })).toHaveCount(0);
-      await expect(nav.getByRole('link', { name: 'Pricing' })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Pricing' })).toHaveCount(0); // the page is gone: no link anywhere
       await expect(header(page).getByRole('button', { name: 'عربي' })).toBeVisible();
       if (isDesktop(page)) await expect(header(page).getByRole('link', { name: 'Sign in' })).toHaveAttribute('href', '/login');
     });
@@ -306,7 +287,7 @@ test.describe('header and tab bar per page', () => {
   });
 
   test('no page links to the old #how anchor', async ({ page }) => {
-    for (const path of ['/', '/how-it-works', '/for-business', '/pricing', '/directory']) {
+    for (const path of ['/', '/how-it-works', '/for-business', '/directory']) {
       await mockExplore(page);
       await page.goto(path);
       await expect(page.locator('a[href*="#how"]')).toHaveCount(0);
