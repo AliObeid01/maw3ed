@@ -38,6 +38,12 @@ describe('assistant copy', () => {
     expect(ar.assistant.privacy).toMatch(/[؀-ۿ]/);
   });
 
+  it('never promises that Claude always asks (it depends on the client and the person\'s own settings)', () => {
+    expect(en.assistant.faq.sees.a).toContain('Claude normally asks for your approval before it books or cancels.');
+    expect(ar.assistant.faq.sees.a).toContain('يطلب Claude عادةً موافقتك قبل أن يحجز أو يلغي.');
+    for (const m of [en, ar]) expect(JSON.stringify(m.assistant)).not.toMatch(/after you approve|بعد موافقتك/);
+  });
+
   it('has the three prompts in both languages, and never says beta or claims a directory listing', () => {
     for (const m of [en, ar]) for (const k of PROMPT_KEYS) expect(m.assistant.prompts[k].length).toBeGreaterThan(10);
     const all = JSON.stringify([en.assistant, en.public.footer.assistant]).toLowerCase();

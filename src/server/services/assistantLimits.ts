@@ -29,7 +29,11 @@ export async function spend(
   const decision = await limiter.consume(policy, subject);
   if (mode === 'closed' && limiter.failOpenCount() > before)
     throw new AppError(503, 'SERVICE_BUSY', LIMITER_DOWN_MESSAGE, {}, { retryAfterSec: 120 });
-  if (decision.limited) throw AppError.rateLimited(decision.retryAfterSec);
+  if (decision.limited) {
+    // The refused attempt is not a use: give its hit back so refusals leave the counts exactly where they were.
+    await limiter.refund(policy, subject, decision.windowStart).catch(() => {});
+    throw AppError.rateLimited(decision.retryAfterSec);
+  }
   return {
     refund: () => limiter.refund(policy, subject, decision.windowStart).catch(() => {}),
   };
@@ -38,3 +42,38 @@ export async function spend(
 /** Bucket subject for a phone: an HMAC of the E.164 (server secret), never the bare number. */
 export const phoneSubject = (secret: string, e164: string) =>
   createHmac('sha256', secret).update(`mcp-phone:${e164}`).digest('hex');
+
+/** Bucket subject for an email: an HMAC of the trimmed, lowercased address. Never the address. */
+export const emailSubject = (secret: string, email: string) =>
+  createHmac('sha256', secret).update(`mcp-email:${email.trim().toLowerCase()}`).digest('hex');
+
+/** Bucket subject for a link token: an HMAC of the token text (the token itself is a bearer secret). */
+export const tokenSubject = (secret: string, token: string) =>
+  createHmac('sha256', secret).update(`mcp-token:${token}`).digest('hex');
+
+export interface SpendItem {
+  policy: RatePolicyName;
+  subject: string;
+}
+
+/**
+ * Spend several buckets in order. If one is limited (or the limiter is down in `closed` mode), everything spent
+ * so far is given back and the error is thrown, so a refused call costs nothing. `refund()` gives back all.
+ */
+export async function spendMany(
+  limiter: AssistantLimiter,
+  items: SpendItem[],
+  mode: 'open' | 'closed',
+): Promise<Spent> {
+  const spent: Spent[] = [];
+  const refund = async () => {
+    for (const s of spent) await s.refund();
+  };
+  try {
+    for (const item of items) spent.push(await spend(limiter, item.policy, item.subject, mode));
+  } catch (error) {
+    await refund();
+    throw error;
+  }
+  return { refund };
+}

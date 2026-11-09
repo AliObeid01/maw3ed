@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- untyped JSON-RPC bodies */
 import { Writable } from 'node:stream';
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Client } from 'pg';
 import { POST as mcpPost, GET as mcpGet } from '@/app/api/mcp/route';
 import { expiryFor, signToken } from '@/server/domain/tokens';
@@ -108,6 +108,10 @@ beforeAll(async () => {
     `UPDATE "Business" SET "depositEnabled" = true, "depositThreshold" = 1, "depositAmount" = 5 WHERE id = $1`,
     [c.businessId],
   );
+});
+// The connector's day caps are global: start every test with empty buckets (the frozen clock never rolls the window).
+afterEach(async () => {
+  await pg.query(`DELETE FROM "RateLimitBucket"`);
 });
 afterAll(async () => {
   vi.useRealTimers();
@@ -326,17 +330,35 @@ describe('prepare then create', () => {
     expect(r.text).toMatch(/SLOT_TAKEN/);
   });
 
-  it('10 parallel create_booking calls for ONE slot (10 phones): exactly one wins, nine SLOT_TAKEN, no 5xx', async () => {
-    const p = await prepare({ startAt: startIso('10:00'), staffId: aScn.staffIds[0] });
+  it('10 parallel create_booking calls for ONE slot (10 phones): exactly one booking, every loser is SLOT_TAKEN or the per-business day cap (8), never a 5xx', async () => {
+    const p = await prepare({ startAt: startIso('10:00'), staffId: aScn.staffIds[1] });
     const results = await Promise.all(
       Array.from({ length: 10 }, () =>
+        tool('create_booking', { confirmationToken: p.data.confirmationToken, ...client() }),
+      ),
+    );
+    expect(results.filter((r) => !r.isError)).toHaveLength(1);
+    for (const l of results.filter((r) => r.isError)) expect(['SLOT_TAKEN', 'RATE_LIMITED'], l.text).toContain(l.data.code);
+    const rows = (
+      await pg.query(
+        `SELECT id FROM "Appointment" WHERE "serviceId"=$1 AND "staffId"=$2 AND "startAt"=$3 AND status IN ('BOOKED','CONFIRMED')`,
+        [aScn.serviceId, aScn.staffIds[1], startIso('10:00')],
+      )
+    ).rows;
+    expect(rows).toHaveLength(1);
+  });
+
+  it('8 parallel create_booking calls for ONE slot (8 phones, the business day cap): exactly one wins, seven SLOT_TAKEN, no 5xx', async () => {
+    const p = await prepare({ startAt: startIso('10:00'), staffId: aScn.staffIds[0] });
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () =>
         tool('create_booking', { confirmationToken: p.data.confirmationToken, ...client() }),
       ),
     );
     const wins = results.filter((r) => !r.isError);
     const losses = results.filter((r) => r.isError);
     expect(wins).toHaveLength(1);
-    expect(losses).toHaveLength(9);
+    expect(losses).toHaveLength(7);
     for (const l of losses) {
       expect(l.data.code, l.text).toBe('SLOT_TAKEN');
       expect(l.data.freeTimes.length).toBeGreaterThan(0);
@@ -394,8 +416,8 @@ describe('rate limits (real limiter)', () => {
   });
 
   it('per business: the 61st booking in an hour for one business is RATE_LIMITED', async () => {
-    for (let i = 0; i < RATE_POLICIES.mcpBookBusiness.limit; i++)
-      await rateLimiter.consume('mcpBookBusiness', d.businessId);
+    for (let i = 0; i < RATE_POLICIES.mcpBookBusinessDay.limit; i++)
+      await rateLimiter.consume('mcpBookBusinessDay', d.businessId);
     const p = await prepare({ startAt: startIso('11:30') }, d, dScn);
     const r = await tool('create_booking', { confirmationToken: p.data.confirmationToken, ...client() });
     expect(r.isError).toBe(true);

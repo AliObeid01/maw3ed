@@ -20,6 +20,11 @@ const methodNotAllowed = async (req: Request): Promise<Response> => {
   if (!isAssistantEnabled()) notFound();
   return handleMcpRequest(req);
 };
+/** A plain 204 with `Allow: POST` and no CORS headers (no browser page may call this endpoint); 404 while off. */
+export async function OPTIONS(): Promise<Response> {
+  if (!isAssistantEnabled()) notFound();
+  return new Response(null, { status: 204, headers: { allow: 'POST', 'cache-control': 'no-store' } });
+}
 export const GET = methodNotAllowed;
 export const DELETE = methodNotAllowed;
 export const PUT = methodNotAllowed;

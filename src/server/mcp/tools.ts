@@ -308,7 +308,7 @@ export function toolErrorResult(error: unknown): { result: ToolResult; code: str
   const e = mapped.body.error;
   const data = (e.data ?? {}) as { retryAfterSec?: number; freeTimes?: unknown; timezone?: string };
   if (mapped.unexpected || mapped.status >= 500) {
-    if (e.code === 'SERVICE_BUSY' || e.code === 'SERVICE_UNAVAILABLE')
+    if (e.code === 'SERVICE_BUSY' || e.code === 'SERVICE_UNAVAILABLE' || e.code === 'CHAT_BOOKING_UNAVAILABLE')
       return { result: errorResult(e.message, { code: e.code }), code: e.code };
     return {
       result: errorResult(
@@ -408,9 +408,11 @@ export async function callTool(
     if (!parsed.success) {
       outcome = 'invalid_input';
       result = invalidInput(tool, parsed.error);
+      await countInvalid(limiter);
     } else {
-      await spend(limiter, 'mcpGlobal', 'all', 'open');
-      if (tool.write) await spend(limiter, 'mcpWrite', 'all', 'closed');
+      // Reads share one budget. Writes spend NOTHING here: they spend their own buckets inside the service,
+      // only after their input, token and listing checks passed, so garbage can never use up a write budget.
+      if (!tool.write) await spend(limiter, 'mcpRead', 'all', 'open');
       const out = await (tool as ToolDef<z.ZodObject>).run(parsed.data, ctx);
       const text = `${out.summary}\n${JSON.stringify(out.data)}`;
       result =
@@ -423,6 +425,9 @@ export async function callTool(
     const mapped = toolErrorResult(error);
     outcome = mapped.code;
     result = mapped.result;
+    // Invalid, unknown or expired input: counted in the cheap invalid bucket only (never a write budget).
+    const status = mapError(error).status;
+    if ([400, 404, 410, 422].includes(status)) await countInvalid(limiter);
     if (mapOutcomeUnexpected(error)) deps.logger.error({ tool: name, err: safeError(error) }, 'mcp tool failed');
     if (mapOutcomeUnexpected(error)) reportError(error, { route: 'mcp:tools/call', requestId: deps.requestId, businessId: business.id });
   }
@@ -438,6 +443,15 @@ export async function callTool(
     'mcp tool call',
   );
   return result;
+}
+
+/** Count one invalid call (300 per 10 minutes, whole connector). Best effort: it never fails the call. */
+async function countInvalid(limiter: AssistantLimiter): Promise<void> {
+  try {
+    await spend(limiter, 'mcpInvalid', 'all', 'open');
+  } catch {
+    /* over the invalid budget: the caller already has an error result */
+  }
 }
 
 function mapOutcomeUnexpected(error: unknown): boolean {

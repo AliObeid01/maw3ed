@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppError } from '@/server/http/errors';
 import type { HitResult } from '@/server/repositories/rateLimit.repo';
 import type { AssistantService } from '@/server/services/assistant';
-import { LIMITER_DOWN_MESSAGE, phoneSubject, spend } from '@/server/services/assistantLimits';
+import { phoneSubject, spend, spendMany } from '@/server/services/assistantLimits';
 import { createRateLimiter, type RateLimitStore } from '@/server/services/rateLimit';
 import { RATE_POLICIES } from '@/server/services/rateLimitPolicies';
 import { callTool } from '@/server/mcp/tools';
@@ -105,32 +105,46 @@ describe('arguments are validated strictly', () => {
 });
 
 describe('rate limits', () => {
-  it('global bucket: the call after 600 per 10 minutes is a clear try-again result', async () => {
+  it('reads: the call after 600 per 10 minutes is a clear try-again result', async () => {
     const deps = base();
-    for (let i = 0; i < RATE_POLICIES.mcpGlobal.limit; i++)
+    for (let i = 0; i < RATE_POLICIES.mcpRead.limit; i++)
       expect((await callTool('search_businesses', {}, deps)).isError).toBeUndefined();
     const r = await callTool('search_businesses', {}, deps);
     expect(r.isError).toBe(true);
     expect(text(r)).toMatch(/Try again in \d+ minutes?/);
   });
 
-  it('write bucket: 120 writes per 10 minutes, reads keep working', async () => {
+  it('writes spend nothing in callTool (the service spends after validation), and reads cannot starve them', async () => {
     const deps = base();
-    for (let i = 0; i < RATE_POLICIES.mcpWrite.limit; i++)
+    for (let i = 0; i < RATE_POLICIES.mcpRead.limit + 1; i++) await callTool('search_businesses', {}, deps);
+    for (let i = 0; i < 150; i++)
       expect((await callTool('cancel_booking', { token: 'x.y' }, deps)).isError).toBeUndefined();
-    const r = await callTool('cancel_booking', { token: 'x.y' }, deps);
-    expect(r.isError).toBe(true);
-    expect(text(r)).toMatch(/Try again in/);
-    expect((await callTool('get_booking', { token: 'x.y' }, deps)).isError).toBeUndefined();
+    expect(deps.service.linkView).toHaveBeenCalledTimes(150);
   });
 
-  it('limiter store down: reads fail OPEN, writes fail CLOSED with an actionable message', async () => {
+  it('malformed arguments are counted in the cheap invalid bucket, not the read or write buckets', async () => {
+    const deps = base();
+    for (let i = 0; i < 5; i++) await callTool('confirm_booking', { token: 5 }, deps);
+    expect(deps.service.linkView).not.toHaveBeenCalled();
+    // none of the five used the read budget: the whole budget is still there
+    for (let i = 0; i < RATE_POLICIES.mcpRead.limit; i++)
+      expect((await callTool('search_businesses', {}, deps)).isError).toBeUndefined();
+  });
+
+  it('limiter store down: reads fail OPEN', async () => {
     const deps = base({ limiter: limiterOf(memStore(true)) });
     expect((await callTool('search_businesses', {}, deps)).isError).toBeUndefined();
-    const w = await callTool('confirm_booking', { token: 'x.y' }, deps);
-    expect(w.isError).toBe(true);
-    expect(text(w)).toBe(LIMITER_DOWN_MESSAGE);
-    expect(deps.service.linkView).not.toHaveBeenCalled();
+  });
+
+  it('spendMany: a limited bucket gives back everything spent before it', async () => {
+    const ok = limiterOf(memStore());
+    for (let i = 0; i < RATE_POLICIES.mcpBookDay.limit; i++) await spend(ok, 'mcpBookDay', 'all', 'closed');
+    for (let round = 0; round < 3; round++)
+      await expect(
+        spendMany(ok, [{ policy: 'mcpEmail', subject: 'e' }, { policy: 'mcpBookDay', subject: 'all' }], 'closed'),
+      ).rejects.toMatchObject({ code: 'RATE_LIMITED' });
+    // the email bucket was refunded each time: its full budget is still there
+    for (let i = 0; i < RATE_POLICIES.mcpEmail.limit; i++) await spend(ok, 'mcpEmail', 'e', 'closed');
   });
 
   it('spend(): open mode lets traffic through, closed mode refuses, limited throws RATE_LIMITED', async () => {
@@ -146,18 +160,18 @@ describe('rate limits', () => {
 
   it('spend(): a refund gives the hit back', async () => {
     const ok = limiterOf(memStore());
-    for (let i = 0; i < RATE_POLICIES.mcpBookBusiness.limit; i++) {
-      const s = await spend(ok, 'mcpBookBusiness', 'b', 'closed');
+    for (let i = 0; i < RATE_POLICIES.mcpBookBusinessDay.limit; i++) {
+      const s = await spend(ok, 'mcpBookBusinessDay', 'b', 'closed');
       await s.refund();
     }
-    await expect(spend(ok, 'mcpBookBusiness', 'b', 'closed')).resolves.toBeDefined();
+    await expect(spend(ok, 'mcpBookBusinessDay', 'b', 'closed')).resolves.toBeDefined();
   });
 
   it('the connector policies exist with the documented numbers and none is keyed by ip', () => {
-    expect(RATE_POLICIES.mcpGlobal).toEqual({ windowSec: 600, limit: 600 });
-    expect(RATE_POLICIES.mcpWrite).toEqual({ windowSec: 600, limit: 120 });
+    expect(RATE_POLICIES.mcpRead).toEqual({ windowSec: 600, limit: 600 });
+    expect(RATE_POLICIES.mcpInvalid).toEqual({ windowSec: 600, limit: 300 });
     expect(RATE_POLICIES.mcpPhone).toEqual({ windowSec: 3600, limit: 5 });
-    expect(RATE_POLICIES.mcpBookBusiness).toEqual({ windowSec: 3600, limit: 60 });
+    expect(RATE_POLICIES.mcpBookBusinessDay).toEqual({ windowSec: 86400, limit: 8 });
     expect(RATE_POLICIES.mcpReadBusiness).toEqual({ windowSec: 600, limit: 300 });
   });
 

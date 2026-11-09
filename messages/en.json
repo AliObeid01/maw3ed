@@ -2622,7 +2622,7 @@
     "metaDescription": "Add Maw3ed to Claude, then find a business and book an appointment by chatting. Works with Claude.",
     "kicker": "Works with Claude",
     "title": "Book by chatting",
-    "subtitle": "Tell Claude what you need. It finds free times at businesses on Maw3ed and books the one you pick, after you approve.",
+    "subtitle": "Tell Claude what you need. It finds free times at businesses on Maw3ed and books the one you pick once you confirm.",
     "stepsTitle": "How to set it up",
     "step": "Step {number}",
     "steps": {
@@ -2664,7 +2664,7 @@
       },
       "sees": {
         "q": "What does Claude see?",
-        "a": "What you type in the chat, plus the public details of businesses on Maw3ed: names, services, prices and free times. Claude asks for your approval before it books or cancels."
+        "a": "What you type in the chat, plus the public details of businesses on Maw3ed: names, services, prices and free times. Claude normally asks for your approval before it books or cancels."
       },
       "which": {
         "q": "Which businesses can I book?",

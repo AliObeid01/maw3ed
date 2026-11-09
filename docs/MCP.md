@@ -45,7 +45,7 @@ never a `Mcp-Session-Id`.
 | header unsupported | 400 + `-32022` with the supported versions in `data.supported` |
 | 2026 `_meta` but no header | 400 + `-32020` |
 
-Other rules: POST only (GET, DELETE and the rest answer 405 `Allow: POST`); `Content-Type: application/json` (415); body at
+Other rules: POST only (GET, DELETE and the rest answer 405 `Allow: POST`; OPTIONS is a plain 204 with `Allow: POST` and no CORS headers); `Content-Type: application/json` (415); body at
 most 64 KB (413); invalid JSON → 400 `-32700`; batch arrays → 400 `-32600`; unknown method → 404 `-32601`; notifications → 202
 with no body; unknown tool and missing tool name → JSON-RPC `-32602` (HTTP 200); tool errors are normal results with
 `isError: true` and actionable text; every response is `Cache-Control: no-store`.
@@ -77,6 +77,8 @@ Ids of another business are "not found" as everywhere else.
 
 ### The signed confirmation token
 
+The token is NOT single-use: it may be reused for 10 minutes. Same-phone replays are safe (the idempotency key `sha256(token + phone)` returns the same booking) and for different phones the exclusion constraint decides who gets the slot. The prepare key derives from `LINK_SECRET`, so rotating that secret invalidates both link and prepare tokens.
+
 `prepare_booking` checks the slot is offered right now (no write, no client data) and returns a token signed with an HMAC
 under a key derived from `LINK_SECRET` for this purpose (`maw3ed.mcp.prepare.v1`), payload `{ act:'prepare', b: businessId,
 s: serviceId, p: staffId|null, t: startAt, exp }`, valid 10 minutes, no database row (`src/server/domain/prepareToken.ts`).
@@ -91,15 +93,55 @@ No card data is ever taken in the tool.
 
 - **Kill switch**: `MCP_ENABLED`, read per request. Only the exact string `true` enables it. Unset/anything else: the endpoint
   answers 404 (like a missing route), `/assistant` is a 404 and the footer link is hidden.
-- **Rate limits** (Postgres limiter, no migration; never per IP, because every Claude user arrives from Anthropic's few
-  addresses and the per-IP buckets of the web routes would lock everyone out at once; the directory's per-IP "live" budget is
-  also bypassed for the same reason): all tool calls 600 per 10 min (`mcpGlobal`); writes 120 per 10 min (`mcpWrite`);
-  per HMAC of the phone, 5 per hour for `create_booking` and `join_waitlist` together (`mcpPhone`); per business 60 bookings
-  per hour (`mcpBookBusiness`); business-scoped reads 300 per 10 min (`mcpReadBusiness`). The web route's own per-phone
-  probe budget (`bookingPhone`) still applies inside the booking service. Replays and failed attempts are refunded. When
-  limited the answer is an `isError` result "Too many requests right now. Try again in N minutes." (HTTP 200; a 429 for the
-  whole request would reach the person as a generic transport error). **Limiter store down**: reads fail open (logged as
-  `rate_limit_fail_open`), writes fail closed with "Booking is paused for a few minutes…".
+- **Rate limits** (Postgres limiter, no migration; every number lives in `RATE_POLICIES` in
+  `src/server/services/rateLimitPolicies.ts`, with the arithmetic in a comment). Never per IP: every Claude user arrives
+  from Anthropic's few addresses (the directory's per-IP "live" budget is bypassed for the same reason).
+
+  | Policy | Applies to | Limit |
+  | --- | --- | --- |
+  | `mcpRead` | valid read calls, whole connector | 600 per 10 min |
+  | `mcpReadBusiness` | business-scoped reads, per business | 300 per 10 min |
+  | `mcpInvalid` | malformed or invalid calls (bad arguments, bad or expired tokens, not found) | 300 per 10 min |
+  | `mcpBookHour` / `mcpBookDay` | `create_booking`, all callers | 10 per hour, 20 per day |
+  | `mcpBookBusinessDay` | `create_booking`, per business | 8 per day |
+  | `mcpPhone` / `mcpPhoneDay` | `create_booking` and `join_waitlist`, per HMAC of the phone | 5 per hour, 3 per day |
+  | `mcpEmail` | `create_booking`, per HMAC of the lowercased email | 2 per day |
+  | `mcpEmailWait` | `join_waitlist`, per HMAC of the lowercased email | 3 per day |
+  | `mcpWaitHour` / `mcpWaitDay` | `join_waitlist`, all callers | 20 per hour, 40 per day |
+  | `mcpLinkToken` | `get_booking`, `confirm_booking`, `cancel_booking`, per HMAC of the link token | 20 per hour |
+
+  **Order.** Arguments (Zod) and tokens (signature, expiry, act; no database) are checked BEFORE any write bucket is
+  spent. An invalid call costs only `mcpInvalid`, so garbage can never use up the write budgets (a test sends 130 garbage
+  calls and then books). Reads and writes have separate buckets, so neither starves the other. A write then checks the
+  email budget guard, then spends its buckets (email, phone, business, global); if any bucket is full everything spent
+  before it is given back, and a booking that then fails (slot taken, validation, deposit) or is an idempotent replay gives
+  every hit back, so only a real booking is counted. A refused attempt leaves the counts unchanged.
+
+  **Email arithmetic.** Resend's free tier is about 100 emails a day for ALL tenants; `reminders.ts` warns at
+  `EMAIL_BUDGET_WARN` 80 and skips booking confirmations at 95. One chat booking queues up to 3 emails (confirmation, H24,
+  H2), so 20 bookings a day is at most 60 emails even if every reminder lands on the same day, leaving 40 for real
+  traffic. Waitlist joins send nothing at join time (only a claim-offer email later), 40 a day is the cap. **Existing
+  limitation, not changed here: the H24 and H2 reminders have no budget check today; only booking confirmations are
+  skipped at 95.**
+
+  **Email-budget guard.** `create_booking` and `join_waitlist` read today's sent-email count the way `reminders.ts`
+  does (sent reminder emails plus waitlist offers since 00:00 UTC) and refuse with "Booking by chat is temporarily
+  unavailable. Please use the business booking page instead." once it is 80 or more. The reminder and booking-email
+  behaviour of the existing services is untouched.
+
+  **Shared fate (accepted for the rollout).** The hour and day caps are global, so an anonymous caller CAN use them up
+  and make chat booking unavailable for everyone until the window rolls over (the next UTC day for the day caps). The
+  alternative would be letting a script starve real reminders. `MCP_ENABLED` is the emergency stop. Knobs: the numbers in
+  `RATE_POLICIES` (`mcp*`) and `EMAIL_BUDGET_WARN` in `reminders.ts`.
+
+  **When limited** the answer is an `isError` result "Too many requests right now. Try again in N minutes." (HTTP 200;
+  a 429 for the whole request would reach the person as a generic transport error). **Limiter store down**: reads fail open
+  (logged as `rate_limit_fail_open`), writes fail closed with "Booking is paused for a few minutes...". Each limiter
+  call is one atomic upsert guarded by a 300 ms client-side timeout (`RATE_LIMIT_TIMEOUT_MS`); there is no server-side
+  `statement_timeout` (the pool has none). A read costs 2 limiter queries, a booking about 7 plus the booking itself;
+  `initialize`, `ping`, `server/discover` and `tools/list` do no database work (tested). Not added (it would need a
+  counter or a migration): "open future bookings per phone". The web route's own per-phone probe budget
+  (`bookingPhone`) still applies inside the booking service.
 - **Sanitizing / prompt injection**: tool descriptions are static. Every business-entered string (business, service and staff
   names, address) is cleaned (`sanitize.ts`): control and bidi/invisible characters and Unicode tags removed, markup characters
   removed, whitespace collapsed, capped at 80 (200 for addresses) and returned as a data field, quoted when it appears in prose.
@@ -147,7 +189,7 @@ tools under Tool permissions (reads run without prompts; the four writes prompt)
 
 ## Honest unknowns
 
-- Which protocol version Claude's client really negotiates today (we serve both; the legacy flow is the documented one).
+- Which protocol version Claude's client really negotiates today (unknown until tried with the real client) (we serve both; the legacy flow is the documented one).
 - Whether the Vercel Firewall or any WAF rule blocks Anthropic's server-side requests (no Origin, a few shared IPs).
 - Claude's UI labels (Customize, Connectors) may be renamed; the page and FAQ copy would then need a one-line edit.
 - Behaviour of long chats: the tools are stateless, so a stale `confirmationToken` (over 10 minutes) simply needs a new prepare.

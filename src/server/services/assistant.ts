@@ -14,6 +14,9 @@ import {
 import { getServerEnv, requireLinkSecret } from '@/server/env';
 import { AppError } from '@/server/http/errors';
 import { resolveToken } from '@/server/http/auth';
+import { verifyToken } from '@/server/domain/tokens';
+import { reminderJobRepo } from '@/server/repositories/reminderJob.repo';
+import { waitlistRepo } from '@/server/repositories/waitlist.repo';
 import type { Logger } from '@/server/http/logger';
 import type { RouteContext } from '@/server/http/withRoute';
 import { publicBusinessRepo } from '@/server/repositories/publicBusiness.repo';
@@ -25,7 +28,15 @@ import { linksService } from './links';
 import { publicBookingService } from './publicBooking';
 import { rateLimiter } from './rateLimit';
 import { joinWaitlist } from './waitlist';
-import { phoneSubject, spend, type AssistantLimiter } from './assistantLimits';
+import { EMAIL_BUDGET_WARN } from './reminders';
+import {
+  emailSubject,
+  phoneSubject,
+  spend,
+  spendMany,
+  tokenSubject,
+  type AssistantLimiter,
+} from './assistantLimits';
 
 /**
  * The assistant (MCP) use cases. Everything here reuses an existing service: the directory, the public slot
@@ -46,6 +57,11 @@ export interface AssistantDeps {
   limiter: AssistantLimiter;
   linkSecret: () => string;
   appUrl: () => string;
+  /**
+   * Emails sent today by ALL tenants (reminders plus waitlist offers), counted exactly as reminders.ts counts its
+   * daily budget. The chat connector refuses writes once it reaches EMAIL_BUDGET_WARN.
+   */
+  emailsSentToday: (now: Date) => Promise<number>;
   /** Test seam for the booking path (fake payments, fixed clock). */
   bookDeps?: BookDeps | undefined;
 }
@@ -55,6 +71,13 @@ export const defaultAssistantDeps: AssistantDeps = {
   limiter: rateLimiter,
   linkSecret: () => requireLinkSecret(),
   appUrl: () => getServerEnv().APP_URL,
+  emailsSentToday: async (now) => {
+    const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    return (
+      (await reminderJobRepo.countSentEmailsSince(dayStart)) +
+      (await waitlistRepo.countOffersSince(dayStart))
+    );
+  },
 };
 
 /** The directory's live budget is per ip and would be one shared bucket here: the connector has its own. */
@@ -91,6 +114,16 @@ function slotView(slot: PublicSlot, timezone: string) {
 }
 
 const bookingUrl = (deps: AssistantDeps, slug: string) => `${deps.appUrl()}/b/${slug}`;
+
+export const CHAT_UNAVAILABLE_MESSAGE =
+  'Booking by chat is temporarily unavailable. Please use the business booking page instead.';
+
+/** Refuse chat writes once today's emails (all tenants) reach the budget's warning level (reminders.ts). */
+async function guardEmailBudget(deps: AssistantDeps): Promise<void> {
+  const used = await deps.emailsSentToday(deps.now());
+  if (used >= EMAIL_BUDGET_WARN)
+    throw new AppError(503, 'CHAT_BOOKING_UNAVAILABLE', CHAT_UNAVAILABLE_MESSAGE);
+}
 
 export function createAssistantService(deps: AssistantDeps = defaultAssistantDeps) {
   async function catalogue(business: Listed) {
@@ -313,15 +346,22 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
       const phone = normalizePhone(body.data.client.phone);
       if (!phone) throw AppError.validation({ phone: 'Enter a valid phone number.' });
 
-      // Per phone (any caller) and per business; fail closed.
-      const byPhone = await spend(deps.limiter, 'mcpPhone', phoneSubject(secret, phone), 'closed');
-      let byBusiness;
-      try {
-        byBusiness = await spend(deps.limiter, 'mcpBookBusiness', business.id, 'closed');
-      } catch (error) {
-        await byPhone.refund();
-        throw error;
-      }
+      // Everything above is validation (no spend). From here: the email budget guard (a read), then the limits,
+      // per email, phone, business and the global hour and day caps. All fail closed; a refused or failed call
+      // gives back every hit (see below), so only a real booking is counted.
+      await guardEmailBudget(deps);
+      const spent = await spendMany(
+        deps.limiter,
+        [
+          { policy: 'mcpEmail', subject: emailSubject(secret, body.data.client.email) },
+          { policy: 'mcpPhone', subject: phoneSubject(secret, phone) },
+          { policy: 'mcpPhoneDay', subject: phoneSubject(secret, phone) },
+          { policy: 'mcpBookBusinessDay', subject: business.id },
+          { policy: 'mcpBookHour', subject: 'all' },
+          { policy: 'mcpBookDay', subject: 'all' },
+        ],
+        'closed',
+      );
       const key = createHash('sha256')
         .update(`${input.confirmationToken.trim()}|${phone}`)
         .digest('hex');
@@ -333,10 +373,8 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
           key,
           deps.bookDeps,
         );
-        if (result.replay) {
-          await byPhone.refund();
-          await byBusiness.refund();
-        }
+        // A replay is the same booking again: it must not count twice (the first call already did).
+        if (result.replay) await spent.refund();
         const a = result.appointment;
         const tz = business.timezone;
         return {
@@ -363,8 +401,7 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
             : {}),
         };
       } catch (error) {
-        await byPhone.refund();
-        await byBusiness.refund();
+        await spent.refund(); // a failed booking (slot taken, validation, deposit...) costs nothing
         if (error instanceof AppError && error.code === 'SLOT_TAKEN') {
           const slots = ((error.data as { slots?: PublicSlot[] } | undefined)?.slots ?? []).slice(
             0,
@@ -414,10 +451,17 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
       }
       const phone = normalizePhone(body.data.client.phone);
       if (!phone) throw AppError.validation({ phone: 'Enter a valid phone number.' });
-      const byPhone = await spend(
+      const secret = deps.linkSecret();
+      await guardEmailBudget(deps);
+      const byPhone = await spendMany(
         deps.limiter,
-        'mcpPhone',
-        phoneSubject(deps.linkSecret(), phone),
+        [
+          { policy: 'mcpEmailWait', subject: emailSubject(secret, body.data.client.email) },
+          { policy: 'mcpPhone', subject: phoneSubject(secret, phone) },
+          { policy: 'mcpPhoneDay', subject: phoneSubject(secret, phone) },
+          { policy: 'mcpWaitHour', subject: 'all' },
+          { policy: 'mcpWaitDay', subject: 'all' },
+        ],
         'closed',
       );
       try {
@@ -462,12 +506,40 @@ export function createAssistantService(deps: AssistantDeps = defaultAssistantDep
           token: 'Paste the booking link from the confirmation email (it contains /l/...), or the token itself.',
         });
       const now = deps.now();
-      const identity = await resolveToken(token, ['view', 'confirm', 'cancel'], now);
-      ctx.onBusiness?.(identity.businessId);
-      const linkCtx = { businessId: identity.businessId, logger: ctx.logger };
-      const view = action
-        ? await linksService.act(linkCtx, identity, action, deps.now)
-        : await linksService.get(linkCtx, identity, deps.now);
+      const secret = deps.linkSecret();
+      // Signature, expiry and act first, WITHOUT the database and without spending anything: a forged or
+      // stale token costs only the cheap invalid-call bucket (counted by the caller), never a write budget.
+      let valid = false;
+      let expired = false;
+      for (const act of ['view', 'confirm', 'cancel'] as const) {
+        const v = verifyToken(token, secret, now, act);
+        if (v.ok) {
+          valid = true;
+          break;
+        }
+        if (v.reason === 'expired') expired = true;
+        if (v.reason !== 'wrong_action') break;
+      }
+      if (!valid) throw expired ? AppError.gone() : AppError.notFound('That link or token is not valid.');
+      // Per token (20 an hour), not per connector. A failed call gives its hit back.
+      const spentLink = await spend(
+        deps.limiter,
+        'mcpLinkToken',
+        tokenSubject(secret, token),
+        action ? 'closed' : 'open',
+      );
+      let view: Awaited<ReturnType<typeof linksService.get>> & { result?: string };
+      try {
+        const identity = await resolveToken(token, ['view', 'confirm', 'cancel'], now);
+        ctx.onBusiness?.(identity.businessId);
+        const linkCtx = { businessId: identity.businessId, logger: ctx.logger };
+        view = action
+          ? await linksService.act(linkCtx, identity, action, deps.now)
+          : await linksService.get(linkCtx, identity, deps.now);
+      } catch (error) {
+        await spentLink.refund();
+        throw error;
+      }
       const a = view.appointment;
       const tz = view.business.timezone;
       const result: string | undefined = 'result' in view ? String(view.result) : undefined;
