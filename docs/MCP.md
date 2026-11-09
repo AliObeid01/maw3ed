@@ -105,7 +105,7 @@ No card data is ever taken in the tool.
   | `mcpBookHour` / `mcpBookDay` | `create_booking`, all callers | 10 per hour, 20 per day |
   | `mcpBookBusinessDay` | `create_booking`, per business | 8 per day |
   | `mcpPhone` / `mcpPhoneDay` | `create_booking` and `join_waitlist`, per HMAC of the phone | 5 per hour, 3 per day |
-  | `mcpEmail` | `create_booking`, per HMAC of the lowercased email | 2 per day |
+  | `mcpEmail` | `create_booking`, per HMAC of the normalized mailbox (lowercased, `+tag` removed; gmail/googlemail also without dots) | 2 per day |
   | `mcpEmailWait` | `join_waitlist`, per HMAC of the lowercased email | 3 per day |
   | `mcpWaitHour` / `mcpWaitDay` | `join_waitlist`, all callers | 20 per hour, 40 per day |
   | `mcpLinkToken` | `get_booking`, `confirm_booking`, `cancel_booking`, per HMAC of the link token | 20 per hour |
@@ -129,9 +129,25 @@ No card data is ever taken in the tool.
   unavailable. Please use the business booking page instead." once it is 80 or more. The reminder and booking-email
   behaviour of the existing services is untouched.
 
+  **Projected-load guard (cross-day accumulation).** Reminders are never budget-gated, and a sent-today count cannot see
+  emails that are only QUEUED. Without more, 20 bookings a day for three days, all aimed at one target date, would queue
+  120 reminders (H24 + H2 each) for that date, over Resend's ~100 a day, and real reminders would be rejected. So
+  `create_booking` also checks the two UTC days its emails will land on: the H24 email is due on the UTC day of
+  (start - 24 h) and the H2 email on the UTC day of the start (the day boundaries reminders.ts uses for its daily
+  budget). For each day it counts, across ALL tenants (the one allowed global count,
+  `reminderJobRepo.emailLoadForUtcDay`, using the (status, dueAt) index), email jobs still PENDING or SENDING with
+  `dueAt` on that day plus emails already SENT that day (plus waitlist offers for today), and refuses with "Booking by
+  chat is temporarily unavailable for that day. Please use the business booking page instead." when that count plus this
+  booking's 1 email would reach `EMAIL_BUDGET_WARN - 10` = 70. The 10 below the warning level leaves room for real
+  traffic. A failing count refuses the booking (fail closed). It needs no schema change and no "MCP-created" marker: real
+  bookings count toward a day's load too, so the connector backs off as a day fills up for any reason. Worst case on one
+  day is therefore about 70 plus the unavoidable race between two simultaneous checks, still under 100. The sent-today
+  guard (80) stays. `join_waitlist` has no such guard: a join queues no email, and the offer email it may later cause
+  lands on an unknown day; it is bounded by its own caps (40 a day) and by the sent-today guard.
+
   **Shared fate (accepted for the rollout).** The hour and day caps are global, so an anonymous caller CAN use them up
   and make chat booking unavailable for everyone until the window rolls over (the next UTC day for the day caps). The
-  alternative would be letting a script starve real reminders. `MCP_ENABLED` is the emergency stop. Knobs: the numbers in
+  alternative would be letting a script starve real reminders. One attacker can use up the 20 bookings a day for everyone, but only with valid, fully formed bookings (a real slot, a prepared token, a valid phone and a fresh email each, at most 2 per email per day), so the damage is bounded by the email caps above. `MCP_ENABLED` is the emergency stop. Knobs: the numbers in
   `RATE_POLICIES` (`mcp*`) and `EMAIL_BUDGET_WARN` in `reminders.ts`.
 
   **When limited** the answer is an `isError` result "Too many requests right now. Try again in N minutes." (HTTP 200;
