@@ -91,10 +91,10 @@ for (const motion of ['no-preference', 'reduce'] as const) {
         .toBeGreaterThanOrEqual(Math.floor(h));
       // 88 px scroll-padding: the section's top edge sits right under the sticky header, not behind it.
       expect((await plans.boundingBox())!.y).toBeLessThan(h + 60);
-      await expect(page.locator('#teaser-pro')).toBeInViewport();
+      await expect(page.locator('#teaser-free')).toBeInViewport();
       // The cards are visible (not left hidden by a Reveal) after the jump.
-      await expect.poll(async () => page.locator('#teaser-pro').locator('xpath=ancestor::*[@data-revealed][1]').getAttribute('data-revealed')).toBe('true');
-      expect(await page.locator('#teaser-pro').locator('xpath=ancestor::article').evaluate((el) => getComputedStyle(el.parentElement!).opacity)).toBe('1');
+      await expect.poll(async () => page.locator('#teaser-free').locator('xpath=ancestor::*[@data-revealed][1]').getAttribute('data-revealed')).toBe('true');
+      expect(await page.locator('#teaser-free').locator('xpath=ancestor::article').evaluate((el) => getComputedStyle(el.parentElement!).opacity)).toBe('1');
     }
 
     test('the hero button on /for-business scrolls to the plans, below the header', async ({ page }) => {
