@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { buttonClasses } from '@/components/ui/buttonStyles';
-import { Card } from '@/components/ui/Card';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { getBusiness } from '@/lib/api/setup';

@@ -17,6 +17,8 @@ export function AssistantDemo() {
   const t = useTranslations('assistant.demo');
   const names = { business: t('business'), staff: t('staff'), client: t('client') };
   const n = (chunks: React.ReactNode) => <bdi className="font-semibold">{chunks}</bdi>;
+  const offer = t.rich('offer', { ...names, n });
+  const done = t.rich('done', { ...names, n });
   return (
     <section aria-labelledby="demo-title" className="mt-12 max-w-[760px]" data-testid="assistant-demo">
       <h2 id="demo-title" className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
@@ -43,7 +45,7 @@ export function AssistantDemo() {
           </span>
         </div>
         <p className={`m-0 ${claude}`} data-demo-step="3">
-          {t.rich('offer', { ...names, n })}
+          {offer}
         </p>
         <p className={`m-0 ${user}`} data-demo-step="4">
           {t('pick')}
@@ -59,7 +61,7 @@ export function AssistantDemo() {
           </span>
         </div>
         <p className={`m-0 ${claude}`} data-demo-step="7">
-          {t.rich('done', { ...names, n })}
+          {done}
         </p>
       </DemoPlayer>
     </section>

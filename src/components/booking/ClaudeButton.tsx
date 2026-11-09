@@ -25,6 +25,9 @@ export function ClaudeButton({ name, slug }: { name: string; slug: string }) {
   const fieldId = useId();
   const { state, copy } = useCopyStatus();
   const copied = state?.ok === true;
+  const copyLabel = copied ? tCopy('copied') : tCopy('button');
+  const failedText = tCopy('failed');
+  const announce = state ? (state.ok ? tCopy('announce') : failedText) : '';
 
   const prompt = useMemo(
     () => claudeBookPrompt((key, values) => t(key as 'prompt', values as never), { name, slug }),
@@ -79,12 +82,12 @@ export function ClaudeButton({ name, slug }: { name: string; slug: string }) {
               className={buttonClasses({ variant: copied ? 'navy' : 'primary', block: true })}
             >
               {copied ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
-              {copied ? tCopy('copied') : tCopy('button')}
+              {copyLabel}
             </button>
             <p role="status" aria-live="polite" className="sr-only" data-testid="claude-copy-status">
-              {state ? (state.ok ? tCopy('announce') : tCopy('failed')) : ''}
+              {announce}
             </p>
-            {state && !state.ok ? <p className="m-0 text-sm text-muted">{tCopy('failed')}</p> : null}
+            {state && !state.ok ? <p className="m-0 text-sm text-muted">{failedText}</p> : null}
           </div>
           <div className="flex flex-wrap items-center gap-x-5">
             <Link
