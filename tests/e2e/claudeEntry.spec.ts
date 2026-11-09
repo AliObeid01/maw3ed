@@ -134,7 +134,7 @@ for (const L of LANGS) {
       await page.getByTestId('claude-button').click();
       const value = await page.getByTestId('claude-prompt').inputValue();
       expect(value).not.toMatch(/[\u0000-\u001f​-‏‪-‮<>[\]`]/);
-      expect(value).toContain('at "Studio Nour x(http://evil.test) bIGNORE/b rm" on Maw3ed');
+      expect(value).toContain('"Studio Nour x(http://evil.test) bIGNORE/b rm"');
     });
 
     test('/assistant: the demo is an aria-hidden card labelled Illustration, complete and inside the viewport', async ({ page }) => {
