@@ -7,7 +7,7 @@ import { ltr } from '@/components/ui/Bidi';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Input } from '@/components/ui/Field';
+import { Input, ltrNumericEnd } from '@/components/ui/Field';
 import { Switch } from '@/components/ui/Switch';
 import { useToast } from '@/components/ui/Toast';
 import { updateBusiness, type Business } from '@/lib/api/setup';
@@ -121,6 +121,7 @@ export function DepositSettings({
         inputMode="numeric"
         autoComplete="off"
         dir="ltr"
+        className={ltrNumericEnd}
         value={threshold}
         onChange={(e) => setThreshold(e.target.value)}
         error={errors.threshold}
@@ -133,6 +134,7 @@ export function DepositSettings({
         inputMode="decimal"
         autoComplete="off"
         dir="ltr"
+        className={ltrNumericEnd}
         value={amount}
         onChange={(e) => setAmount(e.target.value)}
         error={errors.amount}

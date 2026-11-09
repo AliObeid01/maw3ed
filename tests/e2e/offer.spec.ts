@@ -18,7 +18,7 @@ test('shows the slot in the business timezone with an expiry time; GET alone nev
   await expect(page.getByRole('heading', { name: 'A spot just opened up' })).toBeVisible();
   await expect(page.getByText(/.?Haircut.? with .?Karim.? · .?\$15/)).toBeVisible(); // bidi isolates surround the name and price
   const startLocal = start.setZone(TZ).toFormat('HH:mm');
-  await expect(page.getByText(new RegExp(`${startLocal}\\W\u2013`))).toBeVisible(); // a no-break space, not a plain one
+  await expect(page.getByText(new RegExp(`${startLocal}[\u00a0\u202f]\u2013`))).toBeVisible(); // a no-break space; a plain space would not match
   const expires = expiresAt.setZone(TZ).toFormat('HH:mm');
   await expect(page.getByText(`Offer expires at ${expires}`)).toBeVisible();
   await expect(page.getByText(/\d+ minutes? left/)).toBeVisible();
