@@ -2,6 +2,7 @@ import { ArrowUp, Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Logo } from '@/components/brand/Logo';
 import { FooterMyBookingsLink } from '@/components/myBookings/FooterMyBookingsLink';
+import { isAssistantEnabled } from '@/lib/assistant';
 import { AREA_KEYS } from '@/lib/business/profile';
 import { HOME_CATEGORIES } from '@/lib/home/categories';
 import { OWNER_START_HREF } from '@/lib/links';
@@ -40,6 +41,8 @@ const SOCIAL_ICON: Record<SocialId, () => React.ReactNode> = {
 export function PublicFooter() {
   const t = useTranslations();
   const social = socialLinks();
+  // The "Book by chatting" link exists only while the connector is switched on (read per request).
+  const assistant = isAssistantEnabled();
 
   return (
     <footer
@@ -137,6 +140,9 @@ export function PublicFooter() {
             </h2>
             <ul className="m-0 list-none p-0">
               <li><Link href="/how-it-works" className={linkClass}>{t('public.footer.howItWorks')}</Link></li>
+              {assistant ? (
+                <li><Link href="/assistant" className={linkClass}>{t('public.footer.assistant')}</Link></li>
+              ) : null}
               <li><a href={contactHref()} className={linkClass}>{t('public.footer.contactUs')}</a></li>
               <FooterMyBookingsLink className={linkClass} />
             </ul>

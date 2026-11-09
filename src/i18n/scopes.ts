@@ -32,6 +32,8 @@ export const INTL_SCOPES = {
     'home',
     'myBookings',
     'billing',
+    // /assistant: the copy button and the prompt chips (PR-15a).
+    'assistant',
     // The TEST card form on /pay.
     'testCard',
     // Shared money/duration formatting (useAppFormat); the rest of `app` is dashboard-only.

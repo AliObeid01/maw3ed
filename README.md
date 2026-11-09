@@ -21,6 +21,10 @@ Live: https://maw3edlb.com
 - Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and the plans on `/for-business#plans`.
 - Rate limiting shared across serverless instances (Postgres), login throttling, argon2 password hashing.
 
+## Book by chatting (assistant connector)
+
+A client can find and book appointments by chatting with Claude: `POST /api/mcp` is a stateless MCP endpoint (nine tools, the 2026-07-28 and the legacy protocol), added in Claude as a custom connector; `/assistant` explains how. It is OFF unless `MCP_ENABLED=true` is set. See docs/MCP.md.
+
 ## Tech stack
 
 Next.js (App Router, route handlers), TypeScript strict, pnpm, Prisma on Postgres (Neon in production), Zod with zod-to-openapi,

@@ -113,6 +113,7 @@
       "reminders": "Reminders and confirmations",
       "support": "Support",
       "howItWorks": "How it works",
+      "assistant": "Book by chatting",
       "contactUs": "Contact us",
       "rights": "© {year} Maw3ed. All rights reserved.",
       "privacy": "Privacy policy",
@@ -2395,7 +2396,8 @@
           "b2": "Neon, for the database",
           "b3": "Resend, to deliver email",
           "b4": "Sentry (EU region), for error monitoring: errors only, with personal data removed where possible",
-          "p2": "We do not sell your data and we do not use it for advertising."
+          "p2": "We do not sell your data and we do not use it for advertising.",
+          "p3": "If you book through an AI assistant, the assistant provider also processes what you type, under its own privacy policy. Maw3ed stores only your name, phone, email and appointment details."
         },
         "cookies": {
           "title": "Cookies",
@@ -2614,5 +2616,74 @@
     },
     "pay": "Pay {amount}",
     "paying": "Paying"
+  },
+  "assistant": {
+    "pageTitle": "Book by chatting with Claude",
+    "metaDescription": "Add Maw3ed to Claude, then find a business and book an appointment by chatting. Works with Claude.",
+    "kicker": "Works with Claude",
+    "title": "Book by chatting",
+    "subtitle": "Tell Claude what you need. It finds free times at businesses on Maw3ed and books the one you pick, after you approve.",
+    "stepsTitle": "How to set it up",
+    "step": "Step {number}",
+    "steps": {
+      "copy": {
+        "title": "Copy the link",
+        "body": "This is the connector link for Maw3ed."
+      },
+      "add": {
+        "title": "Add it in Claude",
+        "body": "In Claude open Customize, then Connectors, then Add custom connector, paste the link and save."
+      },
+      "ask": {
+        "title": "Just ask",
+        "body": "Tap an example to copy it, then paste it into Claude."
+      }
+    },
+    "copy": {
+      "label": "Connector link",
+      "button": "Copy",
+      "copied": "Copied",
+      "announce": "Copied to the clipboard",
+      "failed": "Select the text and copy it."
+    },
+    "prompts": {
+      "label": "Examples to ask",
+      "book": "Book a haircut in Sidon tomorrow evening",
+      "find": "Find a dentist in Beirut this week",
+      "waitlist": "Put me on the waitlist for a massage on Friday"
+    },
+    "requirements": "Works with Claude. On a free Claude plan you can add one custom connector.",
+    "privacyTitle": "Your privacy",
+    "privacy": "If you book through an AI assistant, the assistant provider also processes what you type, under its own privacy policy. Maw3ed stores only your name, phone, email and appointment details.",
+    "privacyLink": "Read the privacy policy",
+    "faqTitle": "Questions",
+    "faq": {
+      "free": {
+        "q": "Is it free?",
+        "a": "Maw3ed does not charge clients. Claude's own plan rules apply, and a free Claude plan allows one custom connector."
+      },
+      "sees": {
+        "q": "What does Claude see?",
+        "a": "What you type in the chat, plus the public details of businesses on Maw3ed: names, services, prices and free times. Claude asks for your approval before it books or cancels."
+      },
+      "which": {
+        "q": "Which businesses can I book?",
+        "a": "Businesses that are listed on Maw3ed. A free time can be taken by someone else before you confirm, and you are told if that happens."
+      },
+      "cancel": {
+        "q": "Can I cancel or confirm?",
+        "a": "Yes, in the same chat, or with the links in your confirmation email."
+      },
+      "deposit": {
+        "q": "What about deposits?",
+        "a": "If a business asks for a deposit, you get a payment link to open. No card details are taken in the chat."
+      },
+      "remove": {
+        "q": "How do I remove it?",
+        "a": "In Claude open Customize, then Connectors, and remove Maw3ed."
+      }
+    },
+    "fallback": "Prefer to book on the website?",
+    "explore": "Explore businesses"
   }
 }

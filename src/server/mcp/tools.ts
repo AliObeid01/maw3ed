@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { AREA_KEYS, CATEGORY_KEYS } from '@/lib/business/profile';
-import { AppError, mapError, zodFields } from '@/server/http/errors';
+import { AppError, mapError, safeError, zodFields } from '@/server/http/errors';
 import type { Logger } from '@/server/http/logger';
 import { reportError } from '@/server/observability/report';
 import { assistantService, type AssistantCtx, type AssistantService } from '@/server/services/assistant';
@@ -423,6 +423,7 @@ export async function callTool(
     const mapped = toolErrorResult(error);
     outcome = mapped.code;
     result = mapped.result;
+    if (mapOutcomeUnexpected(error)) deps.logger.error({ tool: name, err: safeError(error) }, 'mcp tool failed');
     if (mapOutcomeUnexpected(error)) reportError(error, { route: 'mcp:tools/call', requestId: deps.requestId, businessId: business.id });
   }
   deps.logger.info(

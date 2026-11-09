@@ -7,3 +7,12 @@
 export function isAssistantEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
   return env.MCP_ENABLED === 'true';
 }
+
+/** The connector URL people paste into Claude: the site's public origin plus `/api/mcp`. Never a hardcoded domain. */
+export function connectorUrl(env: NodeJS.ProcessEnv = process.env): string {
+  const base = (env.NEXT_PUBLIC_APP_URL || env.APP_URL || 'http://localhost:3000').trim();
+  return `${base.replace(/\/+$/, '')}/api/mcp`;
+}
+
+/** The three example prompts, in display order (message keys under `assistant.prompts`). */
+export const PROMPT_KEYS = ['book', 'find', 'waitlist'] as const;

@@ -19,7 +19,7 @@ describe('site config', () => {
   });
   it('has fixed legal constants', () => {
     expect(LEGAL_DRAFT).toBe(false);
-    expect(LEGAL_UPDATED).toBe('2026-11-07');
+    expect(LEGAL_UPDATED).toBe('2026-11-09');
     expect(COPYRIGHT_YEAR).toBe(2026);
   });
 });

@@ -24,7 +24,7 @@ export const SITE = {
 /** Show the "Draft - under review" notice on /privacy and /terms. Flip it back to true to show the notice again. */
 export const LEGAL_DRAFT = false;
 /** Last update of both legal pages (ISO date). */
-export const LEGAL_UPDATED = '2026-11-07';
+export const LEGAL_UPDATED = '2026-11-09';
 /** The footer year is a constant, not the render time. */
 export const COPYRIGHT_YEAR = 2026;
 
