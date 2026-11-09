@@ -5,7 +5,7 @@ import { LegalToc } from './LegalToc';
 import { ltr } from '@/components/ui/Bidi';
 import { Callout } from '@/components/ui/Callout';
 import { legalKeys, type LegalSection } from '@/lib/legal';
-import { GOVERNING_LAW, LEGAL_DRAFT, LEGAL_UPDATED, SITE } from '@/lib/site';
+import { LEGAL_DRAFT, LEGAL_UPDATED, SITE } from '@/lib/site';
 
 /**
  * Reading layout for the Privacy policy and the Terms: title, draft notice, last-updated date, a table of
@@ -22,7 +22,7 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
     numberingSystem: 'latn',
   });
   // Latin runs (address, phone, placeholders) stay left to right inside Arabic text.
-  const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: ltr(SITE.address), law: ltr(GOVERNING_LAW) };
+  const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: ltr(SITE.address) };
   const key = (path: string) => `${doc}.sections.${path}`;
 
   return (

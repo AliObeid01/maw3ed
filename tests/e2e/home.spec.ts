@@ -514,14 +514,14 @@ test('footer: real links, one config for contact placeholders, no dead social li
   await expect(footer.getByRole('link', { name: 'Business sign in' })).toHaveAttribute('href', '/login');
   await expect(footer.getByRole('link', { name: 'Reminders and confirmations' })).toHaveAttribute('href', '/how-it-works#reminders');
   await expect(footer.getByRole('link', { name: 'How it works' })).toHaveAttribute('href', '/how-it-works');
-  await expect(footer.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', 'mailto:hello@[YOUR-DOMAIN]');
+  await expect(footer.getByRole('link', { name: 'Contact us' })).toHaveAttribute('href', 'mailto:hello@maw3edlb.com');
   await expect(footer.getByRole('link', { name: 'Privacy policy' })).toHaveAttribute('href', '/privacy');
   await expect(footer.getByRole('link', { name: 'Terms of use' })).toHaveAttribute('href', '/terms');
   expect((await footer.getByRole('link', { name: /hello@/ }).boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
   await expect(footer.getByRole('link', { name: 'Back to top' })).toHaveAttribute('href', '#top');
-  await expect(footer).toContainText('hello@[YOUR-DOMAIN]');
-  await expect(footer).toContainText('+961 [XX XXX XXX]');
-  await expect(footer).toContainText('[YOUR ADDRESS], Lebanon');
+  await expect(footer).toContainText('hello@maw3edlb.com');
+  await expect(footer).toContainText('+961 81958526');
+  await expect(footer).toContainText('Beirut, Lebanon');
   await expect(footer).toContainText('© 2026 Maw3ed. All rights reserved.');
   await expect(footer).not.toContainText(/My bookings|Help centre|Beirut time \(Asia/);
   await expect(footer.getByRole('link', { name: /Instagram|Facebook|WhatsApp/ })).toHaveCount(0);
