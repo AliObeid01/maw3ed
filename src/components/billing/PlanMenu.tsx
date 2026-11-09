@@ -3,7 +3,7 @@
 import { ChevronDown, CircleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { TitleExtra } from '@/components/app/HeaderActions';
 import { useErrorMessage } from '@/components/app/states';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,17 @@ function planLimitData(data: unknown): { limit: number; current: number } | null
   if (typeof data !== 'object' || data === null) return null;
   const { limit, current } = data as Record<string, unknown>;
   return typeof limit === 'number' && typeof current === 'number' ? { limit, current } : null;
+}
+
+/** Mounts with the open menu: puts focus on the first item (the popover would otherwise focus its own frame). */
+function FocusFirst() {
+  useEffect(() => {
+    const id = requestAnimationFrame(() =>
+      document.querySelector<HTMLElement>('[data-testid="plan-menu"] [role="menuitem"]')?.focus(),
+    );
+    return () => cancelAnimationFrame(id);
+  }, []);
+  return null;
 }
 
 const ITEM =
@@ -126,6 +137,7 @@ export function PlanMenu() {
         width={280}
       >
         <div className="flex flex-col gap-1 p-1" data-testid="plan-menu">
+          <FocusFirst />
           <p className="m-0 flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 text-sm text-muted">
             <span>
               {limit === null

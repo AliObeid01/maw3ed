@@ -33,7 +33,7 @@ test.describe('plan chip in the Settings header', () => {
     await chip.click();
     await expect(chip).toHaveAttribute('aria-expanded', 'true');
     const menu = page.getByTestId('plan-menu');
-    await expect(menu).toContainText('Bookable staff: 1 of 1');
+    await expect(menu).toContainText('Bookable staff: 3 of 1');
     await expect(menu.getByRole('menuitem')).toHaveText(['Upgrade to Pro', 'Compare plans']);
     await expect(menu.getByRole('menuitem', { name: 'Upgrade to Pro' })).toHaveAttribute('href', '/app/checkout?plan=pro');
     await expect(menu.getByRole('menuitem', { name: 'Compare plans' })).toHaveAttribute('href', '/for-business#plans');
@@ -46,7 +46,7 @@ test.describe('plan chip in the Settings header', () => {
     await expect(chip).toContainText('Pro');
     await chip.click();
     const menu = page.getByTestId('plan-menu');
-    await expect(menu).toContainText('Bookable staff: 1 (no limit)');
+    await expect(menu).toContainText('Bookable staff: 3 (no limit)');
     await expect(menu.getByRole('menuitem')).toHaveText(['Compare plans', 'Switch back to Free']);
     await expect(menu.getByRole('menuitem', { name: 'Compare plans' })).toHaveAttribute('href', '/for-business#plans');
     await expect(menu.getByRole('menuitem', { name: 'Upgrade to Pro' })).toHaveCount(0);
