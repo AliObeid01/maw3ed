@@ -187,4 +187,77 @@ test('booked subtitle (Arabic): the time range, service and staff are bidi-isola
   // LRI + "09:00 – 09:30" + PDI keeps the range in reading order inside the Arabic line; names are first-strong isolates.
   expect(subtitle).toMatch(/⁦09:00[  ]–⁠[  ]09:30⁩/);
   expect(subtitle).toContain('⁨Haircut⁩');
+  // PR-14b (a): the separators live in the message and are glued to the run that follows (no dangling "·" at a line end).
+  const rawSubtitle = await heading.locator('xpath=following-sibling::p').innerText();
+  expect.soft(rawSubtitle).toMatch(/ · ⁦09:00/);
+  expect.soft(rawSubtitle).toMatch(/⁩ · ⁨Haircut/);
+  // Geometry: every "·" sits on the same line as the character after it (a dot stranded at a line end reads as an error).
+  const stranded = await heading.locator('xpath=following-sibling::p').evaluate((p) => {
+    const bad: string[] = [];
+    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const text = n.textContent ?? '';
+      for (let i = text.indexOf('·'); i >= 0; i = text.indexOf('·', i + 1)) {
+        let j = i + 1;
+        while (j < text.length && /[s ⁦⁧⁨]/.test(text[j]!)) j++;
+        if (j >= text.length) continue;
+        const dot = document.createRange();
+        dot.setStart(n, i);
+        dot.setEnd(n, i + 1);
+        const next = document.createRange();
+        next.setStart(n, j);
+        next.setEnd(n, j + 1);
+        if (Math.abs(dot.getBoundingClientRect().top - next.getBoundingClientRect().top) > 4) bad.push(text.slice(i, j + 6));
+      }
+    }
+    return bad;
+  });
+  expect.soft(stranded).toEqual([]);
+  // PR-14b (d): ".ics" is an LTR isolate, so its dot cannot jump to the other side in Arabic.
+  const calendar = await page.getByText(/\.ics/).first().innerText();
+  expect.soft(calendar).toContain('⁦.ics⁩');
+});
+
+test('PR-14b: in Arabic the web address still reads "/b/" then the slug; the login placeholder keeps its order', async ({
+  page,
+  context,
+  baseURL,
+}) => {
+  await context.addCookies([{ name: 'locale', value: 'ar', url: baseURL! }]);
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto('/signup');
+  const prefix = (await page.getByText('/b/', { exact: true }).first().boundingBox())!;
+  const slug = (await page.locator('input[name="slug"]').boundingBox())!;
+  expect(prefix.x, 'the /b/ prefix sits before the slug').toBeLessThan(slug.x);
+  await expectNoPageOverflow(page);
+  await page.goto('/login');
+  const placeholder = await page.locator('input[placeholder*="you@example.com"]').first().getAttribute('placeholder');
+  expect(placeholder).toContain('⁦70 000 001⁩'); // the example number is an LTR isolate
+  // Rendered, the digit groups read 70, 000, 001 from left to right (without the isolate they came out as 001 000 70).
+  const order = await page.evaluate((text) => {
+    const el = document.createElement('div');
+    el.dir = 'ltr';
+    el.lang = 'ar';
+    el.style.cssText = 'position:absolute;top:0;left:0;white-space:nowrap';
+    el.textContent = text;
+    document.body.appendChild(el);
+    const node = el.firstChild as Text;
+    const at = (needle: string) => {
+      const range = document.createRange();
+      const i = text.indexOf(needle);
+      range.setStart(node, i);
+      range.setEnd(node, i + needle.length);
+      return range.getBoundingClientRect().left;
+    };
+    const out = { first: at('70'), second: at('000'), third: at('001') };
+    el.remove();
+    return out;
+  }, placeholder!);
+  expect(order.first).toBeLessThan(order.second);
+  expect(order.second).toBeLessThan(order.third);
+  // The footer address is translated too.
+  await page.goto('/privacy');
+  const footer = page.getByRole('contentinfo');
+  await expect(footer).toContainText('بيروت، لبنان');
+  await expect(footer).not.toContainText('Beirut, Lebanon');
 });

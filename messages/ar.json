@@ -98,6 +98,7 @@
     "footer": {
       "blurb": "حجز وتذكيرات لصالونات الحلاقة والتجميل والعيادات وأخصائيي العلاج الفيزيائي في لبنان.",
       "contactLabel": "التواصل",
+      "address": "بيروت، لبنان",
       "socialLabel": "تابعونا",
       "social": {
         "instagram": "إنستغرام",
@@ -1178,7 +1179,7 @@
       "title": "أهلًا بعودتك",
       "subtitle": "سجّل الدخول إلى نشاطك التجاري.",
       "email": "البريد الإلكتروني أو الهاتف",
-      "emailPlaceholder": "you@example.com أو 70 000 001",
+      "emailPlaceholder": "you@example.com أو ⁦70 000 001⁩",
       "password": "كلمة المرور",
       "passwordPlaceholder": "أدخل كلمة المرور",
       "submit": "تسجيل الدخول",
@@ -1490,8 +1491,8 @@
     "booked": {
       "eyebrow": "اكتمل الحجز",
       "title": "تم حجزك يا {name}!",
-      "subtitle": "{when} · {service} مع {staff}",
-      "calendar": "تحتوي رسالة الحجز على دعوة تقويم (.ics) لإضافة الموعد إلى تقويمك.",
+      "subtitle": "{day} · {range} · {service} مع {staff}",
+      "calendar": "تحتوي رسالة الحجز على دعوة تقويم ({ics}) لإضافة الموعد إلى تقويمك.",
       "nextTitle": "ماذا يحدث بعد ذلك",
       "next3Title": "لا تستطيع الحضور؟",
       "next3Body": "أكّد أو ألغِ من أي تذكير، أو من رابط حجزك.",

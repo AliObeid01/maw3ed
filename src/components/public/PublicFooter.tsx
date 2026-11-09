@@ -67,7 +67,7 @@ export function PublicFooter() {
               </li>
               <li className="inline-flex min-h-9 items-center gap-2.5">
                 <MapPin size={18} aria-hidden="true" className="text-hero-accent" />
-                <bdi>{SITE.address}</bdi>
+                <bdi>{t('public.footer.address')}</bdi>
               </li>
             </ul>
             {social.length > 0 ? (

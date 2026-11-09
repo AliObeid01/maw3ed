@@ -98,6 +98,7 @@
     "footer": {
       "blurb": "Booking and reminders for salons, barbers, clinics and physiotherapists in Lebanon.",
       "contactLabel": "Contact",
+      "address": "Beirut, Lebanon",
       "socialLabel": "Follow us",
       "social": {
         "instagram": "Instagram",
@@ -1490,8 +1491,8 @@
     "booked": {
       "eyebrow": "All done",
       "title": "You're booked, {name}!",
-      "subtitle": "{when} · {service} with {staff}",
-      "calendar": "Your booking email has a calendar invite (.ics) attached, so you can add this to your calendar.",
+      "subtitle": "{day} · {range} · {service} with {staff}",
+      "calendar": "Your booking email has a calendar invite ({ics}) attached, so you can add this to your calendar.",
       "nextTitle": "What happens next",
       "next3Title": "Can't make it?",
       "next3Body": "Confirm or cancel from any reminder, or from your booking link.",

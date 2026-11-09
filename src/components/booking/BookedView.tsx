@@ -95,7 +95,9 @@ export function BookedView({
               <p className="m-0 text-[15px] text-muted">
                 {t('subtitle', {
                   // Each run is isolated so the Arabic line cannot reorder the range, the service or the staff name.
-                  when: `${isolate(f.day(appointment.startAt))} · ${f.range(appointment.startAt, appointment.endAt)}`,
+                  // The separators live in the message, glued to the run that follows them.
+                  day: isolate(f.day(appointment.startAt)),
+                  range: f.range(appointment.startAt, appointment.endAt),
                   service: isolate(appointment.service.name),
                   staff: isolate(appointment.staff.displayName),
                 })}
@@ -104,7 +106,7 @@ export function BookedView({
           </div>
           {hasEmail ? (
             <p className="m-0 rounded-card-sm bg-brand-soft p-4 text-sm text-brand-deep">
-              {t('calendar')}
+              {t('calendar', { ics: ltr('.ics') })}
             </p>
           ) : null}
         </Card>

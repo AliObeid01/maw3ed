@@ -101,6 +101,8 @@ export function SlugField({
   return (
     <FieldShell id={id} label={label} error={error}>
       <div
+        // A web address reads left to right in both languages: the "/b/" prefix comes first, then the slug.
+        dir="ltr"
         className={cn(
           'flex h-[52px] items-center overflow-hidden rounded-input border bg-surface transition-colors duration-200 ease-out focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand',
           error ? 'border-danger' : 'border-line',

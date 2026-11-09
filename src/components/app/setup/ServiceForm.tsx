@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
-import { Input } from '@/components/ui/Field';
+import { Input, ltrNumericEnd } from '@/components/ui/Field';
 import { Select } from '@/components/ui/Select';
 import { Switch } from '@/components/ui/Switch';
 import { createService, updateService, type Service } from '@/lib/api/setup';
@@ -142,7 +142,7 @@ export function ServiceForm({
         inputMode="decimal"
         autoComplete="off"
         dir="ltr"
-        className="text-start"
+        className={ltrNumericEnd}
         error={errors.price}
         hint={t('field.bufferHint')}
       />
