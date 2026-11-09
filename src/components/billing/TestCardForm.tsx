@@ -15,6 +15,7 @@ import {
   formatCvc,
   formatExpiry,
   scenarioFor,
+  testExpiry,
   validateCard,
   type CardErrors,
   type CardField,
@@ -35,7 +36,10 @@ export function TestCardForm({
   onPay,
   alert,
   className,
+  now = () => new Date(),
 }: {
+  /** Injected clock (tests); defaults to the browser clock. */
+  now?: () => Date;
   /** Already formatted, for example "$9". */
   amountText: string;
   busy: boolean;
@@ -83,9 +87,8 @@ export function TestCardForm({
     setErrors((prev) => (prev[field] ? { ...prev, [field]: undefined } : prev));
 
   function fill() {
-    const year = String((new Date().getFullYear() + 3) % 100).padStart(2, '0');
     setNumber(pick === 'declined' ? TEST_CARD_DECLINED : TEST_CARD_SUCCESS);
-    setExpiry(`12/${year}`);
+    setExpiry(testExpiry(now()));
     setCvc('123');
     setName('Test Customer');
     setErrors({});
@@ -94,7 +97,7 @@ export function TestCardForm({
   function submit(event: FormEvent) {
     event.preventDefault();
     if (busy) return;
-    const found = validateCard({ number, expiry, cvc, name }, new Date());
+    const found = validateCard({ number, expiry, cvc, name }, now());
     const clean: CardErrors = {};
     for (const key of ORDER) if (found[key]) clean[key] = found[key];
     setErrors(clean);

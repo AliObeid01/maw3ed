@@ -9,7 +9,7 @@ import { ltr } from '@/components/ui/Bidi';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
 import { Card } from '@/components/ui/Card';
-import { Chip } from '@/components/ui/Chip';
+import { DrawnCheck } from '@/components/ui/DrawnCheck';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { ApiError } from '@/lib/api/auth';
 import { checkoutPro, getBilling } from '@/lib/api/billing';
@@ -17,6 +17,7 @@ import { useResource } from '@/lib/api/useResource';
 import { useAppFormat } from '@/lib/useAppFormat';
 import { clearProIntent } from '@/lib/billing/proIntent';
 import type { Scenario } from '@/lib/billing/testCard';
+import { PaymentProblem } from './PaymentProblem';
 import { TestCardForm } from './TestCardForm';
 
 type Outcome = 'idle' | 'paying' | 'declined' | 'failed' | 'paid';
@@ -100,12 +101,12 @@ function OwnerCheckout() {
   if (outcome === 'paid' || pro) {
     const justNow = outcome === 'paid';
     return (
-      <Card className="mx-auto flex w-full max-w-[560px] flex-col gap-4" data-testid="checkout-done">
+      <Card className="motion-fade-in mx-auto flex w-full max-w-[560px] flex-col gap-4" data-testid="checkout-done">
         <span
           aria-hidden="true"
           className="flex size-12 items-center justify-center rounded-full bg-brand-soft text-brand"
         >
-          <Check size={26} />
+          <DrawnCheck />
         </span>
         <h2
           ref={headingRef}
@@ -138,7 +139,6 @@ function OwnerCheckout() {
             <dt className="text-muted">{t('checkout.plan')}</dt>
             <dd className="m-0 flex flex-wrap items-center gap-2 font-medium">
               {t('checkout.planValue')}
-              <Chip tone="warning">{t('testBadge')}</Chip>
             </dd>
             <dt className="text-muted">{t('checkout.price')}</dt>
             <dd className="m-0 font-medium">{price}</dd>
@@ -163,14 +163,14 @@ function OwnerCheckout() {
             onPay={(scenario) => void pay(scenario)}
             alert={
               outcome === 'declined' || outcome === 'failed' ? (
-                <div role="alert" data-testid="checkout-problem">
+                <PaymentProblem testId="checkout-problem">
                   <Callout tone="danger" icon={<CircleAlert />}>
                     {outcome === 'declined' ? (
                       <b className="block font-semibold">{t('checkout.declinedTitle')}</b>
                     ) : null}
                     {outcome === 'declined' ? t('checkout.declined') : (message ?? t('checkout.failed'))}
                   </Callout>
-                </div>
+                </PaymentProblem>
               ) : null
             }
           />

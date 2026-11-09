@@ -16,7 +16,7 @@ const TOKEN_MARK = '[token]';
 
 // Values under keys like these are never sent, whatever they contain.
 const SENSITIVE_KEY =
-  /pass(word|wd)?|secret|authori[sz]ation|cookie|csrf|api[-_]?key|token|session|credential|otp|phone|e-?mail/i;
+  /pass(word|wd)?|secret|authori[sz]ation|cookie|csrf|api[-_]?key|token|session|credential|otp|phone|e-?mail|hold-?expires/i;
 
 // `password=hunter2`, `authorization: Bearer abc`, `"secret":"x"` inside a message.
 const KEY_VALUE =

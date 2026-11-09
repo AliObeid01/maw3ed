@@ -51,7 +51,7 @@ export function useNextFreePanel(area: string, enabled: boolean) {
   return { loading: !current, status: current?.status, items: current?.items ?? [] };
 }
 
-function Row({ business }: { business: DirectoryBusiness }) {
+function Row({ business, index }: { business: DirectoryBusiness; index: number }) {
   const t = useTranslations('home.nextFree');
   const locale = useLocale();
   const categoryLabel = useCategoryLabel();
@@ -69,7 +69,7 @@ function Row({ business }: { business: DirectoryBusiness }) {
   const meta = profileLine(categoryLabel(business.category), business.address ?? areaLabel(business.area));
 
   return (
-    <li className="border-t border-divider first:border-t-0">
+    <li data-step={index > 0 ? index : undefined} className="motion-row-in border-t border-divider first:border-t-0">
       <Link
         href={`/b/${encodeURIComponent(business.slug)}`}
         className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[14px] px-2.5 py-2 text-ink no-underline transition-colors duration-200 ease-out hover:bg-divider aria-busy:opacity-70 motion-reduce:transition-none"
@@ -134,8 +134,8 @@ export function NextFreePanel({ area, onHidden }: { area: string; onHidden: (hid
           </div>
         ) : (
           <ul className="m-0 grid list-none p-0">
-            {items.map((b) => (
-              <Row key={b.slug} business={b} />
+            {items.map((b, i) => (
+              <Row key={b.slug} business={b} index={i} />
             ))}
           </ul>
         )}

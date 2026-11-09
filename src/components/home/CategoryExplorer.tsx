@@ -162,7 +162,7 @@ function Panel({
                   <li key={s.name}>
                     <Link
                       href={categoryServiceUrl(category, s.name)}
-                      className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-surface px-4 text-[15.5px] font-medium text-ink no-underline transition-colors duration-200 ease-out hover:bg-brand-soft motion-reduce:transition-none"
+                      className="motion-press inline-flex min-h-11 items-center gap-2 rounded-pill bg-surface px-4 text-[15.5px] font-medium text-ink no-underline transition-colors duration-200 ease-out hover:bg-brand-soft motion-reduce:transition-none"
                     >
                       <Bidi>{s.name}</Bidi>
                       <em className="font-bold text-brand not-italic">
@@ -294,7 +294,7 @@ export function CategoryExplorer() {
                       aria-pressed={active}
                       onClick={() => setSelected(key)}
                       className={cn(
-                        'grid min-h-[66px] w-full cursor-pointer grid-cols-[48px_1fr] items-center gap-3 rounded-[16px] border-0 px-3.5 py-2 text-start transition-colors duration-200 ease-out max-lg:w-[256px] lg:grid-cols-[48px_1fr_20px] motion-reduce:transition-none',
+                        'motion-press grid min-h-[66px] w-full cursor-pointer grid-cols-[48px_1fr] items-center gap-3 rounded-[16px] border-0 px-3.5 py-2 text-start transition-colors duration-200 ease-out max-lg:w-[256px] lg:grid-cols-[48px_1fr_20px] motion-reduce:transition-none',
                         active ? 'bg-navy text-white' : 'bg-transparent text-ink hover:bg-divider',
                       )}
                     >

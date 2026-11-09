@@ -27,13 +27,13 @@ export function ResultCard({ business, now }: { business: DirectoryBusiness; now
   const dayText = !m.day
     ? null
     : m.day.kind === 'today'
-      ? t('freeToday')
+      ? t('dayToday')
       : m.day.kind === 'tomorrow'
-        ? t('freeTomorrow')
-        : t('freeOn', { day: m.day.text ?? '' });
+        ? t('dayTomorrow')
+        : (m.day.text ?? '');
 
   return (
-    <li className="m-0 flex list-none flex-col gap-3.5 rounded-[20px] border-[1.5px] border-divider bg-surface p-[18px] transition-colors duration-200 ease-out hover:border-electric motion-reduce:transition-none">
+    <li className="motion-lift m-0 flex list-none flex-col gap-3.5 rounded-[20px] border-[1.5px] border-divider bg-surface p-[18px] transition-colors duration-200 ease-out hover:border-electric motion-reduce:transition-none">
       <div className="flex items-center gap-3.5">
         <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={52} tone="brand" />
         <div className="min-w-0 flex-1">
@@ -74,13 +74,14 @@ export function ResultCard({ business, now }: { business: DirectoryBusiness; now
       <div className="grid gap-2 border-t border-divider pt-3.5">
         {m.times.length > 0 && dayText ? (
           <>
-            <p className="m-0 flex flex-wrap items-baseline gap-x-2 text-sm font-semibold text-muted">
-              <span>{dayText}</span>
-              {m.freeService ? (
-                <span className="font-normal">
-                  {t('forService', { service: isolate(m.freeService) })}
-                </span>
-              ) : null}
+            {/* Same two pieces and wording as the home cards: "Free times for <service>" then the day. */}
+            <p data-testid="free-label" className="m-0 flex flex-wrap gap-x-2 text-sm font-semibold text-muted">
+              <span data-testid="free-label-service">
+                {m.freeService ? t('freeTimesFor', { service: isolate(m.freeService) }) : t('freeTimes')}
+              </span>
+              <span data-testid="free-label-day" className="font-normal">
+                {dayText}
+              </span>
             </p>
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {m.times.map((time) => (
@@ -88,7 +89,7 @@ export function ResultCard({ business, now }: { business: DirectoryBusiness; now
                   <Link
                     href={href}
                     aria-label={t('timeAria', { time: time.text, name: business.name })}
-                    className="inline-flex min-h-11 items-center rounded-tile border-[1.5px] border-brand-avatar bg-surface px-3 text-base font-semibold text-brand sm:px-4 no-underline transition-colors duration-200 ease-out hover:border-electric hover:bg-electric hover:text-white motion-reduce:transition-none"
+                    className="motion-lift motion-press inline-flex min-h-11 items-center rounded-tile border-[1.5px] border-brand-avatar bg-surface px-3 text-base font-semibold text-brand sm:px-4 no-underline transition-colors duration-200 ease-out hover:border-electric hover:bg-electric hover:text-white motion-reduce:transition-none"
                   >
                     <span dir="ltr" className="tabular-nums">
                       {time.text}

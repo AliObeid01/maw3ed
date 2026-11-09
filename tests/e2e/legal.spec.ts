@@ -93,6 +93,9 @@ for (const [width, height] of [
       // It really scrolled there: just under the header (88 px scroll-padding + 16 px scroll-margin = 104), not left far below.
       const landed = (await heading.boundingBox())!.y;
       expect(landed).toBeGreaterThanOrEqual(header);
+      // PR-12 (a mutation removing `scroll-mt-4` survived the loose bound below): the landing spot is exactly
+      // 88 px scroll-padding + 16 px scroll-margin, when the page is long enough to put it there.
+      if (index !== hrefs.length - 1) expect(Math.abs(landed - 104)).toBeLessThan(3);
       // The last section may be too short to reach the top (the page ends first): then it is simply in view.
       expect(landed).toBeLessThan(index === hrefs.length - 1 ? page.viewportSize()!.height - 100 : 140);
       if (!phone || index === hrefs.length - 1) {

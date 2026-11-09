@@ -1,6 +1,7 @@
 import { type Page } from '@playwright/test';
 import { expect, test } from './helpers/test';
 import { nowDate, nowMs, ORIGIN } from './helpers/clock';
+import { watchCardLeaks } from './helpers/cardLeak';
 import { readStored } from './helpers/myBookings';
 import { IDS, mockPublicApi, SLUG } from './helpers/publicMock';
 
@@ -121,12 +122,14 @@ test.describe('deposit journey', () => {
 
   test('a declined test card keeps the hold and can be retried; the digits are never sent', async ({ page }) => {
     await mockDeposit(page, { declineFirst: true });
+    const leaks = await watchCardLeaks(page);
     const sent: string[] = [];
     page.on('request', (req) => {
       if (req.method() === 'POST') sent.push(`${req.url()} ${req.postData() ?? ''}`);
     });
     await page.goto(`/pay/${PAY_TOKEN}`);
     const form = page.getByTestId('test-card-form');
+    await expect(page.getByText(/test mode/i)).toHaveCount(1); // one note, not two
     await form.getByLabel('Card number').fill('4000000000000002');
     await form.getByLabel('Expiry').fill('1230');
     await form.getByLabel('CVC').fill('123');
@@ -141,6 +144,7 @@ test.describe('deposit journey', () => {
     for (const body of sent) {
       expect(body.replaceAll(/\s/g, '')).not.toMatch(/\d{9,}/);
     }
+    await leaks.assertNoCardDigits(['4000000000000002', '4242424242424242']);
     expect(sent[0]).toContain('"scenario":"declined"');
     expect(sent[1]).toContain('"scenario":"success"');
   });

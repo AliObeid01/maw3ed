@@ -33,7 +33,7 @@ export function PlaceCard({ business, headingLevel = 3 }: { business: DirectoryB
   const services = (business.services ?? []).slice(0, CARD_SERVICES);
 
   return (
-    <article className="grid grid-cols-[minmax(0,1fr)] content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
+    <article className="motion-lift grid grid-cols-[minmax(0,1fr)] content-start gap-3.5 rounded-[18px] bg-surface p-4 text-ink">
       <div className="flex items-center gap-3">
         <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} />
         <div className="min-w-0 flex-1">
@@ -82,7 +82,7 @@ export function PlaceCard({ business, headingLevel = 3 }: { business: DirectoryB
                   <Link
                     href={href}
                     aria-label={t('nextFree.timeAria', { time, name: business.name })}
-                    className="inline-flex min-h-11 items-center rounded-tile border-[1.5px] border-brand-avatar bg-surface px-4 text-base font-semibold text-brand no-underline transition-colors duration-200 ease-out hover:border-electric hover:bg-electric hover:text-white motion-reduce:transition-none"
+                    className="motion-lift motion-press inline-flex min-h-11 items-center rounded-tile border-[1.5px] border-brand-avatar bg-surface px-4 text-base font-semibold text-brand no-underline transition-colors duration-200 ease-out hover:border-electric hover:bg-electric hover:text-white motion-reduce:transition-none"
                   >
                     <span dir="ltr" className="tabular-nums">
                       {time}

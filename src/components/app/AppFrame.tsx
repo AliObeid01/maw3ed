@@ -18,7 +18,7 @@ import { VerifyBanner } from './VerifyBanner';
 import { SessionProvider, ShellLogoProvider, useShellLogo, type AppSession } from './SessionContext';
 import { SummaryProvider, useSummary } from './SummaryContext';
 import { ViewedDayProvider, useViewedDay } from './ViewedDayContext';
-import { defaultHrefs, type ActiveId } from './nav';
+import { defaultHrefs, hidesNewBookingFab, type ActiveId } from './nav';
 import { useSignOut } from './useSignOut';
 
 /** Which nav entry is active for a pathname (longest matching href wins; unknown pages fall back to Today). */
@@ -107,6 +107,7 @@ function Frame({ session, children }: { session: AppSession; children: ReactNode
       badges={badges}
       hrefs={practitioner ? { today: PRACTITIONER_HOME } : undefined}
       practitioner={practitioner}
+      hideFab={hidesNewBookingFab(pathname)}
       eyebrow={
         isToday
           ? format.dateTime(header.instant, {

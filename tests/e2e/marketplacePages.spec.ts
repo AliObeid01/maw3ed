@@ -83,6 +83,31 @@ test.describe('/how-it-works', () => {
     await expectNoPageOverflow(page);
   });
 
+  test('PR-12: a slow navigation to an anchor still lands on it once the real page replaces the skeleton (HashScroll)', async ({ page }) => {
+    await mockExplore(page);
+    // The prefetch goes through (so the route's skeleton is known and shows at once); only the page itself is slow.
+    await page.route(/how-it-works.*_rsc|_rsc.*how-it-works/, async (route) => {
+      if (route.request().headers()['next-router-prefetch']) return route.continue();
+      await new Promise((r) => setTimeout(r, 1500));
+      await route.continue();
+    });
+    const prefetched = page.waitForResponse((r) => r.url().includes('how-it-works') && r.url().includes('_rsc'));
+    await page.goto('/');
+    const link = page.getByRole('contentinfo').getByRole('link', { name: 'Reminders and confirmations' });
+    await link.scrollIntoViewIfNeeded(); // links are prefetched when they enter the viewport
+    await prefetched;
+    await link.click();
+    await expect(page.getByRole('main').getByRole('status')).toHaveCount(1); // the skeleton is up while it is slow
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('How Maw3ed works');
+    const head = (await header(page).boundingBox())!.height;
+    await expect
+      .poll(async () => {
+        const y = (await page.locator('#reminders').boundingBox())!.y;
+        return y >= head && y < 140;
+      })
+      .toBe(true);
+  });
+
   test('anchors land with the heading below the sticky header: from the footer link and from a direct URL', async ({ page }) => {
     await mockExplore(page);
     // The settled top of an element: smooth scrolling may still be running right after the click.

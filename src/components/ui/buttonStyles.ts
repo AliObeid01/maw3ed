@@ -40,7 +40,7 @@ export function buttonClasses({
   className?: string;
 } = {}) {
   return cn(
-    'inline-flex shrink-0 select-none items-center justify-center gap-2 rounded-btn font-semibold whitespace-nowrap no-underline transition-colors duration-200 ease-out',
+    'motion-press inline-flex shrink-0 select-none items-center justify-center gap-2 rounded-btn font-semibold whitespace-nowrap no-underline transition-colors duration-200 ease-out',
     'disabled:cursor-not-allowed disabled:opacity-60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60',
     variants[variant],
     sizes[size],
