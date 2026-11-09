@@ -69,7 +69,8 @@ describe('PRACTITIONER route matrix', () => {
           src
             .split(new RegExp(`^export const ${method} = withRoute`, 'm'))[1]
             ?.split(/^export const /m)[0] ?? '';
-        const mode = /auth:\s*'(\w+)'/.exec(chunk)?.[1] ?? '?';
+        // /api/mcp is the one JSON-RPC endpoint outside withRoute: no session at all (kill switch, then protocol).
+        const mode = rel === 'mcp' ? 'protocol' : (/auth:\s*'(\w+)'/.exec(chunk)?.[1] ?? '?');
         if (mode !== 'session') {
           results.push({ route: rel, method, status: 0, mode });
           continue;
