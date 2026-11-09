@@ -4,6 +4,14 @@ import { cn } from '@/lib/cn';
 export const control =
   'h-[52px] w-full rounded-input border bg-surface px-3.5 text-base text-ink placeholder:text-subtle transition-colors duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-60';
 
+/**
+ * For a forced-LTR numeric input (card number, expiry, CVC, phone): the digits stay left-to-right (dir="ltr"), but the
+ * text sits at the END edge of the PAGE so it lines up under its label (right in Arabic, left in English). A physical
+ * `text-right` is needed because the input itself is dir="ltr", so `text-end` would resolve to the left; `rtl:` reads the
+ * page direction from an ancestor.
+ */
+export const ltrNumericEnd = 'rtl:text-right';
+
 export function borderFor(error?: string) {
   return error ? 'border-danger' : 'border-line';
 }

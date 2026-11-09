@@ -18,7 +18,7 @@ test('shows the slot in the business timezone with an expiry time; GET alone nev
   await expect(page.getByRole('heading', { name: 'A spot just opened up' })).toBeVisible();
   await expect(page.getByText(/.?Haircut.? with .?Karim.? · .?\$15/)).toBeVisible(); // bidi isolates surround the name and price
   const startLocal = start.setZone(TZ).toFormat('HH:mm');
-  await expect(page.getByText(new RegExp(`${startLocal} – `))).toBeVisible();
+  await expect(page.getByText(new RegExp(`${startLocal}\\W\u2013`))).toBeVisible(); // a no-break space, not a plain one
   const expires = expiresAt.setZone(TZ).toFormat('HH:mm');
   await expect(page.getByText(`Offer expires at ${expires}`)).toBeVisible();
   await expect(page.getByText(/\d+ minutes? left/)).toBeVisible();
@@ -223,7 +223,7 @@ test('Arabic: RTL, translated expiry text, times and money isolated as LTR', asy
   await expect(page.getByRole('heading', { name: 'توفر موعد للتو' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'احجز هذا الموعد' })).toBeVisible();
   await expect(page.getByTestId('expiry')).toContainText('ينتهي العرض عند');
-  await expect(page.locator('bdi').filter({ hasText: /⁦\d{1,2}:\d{2} – \d{1,2}:\d{2}⁩/ }).first()).toBeVisible();
+  await expect(page.locator('bdi').filter({ hasText: /⁦\d{1,2}:\d{2}[\s ]–⁠[\s ]\d{1,2}:\d{2}⁩/ }).first()).toBeVisible();
   await page.getByRole('button', { name: 'احجز هذا الموعد' }).click();
   await expect(page.getByRole('heading', { name: 'تم حجزك' })).toBeVisible();
   await expect(page.locator('bdi', { hasText: 'Haircut' }).first()).toBeVisible();

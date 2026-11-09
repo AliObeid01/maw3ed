@@ -49,6 +49,12 @@ function Summary({ entry, chip }: { entry: SavedBooking; chip?: React.ReactNode 
   const t = useTranslations('myBookings');
   const locale = useLocale();
   const when = formatWhen(entry.startAt, entry.endAt, entry.timezone, locale);
+  // The range never splits across lines; a long Arabic day may still wrap before it.
+  const whenLine = t.rich('when', {
+    day: when.day,
+    range: ltr(when.range),
+    r: (chunks) => <span className="whitespace-nowrap">{chunks}</span>,
+  });
   return (
     <div className="flex items-start gap-3.5">
       <DateTile month={when.month} day={when.dayOfMonth} />
@@ -60,7 +66,7 @@ function Summary({ entry, chip }: { entry: SavedBooking; chip?: React.ReactNode 
           {t('with', { service: isolate(entry.serviceName), staff: isolate(entry.staffName) })}
         </p>
         <p className="m-0 min-w-0 text-[15px] text-muted break-words">
-          {t('when', { day: when.day, range: ltr(when.range) })}
+          {whenLine}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
           {chip}

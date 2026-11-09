@@ -7,7 +7,7 @@ import { useEffect, useRef } from 'react';
 import { useSavedCount } from '@/components/myBookings/useSavedBookings';
 import { BookingSummary } from '@/components/public/BookingSummary';
 import { Button, ButtonLink } from '@/components/ui/Button';
-import { ltr } from '@/components/ui/Bidi';
+import { isolate, ltr } from '@/components/ui/Bidi';
 import { Card } from '@/components/ui/Card';
 import type { BookingResult } from '@/lib/api/booking';
 import { reminderPromiseKind } from '@/lib/reminders/promise';
@@ -94,9 +94,10 @@ export function BookedView({
               </h2>
               <p className="m-0 text-[15px] text-muted">
                 {t('subtitle', {
-                  when: `${when} – ${f.time(appointment.endAt)}`,
-                  service: appointment.service.name,
-                  staff: appointment.staff.displayName,
+                  // Each run is isolated so the Arabic line cannot reorder the range, the service or the staff name.
+                  when: `${isolate(f.day(appointment.startAt))} · ${f.range(appointment.startAt, appointment.endAt)}`,
+                  service: isolate(appointment.service.name),
+                  staff: isolate(appointment.staff.displayName),
                 })}
               </p>
             </div>

@@ -6,6 +6,8 @@ import { formatClock } from '@/lib/time/clock';
 import { useAppFormat } from '@/lib/useAppFormat';
 
 const LATIN = { numberingSystem: 'latn' } as const;
+const NBSP = String.fromCharCode(0xa0);
+const WORD_JOINER = String.fromCharCode(0x2060);
 
 /** A local `yyyy-MM-dd` as a Date that formats the same calendar day in UTC (no timezone drift). */
 const ymdDate = (ymd: string) => new Date(`${ymd}T12:00:00Z`);
@@ -24,8 +26,12 @@ export function useBookingFormat(timezone: string) {
   return {
     money,
     duration,
-    /** "09:00 – 09:30" as one left-to-right unit for ICU arguments. */
-    range: (startIso: string, endIso: string) => timeRangeText(time(startIso), time(endIso)),
+    /**
+     * "09:00 – 09:30" as one left-to-right unit for ICU arguments, kept on ONE line: no-break spaces, and a word joiner
+     * after the dash (a line may otherwise break right after an en dash, even before a no-break space).
+     */
+    range: (startIso: string, endIso: string) =>
+      timeRangeText(time(startIso), time(endIso)).replace(' – ', `${NBSP}–${WORD_JOINER}${NBSP}`),
     /** "09:00" / "10:30": zero-padded 24-hour, Latin digits in both languages (`formatClock`, the one shared formatter). */
     time,
     /** "Thu 29 Oct" */

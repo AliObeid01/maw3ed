@@ -6,7 +6,7 @@ import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'rea
 import { ltr } from '@/components/ui/Bidi';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
-import { Input } from '@/components/ui/Field';
+import { Input, ltrNumericEnd } from '@/components/ui/Field';
 import { Select } from '@/components/ui/Select';
 import {
   TEST_CARD_DECLINED,
@@ -165,7 +165,7 @@ export function TestCardForm({
         error={text('number')}
         readOnly={busy}
         spellCheck={false}
-        className="tabular-nums"
+        className={`tabular-nums ${ltrNumericEnd}`}
       />
       <div className="grid grid-cols-2 gap-3">
         <Input
@@ -184,7 +184,7 @@ export function TestCardForm({
           readOnly={busy}
           spellCheck={false}
           maxLength={5}
-          className="tabular-nums"
+          className={`tabular-nums ${ltrNumericEnd}`}
         />
         <Input
           label={t('cvc')}
@@ -202,7 +202,7 @@ export function TestCardForm({
           readOnly={busy}
           spellCheck={false}
           maxLength={4}
-          className="tabular-nums"
+          className={`tabular-nums ${ltrNumericEnd}`}
         />
       </div>
       <Input
