@@ -7,6 +7,18 @@ import { Callout } from '@/components/ui/Callout';
 import { legalKeys, type LegalSection } from '@/lib/legal';
 import { LEGAL_DRAFT, LEGAL_UPDATED, SITE } from '@/lib/site';
 
+/** The "Draft - under review" notice: rendered only while `show` (the `LEGAL_DRAFT` switch in site.ts) is true. */
+export function LegalDraftNotice({ show, title, body }: { show: boolean; title: string; body: string }) {
+  if (!show) return null;
+  return (
+    <Callout tone="warning" icon={<FileWarning />} className="mt-5">
+      <p role="note" data-testid="legal-draft" className="m-0">
+        <b className="font-semibold">{title}.</b> {body}
+      </p>
+    </Callout>
+  );
+}
+
 /**
  * Reading layout for the Privacy policy and the Terms: title, draft notice, last-updated date, a table of
  * contents on wide screens, and numbered sections with anchors. Server-rendered from `legal.<doc>`.
@@ -33,13 +45,7 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
         </h1>
         <p className="m-0 mt-3 text-[17px] text-muted">{t(`${doc}.intro`)}</p>
         <p className="m-0 mt-2 text-sm font-semibold text-muted">{t('common.updated', { date: updated })}</p>
-        {LEGAL_DRAFT ? (
-          <Callout tone="warning" icon={<FileWarning />} className="mt-5">
-            <p role="note" data-testid="legal-draft" className="m-0">
-              <b className="font-semibold">{t('common.draftTitle')}.</b> {t('common.draftBody')}
-            </p>
-          </Callout>
-        ) : null}
+        <LegalDraftNotice show={LEGAL_DRAFT} title={t('common.draftTitle')} body={t('common.draftBody')} />
       </header>
 
       <div className="mt-10 grid gap-8 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-14">

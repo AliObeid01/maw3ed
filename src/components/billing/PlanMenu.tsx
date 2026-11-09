@@ -24,7 +24,12 @@ function planLimitData(data: unknown): { limit: number; current: number } | null
   return typeof limit === 'number' && typeof current === 'number' ? { limit, current } : null;
 }
 
-/** Mounts with the open menu: puts focus on the first item (the popover would otherwise focus its own frame). */
+/**
+ * Mounts with the open menu: puts focus on the first item (the popover would otherwise focus its own frame).
+ * It finds the item by `data-testid="plan-menu"` and DOM order, so keep the first `role="menuitem"` first in the
+ * markup below (`data-picker-host` marks it for the phone sheet, which looks for that attribute). Radix cannot do this
+ * for us: PickerSurface keeps Tab for closing, and the popover would otherwise focus its own frame.
+ */
 function FocusFirst() {
   useEffect(() => {
     const id = requestAnimationFrame(() =>
@@ -108,7 +113,7 @@ export function PlanMenu() {
           ref={chipRef}
           type="button"
           data-testid="plan-chip"
-          aria-haspopup="dialog"
+          aria-haspopup="menu"
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((o) => !o)}
           className="motion-press inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-pill border border-line bg-surface ps-3.5 pe-2.5 text-sm font-semibold text-ink transition-colors duration-200 hover:bg-canvas aria-expanded:border-brand motion-reduce:transition-none"

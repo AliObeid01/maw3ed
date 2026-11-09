@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_SENTRY_RELEASE: process.env.VERCEL_GIT_COMMIT_SHA ?? '',
   },
   // PR-13: /pricing was removed; its content lives on /for-business#plans. ONE permanent redirect keeps old links and
-  // bookmarks working (308 + Location with the hash; tests/e2e/for-business.plans.spec.ts checks it).
+  // bookmarks working (308 + Location with the hash; /pricing/ and /pricing?x=1 end there too; tests/e2e/forBusinessPlans.spec.ts checks it).
   async redirects() {
     return [{ source: '/pricing', destination: '/for-business#plans', permanent: true }];
   },

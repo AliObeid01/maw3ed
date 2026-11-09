@@ -60,6 +60,12 @@ test.describe('plans section', () => {
     await page.goto('/pricing');
     await expect(page).toHaveURL(/\/for-business#plans$/);
     await expect(page.locator('section#plans')).toBeVisible();
+    // A trailing slash and a query string end there too (the hash is added by the redirect; the query is not part of the target).
+    for (const old of ['/pricing/', '/pricing?x=1']) {
+      await page.goto(old);
+      await expect(page).toHaveURL(/\/for-business(\?[^#]*)?#plans$/);
+      await expect(page.locator('section#plans')).toBeVisible();
+    }
     for (const path of ['/for-business', '/how-it-works', '/privacy']) {
       await page.goto(path);
       await expect(page.locator('a[href="/pricing"]')).toHaveCount(0);
