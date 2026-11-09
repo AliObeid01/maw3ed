@@ -1179,7 +1179,7 @@
       "title": "أهلًا بعودتك",
       "subtitle": "سجّل الدخول إلى نشاطك التجاري.",
       "email": "البريد الإلكتروني أو الهاتف",
-      "emailPlaceholder": "you@example.com أو ⁦70 000 001⁩",
+      "emailPlaceholder": "you@example.com أو \u206670 000 001\u2069",
       "password": "كلمة المرور",
       "passwordPlaceholder": "أدخل كلمة المرور",
       "submit": "تسجيل الدخول",
@@ -1491,7 +1491,7 @@
     "booked": {
       "eyebrow": "اكتمل الحجز",
       "title": "تم حجزك يا {name}!",
-      "subtitle": "{day} · {range} · {service} مع {staff}",
+      "subtitle": "{day} ·\u00a0{range} ·\u00a0{service} مع {staff}",
       "calendar": "تحتوي رسالة الحجز على دعوة تقويم ({ics}) لإضافة الموعد إلى تقويمك.",
       "nextTitle": "ماذا يحدث بعد ذلك",
       "next3Title": "لا تستطيع الحضور؟",

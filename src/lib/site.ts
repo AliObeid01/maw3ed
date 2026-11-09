@@ -7,6 +7,11 @@
 export const SITE = {
   email: 'hello@maw3edlb.com',
   phone: '+961 81958526',
+  /**
+   * The machine value (structured data, plain-text uses). It is NOT what readers see: the displayed address comes from
+   * the message key `public.footer.address` (footer and legal pages, translated). `en` must stay equal to this value;
+   * tests/unit/home/siteAddress.test.ts enforces it.
+   */
   address: 'Beirut, Lebanon',
   /** Full https URLs. Empty = the icon is not rendered. */
   social: {

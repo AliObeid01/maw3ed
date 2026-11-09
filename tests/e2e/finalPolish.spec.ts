@@ -192,27 +192,45 @@ test('booked subtitle (Arabic): the time range, service and staff are bidi-isola
   expect.soft(rawSubtitle).toMatch(/ · ⁦09:00/);
   expect.soft(rawSubtitle).toMatch(/⁩ · ⁨Haircut/);
   // Geometry: every "·" sits on the same line as the character after it (a dot stranded at a line end reads as an error).
-  const stranded = await heading.locator('xpath=following-sibling::p').evaluate((p) => {
-    const bad: string[] = [];
-    const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
-    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-      const text = n.textContent ?? '';
-      for (let i = text.indexOf('·'); i >= 0; i = text.indexOf('·', i + 1)) {
-        let j = i + 1;
-        while (j < text.length && /[s ⁦⁧⁨]/.test(text[j]!)) j++;
-        if (j >= text.length) continue;
-        const dot = document.createRange();
-        dot.setStart(n, i);
-        dot.setEnd(n, i + 1);
-        const next = document.createRange();
-        next.setStart(n, j);
-        next.setEnd(n, j + 1);
-        if (Math.abs(dot.getBoundingClientRect().top - next.getBoundingClientRect().top) > 4) bad.push(text.slice(i, j + 6));
+  // At 360 px this subtitle fits on one line, so the check runs at narrow widths where it really wraps, and the test
+  // fails if it never wraps (then it would prove nothing).
+  const subtitleP = heading.locator('xpath=following-sibling::p');
+  const stranded: string[] = [];
+  const wrappedAt: number[] = [];
+  for (const width of [320, 280, 240, 200]) {
+    await page.setViewportSize({ width, height: 800 });
+    const { lines, bad } = await subtitleP.evaluate((p) => {
+      const bad: string[] = [];
+      const tops = new Set<number>();
+      const all = document.createRange();
+      all.selectNodeContents(p);
+      for (const r of Array.from(all.getClientRects())) tops.add(Math.round(r.top / 4));
+      const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const text = n.textContent ?? '';
+        for (let i = text.indexOf('·'); i >= 0; i = text.indexOf('·', i + 1)) {
+          let j = i + 1;
+          while (j < text.length && /[\s⁠⁦⁧⁨]/.test(text[j]!)) j++;
+          if (j >= text.length) continue;
+          const dot = document.createRange();
+          dot.setStart(n, i);
+          dot.setEnd(n, i + 1);
+          const next = document.createRange();
+          next.setStart(n, j);
+          next.setEnd(n, j + 1);
+          const dotTop = dot.getClientRects()[0]?.top ?? 0;
+          const nextTop = next.getClientRects()[0]?.top ?? 0;
+          if (Math.abs(dotTop - nextTop) > 4) bad.push(text.slice(i, j + 6));
+        }
       }
-    }
-    return bad;
-  });
+      return { lines: tops.size, bad };
+    });
+    if (lines > 1) wrappedAt.push(width);
+    stranded.push(...bad.map((b) => `${width}px: ${b}`));
+  }
+  expect(wrappedAt, 'the subtitle never wraps at the tested widths, so the stranded-dot check proves nothing').not.toEqual([]);
   expect.soft(stranded).toEqual([]);
+  await page.setViewportSize({ width: 360, height: 800 });
   // PR-14b (d): ".ics" is an LTR isolate, so its dot cannot jump to the other side in Arabic.
   const calendar = await page.getByText(/\.ics/).first().innerText();
   expect.soft(calendar).toContain('⁦.ics⁩');

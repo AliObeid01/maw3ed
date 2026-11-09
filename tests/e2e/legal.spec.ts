@@ -24,6 +24,8 @@ for (const p of PAGES) {
     const text = await page.getByRole('main').innerText();
     for (const m of p.mentions) expect(text).toContain(m);
     expect(text).toContain('hello@maw3edlb.com');
+    // The contact line shows the translated address (same message key as the footer).
+    expect(text).toContain('Beirut, Lebanon');
     // Each table-of-contents link points at a heading that exists.
     for (const href of await toc.getByRole('link').evaluateAll((els) => els.map((e) => e.getAttribute('href')!))) {
       await expect(page.locator(`h2${href}`)).toHaveCount(1);
@@ -41,6 +43,9 @@ for (const p of PAGES) {
     await expect(page.getByTestId('legal-draft')).toHaveCount(0);
     if (p.path === '/terms') await expect(page.getByRole('main')).toContainText('تخضع هذه الشروط لقوانين لبنان.');
     const text = await page.getByRole('main').innerText();
+    // The contact line shows the Arabic address, not the Latin machine value.
+    expect(text).toContain('بيروت، لبنان');
+    expect(text).not.toContain('Beirut, Lebanon');
     expect(text).toMatch(/7/);
     expect(text).not.toMatch(/[٠-٩]/);
     await expectNoPageOverflow(page);
