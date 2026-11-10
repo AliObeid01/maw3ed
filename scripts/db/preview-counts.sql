@@ -1,0 +1,28 @@
+-- Maw3ed: READ-ONLY row counts. Changes NOTHING. Run this first.
+-- Every app table is listed; the migration history table is shown so you can see it is NOT touched.
+SELECT 'Business'        AS "table", count(*) AS rows FROM "Business"
+UNION ALL SELECT 'BusinessLogo',    count(*) FROM "BusinessLogo"
+UNION ALL SELECT 'User',            count(*) FROM "User"
+UNION ALL SELECT 'EmailToken',      count(*) FROM "EmailToken"
+UNION ALL SELECT 'Session',         count(*) FROM "Session"
+UNION ALL SELECT 'Membership',      count(*) FROM "Membership"
+UNION ALL SELECT 'Invite',          count(*) FROM "Invite"
+UNION ALL SELECT 'StaffMember',     count(*) FROM "StaffMember"
+UNION ALL SELECT 'ActivationToken', count(*) FROM "ActivationToken"
+UNION ALL SELECT 'Service',         count(*) FROM "Service"
+UNION ALL SELECT 'StaffService',    count(*) FROM "StaffService"
+UNION ALL SELECT 'WorkingHours',    count(*) FROM "WorkingHours"
+UNION ALL SELECT 'TimeOff',         count(*) FROM "TimeOff"
+UNION ALL SELECT 'Client',          count(*) FROM "Client"
+UNION ALL SELECT 'Appointment',     count(*) FROM "Appointment"
+UNION ALL SELECT 'ReminderJob',     count(*) FROM "ReminderJob"
+UNION ALL SELECT 'WaitlistEntry',   count(*) FROM "WaitlistEntry"
+UNION ALL SELECT 'WaitlistOffer',   count(*) FROM "WaitlistOffer"
+UNION ALL SELECT 'PilotBaseline',   count(*) FROM "PilotBaseline"
+UNION ALL SELECT 'Payment',         count(*) FROM "Payment"
+UNION ALL SELECT 'RateLimitBucket', count(*) FROM "RateLimitBucket"
+UNION ALL SELECT '(_prisma_migrations: kept)', count(*) FROM "_prisma_migrations"
+ORDER BY 1;
+
+-- Which businesses exist right now (so you can see exactly what will disappear):
+SELECT slug, name, listed, plan, "createdAt" FROM "Business" ORDER BY "createdAt";
