@@ -95,6 +95,8 @@ Prerequisites: Node 22 (the repo pins it in `.nvmrc` and `engines`), pnpm 11 (`p
 7. Seed demo data (opt-in, local database only): `ALLOW_SEED=1 pnpm db:seed` on macOS, or in PowerShell `$env:ALLOW_SEED=1; pnpm db:seed`. It creates "Studio Nour" and a second business, and prints a password once unless `SEED_USER_PASSWORD` is set.
 8. `pnpm dev` and open http://localhost:3000.
 
+**Demo data (simulated).** `pnpm demo:seed`, `pnpm demo:check` and `pnpm demo:remove` load, verify and remove 18 simulated businesses (a dental-clinic flagship with a pilot report) for demos and videos. They are dry runs by default and write only with `--apply --confirm-host <host>`. Demo data: all businesses, people and results are simulated for demonstration. The owner's step-by-step guide is [docs/DEMO_DATA.md](docs/DEMO_DATA.md).
+
 ## Commands
 
 ```

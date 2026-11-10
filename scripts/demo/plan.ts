@@ -27,7 +27,7 @@ const HOUR = 3_600_000;
 const DAY = 86_400_000;
 
 /** No-show percentage per calendar week of the pilot, oldest first (the last entry is the current week). */
-export const FLAGSHIP_WEEK_NO_SHOW_PCT = [12.5, 10, 8.6, 8.3, 8.3, 8.3] as const;
+export const FLAGSHIP_WEEK_NO_SHOW_PCT = [12.5, 10.5, 9.5, 8.6, 7.8, 7.8] as const;
 export const FLAGSHIP_BASELINE = { days: 14, appointments: 112, noShows: 20, lateCancels: 6 } as const;
 const OTHER_NO_SHOW_PCT = 12;
 
@@ -526,7 +526,7 @@ function tryBuild(
   const cancelEarly: Draft[] = [];
   const rest: Draft[] = [];
   const shares = flagship
-    ? { link: 0.095, late: 0.04, staff: 0.015 }
+    ? { link: 0.085, late: 0.04, staff: 0.015 }
     : { link: 0.06, late: 0.03, staff: 0.01 };
   for (const d of pastDrafts) {
     const r = rng.next();

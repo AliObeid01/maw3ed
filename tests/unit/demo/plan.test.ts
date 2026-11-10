@@ -258,7 +258,7 @@ describe('flagship targets', () => {
     expect(b.toDate.getTime()).toBeLessThan(flagship.business.createdAt.getTime());
   });
 
-  it('trends down: overall 8.5 to 10.5 percent, the last full weeks 7.5 to 10.5', () => {
+  it('trends down: overall 8.5 to 10.5 percent, the last full weeks 7 to 10.5', () => {
     const r = rows();
     const att = r.filter((a) => a.status === 'ATTENDED').length;
     const ns = r.filter((a) => a.status === 'NO_SHOW').length;
@@ -276,7 +276,7 @@ describe('flagship targets', () => {
     };
     expect(weekRate(5)).toBeGreaterThan(weekRate(1));
     for (const back of [1, 2]) {
-      expect(weekRate(back)).toBeGreaterThanOrEqual(7.5);
+      expect(weekRate(back)).toBeGreaterThanOrEqual(7);
       expect(weekRate(back)).toBeLessThanOrEqual(10.5);
     }
   });
