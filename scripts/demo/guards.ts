@@ -74,8 +74,16 @@ export function resolveDbTarget(env: Env): DbTarget {
   const url = env[source] as string;
   let host: string;
   try {
-    host = new URL(url).hostname;
-  } catch {
+    const parsed = new URL(url);
+    host = parsed.hostname.toLowerCase();
+    // pg lets ?host= and ?hostaddr= override where it really connects: the validated host would be a lie.
+    for (const key of parsed.searchParams.keys())
+      if (['host', 'hostaddr'].includes(key.toLowerCase()))
+        throw new GuardError(
+          `${source} must not contain a "${key}" query parameter (the driver could connect to a different host than the one checked). Remove it.`,
+        );
+  } catch (e) {
+    if (e instanceof GuardError) throw e;
     throw new GuardError(`${source} is not a valid database URL.`);
   }
   if (!host) throw new GuardError(`${source} has no host.`);
@@ -101,7 +109,7 @@ export function assertApplyAllowed(input: { confirmHost: string | undefined; env
     throw new GuardError(
       `${target.source} points at a pooled host (${target.host}). Writes must use the non-pooled DIRECT_URL.`,
     );
-  if (input.confirmHost !== target.host)
+  if (input.confirmHost.trim().toLowerCase() !== target.host)
     throw new GuardError(
       `--confirm-host "${input.confirmHost}" does not match the database host "${target.host}" (${target.source}). Nothing was written.`,
     );

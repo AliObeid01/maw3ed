@@ -57,6 +57,13 @@ describe('resolveDbTarget', () => {
     fails(() => resolveDbTarget({}), /DIRECT_URL or DATABASE_URL/);
     fails(() => resolveDbTarget({ DIRECT_URL: 'not a url' }), /not a valid/);
   });
+  it('refuses a URL whose host or hostaddr query parameter could redirect the driver', () => {
+    for (const q of ['?host=evil.example', '?hostaddr=1.2.3.4', '?HOST=evil.example', '?sslmode=require&HostAddr=1.2.3.4'])
+      fails(() => resolveDbTarget({ DIRECT_URL: 'postgresql://u:p@ep-quiet-1.eu-central-1.aws.neon.tech/db' + q }), /host/i);
+    fails(() => resolveDbTarget({ DATABASE_URL: 'postgresql://u:p@h.example/db?host=evil.example' }), /host/i);
+    expect(resolveDbTarget({ DIRECT_URL: DIRECT }).host).toBe(HOST);
+    expect(resolveDbTarget({ DIRECT_URL: DIRECT + '&options=-c%20search_path%3Dx' }).host).toBe(HOST);
+  });
   it('knows a pooled host', () => {
     expect(isPooledHost('ep-a-1-pooler.eu.aws.neon.tech')).toBe(true);
     expect(isPooledHost(HOST)).toBe(false);
@@ -68,12 +75,15 @@ describe('assertApplyAllowed (the confirm-host guard)', () => {
   it('passes with the exact host', () => {
     expect(assertApplyAllowed({ confirmHost: HOST, env: { DIRECT_URL: DIRECT } }).host).toBe(HOST);
   });
+  it('compares --confirm-host case-insensitively', () => {
+    expect(assertApplyAllowed({ confirmHost: HOST.toUpperCase(), env: { DIRECT_URL: DIRECT } }).host).toBe(HOST);
+  });
   it('refuses without --confirm-host', () => {
     fails(() => assertApplyAllowed({ confirmHost: undefined, env: { DIRECT_URL: DIRECT } }), /--confirm-host/);
   });
   it('refuses a different host, whatever the case or a prefix', () => {
     fails(() => assertApplyAllowed({ confirmHost: 'other.neon.tech', env: { DIRECT_URL: DIRECT } }), /does not match/);
-    fails(() => assertApplyAllowed({ confirmHost: HOST.toUpperCase() + '.', env: { DIRECT_URL: DIRECT } }), /does not match/);
+    fails(() => assertApplyAllowed({ confirmHost: HOST + '.', env: { DIRECT_URL: DIRECT } }), /does not match/);
     fails(() => assertApplyAllowed({ confirmHost: 'ep-quiet-1', env: { DIRECT_URL: DIRECT } }), /does not match/);
   });
   it('refuses a pooled host for writes, even when confirmed', () => {

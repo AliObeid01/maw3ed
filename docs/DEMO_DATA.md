@@ -55,6 +55,10 @@ outcomes), some upcoming bookings, free times today or tomorrow, and no baseline
 
 ## Safety rules
 
+> **Warning: the demo businesses are PUBLIC and BOOKABLE** (on the website and also through the Claude connector). If anyone
+> books one with a **real email address**, Maw3ed sends that person real confirmation and reminder emails. Tell testers and
+> evaluators to use throwaway addresses, or make phone-only front-desk bookings. The demo clients themselves have no email.
+
 * **Never press "send" in WhatsApp for a demo number.** The numbers are valid in format but only plausible: they are
   not guaranteed to be unassigned. The Reminders screen opens WhatsApp with a ready message; do not send it.
 * **No email is ever sent.** Clients have no email, so the reminder runner skips every email job
@@ -76,9 +80,10 @@ outcomes), some upcoming bookings, free times today or tomorrow, and no baseline
    (`pnpm install` already runs `prisma generate`; the second command only matters if you skipped scripts.)
 2. **Make a Neon backup branch** of the production database first (Neon console: Branches, Create branch from
    the current point in time). If anything surprises you, you can go back to it.
-3. **Clear the production database** with the clear script the lead gave you (it is tested; it will be copied to
-   `scripts/db/` by the docs PR). Do this only if you really want an empty production database: the seeder needs the demo
-   slugs and emails to be free, and the demo is meant to be the only content.
+3. **Clear the production database** with the two tested SQL files in `scripts/db/` (see
+   [scripts/db/README.md](../scripts/db/README.md); the exact commands are in "Clear the database" below). Do this only if
+   you really want an empty production database: the seeder needs the demo slugs and emails to be free, and the demo is meant
+   to be the only content. Clearing is irreversible once committed.
 4. Find the **non-pooled** connection string: Neon console, your project, **Connect**, turn **Connection pooling off**, copy
    the string whose host does **not** contain `-pooler`. This is your `DIRECT_URL`. Never paste it into a chat or a file.
 
@@ -104,6 +109,61 @@ export DEMO_OWNER_EMAIL='you@your-real-address.example'
 export DEMO_OWNER_PASSWORD='choose-a-long-password'
 export DEMO_OWNER_NAME='Your Name'
 ```
+
+Optional but recommended, a second line of defence: tell the tools which database is the right one. Use the host of your
+production `DIRECT_URL` with `-pooler` removed (for example `ep-xxxx.eu-central-1.aws.neon.tech`). If the host ever
+differs, the seeder refuses to write.
+
+```powershell
+$env:EXPECTED_DB_HOST = 'ep-xxxx.eu-central-1.aws.neon.tech'
+```
+
+```bash
+export EXPECTED_DB_HOST='ep-xxxx.eu-central-1.aws.neon.tech'
+```
+
+### Clear the database (only if you want an empty production database)
+
+You need Docker Desktop running (this uses a throwaway `postgres:16` container as the `psql` program; if you have `psql`
+installed you can use `psql "$DIRECT_URL" -f <file>` instead). Do the Neon backup branch first. `DIRECT_URL` must already be
+set (above). Run these from the repository folder.
+
+1. **Preview** (read-only, changes nothing; prints the row count of every table):
+
+   PowerShell:
+   ```powershell
+   Get-Content scripts/db/preview-counts.sql -Raw | docker run --rm -i postgres:16 psql $env:DIRECT_URL
+   ```
+   Git Bash:
+   ```bash
+   docker run --rm -i postgres:16 psql "$DIRECT_URL" < scripts/db/preview-counts.sql
+   ```
+2. **Dry-run clear** (really deletes inside a transaction, prints the counts after, then rolls everything back; the file ends
+   with `ROLLBACK;`):
+
+   PowerShell:
+   ```powershell
+   Get-Content scripts/db/clear-all-data.sql -Raw | docker run --rm -i postgres:16 psql $env:DIRECT_URL
+   ```
+   Git Bash:
+   ```bash
+   docker run --rm -i postgres:16 psql "$DIRECT_URL" < scripts/db/clear-all-data.sql
+   ```
+   Check that the "after" counts are all 0 and the protected objects (overlap constraint, btree_gist, migrations) still show 1 or more.
+3. **Real clear** (irreversible). The last line of the file is `ROLLBACK;`; these commands switch it to `COMMIT;` on the fly, so
+   you do not have to edit the file (you may also edit the last line by hand and run step 2 again):
+
+   PowerShell:
+   ```powershell
+   (Get-Content scripts/db/clear-all-data.sql -Raw) -replace 'ROLLBACK;\s*$', 'COMMIT;' | docker run --rm -i postgres:16 psql $env:DIRECT_URL
+   ```
+   Git Bash:
+   ```bash
+   sed 's/^ROLLBACK;$/COMMIT;/' scripts/db/clear-all-data.sql | docker run --rm -i postgres:16 psql "$DIRECT_URL"
+   ```
+   Run the preview again: every count must now be 0.
+
+### Seed, check
 
 1. **Dry run** (writes nothing; shows the plan, the counts and any conflict):
    ```
