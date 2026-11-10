@@ -31,6 +31,7 @@ export function FilterControls({
   idPrefix,
   variant,
   leading,
+  footer,
 }: {
   value: ExploreFilters;
   onChange: (patch: FilterPatch) => void;
@@ -41,6 +42,8 @@ export function FilterControls({
   variant: 'bar' | 'sheet';
   /** First grid item of the bar (the search form). */
   leading?: ReactNode;
+  /** Bar only: sits directly under the When hint (the Clear button), so it never floats below a tall Service column. */
+  footer?: ReactNode;
 }) {
   const t = useTranslations('directory.explore');
   const categoryLabel = useCategoryLabel();
@@ -97,7 +100,7 @@ export function FilterControls({
       <div
         role="group"
         aria-labelledby={`${whenId}-label`}
-        className={cn('grid gap-2', variant === 'bar' && 'md:col-span-2')}
+        className={cn('grid content-start gap-2', variant === 'bar' && 'self-start md:col-span-2')}
       >
         <span id={`${whenId}-label`} className="text-sm font-medium">
           {t('when')}
@@ -131,6 +134,7 @@ export function FilterControls({
           </div>
         </div>
         <p className="m-0 text-[13px] text-muted">{t('whenHint')}</p>
+        {variant === 'bar' ? footer : null}
       </div>
 
       <ServiceChips
