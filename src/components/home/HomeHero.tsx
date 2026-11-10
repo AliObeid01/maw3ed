@@ -7,7 +7,7 @@ import { useMemo, useState, useTransition, type FormEvent } from 'react';
 import { cn } from '@/lib/cn';
 import { buttonClasses } from '@/components/ui/buttonStyles';
 import { Select, type SelectOption } from '@/components/ui/Select';
-import { PendingLink as Link, useNavigationFlag } from '@/components/public/PendingLink';
+import { useNavigationFlag } from '@/components/public/PendingLink';
 import { getCategoriesCached } from '@/lib/api/home';
 import { useResource } from '@/lib/api/useResource';
 import { AREA_KEYS } from '@/lib/business/profile';
@@ -15,6 +15,7 @@ import { DIRECTORY_SEARCH_MAX } from '@/lib/directory/params';
 import { heroChips } from '@/lib/home/popular';
 import { buildDirectoryUrl, POPULAR_SEARCHES } from '@/lib/home/search';
 import { useIsDesktop } from '@/lib/useMediaQuery';
+import { HeroChips } from './HeroChips';
 import { NextFreePanel } from './NextFreePanel';
 
 const AREAS = AREA_KEYS.filter((k) => k !== 'other');
@@ -116,23 +117,7 @@ export function HomeHero() {
             </button>
           </form>
 
-          {/* One line, never wraps: the row keeps its height whether the chips are the fallback or live names. */}
-          <div
-            data-allow-overflow
-            data-testid="hero-chips"
-            className="mt-[18px] flex min-h-11 flex-nowrap items-center gap-2 overflow-x-auto text-[15px] text-hero-muted"
-          >
-            <span className="shrink-0">{t('popular')}</span>
-            {chips.map((name) => (
-              <Link
-                key={name.toLowerCase()}
-                href={buildDirectoryUrl({ search: name })}
-                className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 motion-reduce:transition-none"
-              >
-                <span className="truncate">{name}</span>
-              </Link>
-            ))}
-          </div>
+          <HeroChips label={t('popular')} names={chips} />
         </div>
 
         <div className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[496px]')}>
