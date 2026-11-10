@@ -92,6 +92,35 @@ describe('claudeShareMessage', () => {
   });
 });
 
+// PR-16 item 4d: a name that is empty after cleaning must not give an empty quoted name; the booking-page slug
+// (also sanitized) stands in for it.
+describe('a business name that is empty after cleaning falls back to the slug', () => {
+  const invisible = `${zeroWidth}${rlo}  \n${nul}`;
+
+  it('claudeBusinessLabel: the sanitized slug in quotes, never ""', () => {
+    expect(claudeBusinessLabel(invisible, 'studio-nour')).toBe('"studio-nour"');
+    expect(claudeBusinessLabel(undefined, 'studio-nour')).toBe('"studio-nour"');
+    expect(claudeBusinessLabel('Studio Nour', 'studio-nour')).toBe('"Studio Nour"'); // a real name wins
+  });
+
+  it('the slug is sanitized too, and with no usable slug the empty quotes remain', () => {
+    expect(claudeBusinessLabel(invisible, `a${zeroWidth}<b>`)).toBe('"ab"');
+    expect(claudeBusinessLabel(invisible, '')).toBe('""');
+    expect(claudeBusinessLabel(invisible)).toBe('""');
+  });
+
+  it('the prompt (en and ar) and the share message use it', () => {
+    expect(claudeBookPrompt(promptT('en'), { name: invisible, slug: 'studio-nour' })).toBe(
+      'Book an appointment at "studio-nour" on Maw3ed (booking page: studio-nour). Show me the free times first.',
+    );
+    expect(claudeBookPrompt(promptT('ar'), { name: invisible, slug: 'salon-nour' })).toContain('"salon-nour" على موعد');
+    const input = { assistantUrl: 'https://maw3ed.example/assistant', bookingUrl: 'https://maw3ed.example/b/studio-nour' };
+    const text = claudeShareMessage(shareT('en'), { ...input, name: invisible, slug: 'studio-nour' });
+    expect(text).toContain('book at "studio-nour"');
+    expect(text).not.toContain('""');
+  });
+});
+
 describe('small helpers', () => {
   it('assistantPageUrl never doubles the slash', () => {
     expect(assistantPageUrl('https://maw3ed.example')).toBe('https://maw3ed.example/assistant');

@@ -1,6 +1,7 @@
 'use client';
 
 import { Check, Copy, ExternalLink, MapPin, MessageCircle } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
@@ -19,10 +20,13 @@ import {
 } from '@/lib/setup/clipboard';
 import { shareSeenKey } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
-import { ClaudeShareCard } from './ClaudeShareCard';
+
 import { DirectoryCard } from './DirectoryCard';
 import { QrCard } from './QrCard';
 import { LoadError, OwnerOnly } from '../states';
+
+// PR-16: loaded only when the card renders (connector on), so a switched-off server never sends this code.
+const ClaudeShareCard = dynamic(() => import('./ClaudeShareCard').then((m) => m.ClaudeShareCard));
 
 const noopSubscribe = () => () => undefined;
 
@@ -267,7 +271,7 @@ function ShareBody({
       </div>
       <QrCard url={url} name={businessName} />
       {assistantEnabled ? (
-        <ClaudeShareCard name={businessName} listed={listed} origin={origin} bookingUrl={url} />
+        <ClaudeShareCard name={businessName} slug={slug} listed={listed} origin={origin} bookingUrl={url} />
       ) : null}
     </>
   );

@@ -52,10 +52,12 @@ export function ClaudeButton({ name, slug }: { name: string; slug: string }) {
         data-testid="claude-button"
         aria-haspopup="dialog"
         onClick={() => setOpen(true)}
-        className={buttonClasses({ variant: 'onDark', className: 'rounded-pill' })}
+        title={t('button')}
+        className={buttonClasses({ variant: 'onDark', className: 'rounded-pill max-lg:size-11 max-lg:px-0' })}
       >
         <Sparkles size={18} aria-hidden="true" />
-        {t('button')}
+        {/* Icon only below lg to stay on the pills' row; the words stay for screen readers. */}
+        <span className="max-lg:sr-only">{t('button')}</span>
       </button>
       <Sheet open={open} onOpenChange={setOpen} title={t('title')} closeLabel={t('close')}>
         <div className="grid gap-3.5" data-testid="claude-sheet">

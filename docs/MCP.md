@@ -216,12 +216,18 @@ Owner tools through Claude's lazy authentication in the same connector, a Claude
 
 ## Entry points (PR-15b)
 
-All of them follow the same switch as the endpoint and the page: `isAssistantEnabled()` (`MCP_ENABLED` exactly `true`). Off: none of them renders and the existing pages behave as before. The routes were already dynamic (the layout reads cookies), so the flag is read per request and no static page became dynamic (route table before and after: `/`, `/b/[slug]`, `/how-it-works`, `/for-business`, `/assistant`, `/app/share` all dynamic).
+All of them follow the same switch as the endpoint and the page: `isAssistantEnabled()` (`MCP_ENABLED` exactly `true`). Off: none of them renders and the existing pages behave as before. No markup is sent and, since PR-16, the code of the "Book with Claude" button and sheet and of the owner card is a separate, lazily loaded chunk (`next/dynamic`) that a switched-off server never requests (proof: `tests/e2e/claudeChunks.spec.ts` on the production build). What still ships either way is the small stub that decides whether to load it, the `assistantEnabled` check and, on the home page, nothing at all (the strip is a server component). So "no JS ships" is true for the Claude code itself, not for those few bytes. The routes were already dynamic (the layout reads cookies), so the flag is read per request and no static page became dynamic (route table before and after: `/`, `/b/[slug]`, `/how-it-works`, `/for-business`, `/assistant`, `/app/share` all dynamic).
 
 - Home `/`: a slim strip to `/assistant` between the hero and the categories.
 - Booking page `/b/[slug]`: "Book with Claude" button and sheet, only when the business is LISTED. `GET /api/public/{slug}` gained an additive `business.listed` boolean (OpenAPI regenerated; an older server or a mock without it reads as `false`, so the button stays hidden). The sheet holds a prefilled, read-only prompt with the quoted business name (sanitized by `src/server/mcp/sanitize.ts` `quote`: no control, bidi or zero-width characters, Markdown and HTML characters removed, whitespace collapsed, 80 characters), a Copy button, a link to `/assistant`, an "Open Claude" link to `https://claude.ai` (no prefill parameter) and "Claude normally asks your approval before it books."
 - Booking link page `/app/share` (owner): the card "Let clients book from Claude": listed businesses get a share message, Copy, WhatsApp and a QR code to `/assistant`; unlisted ones a note and a link to the listing switch. The message avoids a comma after URLs so chat apps do not swallow punctuation into the link.
 - `/assistant`: an "Illustration" demo chat with made-up names (decorative, `aria-hidden`).
+
+### PR-16 notes
+
+- The owner card also honours a TEST-ONLY cookie `e2e_mcp=off` under `E2E_FAKE_SESSION=1` (never in production), so the dashboard e2e proves both states on one dev server (`tests/e2e/dashboard/claudeShare.spec.ts`).
+- A business name that is empty after cleaning falls back to the sanitized slug in the prompt and the share message (`src/lib/assistant/entry.ts`).
+- On phones the business-page button is an icon-only 44 px pill in the same group as the header pills (no extra row); the label shows from `lg`.
 
 ### Guard edge fix
 
