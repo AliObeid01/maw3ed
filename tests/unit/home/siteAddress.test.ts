@@ -12,4 +12,9 @@ describe('displayed address vs SITE.address', () => {
     expect(ar.public.footer.address).not.toBe(SITE.address);
     expect(ar.public.footer.address).toMatch(/[؀-ۿ]/);
   });
+
+  it('ar address is exactly "Beirut, Lebanon" in Arabic, with the Arabic comma (U+060C) and no hidden characters', () => {
+    expect(ar.public.footer.address).toBe('بيروت، لبنان');
+    expect(ar.public.footer.address).toBe('بيروت، لبنان');
+  });
 });

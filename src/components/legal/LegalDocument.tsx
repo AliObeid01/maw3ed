@@ -37,6 +37,10 @@ export async function LegalDocument({ doc, sections }: { doc: 'privacy' | 'terms
   const address = (await getTranslations('public.footer'))('address');
   // Latin runs (email, phone) stay left to right inside Arabic text; the address follows its own first strong letter
   // (Arabic reads right to left, English left to right).
+  // Trade-off: `isolate()` wraps the address in FSI/PDI control characters (U+2068 / U+2069). They are invisible, and a
+  // reader who copies the address copies them too; most apps ignore them, a few show a box. A `<bdi>` element would
+  // isolate the same way without any control character, but this value goes through a message-format string (plain
+  // text), not React nodes, so it would need rich-text tags in both message files. Left as is on purpose.
   const args = { email: ltr(SITE.email), phone: ltr(SITE.phone), address: isolate(address) };
   const key = (path: string) => `${doc}.sections.${path}`;
 
