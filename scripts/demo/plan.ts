@@ -271,7 +271,7 @@ function tryBuild(
   const from = flagship ? currentMonday.minus({ weeks: 5 }) : today.minus({ days: 28 });
   const to = today.plus({ days: 7 });
   const createdMs = flagship
-    ? from.minus({ days: 1 }).set({ hour: 10 }).toMillis()
+    ? today.minus({ weeks: 6 }).set({ hour: 10 }).toMillis()
     : from.minus({ days: 10 }).set({ hour: 10 }).toMillis();
 
   const businessId = newId();
@@ -526,7 +526,7 @@ function tryBuild(
   const cancelEarly: Draft[] = [];
   const rest: Draft[] = [];
   const shares = flagship
-    ? { link: 0.078, late: 0.03, staff: 0.015 }
+    ? { link: 0.095, late: 0.04, staff: 0.015 }
     : { link: 0.06, late: 0.03, staff: 0.01 };
   for (const d of pastDrafts) {
     const r = rng.next();
@@ -629,7 +629,7 @@ function tryBuild(
     const startMs = d.slot.startMs;
     const endMs = d.slot.endMs;
     if (d.kind === 'attended' || d.kind === 'noshow' || d.kind === 'unmarked') {
-      const p = d.kind === 'attended' ? 0.72 : d.kind === 'noshow' ? 0.15 : 0.7;
+      const p = d.kind === 'attended' ? 0.68 : d.kind === 'noshow' ? 0.12 : 0.66;
       if (rng.chance(p)) {
         const lo = d.createdMs + 30 * MIN;
         const hi = startMs - 3 * HOUR;
