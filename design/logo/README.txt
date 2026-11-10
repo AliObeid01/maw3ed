@@ -1,11 +1,17 @@
-Maw3ed logos, option B: calendar-M replaces the M in the name
+Maw3ed logo (PR-16b). Source of truth: maw3ed-logo-light.svg, the owner's file (viewBox -8 13 453.53 130.04).
+Everything else is generated from it:  node scripts/design/build-logo-assets.mjs
 
-1-platform   Website and dashboard logo. Light, reverse, black, white. wordmark-only files are the plain written name, a fallback for spots too small or too tight for the calendar.
-2-app        App icon. app-icon.svg and the PNGs are full square (phones round the corners themselves). app-icon-rounded.svg shows the tile with its binder rings.
-3-email      Email header logo. Use the reverse files on a Deep Navy (#0B1938) band. Show the 160w file at 160 px wide; 320w and 480w keep it sharp on retina screens.
-4-favicon    favicon.ico (16, 32, 48), favicon.svg and PNGs. alternative-no-band is the same icon without the header band: bigger letter, easier at 16 px.
-5-whatsapp   WhatsApp profile picture, 640 px. The tile sits inside the circle crop.
+maw3ed-logo-light.svg      Full logo for white surfaces (navy wordmark).
+maw3ed-logo-reverse.svg    Full logo for navy surfaces: white wordmark; the icon body is a lighter navy (#16295E) with a faint white outline (22 %, 1.2 units) so it stays visible on navy. Same geometry.
+maw3ed-icon.svg            The calendar-M icon alone, viewBox 0 0 64 64 (also src/app/icon.svg and favicon/favicon.svg).
+maw3ed-icon-reverse.svg    The icon with the reverse body, used for the maskable app icon.
+maw3ed-wordmark-*.svg      The written name only (light, reverse), for spots too small for the icon.
+maw3ed-logo-*-1200w.png    Raster previews, 1200 x 344, transparent.
+app/                       app-icon 192, 512, 1024 (icon on transparent), maskable 512 (reverse icon at 60 % on solid navy, inside the safe zone), apple-touch-icon 180 (icon on white). Shipped copies: public/brand and src/app/apple-icon.png.
+email/                     Email header logos, light and reverse, 160w (160x46), 320w and 480w for retina. Show the 160w size; the email uses the reverse 320w on the navy band. Copies live in public/brand.
+favicon/                   favicon.ico (16, 32, 48 PNG entries, written by the script without a package), favicon.svg, favicon-16/32/48.png. Shipped copy: src/app/favicon.ico.
+whatsapp-profile-640.png   WhatsApp profile picture, icon on white, 640 px.
 
 Calendar files (.ics) cannot show a logo in most calendar apps, so they carry the plain name Maw3ed.
-Strokes are live in the SVG files: outline them before print or signage.
-Colours: Deep Navy #0B1938, Turquoise #21CDB3, Electric Blue #2864F5, Cyan Blue #43C4F0, Royal Blue #254EDB, White #FFFFFF.
+Colours: Deep Navy #0B1938, Turquoise #21CDB3, Electric Blue #2864F5, White #FFFFFF, reverse body #16295E.
+No fonts: the wordmark letters are outlined paths.

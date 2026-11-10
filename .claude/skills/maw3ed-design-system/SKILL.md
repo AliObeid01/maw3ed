@@ -89,10 +89,10 @@ the Switch, avatars, dots and count badges. The business monogram is a cyan tile
 - **CalendarGrid** (`app`, `lg+`): 64 px time column + one column per staff, 44 px rows per 30 min, blocks radius 10–12 tinted by status,
   breaks with a diagonal stripe pattern.
 - **Sheet / Dialog**: bottom sheet on mobile (16 px top corners, drag handle), centered dialog on `md+`. Pickers reuse the Sheet below `md`.
-- **Logo** (`src/components/brand/Logo.tsx`): the calendar icon with an M inside; the "3" of Maw3ed is two stacked arcs (navy over turquoise).
+- **Logo** (`src/components/brand/Logo.tsx`): the calendar icon with an M inside; the "3" of Maw3ed is two stacked turquoise arcs (PR-16b logo).
   Source files in `design/logo` (with its README); two versions: **light** (`tone="brand"`, on white surfaces) and **reverse**
   (`tone="white"`, on the navy hero, sidebar and email band). Flat paths only: **no gold, no gradient, no filter**. Under 96 px wide the
-  full logo becomes the written wordmark. Never recolour or redraw it. The old slanted calendar with a gold underline is gone.
+  full logo becomes the written wordmark. Never recolour or redraw it. Variants: `full`, `wordmark`, `icon`; the reverse icon body is a lighter navy with a faint outline.
 - **Toast**: bottom-center on mobile above the tab bar.
 
 ## Responsive rules (build at 360 px first)
