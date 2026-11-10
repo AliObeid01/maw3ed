@@ -118,7 +118,7 @@ export function NextFreePanel({ area, onHidden }: { area: string; onHidden: (hid
       aria-labelledby="next-free-title"
       aria-busy={loading}
       data-testid="next-free-panel"
-      className="rounded-[28px] bg-brand p-6 text-white lg:min-h-[496px]"
+      className="rounded-[28px] bg-brand p-6 text-white"
     >
       <h2 id="next-free-title" className="m-0 mb-1 text-[22px] font-semibold">
         {title}

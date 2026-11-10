@@ -18,11 +18,14 @@ import { QrCard } from './QrCard';
  */
 export function ClaudeShareCard({
   name,
+  slug,
   listed,
   origin,
   bookingUrl,
 }: {
   name: string;
+  /** The booking-page slug: stands in for a name that is empty after cleaning. */
+  slug: string;
   listed: boolean;
   origin: string;
   bookingUrl: string;
@@ -41,10 +44,11 @@ export function ClaudeShareCard({
     () =>
       claudeShareMessage((key, values) => t(key as 'message', values as never), {
         name,
+        slug,
         assistantUrl,
         bookingUrl,
       }),
-    [t, name, assistantUrl, bookingUrl],
+    [t, name, slug, assistantUrl, bookingUrl],
   );
 
   async function copy() {

@@ -1631,6 +1631,11 @@
     "noActions": {
       "pendingPayment": "This appointment is waiting for its deposit, so it can't be confirmed yet.",
       "generic": "There is nothing to do with this link right now."
+    },
+    "save": {
+      "button": "Save to My bookings on this device",
+      "done": "Saved on this device",
+      "view": "View My bookings"
     }
   },
   "waitlist": {
@@ -2529,7 +2534,7 @@
   "myBookings": {
     "pageTitle": "My bookings",
     "title": "My bookings",
-    "subtitle": "Bookings made on this device. No account needed.",
+    "subtitle": "Bookings saved on this device. No account needed.",
     "loading": "Loading your bookings",
     "upcoming": {
       "title": "Upcoming",

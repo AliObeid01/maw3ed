@@ -10,7 +10,7 @@ export type BusinessHeroProps = {
   facts?: string[];
   /** Versioned public logo url; null or absent shows the cyan monogram tile. */
   logoUrl?: string | null | undefined;
-  /** An optional control after the facts (the "Book with Claude" button). */
+  /** An optional control in the same group as the facts (the "Book with Claude" button). */
   action?: ReactNode;
   className?: string;
 };
@@ -26,16 +26,17 @@ export function BusinessHero({ name, meta, facts = [], logoUrl, action, classNam
           <h1 className="text-[22px] leading-tight font-semibold md:text-[26px]">{name}</h1>
           <div className="text-[15px] text-hero-muted">{meta}</div>
         </div>
-        {facts.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
+        {facts.length > 0 || action ? (
+          // The pills and the control share ONE wrapping group, so the control never costs a row of its own.
+          <ul className="m-0 flex list-none flex-wrap items-center gap-2 p-0">
             {facts.map((fact) => (
               <li key={fact} className="rounded-btn bg-white/10 px-3.5 py-2 text-sm text-hero-ink">
                 {fact}
               </li>
             ))}
+            {action ? <li className="max-lg:-my-1">{action}</li> : null}
           </ul>
         ) : null}
-        {action}
       </div>
     </section>
   );

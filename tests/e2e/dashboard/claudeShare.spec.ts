@@ -87,3 +87,38 @@ for (const L of LANGS) {
     });
   });
 }
+
+// PR-16 (4b): the same server answers as a server WITHOUT MCP_ENABLED when the test-only cookie `e2e_mcp=off` is
+// sent (src/app/app/share/page.tsx honours it only under E2E_FAKE_SESSION=1). The card is absent, for a listed
+// and an unlisted business, and the ordinary booking-link QR code is unchanged.
+for (const L of LANGS) {
+  test.describe(`Share page: connector switched off (${L.lang})`, () => {
+    test.beforeEach(async ({ page, context }) => {
+      await setRole(page, 'OWNER', DASHBOARD);
+      await context.addCookies([
+        { name: 'locale', value: L.lang, url: DASHBOARD },
+        { name: 'e2e_mcp', value: 'off', url: DASHBOARD },
+      ]);
+    });
+
+    for (const listed of [true, false]) {
+      test(`no Claude card (${listed ? 'listed' : 'unlisted'}); the booking-link QR code is unchanged`, async ({ page }) => {
+        const state = defaultState();
+        state.business.listed = listed;
+        await mockSetupApi(page, { state });
+        for (const width of [360, 1440]) {
+          await page.setViewportSize({ width, height: 900 });
+          await page.goto('/app/share');
+          await expect(page.getByTestId('claude-share')).toHaveCount(0);
+          await expect(page.getByText(L.title)).toHaveCount(0);
+          await expect(page.getByTestId('claude-share-message')).toHaveCount(0);
+          // The ordinary booking link QR code (QrCard) is still there.
+          const qr = page.locator('img[src^="data:image/png;base64,"]');
+          await expect(qr).toHaveCount(1);
+          await expect(qr).toBeVisible();
+          await expectNoPageOverflow(page);
+        }
+      });
+    }
+  });
+}

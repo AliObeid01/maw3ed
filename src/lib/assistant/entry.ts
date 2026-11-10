@@ -1,4 +1,4 @@
-import { quote } from '@/server/mcp/sanitize';
+import { cleanText, quote } from '@/server/mcp/sanitize';
 
 /**
  * Pure helpers for the PR-15b entry points to the Claude connector (business-page sheet, owner share card).
@@ -11,8 +11,14 @@ import { quote } from '@/server/mcp/sanitize';
 /** Where "Open Claude" goes. No prefill parameter: we do not rely on undocumented URL parameters. */
 export const CLAUDE_URL = 'https://claude.ai';
 
-/** The sanitized, quoted business name that is safe to place inside a prompt or a share message. */
-export const claudeBusinessLabel = (name: unknown): string => quote(name);
+/**
+ * The sanitized, quoted business name that is safe to place inside a prompt or a share message. A name that is empty
+ * after cleaning (only invisible or markup characters) falls back to the booking-page slug, sanitized the same way,
+ * so the text never says "" for the business.
+ */
+export function claudeBusinessLabel(name: unknown, slug?: unknown): string {
+  return cleanText(name) === '' && cleanText(slug) !== '' ? quote(slug) : quote(name);
+}
 
 /** `<origin>/assistant`, without a doubled slash. */
 export function assistantPageUrl(origin: string): string {
@@ -24,16 +30,16 @@ export type Translate = (key: string, values: Record<string, string>) => string;
 
 /** The prefilled prompt for THIS business (message key `prompt`): quoted name plus the booking-page slug. */
 export function claudeBookPrompt(t: Translate, business: { name: string; slug: string }): string {
-  return t('prompt', { name: claudeBusinessLabel(business.name), slug: business.slug });
+  return t('prompt', { name: claudeBusinessLabel(business.name, business.slug), slug: business.slug });
 }
 
 /** The ready-to-send share message for an owner (message key `message`). Names the assistant page and the booking page. */
 export function claudeShareMessage(
   t: Translate,
-  input: { name: string; assistantUrl: string; bookingUrl: string },
+  input: { name: string; slug?: string; assistantUrl: string; bookingUrl: string },
 ): string {
   return t('message', {
-    name: claudeBusinessLabel(input.name),
+    name: claudeBusinessLabel(input.name, input.slug),
     assistantUrl: input.assistantUrl,
     bookingUrl: input.bookingUrl,
   });

@@ -2,6 +2,7 @@
 
 import { Bidi, MetaLine } from '@/components/ui/Bidi';
 import { Bell, Compass, Info, ShieldCheck, WifiOff } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
@@ -55,12 +56,14 @@ import { YourBookingsStrip } from '@/components/myBookings/YourBookingsStrip';
 import { entryFromBooking, myBookings } from '@/lib/myBookings/storage';
 import { useLocaleHint } from '@/lib/useLocaleHint';
 import { BookedView } from './BookedView';
-import { ClaudeButton } from './ClaudeButton';
 import { DetailsStep, type DetailsValues } from './DetailsStep';
 import { ServiceSkeleton, ServiceStep } from './ServiceStep';
 import { StaffStep } from './StaffStep';
 import { TimeStep, type TakenInfo } from './TimeStep';
 import { useBookingFormat } from './useBookingFormat';
+
+// PR-16: fetched only when the button renders (connector on and business listed); a switched-off server never sends it.
+const ClaudeButton = dynamic(() => import('./ClaudeButton').then((m) => m.ClaudeButton));
 
 const HOUR = 3_600_000;
 /** How long the slots from a 409 are trusted before the normal (refetched) data takes over again. */

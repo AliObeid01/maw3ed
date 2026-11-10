@@ -29,6 +29,7 @@ import {
   type LinkScreen,
 } from '@/lib/links/state';
 import { useLocaleHint } from '@/lib/useLocaleHint';
+import { SaveToDevice } from './SaveToDevice';
 
 const mainClass =
   'mx-auto flex w-full max-w-[1240px] flex-1 flex-wrap items-start gap-6 px-4 pt-5 pb-10 md:px-8 md:pt-7';
@@ -202,6 +203,7 @@ function LinkBody({
             {confirmed ? t('status.confirmed') : t('status.waiting')}
           </Chip>
         </div>
+        <SaveToDevice link={link} token={token} />
         {problem ? (
           <div role="alert">
             <Callout tone="danger">{t(`errors.${problem}`)}</Callout>
@@ -252,6 +254,7 @@ function LinkBody({
           })}
         </Banner>
         {tile}
+        <SaveToDevice link={link} token={token} />
         {tokenCanCancel(link) ? (
           <div className="flex flex-col gap-3">
             <p className="m-0 text-sm text-muted">{t('confirmedScreen.cancelHint')}</p>
