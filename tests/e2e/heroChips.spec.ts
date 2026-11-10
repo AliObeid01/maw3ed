@@ -126,13 +126,19 @@ test('Arabic, right to left: the fade is on the left (scrolling side), phones sc
   const phone = await measure(page);
   expect(phone.rows).toBe(1);
   expect(phone.scrollbarWidth).toBe('none');
-  expect(phone.maskImage).toContain('to left');
+  expect(phone.maskImage).toMatch(/to left|270deg/); // the browser may normalise the keyword to an angle
   // A Latin business-entered name keeps its own direction inside the Arabic page, so the ellipsis cuts the END of the
   // name ("Plastic Surgery Consult..."), not the start ("...stic Surgery Consultation").
-  const directions = await chipsBox(page).evaluate((el) =>
-    Array.from(el.querySelectorAll('a > span')).map((s) => getComputedStyle(s).direction),
+  const starts = await chipsBox(page).evaluate((el) =>
+    Array.from(el.querySelectorAll('a > span.truncate')).map((s) => {
+      const range = document.createRange();
+      range.setStart(s.firstChild!, 0);
+      range.setEnd(s.firstChild!, 1);
+      return range.getBoundingClientRect().left - s.getBoundingClientRect().left;
+    }),
   );
-  expect(directions).toEqual(['ltr', 'ltr', 'ltr', 'ltr']);
+  // The first letter sits at the left edge of its chip text (an ellipsis on the right), never pushed off to the left.
+  for (const offset of starts) expect(offset).toBeGreaterThanOrEqual(-1);
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect.poll(async () => (await measure(page)).wrap).toBe('wrap');
   const wide = await measure(page);
