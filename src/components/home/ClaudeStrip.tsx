@@ -1,4 +1,5 @@
-import { ArrowRight, MessageCircle } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { ClaudeIcon } from '@/components/brand/ClaudeIcon';
 import { useTranslations } from 'next-intl';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 
@@ -12,7 +13,7 @@ export function ClaudeStrip() {
     <section aria-labelledby="claude-strip-title" data-testid="claude-strip" className="mx-auto max-w-[1200px] px-4 pt-6 md:px-6 md:pt-8">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-[22px] border-[1.5px] border-divider bg-surface p-4 md:px-5">
         <span aria-hidden="true" className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-mint/20">
-          <MessageCircle size={22} />
+          <ClaudeIcon size={22} />
         </span>
         <div className="min-w-0 flex-[1_1_220px]">
           <h2 id="claude-strip-title" className="m-0 text-[17px] leading-tight font-semibold">
