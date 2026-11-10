@@ -20,19 +20,18 @@ const ICONS: Record<(typeof CAPABILITIES)[number]['id'], LucideIcon> = {
  * example that copies on tap. Sits beside the demo card from lg and under it on phones.
  */
 export function CapabilityPanel() {
-  const t = useTranslations('assistant.can');
+  const t = useTranslations('assistant');
   const { state, copy } = useCopyStatus();
-  const copyT = useTranslations('assistant.copy');
 
   return (
     <div data-testid="capabilities" className="w-full max-w-[420px] min-w-0 lg:max-w-none">
       <Reveal className="grid h-full content-start gap-1 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
-        <h3 className="m-0 text-[19px] leading-tight font-semibold">{t('title')}</h3>
-        <p className="m-0 mb-2 text-[14.5px] text-muted">{t('hint')}</p>
-        <ul aria-label={t('label')} className="m-0 grid list-none gap-4 p-0">
+        <h3 className="m-0 text-[19px] leading-tight font-semibold">{t('can.title')}</h3>
+        <p className="m-0 mb-2 text-[14.5px] text-muted">{t('can.hint')}</p>
+        <ul aria-label={t('can.label')} className="m-0 grid list-none gap-4 p-0">
           {CAPABILITIES.map(({ id }) => {
             const Icon = ICONS[id];
-            const example = t(`items.${id}.example`);
+            const example = t(`can.items.${id}.example`);
             const copied = state?.key === id && state.ok;
             return (
               <li key={id} data-testid={`can-${id}`} className="grid grid-cols-[44px_minmax(0,1fr)] items-start gap-3">
@@ -41,8 +40,8 @@ export function CapabilityPanel() {
                 </span>
                 <div className="grid min-w-0 gap-1.5">
                   <div>
-                    <h4 className="m-0 text-[16.5px] leading-snug font-bold">{t(`items.${id}.title`)}</h4>
-                    <p className="m-0 text-[14.5px] leading-snug text-muted">{t(`items.${id}.body`)}</p>
+                    <h4 className="m-0 text-[16.5px] leading-snug font-bold">{t(`can.items.${id}.title`)}</h4>
+                    <p className="m-0 text-[14.5px] leading-snug text-muted">{t(`can.items.${id}.body`)}</p>
                   </div>
                   <button
                     type="button"
@@ -57,7 +56,7 @@ export function CapabilityPanel() {
                     {copied ? (
                       <span className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold">
                         <Check size={16} aria-hidden="true" />
-                        {copyT('copied')}
+                        {t('copy.copied')}
                       </span>
                     ) : null}
                   </button>
@@ -67,7 +66,7 @@ export function CapabilityPanel() {
           })}
         </ul>
         <p role="status" aria-live="polite" className="sr-only" data-testid="can-status">
-          {state ? (state.ok ? copyT('announce') : copyT('failed')) : ''}
+          {state ? (state.ok ? t('copy.announce') : t('copy.failed')) : ''}
         </p>
       </Reveal>
     </div>
