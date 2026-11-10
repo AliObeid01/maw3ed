@@ -85,10 +85,11 @@ test('a container too narrow for everything hides whole chips (never a half cut 
   await chipsBox(page).evaluate((el) => {
     (el as HTMLElement).style.width = '300px'; // test-only: force a third row
   });
-  await expect.poll(async () => (await measure(page)).rows).toBeLessThanOrEqual(2);
+  // Wait for the resize observer to have hidden the chips that no longer fit (rows alone can still read 2 from the old layout).
+  await expect.poll(async () => (await measure(page)).visible).toBeLessThan(LONG_SERVICES.length);
   const m = await measure(page);
+  expect(m.rows).toBeLessThanOrEqual(2);
   expect(m.clipped).toEqual([]);
-  expect(m.visible).toBeLessThan(LONG_SERVICES.length);
   // The hidden chips are out of the tab order too (display none), not just clipped.
   const hidden = await chipsBox(page).evaluate((el) =>
     Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).display === 'none').length,
