@@ -1,19 +1,9 @@
 'use client';
 
-import {
-  Activity,
-  ArrowRight,
-  Brush,
-  ChevronRight,
-  CloudOff,
-  Leaf,
-  Scissors,
-  Smile,
-  Sparkles,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, ChevronRight, CloudOff } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
+import { CategoryIcon } from '@/components/brand/CategoryIcon';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { Bidi, ltr } from '@/components/ui/Bidi';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -35,15 +25,6 @@ import { dayLabel } from '@/lib/home/freeTimes';
 import { categoryServiceUrl } from '@/lib/home/search';
 import { OWNER_START_HREF } from '@/lib/links';
 import { PlaceCard } from './PlaceCard';
-
-const ICONS: Record<HomeCategory, LucideIcon> = {
-  barbers: Brush,
-  'hair-salons': Scissors,
-  'dental-clinics': Smile,
-  'beauty-clinics': Sparkles,
-  'spa-massage': Leaf,
-  physiotherapy: Activity,
-};
 
 /** The three or fewer top places of one category (one request per category, kept in memory for 60 s). */
 function TopPlaces({ category }: { category: HomeCategory }) {
@@ -279,7 +260,6 @@ export function CategoryExplorer() {
               className="m-0 flex snap-x snap-mandatory list-none gap-2 overflow-x-auto p-0 pb-1.5 lg:flex-col lg:overflow-visible lg:pb-0"
             >
               {keys.map((key) => {
-                const Icon = ICONS[key];
                 const entry = entryOf(key);
                 const active = key === current;
                 const price = entry ? priceLine(entry.fromPrice) : null;
@@ -306,7 +286,7 @@ export function CategoryExplorer() {
                           active ? 'bg-mint text-ink' : 'bg-mint/20 text-ink',
                         )}
                       >
-                        <Icon size={24} />
+                        <CategoryIcon category={key} size={24} />
                       </span>
                       <span className="min-w-0">
                         <b className="block text-[17px] leading-tight font-semibold">{t(`names.${key}`)}</b>

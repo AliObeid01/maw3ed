@@ -668,3 +668,25 @@ test('Arabic at 320: the free-times label wraps as two whole pieces (service, da
   await expect(label).not.toContainText('·');
   await expectNoPageOverflow(page);
 });
+
+test('PR-16b: every category in the list has its own svg icon (not mirrored), at 320, 360 and 1440 in en and ar', async ({ page, context }) => {
+  const keys = ['barbers', 'hair-salons', 'dental-clinics', 'beauty-clinics', 'spa-massage', 'physiotherapy'];
+  await mockHome(page, { places: Object.fromEntries(keys.map((k) => [k, 2])) });
+  for (const lang of ['en', 'ar']) {
+    await context.addCookies([{ name: 'locale', value: lang, url: ORIGIN }]);
+    for (const width of [320, 360, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const list = page.locator('ul').filter({ has: page.locator('svg[data-category]') }).first();
+      await expect(list.locator('svg[data-category]')).toHaveCount(6);
+      expect(await list.locator('svg[data-category]').evaluateAll((els) => els.map((e) => e.getAttribute('data-category')))).toEqual(keys);
+      for (const button of await list.getByRole('button').all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      for (const icon of await list.locator('svg[data-category]').all()) {
+        const box = (await icon.boundingBox())!;
+        expect(box.width).toBeCloseTo(24, 0);
+        expect(await icon.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+      }
+      await expectNoPageOverflow(page);
+    }
+  }
+});
