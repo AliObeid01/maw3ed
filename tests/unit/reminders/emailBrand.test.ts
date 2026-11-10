@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { renderReminderEmail, type EmailContext } from '@/server/i18n/emailRender';
 import { renderOfferEmail } from '@/server/i18n/offerEmail';
-import { EMAIL_COLORS, EMAIL_LOGO_HEIGHT, EMAIL_LOGO_PATH } from '@/server/i18n/emailLayout';
+import { EMAIL_COLORS, EMAIL_LOGO_HEIGHT, EMAIL_LOGO_PATH, EMAIL_LOGO_VERSION } from '@/server/i18n/emailLayout';
 import { getEmailMessages } from '@/server/i18n/messages';
 import { inviteEmail } from '@/server/providers/email/inviteTemplate';
 import { accountEmail } from '@/server/providers/email/accountEmails';
@@ -168,8 +168,8 @@ describe('branded email layout (all kinds)', () => {
 
         it('has the navy logo band: absolute reverse logo, width/height, alt, display:block, readable alt colours', () => {
           const img = /<img\b[^>]*>/.exec(out.html)![0];
-          expect(img).toContain(`src="http://localhost:3000${EMAIL_LOGO_PATH}"`);
-          expect(img).toContain('src="http://localhost:3000/brand/maw3ed-email-logo-reverse-320w.png"');
+          expect(img).toContain(`src="http://localhost:3000${EMAIL_LOGO_PATH}?v=${EMAIL_LOGO_VERSION}"`);
+          expect(img).toContain('src="http://localhost:3000/brand/maw3ed-email-logo-reverse-320w.png?v=2"');
           expect(img).toContain('width="160"');
           expect(img).toContain(`height="${EMAIL_LOGO_HEIGHT}"`);
           expect(img).toContain('alt="Maw3ed"');

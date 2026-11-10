@@ -683,7 +683,7 @@ test('PR-16b: every category in the list has its own svg icon (not mirrored), at
       for (const button of await list.getByRole('button').all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       for (const icon of await list.locator('svg[data-category]').all()) {
         const box = (await icon.boundingBox())!;
-        expect(box.width).toBeCloseTo(24, 0);
+        expect(box.width).toBeCloseTo(28, 0);
         expect(await icon.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
       }
       await expectNoPageOverflow(page);

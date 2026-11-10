@@ -28,7 +28,7 @@ export function AssistantDemo() {
       </h2>
       <p className="m-0 mt-2 max-w-[60ch] text-[15.5px] text-muted">{t('intro')}</p>
       </div>
-      <div className="mt-5 grid gap-5 lg:max-w-[1100px] lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-6">
+      <div className="mt-5 grid gap-5 lg:max-w-[1100px] lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-6">
       <DemoPlayer className="grid w-full max-w-[420px] content-start gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
         <div className="flex items-center justify-between gap-3">
           <span className="rounded-chip bg-divider px-2.5 py-1 text-xs font-semibold" data-testid="demo-label">

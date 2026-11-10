@@ -23,6 +23,7 @@ for (const lang of ['en', 'ar'] as const) {
       await expect(footer).toHaveAttribute('data-tone', 'white');
       await expect(footer).toHaveAttribute('data-logo', 'full');
       for (const logo of [header, footer]) {
+        await expect(logo).toBeVisible();
         const box = (await logo.boundingBox())!;
         expect(box.width / box.height).toBeCloseTo(RATIO, 0);
         expect(await logo.evaluate((el) => getComputedStyle(el).direction)).toBe('ltr');
@@ -45,6 +46,7 @@ for (const lang of ['en', 'ar'] as const) {
 test('the header logo stays sharp and in proportion at 360 px (104 px wide)', async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto('/privacy');
+  await expect(page.locator('header svg[role="img"]').first()).toBeVisible();
   const box = (await page.locator('header svg[role="img"]').first().boundingBox())!;
   expect(box.width).toBeGreaterThanOrEqual(100);
   expect(box.width / box.height).toBeCloseTo(RATIO, 0);

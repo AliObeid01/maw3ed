@@ -286,7 +286,7 @@ export function CategoryExplorer() {
                           active ? 'bg-mint text-ink' : 'bg-mint/20 text-ink',
                         )}
                       >
-                        <CategoryIcon category={key} size={24} />
+                        <CategoryIcon category={key} size={28} />
                       </span>
                       <span className="min-w-0">
                         <b className="block text-[17px] leading-tight font-semibold">{t(`names.${key}`)}</b>

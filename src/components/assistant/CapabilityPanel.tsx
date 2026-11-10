@@ -25,7 +25,7 @@ export function CapabilityPanel() {
 
   return (
     <div data-testid="capabilities" className="w-full max-w-[420px] min-w-0 lg:max-w-none">
-      <Reveal className="grid h-full content-start gap-1 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
+      <Reveal className="grid content-start gap-1 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
         <h3 className="m-0 text-[19px] leading-tight font-semibold">{t('can.title')}</h3>
         <p className="m-0 mb-2 text-[14.5px] text-muted">{t('can.hint')}</p>
         <ul aria-label={t('can.label')} className="m-0 grid list-none gap-4 p-0">

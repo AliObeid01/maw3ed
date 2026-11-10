@@ -29,6 +29,8 @@ for (const lang of ['en', 'ar'] as const) {
         expect(Math.abs(demo.y - panel.y), `${width}: tops`).toBeLessThanOrEqual(8);
         expect(panel.width, `${width}: right column`).toBeGreaterThan(300);
         expect(panel.height / demo.height, `${width}: height ratio`).toBeGreaterThanOrEqual(0.6);
+        // The demo card keeps its natural height: no big blank area inside it (it is at least 60% of the panel).
+        expect(demo.height / panel.height, `${width}: demo vs panel`).toBeGreaterThanOrEqual(0.6);
         // Side by side: in LTR the panel is to the right of the demo; in RTL it mirrors to the left.
         if (lang === 'en') expect(panel.x).toBeGreaterThanOrEqual(demo.x + demo.width);
         else expect(panel.x + panel.width).toBeLessThanOrEqual(demo.x + 1);
