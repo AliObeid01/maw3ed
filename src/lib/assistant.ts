@@ -16,3 +16,16 @@ export function connectorUrl(env: NodeJS.ProcessEnv = process.env): string {
 
 /** The three example prompts, in display order (message keys under `assistant.prompts`). */
 export const PROMPT_KEYS = ['book', 'find', 'waitlist'] as const;
+
+/**
+ * The five things the /assistant "What Claude can do" panel claims, each mapped to the MCP tools that really do it
+ * (src/server/mcp/tools.ts). A unit test keeps this list equal to the nine tools: add a claim only with a tool.
+ * Message keys: `assistant.can.items.<id>`.
+ */
+export const CAPABILITIES = [
+  { id: 'find', tools: ['search_businesses', 'get_business', 'get_free_times'] },
+  { id: 'book', tools: ['prepare_booking', 'create_booking'] },
+  { id: 'waitlist', tools: ['join_waitlist'] },
+  { id: 'check', tools: ['get_booking'] },
+  { id: 'manage', tools: ['confirm_booking', 'cancel_booking'] },
+] as const;

@@ -2734,6 +2734,38 @@
       "booked": "Booked",
       "done": "Done, <n>{client}</n>. Your haircut with <n>{staff}</n> at <n>{business}</n> is booked for tomorrow at 6:30 pm. A confirmation email is on its way."
     },
+    "can": {
+      "title": "What Claude can do",
+      "label": "Things Claude can do with Maw3ed",
+      "hint": "Tap an example to copy it, then paste it into Claude.",
+      "items": {
+        "find": {
+          "title": "Find businesses and free times",
+          "body": "Search the businesses listed on Maw3ed by service, area or category.",
+          "example": "Which barbers in Sidon have a free time today?"
+        },
+        "book": {
+          "title": "Book once you confirm",
+          "body": "Claude shows a summary and books the time you pick. It normally asks for your approval first.",
+          "example": "Book the 5 pm time you found for me"
+        },
+        "waitlist": {
+          "title": "Join the waitlist",
+          "body": "Ask to be told when a time opens up.",
+          "example": "Tell me if a time opens up on Saturday"
+        },
+        "check": {
+          "title": "Check your booking",
+          "body": "Look up the booking you just made.",
+          "example": "Show me my booking details"
+        },
+        "manage": {
+          "title": "Confirm or cancel",
+          "body": "Do it in the same chat.",
+          "example": "Cancel my booking for tomorrow"
+        }
+      }
+    },
     "fallback": "Prefer to book on the website?",
     "explore": "Explore businesses"
   }

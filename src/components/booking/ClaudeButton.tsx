@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { Check, Copy, ExternalLink } from 'lucide-react';
+import { ClaudeIcon } from '@/components/brand/ClaudeIcon';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useCopyStatus } from '@/components/assistant/useCopyStatus';
@@ -55,7 +56,7 @@ export function ClaudeButton({ name, slug }: { name: string; slug: string }) {
         title={t('button')}
         className={buttonClasses({ variant: 'onDark', className: 'rounded-pill max-lg:size-11 max-lg:px-0' })}
       >
-        <Sparkles size={18} aria-hidden="true" />
+        <ClaudeIcon size={18} />
         {/* Icon only below lg to stay on the pills' row; the words stay for screen readers. */}
         <span className="max-lg:sr-only">{t('button')}</span>
       </button>

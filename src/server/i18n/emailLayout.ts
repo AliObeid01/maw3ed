@@ -24,8 +24,10 @@ export const EMAIL_COLORS = {
 
 /** The reverse logo: the 320 px file shown at 160 px (sharp on retina). Served from public/brand. */
 export const EMAIL_LOGO_PATH = '/brand/maw3ed-email-logo-reverse-320w.png';
+/** Cache-busting version of the logo files (same names, new artwork in PR-16b). Bump when the artwork changes; constant, so retried sends stay byte-identical. */
+export const EMAIL_LOGO_VERSION = 2;
 export const EMAIL_LOGO_WIDTH = 160;
-export const EMAIL_LOGO_HEIGHT = 44;
+export const EMAIL_LOGO_HEIGHT = 46;
 
 const C = EMAIL_COLORS;
 
@@ -98,7 +100,7 @@ export function renderEmailLayout(o: EmailLayoutOptions): string {
 
   // Navy band + reverse logo. Inline styles only; the text colour and size keep the alt text readable on navy when
   // the client blocks images. The src is absolute: email clients cannot resolve relative paths.
-  const logo = `${emailAssetBase()}${EMAIL_LOGO_PATH}`;
+  const logo = `${emailAssetBase()}${EMAIL_LOGO_PATH}?v=${EMAIL_LOGO_VERSION}`;
   const header = `<tr><td class="px" bgcolor="${C.navy}" style="background:${C.navy};padding:20px 28px;border-radius:16px 16px 0 0;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;color:${C.onBrand};text-align:start"><img src="${e(logo)}" width="${EMAIL_LOGO_WIDTH}" height="${EMAIL_LOGO_HEIGHT}" alt="Maw3ed" style="display:block;border:0;outline:none;text-decoration:none;width:${EMAIL_LOGO_WIDTH}px;height:${EMAIL_LOGO_HEIGHT}px;font-family:${font};font-size:22px;line-height:28px;font-weight:bold;color:${C.onBrand}"></td></tr>`;
 
   return [

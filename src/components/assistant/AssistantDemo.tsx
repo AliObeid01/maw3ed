@@ -1,5 +1,6 @@
 import { Check, Clock, Search, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { CapabilityPanel } from './CapabilityPanel';
 import { DemoPlayer } from './DemoPlayer';
 
 const bubble = 'max-w-[88%] rounded-[18px] px-3.5 py-2.5 text-[15px] leading-snug';
@@ -20,12 +21,15 @@ export function AssistantDemo() {
   const offer = t.rich('offer', { ...names, n });
   const done = t.rich('done', { ...names, n });
   return (
-    <section aria-labelledby="demo-title" className="mt-12 max-w-[760px]" data-testid="assistant-demo">
+    <section aria-labelledby="demo-title" className="mt-12" data-testid="assistant-demo">
+      <div className="max-w-[760px]">
       <h2 id="demo-title" className="m-0 text-[clamp(27px,4.4vw,38px)] leading-[1.12] font-bold tracking-[-0.02em] rtl:tracking-normal">
         {t('title')}
       </h2>
       <p className="m-0 mt-2 max-w-[60ch] text-[15.5px] text-muted">{t('intro')}</p>
-      <DemoPlayer className="mt-5 grid w-full max-w-[420px] gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
+      </div>
+      <div className="mt-5 grid gap-5 lg:max-w-[1100px] lg:grid-cols-[420px_minmax(0,1fr)] lg:items-start lg:gap-6">
+      <DemoPlayer className="grid w-full max-w-[420px] content-start gap-3 rounded-[22px] border-[1.5px] border-divider bg-surface p-[18px]">
         <div className="flex items-center justify-between gap-3">
           <span className="rounded-chip bg-divider px-2.5 py-1 text-xs font-semibold" data-testid="demo-label">
             {t('label')}
@@ -64,6 +68,8 @@ export function AssistantDemo() {
           {done}
         </p>
       </DemoPlayer>
+      <CapabilityPanel />
+      </div>
     </section>
   );
 }

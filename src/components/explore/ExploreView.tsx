@@ -210,17 +210,19 @@ function Explore() {
             value={filters}
             today={today}
             leading={searchForm}
+            footer={
+              anyFilter ? (
+                <div className="flex">
+                  <Button variant="ghost" className="-ms-4" onClick={clearAll}>
+                    {t('clear')}
+                  </Button>
+                </div>
+              ) : null
+            }
             onChange={(patch: FilterPatch) => {
               commit({ ...filters, ...patch });
             }}
           />
-          {anyFilter ? (
-            <div className="mt-3 flex">
-              <Button variant="ghost" className="-ms-4" onClick={clearAll}>
-                {t('clear')}
-              </Button>
-            </div>
-          ) : null}
         </section>
       ) : (
         <div className="grid gap-3">

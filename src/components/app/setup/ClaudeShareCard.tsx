@@ -1,6 +1,7 @@
 'use client';
 
-import { Check, Copy, ExternalLink, MessageCircle, Sparkles } from 'lucide-react';
+import { Check, Copy, ExternalLink, MessageCircle } from 'lucide-react';
+import { ClaudeIcon } from '@/components/brand/ClaudeIcon';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -68,7 +69,7 @@ export function ClaudeShareCard({
       <Card size="sm" className="flex flex-col gap-4 p-5">
         <div className="flex items-start gap-3.5">
           <span aria-hidden="true" className="flex size-12 shrink-0 items-center justify-center rounded-input bg-brand-soft text-brand">
-            <Sparkles size={24} />
+            <ClaudeIcon size={24} />
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-1">
             <h2 className="m-0 text-[17px] font-semibold">{t('title')}</h2>

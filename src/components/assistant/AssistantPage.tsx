@@ -1,4 +1,5 @@
-import { ChevronDown, Link2, MessageCircle, Plug, ShieldCheck } from 'lucide-react';
+import { ChevronDown, Link2, Plug, ShieldCheck } from 'lucide-react';
+import { ClaudeIcon } from '@/components/brand/ClaudeIcon';
 import { useTranslations } from 'next-intl';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -10,7 +11,7 @@ import { PromptChips } from './PromptChips';
 const STEPS = [
   { id: 'copy', Icon: Link2 },
   { id: 'add', Icon: Plug },
-  { id: 'ask', Icon: MessageCircle },
+  { id: 'ask', Icon: ClaudeIcon },
 ] as const;
 const FAQ = ['free', 'sees', 'which', 'cancel', 'deposit', 'remove'] as const;
 
