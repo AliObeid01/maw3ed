@@ -82,28 +82,44 @@ for (const width of [1440, 1024, 768, 640]) {
 
 test('a container too narrow for everything hides whole chips (never a half cut one) and keeps two rows', async ({ page }) => {
   await open(page, 1440);
-  await chipsBox(page).evaluate((el) => {
-    (el as HTMLElement).style.width = '300px'; // test-only: force a third row
+  // Font-independent: take the natural widths from the DOM (hidden chips keep their layout) and squeeze the box to a
+  // fraction of their total, never below the widest chip plus the box padding.
+  const natural = await chipsBox(page).evaluate((el) => {
+    const widths = Array.from(el.querySelectorAll('a')).map((a) => a.getBoundingClientRect().width);
+    return { total: widths.reduce((x, y) => x + y, 0), widest: Math.max(...widths), count: widths.length };
   });
-  // Wait for the resize observer to have hidden the chips that no longer fit (rows alone can still read 2 from the old layout).
-  await expect.poll(async () => (await measure(page)).visible).toBeLessThan(LONG_SERVICES.length);
+  const width = Math.ceil(Math.max(0.45 * natural.total, natural.widest + 8));
+  await chipsBox(page).evaluate((el, w) => {
+    (el as HTMLElement).style.width = w + 'px';
+  }, width);
+  // Wait for the fit to settle: at least one whole chip is hidden.
+  await expect.poll(async () => (await measure(page)).visible).toBeLessThan(natural.count);
   const m = await measure(page);
+  expect(m.visible).toBeGreaterThanOrEqual(1);
   expect(m.rows).toBeLessThanOrEqual(2);
   expect(m.clipped).toEqual([]);
-  // The hidden chips are out of the tab order and the accessibility tree too (visibility: hidden), not just clipped.
+  // Hidden chips are out of the tab order and accessibility tree (visibility: hidden, not display: none) and keep their title.
   const hidden = await chipsBox(page).evaluate((el) =>
-    Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).visibility === 'hidden').length,
+    Array.from(el.querySelectorAll('a'))
+      .filter((a) => getComputedStyle(a).visibility === 'hidden')
+      .map((a) => ({ display: getComputedStyle(a).display, title: a.getAttribute('title') })),
   );
-  expect(hidden).toBe(LONG_SERVICES.length - m.visible);
+  expect(hidden).toHaveLength(natural.count - m.visible);
+  for (const h of hidden) {
+    expect(h.display).not.toBe('none');
+    expect(LONG_SERVICES).toContain(h.title);
+  }
 
   // Sizes can change after the first fit without the container changing (a web font arriving): the fit follows.
-  await chipsBox(page).evaluate((el) => {
+  await chipsBox(page).evaluate((el, w) => {
+    (el as HTMLElement).style.width = Math.max(w, 300) + 'px';
     el.querySelectorAll('a').forEach((a) => ((a as HTMLElement).style.minWidth = '260px'));
-  });
+  }, width);
   await expect.poll(async () => (await measure(page)).clipped).toEqual([]);
   const after = await measure(page);
   expect(after.rows).toBeLessThanOrEqual(2);
-  expect(after.visible).toBeLessThanOrEqual(m.visible); // fewer or equal: with wide fonts the first fit may already leave one chip
+  expect(after.visible).toBeGreaterThanOrEqual(1);
+  expect(after.visible).toBeLessThan(natural.count);
 });
 
 for (const width of [390, 360, 320]) {
