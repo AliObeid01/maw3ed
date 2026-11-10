@@ -23,7 +23,7 @@ type Metrics = {
 async function measure(page: Page): Promise<Metrics> {
   return chipsBox(page).evaluate((el) => {
     const box = el.getBoundingClientRect();
-    const links = Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).display !== 'none');
+    const links = Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).visibility !== 'hidden');
     const tops = new Set(links.map((a) => Math.round(a.getBoundingClientRect().top)));
     const cs = getComputedStyle(el);
     const clipped = links
@@ -90,11 +90,20 @@ test('a container too narrow for everything hides whole chips (never a half cut 
   const m = await measure(page);
   expect(m.rows).toBeLessThanOrEqual(2);
   expect(m.clipped).toEqual([]);
-  // The hidden chips are out of the tab order too (display none), not just clipped.
+  // The hidden chips are out of the tab order and the accessibility tree too (visibility: hidden), not just clipped.
   const hidden = await chipsBox(page).evaluate((el) =>
-    Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).display === 'none').length,
+    Array.from(el.querySelectorAll('a')).filter((a) => getComputedStyle(a).visibility === 'hidden').length,
   );
   expect(hidden).toBe(LONG_SERVICES.length - m.visible);
+
+  // Sizes can change after the first fit without the container changing (a web font arriving): the fit follows.
+  await chipsBox(page).evaluate((el) => {
+    el.querySelectorAll('a').forEach((a) => ((a as HTMLElement).style.minWidth = '260px'));
+  });
+  await expect.poll(async () => (await measure(page)).clipped).toEqual([]);
+  const after = await measure(page);
+  expect(after.rows).toBeLessThanOrEqual(2);
+  expect(after.visible).toBeLessThan(m.visible);
 });
 
 for (const width of [390, 360, 320]) {

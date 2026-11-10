@@ -8,31 +8,44 @@ import { buildDirectoryUrl } from '@/lib/home/search';
 export const CHIP_ROWS = 2;
 
 /**
- * Hide (display: none, so also out of the tab order) every chip that would start a row after `maxRows`, never half
- * cutting one. Measured from the real layout: first show all, then hide those whose top is below the second row.
- * Runs again whenever the box changes size or the chips change. Below sm the row is a one-line scroller, where this
- * does nothing (nothing wraps).
+ * Hide every chip that would start a row after `maxRows`, never half cutting one. Hidden chips get
+ * `visibility: hidden` (not display: none): they stay in the layout, so hiding changes no size, the fit is idempotent
+ * and the chips can be observed too, yet they are out of the tab order and the accessibility tree. Measured from the
+ * real layout, so it runs again whenever the box OR any chip changes size (a web font arriving does not resize the box)
+ * and when the fonts are ready. Below sm the row is a one-line scroller, where this does nothing (nothing wraps).
  */
 function useFitRows(maxRows: number, names: readonly string[]) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const box = ref.current;
     if (!box) return;
+    const chips = Array.from(box.querySelectorAll<HTMLElement>('[data-chip]'));
     const fit = () => {
-      const chips = Array.from(box.querySelectorAll<HTMLElement>('[data-chip]'));
-      for (const chip of chips) chip.removeAttribute('data-fit-hidden');
-      if (getComputedStyle(box).flexWrap !== 'wrap') return;
-      const tops: number[] = [];
-      for (const chip of chips) {
-        const top = Math.round(chip.offsetTop);
-        if (!tops.includes(top)) tops.push(top);
-        if (tops.length > maxRows) chip.setAttribute('data-fit-hidden', '');
+      const wraps = getComputedStyle(box).flexWrap === 'wrap';
+      // Rows are told apart by the vertical CENTER of every child, the label included: a label that fills a row on
+      // its own is a row, and items centred in one row share a center whatever their height.
+      const centers: number[] = [];
+      const note = (el: HTMLElement) => {
+        const center = Math.round(el.offsetTop + el.offsetHeight / 2);
+        if (!centers.some((c) => Math.abs(c - center) < 4)) centers.push(center);
+      };
+      for (const child of Array.from(box.children) as HTMLElement[]) {
+        note(child);
+        if (!child.hasAttribute('data-chip')) continue;
+        const hide = wraps && centers.length > maxRows;
+        if (hide !== child.hasAttribute('data-fit-hidden')) child.toggleAttribute('data-fit-hidden', hide);
       }
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(box);
-    return () => observer.disconnect();
+    for (const chip of chips) observer.observe(chip);
+    let live = true;
+    void document.fonts?.ready.then(() => live && fit());
+    return () => {
+      live = false;
+      observer.disconnect();
+    };
   }, [maxRows, names]);
   return ref;
 }
@@ -59,7 +72,7 @@ export function HeroChips({ label, names }: { label: string; names: readonly str
           data-chip
           title={name}
           href={buildDirectoryUrl({ search: name })}
-          className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill sm:max-w-[280px] border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 data-fit-hidden:hidden motion-reduce:transition-none"
+          className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill sm:max-w-[280px] border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 data-fit-hidden:invisible motion-reduce:transition-none"
         >
           <span dir="auto" className="truncate">{name}</span>
         </Link>
