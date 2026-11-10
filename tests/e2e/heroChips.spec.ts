@@ -66,6 +66,12 @@ for (const width of [1440, 1024, 768, 640]) {
     expect(m.rows).toBeLessThanOrEqual(2);
     expect(m.clipped).toEqual([]);
     expect(m.visible).toBeGreaterThanOrEqual(2);
+    // Room enough that a typical long service name ("Plastic Surgery Consultation") shows in full.
+    const firstCut = await chipsBox(page).evaluate((el) => {
+      const s = el.querySelector('a > span')!;
+      return s.scrollWidth > s.clientWidth;
+    });
+    expect(firstCut).toBe(false);
     // Every chip says its full name on hover, even when the text is shortened.
     for (const name of LONG_SERVICES) {
       const link = chipsBox(page).getByRole('link', { name });
@@ -121,6 +127,12 @@ test('Arabic, right to left: the fade is on the left (scrolling side), phones sc
   expect(phone.rows).toBe(1);
   expect(phone.scrollbarWidth).toBe('none');
   expect(phone.maskImage).toContain('to left');
+  // A Latin business-entered name keeps its own direction inside the Arabic page, so the ellipsis cuts the END of the
+  // name ("Plastic Surgery Consult..."), not the start ("...stic Surgery Consultation").
+  const directions = await chipsBox(page).evaluate((el) =>
+    Array.from(el.querySelectorAll('a > span')).map((s) => getComputedStyle(s).direction),
+  );
+  expect(directions).toEqual(['ltr', 'ltr', 'ltr', 'ltr']);
   await page.setViewportSize({ width: 1440, height: 900 });
   await expect.poll(async () => (await measure(page)).wrap).toBe('wrap');
   const wide = await measure(page);

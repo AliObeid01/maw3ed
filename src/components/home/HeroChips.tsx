@@ -59,9 +59,9 @@ export function HeroChips({ label, names }: { label: string; names: readonly str
           data-chip
           title={name}
           href={buildDirectoryUrl({ search: name })}
-          className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 data-fit-hidden:hidden motion-reduce:transition-none"
+          className="inline-flex min-h-11 max-w-[220px] shrink-0 items-center rounded-pill sm:max-w-[280px] border border-white/35 px-4 font-medium text-white no-underline transition-colors duration-200 ease-out hover:bg-white/15 aria-busy:opacity-70 data-fit-hidden:hidden motion-reduce:transition-none"
         >
-          <span className="truncate">{name}</span>
+          <span dir="auto" className="truncate">{name}</span>
         </Link>
       ))}
     </div>
