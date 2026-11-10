@@ -60,7 +60,7 @@ test.describe('first-time visitor', () => {
 
     await page.goto('/my-bookings');
     await expect(page.getByRole('heading', { level: 1, name: 'My bookings' })).toBeVisible();
-    await expect(page.getByText('Bookings made on this device. No account needed.')).toBeVisible();
+    await expect(page.getByText('Bookings saved on this device. No account needed.')).toBeVisible();
     const empty = page.getByTestId('my-bookings-empty');
     await expect(empty.getByRole('heading', { name: 'Your bookings will appear here.' })).toBeVisible();
     await expect(empty.getByRole('link', { name: 'Explore businesses' })).toHaveAttribute('href', '/directory');
