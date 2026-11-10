@@ -120,7 +120,8 @@ export function HomeHero() {
           <HeroChips label={t('popular')} names={chips} />
         </div>
 
-        <div className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[496px]')}>
+        {/* The column reserves the height of the loading skeleton (four rows) so the hero never changes height when the rows arrive; the panel inside fits its rows and sits at the top, so nothing in it moves either. */}
+        <div data-testid="next-free-column" className={cn('hidden lg:block', !panelHidden && 'lg:min-h-[496px]')}>
           {desktop ? <NextFreePanel area={area} onHidden={setPanelHidden} /> : null}
         </div>
       </div>
