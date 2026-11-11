@@ -221,16 +221,10 @@ business). After a removal you can seed again.
 * Everything lives in `scripts/demo/`: `manifest.ts` (the 18 businesses), `names.ts` (clients), `schedule.ts` and `plan.ts` (a
   pure, seeded, clock-injected generator), `logos.ts`, `guards.ts`, `runner.ts` (database writes), `checks.ts`, and the
   three CLIs. It needs no migration and changes no service or domain behaviour.
-* Logos are original geometric monograms (two block letters on a plain colour field, brand palette, no text rendering, no
-  photos) rasterised with sharp and passed through the app's own `processLogo` (256x256 WebP, metadata stripped, sha256
-  hash), then stored in `BusinessLogo` exactly as a logo upload does.
-* The seeder runs as a script with its own Prisma client; it does not go through the services, so it sets `plan`,
-  `createdAt`, outcomes and reminder rows directly. Rows are built to be what the real flows would have left (client
-  counters equal the appointment history, reminder jobs come from the same `plannedJobs` function).
-* Phone numbers are valid Lebanese mobile numbers (03, 70, 71, 76, 78, 79, 81) from one fixed fake block (`+961` prefix
-  followed by `77xxxx`), plausible but not guaranteed unassigned.
-* Business names are fictional and descriptive. A name could still coincide with a real business somewhere; the
-  simulated label above covers that, and a name is easy to change in `manifest.ts` (then `demo:remove` still works for
-  data seeded earlier only if you keep the old slug).
+* Logos are ORIGINAL vector marks drawn as SVG strings in `logos.ts` (6 category motif families x 3 drawings, 5
+  layouts, 18 palettes; one fixed design per business name, no <text>, no fonts, no real brands), rasterised with sharp
+  and passed through the app's own `processLogo` (256x256 WebP, metadata stripped, sha256 hash), then stored in
+  `BusinessLogo` exactly as a logo upload does. Existing demo data keeps the old monograms: re-seed to see the new
+  ones (`pnpm demo:remove` then `pnpm demo:seed`).
 * Tests: `tests/unit/demo/*` (generators, guards, manifest, logos) and `tests/integration/demo.seed.test.ts` (seed, check,
   the real directory, slots, login and pilot report, remove scope, re-seed) on a scratch schema.
