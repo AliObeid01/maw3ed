@@ -160,19 +160,17 @@ export function BusinessCard({
                 </bdi>
               </li>
             ))}
-            {m.moreCount > 0 ? (
-              <li className="flex">
-                <Link
-                  href={href}
-                  data-testid="card-more"
-                  aria-label={t('moreAria', { count: m.moreCount, name: business.name })}
-                  className="inline-flex min-h-11 items-center text-[14px] font-semibold text-brand no-underline hover:underline"
-                >
-                  {t('more', { count: m.moreCount })}
-                </Link>
-              </li>
-            ) : null}
           </ul>
+        ) : null}
+        {m.services.length > 0 && m.moreCount > 0 ? (
+          <Link
+            href={href}
+            data-testid="card-more"
+            aria-label={t('moreAria', { count: m.moreCount, name: business.name })}
+            className="-mt-2 inline-flex min-h-11 items-center self-start text-[14px] font-semibold text-brand no-underline hover:underline"
+          >
+            {t('more', { count: m.moreCount })}
+          </Link>
         ) : null}
 
         <div className="grid gap-2 border-t border-divider pt-3">

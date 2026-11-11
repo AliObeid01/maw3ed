@@ -47,6 +47,8 @@ test.describe('explore: results and cards', () => {
     const chips = c.getByTestId('card-services').getByRole('listitem');
     await expect(chips).toHaveCount(2);
     await expect(chips.nth(1)).toContainText('Beard trim');
+    // The services list holds only services: the "+N more" link (when the business has more) sits outside it.
+    await expect(c.getByTestId('card-services').getByTestId('card-more')).toHaveCount(0);
     await expect(chips.nth(1)).toContainText('12.50 USD');
     const label = c.getByTestId('free-label');
     await expect(label.getByTestId('free-label-day')).toHaveText('Free today');
