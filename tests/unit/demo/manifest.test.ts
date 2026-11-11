@@ -87,8 +87,8 @@ describe('demo manifest', () => {
   });
 
   it('shows about ten logos and eight initials', () => {
-    expect(MANIFEST.filter((b) => b.logo)).toHaveLength(10);
-    expect(MANIFEST.filter((b) => !b.logo)).toHaveLength(8);
+    expect(MANIFEST.filter((b) => b.logo)).toHaveLength(15);
+    expect(MANIFEST.filter((b) => !b.logo)).toHaveLength(3);
   });
 
   it('keeps client counts in range', () => {
