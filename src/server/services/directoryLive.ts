@@ -4,6 +4,7 @@ import {
   type DirBusiness,
   type NextFree,
 } from '@/server/domain/nextFree';
+import { openStatus, type OpenStatus } from '@/server/domain/openStatus';
 import type { Weekday } from '@/server/domain/slots';
 import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { AppError } from '@/server/http/errors';
@@ -46,6 +47,8 @@ export interface LiveResult {
   name: string;
   timezone: string;
   nextFree: NextFree | null;
+  /** Open now / until, from the posted weekly hours already loaded for the slot engine (no extra query). */
+  openStatus: OpenStatus;
 }
 
 const DAY_MS = 86_400_000;
@@ -99,7 +102,17 @@ export async function liveNextFree(
     );
     return [
       l.business.id,
-      { slug: l.business.slug, name: l.business.name, timezone: l.business.timezone, nextFree },
+      {
+        slug: l.business.slug,
+        name: l.business.name,
+        timezone: l.business.timezone,
+        nextFree,
+        openStatus: openStatus(
+          l.staff.flatMap((s) => s.hours),
+          l.business.timezone,
+          now,
+        ),
+      },
     ] as const;
   });
   return new Map(entries);

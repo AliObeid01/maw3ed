@@ -71,7 +71,7 @@ describe('sort=soonest: ranking', () => {
       '2026-11-02T10:00:00.000Z',
       '2026-11-02T13:00:00.000Z',
     ]);
-    // Items keep the existing live shape; no cursor for this mode.
+    // Items keep the existing live shape plus the additive openStatus; no cursor for this mode.
     const first = res.body!.businesses[0];
     expect(Object.keys(first).sort()).toEqual(
       [
@@ -83,6 +83,7 @@ describe('sort=soonest: ranking', () => {
         'logoUrl',
         'name',
         'nextFree',
+        'openStatus',
         'serviceCount',
         'slug',
         'timezone',
