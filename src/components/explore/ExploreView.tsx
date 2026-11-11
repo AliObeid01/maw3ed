@@ -61,7 +61,7 @@ function ResultsSkeleton() {
       data-testid="directory-skeleton"
     >
       {Array.from({ length: 6 }, (_, i) => (
-        <Skeleton key={i} className="h-[440px] rounded-[22px]" />
+        <Skeleton key={i} className="h-[500px] rounded-[22px]" />
       ))}
     </div>
   );

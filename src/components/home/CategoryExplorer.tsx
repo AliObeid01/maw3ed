@@ -42,7 +42,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
     return (
       <div aria-hidden="true" data-testid="top-skeleton" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[440px] rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn('h-[500px] rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     );
@@ -83,7 +83,7 @@ function Tile({ label, value }: { label: string; value: string }) {
   return (
     <div className="grid min-w-0 gap-0.5 rounded-[14px] border border-divider bg-surface px-3.5 py-2.5">
       <dt className="truncate text-[12.5px] leading-tight text-muted">{label}</dt>
-      <dd className="m-0 truncate text-[18px] leading-tight font-bold tabular-nums">{value}</dd>
+      <dd className="m-0 text-[16px] leading-tight font-bold tabular-nums sm:text-[18px]">{value}</dd>
     </div>
   );
 }
@@ -156,10 +156,10 @@ function ExplorerSkeleton() {
           <Skeleton key={i} className="h-[76px] w-[132px] flex-none rounded-[16px] lg:w-auto lg:flex-1" />
         ))}
       </div>
-      <Skeleton aria-hidden="true" className="h-5 w-[260px] rounded-tile" />
+      <Skeleton aria-hidden="true" className="h-[88px] w-full rounded-tile" />
       <div aria-hidden="true" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[440px] rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn('h-[500px] rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     </div>
@@ -220,7 +220,7 @@ export function CategoryExplorer() {
 
   if (!loaded && !cats.error) {
     return (
-      <div className="mt-[26px] min-h-[560px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:min-h-[540px] lg:p-[26px]">
+      <div className="mt-[26px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:p-[26px]">
         <ExplorerSkeleton />
       </div>
     );

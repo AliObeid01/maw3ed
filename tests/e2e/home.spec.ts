@@ -381,9 +381,9 @@ test('categories: list with stats, switching panels, popular services, top place
 
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Barbers' })).toBeVisible();
   // Three small stat tiles in the header (PR-19): places, prices from and next free; no Popular services chips.
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/Placess*3/);
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/Prices froms*6 USD/);
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/Next frees*.?Today 10:30/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Places\s*3/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Prices from\s*.?6 USD/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Next free\s*.?Today 10:30/);
   await expect(panel(page).getByText('Popular services')).toHaveCount(0);
   const top = panel(page).getByRole('article');
   await expect(top).toHaveCount(2);
@@ -397,13 +397,13 @@ test('categories: list with stats, switching panels, popular services, top place
   const label = (card: ReturnType<typeof top.first>) => card.getByTestId('free-label');
   await expect(label(top.first()).getByTestId('free-label-day')).toHaveText('Free today');
   await expect(label(top.first())).not.toContainText('·'); // no separator dot that could wrap to the start of a line
-  await expect(top.first().getByRole('link', { name: /^\d\d:\d\d, / })).toHaveText(['10:30', '11:30', '14:00']); // up to three time chips
+  await expect(top.first().getByRole('link', { name: /^\d\d:\d\d at / })).toHaveText(['10:30', '11:30', '14:00']); // up to three time chips
   await expect(label(top.nth(1)).getByTestId('free-label-day')).toHaveText('Free tomorrow');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveAttribute('href', '/b/abu-karam');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveText('See all services and book');
   // PR-19: the open-now line (green) and the closed line (muted), from the additive openStatus field; durations next to services.
-  await expect(top.first().getByTestId('open-status')).toHaveText('Open · until 19:00');
-  await expect(top.nth(1).getByTestId('open-status')).toHaveText('Closed · opens 09:00');
+  await expect(top.first().getByTestId('open-status')).toHaveText(/^Open · until .?19:00.?$/);
+  await expect(top.nth(1).getByTestId('open-status')).toHaveText(/^Closed · opens .?09:00.?$/);
   await expect(chips.first()).toContainText('30 min');
   await expect(panel(page).getByRole('link', { name: 'See all barbers' })).toHaveAttribute('href', '/directory?category=barbers');
   await expect(panel(page)).toContainText('Free times can be taken before you book.');
@@ -450,8 +450,8 @@ test('PR-18: category tiles are tabs (arrow keys, roving focus, tabpanel) and th
     // One row of cards: every card starts at the same height, and the whole section is far shorter than before.
     const boxes = await panel(page).getByRole('article').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     expect(new Set(boxes).size).toBe(1);
-    const section = await categoryList(page).locator('xpath=ancestor::div[contains(@class,"min-h-")][1]').boundingBox();
-    expect(section!.height).toBeLessThan(700);
+    const section = await categoryList(page).locator('xpath=ancestor::div[contains(@class,"rounded-[24px]")][1]').boundingBox();
+    expect(section!.height).toBeLessThan(900); // PR-19: the cards are the taller target design (banner, logo, rows, times, button)
   }
 });
 
@@ -527,7 +527,7 @@ test('the category block keeps its height while loading (nothing below it jumps 
   await expect(box).toBeVisible();
   const loading = (await box.boundingBox())!.height;
   await expect(categoryList(page)).toBeVisible();
-  const loaded = (await categoryList(page).locator('xpath=ancestor::div[contains(@class,"min-h-")][1]').boundingBox())!.height;
+  const loaded = (await categoryList(page).locator('xpath=ancestor::div[contains(@class,"rounded-[24px]")][1]').boundingBox())!.height;
   expect(loaded).toBeGreaterThanOrEqual(loading - 2);
 });
 

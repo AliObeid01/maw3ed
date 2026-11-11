@@ -136,12 +136,14 @@ export function BusinessCard({
         </div>
 
         {m.services.length > 0 ? (
-          <ul data-testid="card-services" aria-label={t('servicesLabel')} className="m-0 grid list-none gap-1.5 border-t border-divider p-0 pt-3">
+          <ul data-testid="card-services" aria-label={t('servicesLabel')} className="m-0 grid grid-cols-[minmax(0,1fr)] list-none gap-1.5 border-t border-divider p-0 pt-3">
             {m.services.map((s, i) => (
               <li key={`${s.name}|${s.price}|${i}`} className="flex items-baseline justify-between gap-3 text-[15px]">
-                <span className="min-w-0 truncate">
-                  <Bidi>{s.name}</Bidi>
-                  <span className="text-[13px] text-muted"> · {duration(durationParts(s.durationMin))}</span>
+                <span className="flex min-w-0 items-baseline gap-1">
+                  <span className="min-w-0 truncate">
+                    <Bidi>{s.name}</Bidi>
+                  </span>
+                  <span className="shrink-0 text-[13px] whitespace-nowrap text-muted">· {duration(durationParts(s.durationMin))}</span>
                 </span>
                 <bdi dir="ltr" className="shrink-0 font-bold tabular-nums">
                   {s.price}

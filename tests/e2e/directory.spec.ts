@@ -176,7 +176,8 @@ test.describe('public directory: category and area filters (PR-1)', () => {
     await page.goto('/directory');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     const card = page.getByRole('listitem').filter({ hasText: 'Sidon Barber' });
-    await expect(card).toContainText('الحلاقون · صيدا');
+    await expect(card).toContainText('حلاق'); // the category pill
+    await expect(card).toContainText('صيدا · Riad El Solh St');
     const phoneButton = page.getByRole('button', { name: /^الفلاتر/ });
     if (await phoneButton.isVisible()) await phoneButton.click();
     expect(await pickerText(page, 'الفئة')).toBe('كل الفئات');
