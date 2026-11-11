@@ -25,6 +25,12 @@ const KEYS = [
 ] as const;
 
 type SearchParams = Record<string, string | string[] | undefined>;
+/** Where the code goes, in words: the two Claude hosts by name, a loopback callback as a local app, anything else by host. */
+function destination(redirectUri: string, local: (host: string) => string): string {
+  const url = new URL(redirectUri);
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') return local(url.host);
+  return url.host;
+}
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -64,6 +70,7 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
   );
 
   if (status === 'expired') return message(t('oauth.errors.expiredTitle'), t('oauth.errors.expired'));
+  if (status === 'blocked') return message(t('oauth.errors.blockedTitle'), t('oauth.errors.blocked'), true);
 
   const params: AuthorizeParams = {};
   for (const k of KEYS) {
@@ -119,7 +126,13 @@ export default async function AuthorizePage({ searchParams }: { searchParams: Pr
         </h1>
         <p className="m-0 text-[15px] text-muted">{t('oauth.intro')}</p>
         <p className="m-0 text-sm text-muted">{t('oauth.requestedBy', { client: cleanText(check.client.name, 60) })}</p>
+        <p className="m-0 text-sm text-muted">
+          {t('oauth.returnsTo', {
+            destination: destination(check.redirectUri, (host) => t('oauth.localApp', { host })),
+          })}
+        </p>
       </div>
+      <p className="m-0 rounded-input bg-warning-soft px-3.5 py-2.5 text-sm font-medium text-ink">{t('oauth.warning')}</p>
       <section className="flex flex-col gap-1.5">
         <h2 className="m-0 text-base font-semibold">{t('oauth.canTitle')}</h2>
         <ul className="m-0 flex list-disc flex-col gap-1 ps-5 text-[15px]">

@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import { deriveSetupSteps, shareSeenKey, stepHrefs, type SetupStepId } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
 import { LoadError, OwnerOnly } from '../states';
+import { OwnerConnectorCard } from './OwnerConnectorCard';
 
 type Extras = { serviceCount: number; hasReceptionist: boolean };
 
@@ -68,10 +69,12 @@ function Checklist({
   business,
   extras,
   userName,
+  connectorUrl,
 }: {
   business: Business;
   extras: Extras;
   userName: string;
+  connectorUrl?: string;
 }) {
   const t = useTranslations('app.setup');
   const shareSeen = useSyncExternalStore(
@@ -116,6 +119,8 @@ function Checklist({
           </span>
         </div>
       </section>
+
+      {connectorUrl ? <OwnerConnectorCard url={connectorUrl} /> : null}
 
       <ol className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(100%,320px),1fr))] gap-3.5 p-0">
         {steps.map((step) => {
@@ -182,15 +187,16 @@ function Checklist({
   );
 }
 
-export function SetupChecklist() {
+/** `connectorUrl` is set by the page only while the owner connector is switched on; without it nothing about Claude renders. */
+export function SetupChecklist({ connectorUrl }: { connectorUrl?: string }) {
   return (
     <OwnerOnly>
-      <SetupChecklistInner />
+      <SetupChecklistInner connectorUrl={connectorUrl} />
     </OwnerOnly>
   );
 }
 
-function SetupChecklistInner() {
+function SetupChecklistInner({ connectorUrl }: { connectorUrl?: string }) {
   const { userName } = useAppSession();
   const business = useResource(getBusiness, 'business');
   const extras = useResource(loadExtras, 'extras');
@@ -202,6 +208,7 @@ function SetupChecklistInner() {
       business={business.data}
       extras={extras.data ?? { serviceCount: 0, hasReceptionist: false }}
       userName={userName}
+      connectorUrl={connectorUrl}
     />
   );
 }

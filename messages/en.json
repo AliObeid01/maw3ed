@@ -1154,6 +1154,52 @@
         "title": "No appointments this day",
         "body": "When a client books with you, it shows up here."
       }
+    },
+    "ownerConnector": {
+      "setup": {
+        "title": "Set up with Claude",
+        "promise": "Describe your business to Claude and it adds your services, staff and hours. You review everything before anything is saved.",
+        "urlLabel": "Connector link",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyFailed": "Could not copy. Select the text and copy it by hand.",
+        "stepsTitle": "How to connect",
+        "step1": "In Claude open Customize, then Connectors, then Add custom connector, and paste the link.",
+        "step2": "Sign in to Maw3ed and tap Allow when Claude asks.",
+        "step3": "Tell Claude about your business, review the preview and say yes.",
+        "promptsTitle": "Tap an example to copy it",
+        "prompt1": "Set up my barbershop: three services, Ali and Karam, open 9 to 9 except Sunday.",
+        "prompt2": "What is still missing in my setup?",
+        "prompt3": "Set 15-minute slots, 2 hours minimum notice and free cancellation until 12 hours before.",
+        "canTitle": "It can",
+        "can1": "Add services, staff and working hours.",
+        "can2": "Set category, area, address, time slot, minimum notice and cancellation cutoff.",
+        "cannotTitle": "It cannot",
+        "cannot1": "See your clients or appointments.",
+        "cannot2": "Delete anything.",
+        "cannot3": "Change your plan, logins or payments.",
+        "planNote": "The Free plan has one bookable person; a second staff member needs Pro.",
+        "manage": "Manage connections",
+        "connectedTitle": "Claude is connected",
+        "connectedBody": "It can set up your services, staff and hours. You can disconnect it at any time."
+      },
+      "settings": {
+        "title": "Connected apps",
+        "intro": "Apps you allowed to set up your business. Disconnecting stops them at once.",
+        "empty": "No apps connected",
+        "emptyBody": "To let Claude set up your business, add this link in Claude under Customize, then Connectors.",
+        "connectedOn": "Connected {date}",
+        "lastUsed": "Last used {date}",
+        "neverUsed": "Not used yet",
+        "revoke": "Revoke",
+        "revokeLabel": "Revoke {name}",
+        "confirmTitle": "Disconnect {name}?",
+        "confirmBody": "It stops working at once. You can connect it again later.",
+        "confirm": "Disconnect",
+        "keep": "Keep connected",
+        "revoked": "{name} disconnected",
+        "revokeFailed": "Could not disconnect. Nothing was changed, try again."
+      }
     }
   },
   "team": {
@@ -2226,6 +2272,11 @@
           "title": "Publish",
           "body": "Share your link on Instagram or WhatsApp"
         }
+      },
+      "claudeTeaser": {
+        "title": "Prefer to talk?",
+        "body": "Describe your business to Claude and it sets up your services, staff and hours. You review everything before it is saved.",
+        "cta": "Start free and try it"
       }
     },
     "pricing": {
@@ -2806,7 +2857,12 @@
       "expired": "For your safety the confirmation is only valid for a few minutes. Go back to Claude and connect again.",
       "notOwnerTitle": "Only the business owner can connect Claude",
       "notOwner": "You are signed in as a team member of {business}. Ask the owner to connect Claude, or sign in with the owner account.",
-      "back": "Back to my dashboard"
-    }
+      "back": "Back to my dashboard",
+      "blockedTitle": "This request was blocked",
+      "blocked": "For your safety, Maw3ed only accepts this confirmation from its own page. Go back to Claude and connect again."
+    },
+    "returnsTo": "After you allow, you go back to {destination}.",
+    "localApp": "a local app on this computer ({host})",
+    "warning": "Continue only if you just started connecting Claude yourself."
   }
 }

@@ -8,6 +8,7 @@ import { PlanMenu } from '@/components/billing/PlanMenu';
 import { useAreaLabel } from '@/components/public/areaLabel';
 import { useCategoryLabel } from '@/components/public/categoryLabel';
 import { DepositSettings } from './DepositSettings';
+import { ConnectedApps } from './ConnectedApps';
 import { LogoSection } from './LogoSection';
 import { Button } from '@/components/ui/Button';
 import { Callout } from '@/components/ui/Callout';
@@ -462,18 +463,24 @@ function noticeHint(
     : `${base} · ${t('equals', { value: longDuration(minutes) })}`;
 }
 
-export function SettingsView() {
+/** `connectorUrl` is set by the page only while the owner connector is switched on: it adds the "Connected apps" card. */
+export function SettingsView({ connectorUrl }: { connectorUrl?: string }) {
   return (
     <OwnerOnly>
-      <SettingsInner />
+      <SettingsInner connectorUrl={connectorUrl} />
     </OwnerOnly>
   );
 }
 
-function SettingsInner() {
+function SettingsInner({ connectorUrl }: { connectorUrl?: string }) {
   const business = useResource(getBusiness, 'business');
   if (business.error && !business.data)
     return <LoadError error={business.error} onRetry={business.reload} />;
   if (!business.data) return <SettingsSkeleton />;
-  return <SettingsForm business={business.data} onSaved={business.setData} />;
+  return (
+    <>
+      <SettingsForm business={business.data} onSaved={business.setData} />
+      {connectorUrl ? <ConnectedApps url={connectorUrl} /> : null}
+    </>
+  );
 }

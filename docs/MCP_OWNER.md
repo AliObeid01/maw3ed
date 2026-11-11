@@ -78,6 +78,17 @@ after the owner reviewed the preview and explicitly agreed, not to invent data a
 Note: signup gives every business one calendar entry for the owner, and the FREE plan allows ONE bookable person, so adding Ali and
 Karam on FREE is refused at preview with the plan message. That is the dashboard's rule, reused on purpose.
 
+## Where owners find it
+
+Only inside the dashboard, only for the OWNER, only while `MCP_OWNER_ENABLED=true` (the page passes the flag down as a prop; off renders nothing and mentions nothing).
+
+- **Setup page** (`/app/setup`): the "Set up with Claude" card at the top: the connector link (`APP_URL` + `/api/mcp/owner`, never the request host) with Copy, three steps, three example prompts (tap to copy), what it can and cannot do, the Free-plan note. With a live connection it shrinks to a "Claude is connected" row.
+- **Settings** (`/app/settings`): "Connected apps": each live connection with connected / last-used dates, Revoke (confirmed inside the page), empty state with the link.
+- **`/for-business`**: a one-paragraph teaser under the five steps with a sign-up button, no link.
+- Never on `/assistant` (that page stays for clients).
+- The consent page (`/oauth/authorize`) names the business, Claude, where the code goes (claude.ai, claude.com or a local app) and warns to continue only if the owner just started connecting. `?status=blocked` shows a localized "could not confirm" page.
+- Tests: `tests/e2e/dashboard/ownerConnector.spec.ts` (mocked APIs, cookie `e2e_mcp_owner=off` simulates the flag off) and `tests/e2e/ownerConsent.real.spec.ts` (the real consent form in a real browser against a local server and database; run with `OWNER_REAL_URL`, the browser cannot resolve claude.ai so nothing leaves the machine).
+
 ## Threat model: each mitigation and the test that proves it
 
 Mutation column: the rule was disabled on purpose, the named test failed, the rule was restored.
@@ -150,4 +161,4 @@ The decision endpoint enforces the same rules and is tested; the page was type-c
 - Not run against the real Claude client: its exact discovery order (root vs path-suffixed well-known), whether it sends `resource`, and whether
   it uses the static client id are as documented by the MCP authorization spec but unconfirmed here.
 - `APP_URL` must equal the host the owner pasted; a `resource` that does not match is rejected (`invalid_target`).
-- The consent page was not exercised in a browser by this task.
+- The consent page is now exercised in a real browser by `tests/e2e/ownerConsent.real.spec.ts` (Allow and Cancel).
