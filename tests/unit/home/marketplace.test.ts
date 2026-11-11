@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
   HOME_CATEGORIES,
-  headingKey,
   listedCategories,
   resolveSelected,
 } from '@/lib/home/categories';
@@ -45,16 +44,6 @@ describe('resolveSelected (default = first category with places)', () => {
     expect(resolveSelected([], 'physiotherapy')).toBe('physiotherapy');
     expect(resolveSelected([], null)).toBe('barbers');
   });
-});
-
-describe('headingKey (Popular services needs >= 3 places)', () => {
-  it.each([
-    [0, 'services'],
-    [1, 'services'],
-    [2, 'services'],
-    [3, 'popular'],
-    [10, 'popular'],
-  ])('%i places -> %s', (places, key) => expect(headingKey(places)).toBe(key));
 });
 
 describe('heroChips (Popular chips from live data)', () => {

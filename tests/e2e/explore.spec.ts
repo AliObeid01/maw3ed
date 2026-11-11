@@ -36,30 +36,29 @@ test.describe('explore: results and cards', () => {
     });
   });
 
-  test('a card shows initials, Category · Area, address, price, service chips, free times and View & book', async ({ page }) => {
+  test('a card shows initials, category pill, area · address, service rows with length and price, free times and the book button', async ({ page }) => {
     await mockExplore(page);
     await page.goto('/directory');
     const c = card(page, 'Abu Karam Barbershop');
     await expect(c).toContainText('AK');
-    await expect(c).toContainText('Barbers · Sidon');
-    await expect(c).toContainText('Riad El Solh St');
-    await expect(c).toContainText(/from \u2066?8 USD/);
+    await expect(c).toContainText('Barber'); // the category pill
+    await expect(c).toContainText('Sidon · Riad El Solh St');
+    await expect(c.getByTestId('card-services').getByRole('listitem').first()).toContainText('30 min');
     const chips = c.getByTestId('card-services').getByRole('listitem');
     await expect(chips).toHaveCount(2);
     await expect(chips.nth(1)).toContainText('Beard trim');
     await expect(chips.nth(1)).toContainText('12.50 USD');
     const label = c.getByTestId('free-label');
-    await expect(label.getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Haircut⁩?$/);
-    await expect(label.getByTestId('free-label-day')).toHaveText('Today');
-    // HH:mm in the business zone, up to four, linking to the booking page.
+    await expect(label.getByTestId('free-label-day')).toHaveText('Free today');
+    // HH:mm in the business zone, up to three, linking to the booking page.
     const times = c.getByRole('link', { name: /^\d\d:\d\d at / });
-    await expect(times).toHaveText(['15:30', '16:00', '17:30', '18:00']);
+    await expect(times).toHaveText(['15:30', '16:00', '17:30']);
     await expect(times.first()).toHaveAttribute('href', '/b/abu-karam');
-    const book = c.getByRole('link', { name: 'View & book at Abu Karam Barbershop' });
+    const book = c.getByRole('link', { name: 'View the page of Abu Karam Barbershop' });
     await expect(book).toHaveAttribute('href', '/b/abu-karam');
     expect((await book.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     // Tomorrow's day label and a business with no free times (quiet wording, never "fully booked").
-    await expect(card(page, 'Fade Lab').getByTestId('free-label-day')).toHaveText('Tomorrow');
+    await expect(card(page, 'Fade Lab').getByTestId('free-label-day')).toHaveText('Free tomorrow');
     const none = card(page, 'Studio Nour');
     await expect(none).toContainText('No free times soon');
     await expect(page.locator('body')).not.toContainText(/fully booked|no availability|sold out/i);
@@ -516,7 +515,7 @@ test.describe('explore: layout', () => {
       await page.goto('/directory?category=barbers');
       await expect(page.getByRole('heading', { name: 'Abu Karam Barbershop' })).toBeVisible();
       await expectNoPageOverflow(page);
-      for (const name of ['Search', 'View & book at Abu Karam Barbershop']) {
+      for (const name of ['Search', 'View the page of Abu Karam Barbershop']) {
         const el = page.getByRole(name === 'Search' ? 'button' : 'link', { name, exact: name === 'Search' });
         expect((await el.first().boundingBox())!.height, name).toBeGreaterThanOrEqual(44);
       }
@@ -549,11 +548,11 @@ test.describe('explore: Arabic', () => {
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     await expect(page.getByRole('heading', { level: 1, name: 'استكشف الأنشطة التجارية' })).toBeVisible();
     const c = page.getByRole('listitem').filter({ has: page.getByRole('heading', { name: 'Abu Karam Barbershop' }) });
-    await expect(c).toContainText('الحلاقون · صيدا');
-    await expect(c.getByTestId('free-label-service')).toContainText('أوقات متاحة لخدمة');
-    await expect(c.getByTestId('free-label-day')).toHaveText('اليوم');
+    await expect(c).toContainText('حلاق'); // the category pill
+    await expect(c).toContainText('صيدا');
+    await expect(c.getByTestId('free-label-day')).toHaveText('متاح اليوم');
     await expect(c.getByRole('link', { name: /15:30/ })).toBeVisible();
-    await expect(c.getByRole('link', { name: /^عرض واحجز لدى/ })).toBeVisible();
+    await expect(c.getByRole('link', { name: /^عرض صفحة/ })).toBeVisible();
     await expect(page.getByTestId('explore-count')).toHaveText(/^عرض /);
     // Digits stay Latin everywhere on the cards.
     expect(await page.getByRole('main').innerText()).not.toMatch(/[٠-٩]/);

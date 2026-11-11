@@ -21,6 +21,7 @@ const barber = (over: Record<string, unknown> = {}) => ({
   serviceCount: 3,
   fromPrice: 8,
   timezone: 'Asia/Beirut',
+  openStatus: { open: true, until: '19:00' },
   nextFree: { startAt: beirut(0, 10, 30), service: { id: 's1', name: 'Haircut', durationMin: 30 } },
   freeTimes: [beirut(0, 10, 30), beirut(0, 11, 30), beirut(0, 14, 0), beirut(0, 16, 30)],
   services: [
@@ -36,6 +37,7 @@ const fade = barber({
   name: 'Fade Lab',
   area: 'beirut',
   address: 'Mar Mikhael',
+  openStatus: { open: false, opensAt: '09:00' },
   nextFree: { startAt: beirut(1, 12, 15), service: { id: 's2', name: 'Fade', durationMin: 45 } },
   freeTimes: [beirut(1, 12, 15), beirut(1, 13, 0)],
 });
@@ -378,10 +380,10 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-selected', 'true');
 
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Barbers' })).toBeVisible();
-  // One compact header line: places, from price and next free (no stat boxes, no Popular services chips).
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/3 places/);
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/from .*6 USD/);
-  await expect(panel(page).getByTestId('category-meta')).toContainText(/Next free .?Today 10:30/);
+  // Three small stat tiles in the header (PR-19): places, prices from and next free; no Popular services chips.
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Placess*3/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Prices froms*6 USD/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Next frees*.?Today 10:30/);
   await expect(panel(page).getByText('Popular services')).toHaveCount(0);
   const top = panel(page).getByRole('article');
   await expect(top).toHaveCount(2);
@@ -391,16 +393,18 @@ test('categories: list with stats, switching panels, popular services, top place
   await expect(chips.first()).toContainText('Haircut');
   await expect(chips.first()).toContainText(/8 USD/);
   await expect(top.first()).not.toContainText('Hidden fourth');
-  // Free times are labelled with the service they belong to.
+  // Free times are labelled by day (PR-19: the target design has no service name in the label).
   const label = (card: ReturnType<typeof top.first>) => card.getByTestId('free-label');
-  await expect(label(top.first()).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Haircut⁩?$/);
-  await expect(label(top.first()).getByTestId('free-label-day')).toHaveText('Today');
+  await expect(label(top.first()).getByTestId('free-label-day')).toHaveText('Free today');
   await expect(label(top.first())).not.toContainText('·'); // no separator dot that could wrap to the start of a line
   await expect(top.first().getByRole('link', { name: /^\d\d:\d\d, / })).toHaveText(['10:30', '11:30', '14:00']); // up to three time chips
-  await expect(label(top.nth(1)).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Fade⁩?$/);
-  await expect(label(top.nth(1)).getByTestId('free-label-day')).toHaveText('Tomorrow');
+  await expect(label(top.nth(1)).getByTestId('free-label-day')).toHaveText('Free tomorrow');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveAttribute('href', '/b/abu-karam');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveText('See all services and book');
+  // PR-19: the open-now line (green) and the closed line (muted), from the additive openStatus field; durations next to services.
+  await expect(top.first().getByTestId('open-status')).toHaveText('Open · until 19:00');
+  await expect(top.nth(1).getByTestId('open-status')).toHaveText('Closed · opens 09:00');
+  await expect(chips.first()).toContainText('30 min');
   await expect(panel(page).getByRole('link', { name: 'See all barbers' })).toHaveAttribute('href', '/directory?category=barbers');
   await expect(panel(page)).toContainText('Free times can be taken before you book.');
   await expect(page.getByText(/no availability|fully booked/i)).toHaveCount(0);
@@ -694,15 +698,14 @@ test('wide screens: the hero does not jump when the Next free panel arrives, and
   await expect.poll(async () => (await column.boundingBox())!.height).toBeLessThan(5);
 });
 
-test('Arabic at 320: the free-times label wraps as two whole pieces (service, day), never a dot at the start of a line', async ({ page, context }) => {
+test('Arabic at 320: the free-times label is one short piece ("متاح اليوم") with no separator dot and the page does not overflow', async ({ page, context }) => {
   await context.addCookies([{ name: 'locale', value: 'ar', url: ORIGIN }]);
   await page.setViewportSize({ width: 320, height: 700 });
   await mockHome(page, { directory: [barber({ name: 'Abu Karam Barbershop', nextFree: { startAt: beirut(0, 10, 30), service: { id: 's1', name: 'Hydrafacial deep cleansing', durationMin: 50 } } })] });
   await page.goto('/');
   const label = page.getByTestId('free-label').first();
   await expect(label).toBeVisible();
-  await expect(label.getByTestId('free-label-service')).toContainText('أوقات متاحة لخدمة');
-  await expect(label.getByTestId('free-label-day')).toHaveText('اليوم');
+  await expect(label.getByTestId('free-label-day')).toHaveText('متاح اليوم');
   await expect(label).not.toContainText('·');
   await expectNoPageOverflow(page);
 });

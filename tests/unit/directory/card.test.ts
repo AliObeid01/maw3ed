@@ -32,22 +32,22 @@ describe('cardModel', () => {
     expect(cardModel({ ...base, fromPrice: 8 }, NOW, 'en').fromPrice).toBe('8 USD');
     expect(cardModel({ ...base, fromPrice: null }, NOW, 'en').fromPrice).toBeNull();
   });
-  it('shows up to 4 service chips with price lines', () => {
+  it('shows up to 3 service rows with price lines and durations', () => {
     const services = Array.from({ length: 6 }, (_, i) => ({
       name: `S${i}`,
       durationMin: 30,
       price: i + 1,
     }));
     const m = cardModel({ ...base, services }, NOW, 'en');
-    expect(m.services).toHaveLength(4);
-    expect(m.services[0]).toEqual({ name: 'S0', price: '1 USD' });
+    expect(m.services).toHaveLength(3);
+    expect(m.services[0]).toEqual({ name: 'S0', price: '1 USD', durationMin: 30 });
   });
   it('no services key (older response) gives no chips', () => {
     const rest: DirectoryBusiness = { ...base };
     delete rest.services;
     expect(cardModel(rest, NOW, 'en').services).toEqual([]);
   });
-  it('free times: HH:mm in the business zone, at most 4, day label today', () => {
+  it('free times: HH:mm in the business zone, at most 3, day label today', () => {
     const m = cardModel(
       {
         ...base,
@@ -62,7 +62,7 @@ describe('cardModel', () => {
       NOW,
       'en',
     );
-    expect(m.times.map((x) => x.text)).toEqual(['11:00', '11:30', '12:00', '12:30']);
+    expect(m.times.map((x) => x.text)).toEqual(['11:00', '11:30', '12:00']);
     expect(m.day).toEqual({ kind: 'today' });
     expect(m.freeService).toBe('Haircut');
   });
@@ -83,6 +83,10 @@ describe('cardModel', () => {
     expect(m.noFree).toBe(true);
     const old: DirectoryBusiness = { ...base, nextFree: undefined, freeTimes: undefined };
     expect(cardModel(old, NOW, 'en').noFree).toBe(true);
+  });
+  it('passes the open status through, or null when the response has none', () => {
+    expect(cardModel(base, NOW, 'en').open).toBeNull();
+    expect(cardModel({ ...base, openStatus: { open: true, until: '19:00' } }, NOW, 'en').open).toEqual({ open: true, until: '19:00' });
   });
   it('keeps the address, or null', () => {
     expect(cardModel(base, NOW, 'en').address).toBe('Hamra Street');

@@ -123,7 +123,33 @@
       "myBookings": "My bookings",
       "ownersPage": "Overview for businesses"
     },
-    "loadingPage": "Loading the page"
+    "loadingPage": "Loading the page",
+    "businessCard": {
+      "cta": "See all services and book",
+      "ctaAria": "View the page of {name}",
+      "freeToday": "Free today",
+      "freeTomorrow": "Free tomorrow",
+      "freeOn": "Free {day}",
+      "timeAria": "{time} at {name}, open the booking page",
+      "noFree": "No free times soon",
+      "open": "Open · until {time}",
+      "closedOpens": "Closed · opens {time}",
+      "closedToday": "Closed today",
+      "servicesLabel": "Services",
+      "duration": {
+        "min": "{count} min",
+        "h": "{count} h",
+        "hMin": "{hours} h {minutes}"
+      },
+      "pill": {
+        "barbers": "Barber",
+        "hair-salons": "Hair salon",
+        "dental-clinics": "Dental clinic",
+        "beauty-clinics": "Beauty clinic",
+        "spa-massage": "Spa & massage",
+        "physiotherapy": "Physiotherapy"
+      }
+    }
   },
   "app": {
     "nav": {
@@ -1984,16 +2010,6 @@
       "whenNote": "Places with free times on {day}.",
       "noMore": "No more places.",
       "loading": "Loading places",
-      "updating": "Updating places",
-      "viewBook": "View & book",
-      "viewBookAria": "View & book at {name}",
-      "timeAria": "{time} at {name}, open the booking page",
-      "from": "from {price}",
-      "freeTimesFor": "Free times for {service}",
-      "freeTimes": "Free times",
-      "dayToday": "Today",
-      "dayTomorrow": "Tomorrow",
-      "noFreeSoon": "No free times soon",
       "emptyTitle": "No places match",
       "emptyBody": "Try another area, day or service.",
       "emptyBodyWhen": "Try another day, area or service.",
@@ -2041,10 +2057,6 @@
       "loading": "Loading free times",
       "today": "Today",
       "tomorrow": "Tomorrow",
-      "viewPage": "View page",
-      "viewPageAria": "View the page of {name}",
-      "timeAria": "{time}, {name}",
-      "service": "{service} · {duration}",
       "live": "Live",
       "rel": {
         "now": "Now",
@@ -2056,21 +2068,13 @@
       "title": "Browse by category",
       "subtitle": "Pick a category to see what it costs and who is free next.",
       "listLabel": "Category list",
-      "stat": "{places} · from {price}",
-      "statNoPrice": "{places}",
-      "places": "{count, plural, one {# place} other {# places}}",
       "tiles": {
         "places": "Places",
         "from": "Prices from",
         "next": "Next free"
       },
-      "popular": "Popular services",
-      "popularPrice": "from {price}",
-      "top": "Top places",
       "seeAll": "See all {category}",
-      "openNow": "From {price}",
       "freeNote": "Free times can be taken before you book.",
-      "noFree": "No free times soon",
       "error": {
         "title": "Could not load the categories",
         "body": "Check your connection and try again.",
@@ -2093,15 +2097,6 @@
         "spa-massage": "spa & massage places",
         "physiotherapy": "physiotherapists"
       },
-      "desc": {
-        "barbers": "Haircuts, fades, beard trims and shaves.",
-        "hair-salons": "Cuts, blow-dries, colour and styling.",
-        "dental-clinics": "Check-ups, cleaning, whitening and fillings.",
-        "beauty-clinics": "Facials, laser, manicures and skin care.",
-        "spa-massage": "Massage, hot stone and relaxation treatments.",
-        "physiotherapy": "Assessments, rehab and sports therapy."
-      },
-      "services": "Services",
       "moreSoon": "More categories are coming soon.",
       "moreSoonCta": "Own a salon or clinic? List your business.",
       "first": {
@@ -2110,10 +2105,7 @@
         "cta": "Be the first"
       },
       "loading": "Loading categories",
-      "freeTimesFor": "Free times for {service}",
       "fromShort": "from {price}",
-      "nextFreeAt": "Next free {time}",
-      "seeServices": "See all services and book",
       "cardsLabel": "Top places in {category}"
     },
     "how": {

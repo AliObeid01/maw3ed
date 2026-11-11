@@ -23,6 +23,10 @@ export const directorySchema =z.object({
         .nullable()
         .optional(),
       freeTimes: z.array(z.string()).optional(),
+      /** Open now by the posted hours (HH:mm in the business zone); absent in older cached responses. */
+      openStatus: z
+        .object({ open: z.boolean(), until: z.string().optional(), opensAt: z.string().optional() })
+        .optional(),
       // Only with `include=services` (the Explore page): up to 4 active services, cheapest first.
       services: z
         .array(z.object({ name: z.string(), durationMin: z.number(), price: z.number() }))

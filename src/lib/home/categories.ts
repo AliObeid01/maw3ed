@@ -33,10 +33,6 @@ export function resolveSelected(list: readonly Entry[], wanted: string | null | 
   return listed[0] ?? HOME_CATEGORIES[0];
 }
 
-/** Under the category panel's chips: "Popular services" only once a category has at least 3 places, else plain "Services". */
-export const POPULAR_MIN_PLACES = 3;
-export const headingKey = (places: number): 'popular' | 'services' => (places >= POPULAR_MIN_PLACES ? 'popular' : 'services');
-
 /**
  * The "Next free" tile: HH:mm in the business zone, or null (tile omitted). "Next free" only considers each
  * business's shortest service, so the page never claims "no availability".
