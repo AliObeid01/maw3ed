@@ -4,7 +4,7 @@ import { expect, test } from './helpers/test';
 // PR-16b: the new logo on every surface. One named logo per surface, light on white (header, auth), reverse on
 // navy (footer), correct aspect ratio, never mirrored under RTL.
 
-const RATIO = 453.53 / 130.04;
+const RATIO = 469.53 / 141.04;
 
 for (const lang of ['en', 'ar'] as const) {
   test.describe(`logo surfaces (${lang})`, () => {

@@ -35,7 +35,7 @@ const iconReverse = svg('0 0 64 64', iconInner(REV_BODY), 'Maw3ed');
 // Wordmark only (everything after the icon group), cropped to its artwork.
 const wordStart = light.indexOf('<g fill="#0B1938">');
 const wordBody = light.slice(wordStart, light.lastIndexOf('</svg>')).trim();
-export const WORDMARK_VIEWBOX = '92 24 340 115';
+export const WORDMARK_VIEWBOX = '108 24 340 115';
 const wordLight = svg(WORDMARK_VIEWBOX, wordBody, 'Maw3ed');
 const wordReverse = svg(WORDMARK_VIEWBOX, wordBody.replace('<g fill="#0B1938">', '<g fill="#FFFFFF">'), 'Maw3ed');
 
@@ -55,11 +55,11 @@ const raster = (input, width, height) =>
     .resize(width, height, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png({ compressionLevel: 9 });
 
-// Full logo PNGs (1200 px wide) and the email header files (width x height keep the 453.53 : 130.04 ratio).
+// Full logo PNGs (1200 px wide) and the email header files (width x height keep the 469.53 : 141.04 ratio).
 const full = { light, reverse };
 for (const [tone, source] of Object.entries(full)) {
-  await raster(source, 1200, 344).toFile(path.join(logoDir, `maw3ed-logo-${tone}-1200w.png`));
-  for (const [w, h] of [[160, 46], [320, 92], [480, 138]]) {
+  await raster(source, 1200, 360).toFile(path.join(logoDir, `maw3ed-logo-${tone}-1200w.png`));
+  for (const [w, h] of [[160, 48], [320, 96], [480, 144]]) {
     const out = path.join(logoDir, `email/maw3ed-email-logo-${tone}-${w}w.png`);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     await raster(source, w, h).toFile(out);

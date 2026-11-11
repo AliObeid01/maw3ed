@@ -192,7 +192,7 @@ export const MANIFEST: readonly BusinessSpec[] = [
   },
   {
     slug: 'levant-hair-atelier', name: 'Levant Hair Atelier', category: 'hair-salons', area: 'zahle',
-    address: 'Zahle Main Boulevard, Zahle', locale: 'ar', logo: false, services: salon2.slice(0, 4),
+    address: 'Zahle Main Boulevard, Zahle', locale: 'ar', logo: true, services: salon2.slice(0, 4),
     staff: [staff('Maria', all(salon2.slice(0, 4)), 6)],
     hours: SALON_HOURS, clients: 12, pastAppointments: 24,
   },
@@ -236,7 +236,7 @@ export const MANIFEST: readonly BusinessSpec[] = [
   },
   {
     slug: 'phoenician-dental-studio', name: 'Phoenician Dental Studio', category: 'dental-clinics', area: 'tyre',
-    address: 'Tyre Seafront Road, Tyre', locale: 'en', logo: false, services: dental2,
+    address: 'Tyre Seafront Road, Tyre', locale: 'en', logo: true, services: dental2,
     staff: [staff('Ziad', all(dental2), 4), staff('Hiba', all(dental2).slice(0, 3), 5)],
     hours: CLINIC_HOURS, clients: 20, pastAppointments: 32,
   },
@@ -261,7 +261,7 @@ export const MANIFEST: readonly BusinessSpec[] = [
   },
   {
     slug: 'jasmine-beauty-clinic', name: 'Jasmine Beauty Clinic', category: 'beauty-clinics', area: 'zahle',
-    address: 'Berdawni Road, Zahle', locale: 'en', logo: false, services: beauty3,
+    address: 'Berdawni Road, Zahle', locale: 'en', logo: true, services: beauty3,
     staff: [staff('Lara', all(beauty3), 2)],
     hours: CLINIC_HOURS, clients: 11, pastAppointments: 21,
   },
@@ -274,7 +274,7 @@ export const MANIFEST: readonly BusinessSpec[] = [
   },
   {
     slug: 'blue-harbour-massage-studio', name: 'Blue Harbour Massage Studio', category: 'spa-massage', area: 'tyre',
-    address: 'Tyre Corniche, Tyre', locale: 'en', logo: false, services: spa2,
+    address: 'Tyre Corniche, Tyre', locale: 'en', logo: true, services: spa2,
     staff: [staff('Samar', all(spa2), 5)],
     hours: SPA_HOURS, clients: 12, pastAppointments: 23,
   },
@@ -299,7 +299,7 @@ export const MANIFEST: readonly BusinessSpec[] = [
   },
   {
     slug: 'phoenician-recovery-center', name: 'Phoenician Recovery Center', category: 'physiotherapy', area: 'tripoli',
-    address: 'Al Mina Road, Tripoli', locale: 'en', logo: false, services: physio3,
+    address: 'Al Mina Road, Tripoli', locale: 'en', logo: true, services: physio3,
     staff: [staff('Elias', all(physio3), 3)],
     hours: CLINIC_HOURS, clients: 9, pastAppointments: 20,
   },

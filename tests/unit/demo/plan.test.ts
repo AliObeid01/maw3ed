@@ -364,7 +364,7 @@ describe('reminder jobs (safety)', () => {
   it('summarises the plan for the dry run', () => {
     const s = summarizePlan(plan);
     expect(s.total.businesses).toBe(18);
-    expect(s.total.logos).toBe(10);
+    expect(s.total.logos).toBe(15);
     expect(s.total.users).toBe(19);
     expect(Object.keys(s.jobs).some((k) => k.startsWith('H24/WHATSAPP'))).toBe(true);
   });

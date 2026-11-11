@@ -10,8 +10,8 @@ type Tone = 'brand' | 'white';
 export const MIN_FULL_LOGO_WIDTH = 96;
 
 const VIEWBOX = {
-  full: { x: -8, y: 13, w: 453.53, h: 130.04 },
-  wordmark: { x: 92, y: 24, w: 340, h: 115 },
+  full: { x: -8, y: 2, w: 469.53, h: 141.04 },
+  wordmark: { x: 108, y: 24, w: 340, h: 115 },
   icon: { x: 0, y: 0, w: 64, h: 64 },
 } as const;
 
@@ -70,24 +70,24 @@ function Wordmark({ tone }: { tone: Tone }) {
     <>
       <g fill={fill}>
         <path
-          transform="translate(94 100.0) scale(0.09730 -0.09730)"
+          transform="translate(110 100.0) scale(0.09730 -0.09730)"
           d="M274 566Q333 566 377.5 542.0Q422 518 446 479V558H617V0H446V79Q421 40 376.5 16.0Q332 -8 273 -8Q205 -8 149.0 27.5Q93 63 60.5 128.5Q28 194 28 280Q28 366 60.5 431.0Q93 496 149.0 531.0Q205 566 274 566ZM324 417Q273 417 237.5 380.5Q202 344 202 280Q202 216 237.5 178.5Q273 141 324 141Q375 141 410.5 178.0Q446 215 446 279Q446 343 410.5 380.0Q375 417 324 417Z"
         />
         <path
-          transform="translate(160.06 100.0) scale(0.09730 -0.09730)"
+          transform="translate(176.06 100.0) scale(0.09730 -0.09730)"
           d="M863 558 712 0H523L435 362L344 0H156L4 558H175L254 159L348 558H529L624 161L702 558Z"
         />
         <path
-          transform="translate(307.53 100.0) scale(0.09730 -0.09730)"
+          transform="translate(323.53 100.0) scale(0.09730 -0.09730)"
           d="M585 238H198Q202 186 231.5 158.5Q261 131 304 131Q368 131 393 185H575Q561 130 524.5 86.0Q488 42 433.0 17.0Q378 -8 310 -8Q228 -8 164.0 27.0Q100 62 64.0 127.0Q28 192 28 279Q28 366 63.5 431.0Q99 496 163.0 531.0Q227 566 310 566Q391 566 454.0 532.0Q517 498 552.5 435.0Q588 372 588 288Q588 264 585 238ZM413 333Q413 377 383.0 403.0Q353 429 308 429Q265 429 235.5 404.0Q206 379 199 333Z"
         />
         <path
-          transform="translate(367.46 100.0) scale(0.09730 -0.09730)"
+          transform="translate(383.46 100.0) scale(0.09730 -0.09730)"
           d="M274 566Q329 566 374.5 543.0Q420 520 446 481V740H617V0H446V80Q422 40 377.5 16.0Q333 -8 274 -8Q205 -8 149.0 27.5Q93 63 60.5 128.5Q28 194 28 280Q28 366 60.5 431.0Q93 496 149.0 531.0Q205 566 274 566ZM324 417Q273 417 237.5 380.5Q202 344 202 280Q202 216 237.5 178.5Q273 141 324 141Q375 141 410.5 178.0Q446 215 446 279Q446 343 410.5 380.0Q375 417 324 417Z"
         />
       </g>
-      <path fill="none" stroke="#21CDB3" strokeWidth="13.32" strokeLinecap="butt" d="M298.53 47.16A31.68 20.3 0 0 0 298.53 87.77" />
-      <path fill="none" stroke="#21CDB3" strokeWidth="13.32" strokeLinecap="butt" d="M298.53 87.77A41.54 20.3 0 0 0 298.53 128.38" />
+      <path fill="none" stroke="#21CDB3" strokeWidth="13.32" strokeLinecap="butt" d="M314.53 47.16A31.68 20.3 0 0 0 314.53 87.77" />
+      <path fill="none" stroke="#21CDB3" strokeWidth="13.32" strokeLinecap="butt" d="M314.53 87.77A41.54 20.3 0 0 0 314.53 128.38" />
     </>
   );
 }
@@ -113,7 +113,7 @@ export function Logo({ label, className, width = 130, tone = 'brand', variant = 
       {shown === 'icon' ? <Icon tone={tone} /> : null}
       {shown === 'full' ? (
         <>
-          <g transform="translate(0 21) scale(1.25)">
+          <g transform="translate(0 5) scale(1.5)">
             <Icon tone={tone} />
           </g>
           <Wordmark tone={tone} />

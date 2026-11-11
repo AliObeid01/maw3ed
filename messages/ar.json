@@ -2044,7 +2044,13 @@
       "viewPage": "عرض الصفحة",
       "viewPageAria": "عرض صفحة {name}",
       "timeAria": "{time}، {name}",
-      "service": "{service} · {duration}"
+      "service": "{service} · {duration}",
+      "live": "مباشر",
+      "rel": {
+        "now": "الآن",
+        "minutes": "بعد {count} د",
+        "hours": "بعد {count} س"
+      }
     },
     "categories": {
       "title": "تصفّح حسب الفئة",
@@ -2104,7 +2110,11 @@
         "cta": "كن الأول"
       },
       "loading": "جارٍ تحميل الفئات",
-      "freeTimesFor": "أوقات متاحة لخدمة {service}"
+      "freeTimesFor": "أوقات متاحة لخدمة {service}",
+      "fromShort": "من {price}",
+      "nextFreeAt": "أقرب وقت {time}",
+      "seeServices": "عرض كل الخدمات والحجز",
+      "cardsLabel": "أبرز الأماكن في {category}"
     },
     "how": {
       "kicker": "كيف يعمل",
