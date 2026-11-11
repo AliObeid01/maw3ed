@@ -67,8 +67,30 @@ describe('openStatus', () => {
     expect(openStatus(sun, 'Asia/Beirut', at('2026-10-25T15:30:00Z')).open).toBe(false); // 17:30 local
   });
 
-  it('writes a 24:00 closing as 00:00', () => {
+  it('a 24:00 closing with nothing after it is a real midnight close, written 00:00', () => {
     expect(openStatus([day('08:00', '24:00')], 'Asia/Beirut', at('2026-11-11T08:00:00Z'))).toEqual({ open: true, until: '00:00' });
+  });
+
+  // Changed on purpose (PR-19 review): 24:00 followed by a next-day 00:00 opening is continuous, so "until 00:00"
+  // would be wrong; the real close time of the whole run is reported.
+  it('is continuous across midnight: a 24:00 close and a next-day 00:00 opening merge into the real close', () => {
+    const late = [day('18:00', '24:00', WED), day('00:00', '02:00', 4)];
+    expect(openStatus(late, 'Asia/Beirut', at('2026-11-11T17:00:00Z'))).toEqual({ open: true, until: '02:00' }); // Wed 19:00
+    // Thursday 01:00 is inside the second interval, which closes at 02:00.
+    expect(openStatus(late, 'Asia/Beirut', at('2026-11-11T23:00:00Z'))).toEqual({ open: true, until: '02:00' });
+  });
+
+  it('chains several days, wraps Sunday to Monday, and omits until when it never closes', () => {
+    const sunToMon = [day('20:00', '24:00', 0), day('00:00', '03:00', 1)];
+    // Sunday 2026-11-08 21:00 Beirut
+    expect(openStatus(sunToMon, 'Asia/Beirut', at('2026-11-08T19:00:00Z'))).toEqual({ open: true, until: '03:00' });
+    const always = [0, 1, 2, 3, 4, 5, 6].map((w) => day('00:00', '24:00', w));
+    expect(openStatus(always, 'Asia/Beirut', at('2026-11-11T08:00:00Z'))).toEqual({ open: true });
+  });
+
+  it('does not merge when the next day opens later than 00:00', () => {
+    const gap = [day('18:00', '24:00', WED), day('08:00', '12:00', 4)];
+    expect(openStatus(gap, 'Asia/Beirut', at('2026-11-11T17:00:00Z'))).toEqual({ open: true, until: '00:00' });
   });
 
   it('exposes only the open flag and two clock times (nothing private)', () => {

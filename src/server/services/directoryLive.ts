@@ -54,6 +54,18 @@ export interface LiveResult {
 const DAY_MS = 86_400_000;
 
 /**
+ * The working hours that count for "open now": only staff who offer at least one ACTIVE service. A business with
+ * no bookable staff or no active service must not read "Open", because nobody could be booked there.
+ */
+export function bookableStaffHours<H>(
+  staff: readonly { serviceIds: readonly string[]; hours: readonly H[] }[],
+  services: readonly { id: string }[],
+): H[] {
+  const active = new Set(services.map((x) => x.id));
+  return staff.filter((s) => s.serviceIds.some((id) => active.has(id))).flatMap((s) => s.hours);
+}
+
+/**
  * Live "next free" for a BOUNDED set of listed businesses (callers pass at most a page: 12, or 6 per
  * category). Everything is batch-loaded in a fixed number of queries (availabilityRepo.loadMany), then the one
  * pure slot engine runs per business with at most LIVE_CONCURRENCY in flight. Results come back keyed by
@@ -108,7 +120,7 @@ export async function liveNextFree(
         timezone: l.business.timezone,
         nextFree,
         openStatus: openStatus(
-          l.staff.flatMap((s) => s.hours),
+          bookableStaffHours(l.staff, l.services),
           l.business.timezone,
           now,
         ),
