@@ -648,7 +648,7 @@ test('Arabic: right to left, mirrored layout, Latin digits, no overflow', async 
   await expect(page.getByRole('button', { name: 'بحث' })).toBeVisible();
   const list = page.getByRole('tablist', { name: 'قائمة الفئات' });
   await expect(list.getByRole('tab')).toHaveCount(5);
-  await expect(panel(page).getByRole('link', { name: /^\d\d:\d\d، / }).first()).toBeVisible();
+  await expect(panel(page).getByRole('link', { name: /^\d\d:\d\d لدى / }).first()).toBeVisible();
   await expect(page.getByTestId('categories-soon')).toContainText('فئات أخرى قادمة قريبًا.');
   await expect(page.getByRole('heading', { level: 2, name: 'هل تدير صالونًا أو محل حلاقة أو عيادة؟' })).toBeVisible();
   const text = await page.locator('main').innerText();
