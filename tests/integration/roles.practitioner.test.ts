@@ -43,6 +43,7 @@ beforeEach(async () => {
 });
 
 const METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'] as const;
+const OWNER_PROTOCOL = new Set(['mcp/owner', 'oauth/authorize', 'oauth/register', 'oauth/revoke', 'oauth/token']);
 
 describe('PRACTITIONER route matrix', () => {
   it('is 403 on every session route except the self-service and scoped allow-list, which still work', async () => {
@@ -51,7 +52,7 @@ describe('PRACTITIONER route matrix', () => {
     const userId = barber.userId as string;
     const businessId = (await pg.query(`SELECT id FROM "Business" LIMIT 1`)).rows[0].id as string;
 
-    const results: { route: string; method: string; status: number; mode: string }[] = [];
+    const results: { route: string; method: string; status: number; mode: string; gated: boolean }[] = [];
     for (const [file, load] of Object.entries(modules)) {
       const rel = path
         .relative(API, path.dirname(path.resolve(import.meta.dirname, file)))
@@ -70,9 +71,11 @@ describe('PRACTITIONER route matrix', () => {
             .split(new RegExp(`^export const ${method} = withRoute`, 'm'))[1]
             ?.split(/^export const /m)[0] ?? '';
         // /api/mcp is the one JSON-RPC endpoint outside withRoute: no session at all (kill switch, then protocol).
-        const mode = rel === 'mcp' ? 'protocol' : (/auth:\s*'(\w+)'/.exec(chunk)?.[1] ?? '?');
+        // The owner connector's protocol routes are outside withRoute on purpose (OAuth errors, Bearer tokens, PKCE, a signed
+        // consent form): each guards itself and is proven in mcp.owner.oauth.test.ts. An unlisted new route still ends up '?'.
+        const mode = rel === 'mcp' || OWNER_PROTOCOL.has(rel) ? 'protocol' : (/auth:\s*'(\w+)'/.exec(chunk)?.[1] ?? '?');
         if (mode !== 'session') {
-          results.push({ route: rel, method, status: 0, mode });
+          results.push({ route: rel, method, status: 0, mode, gated: false });
           continue;
         }
         // A fresh session per call so logout/sign-out-others cannot affect the next route.
@@ -100,13 +103,22 @@ describe('PRACTITIONER route matrix', () => {
           }),
           { params: Promise.resolve(params) },
         );
-        results.push({ route: rel, method, status: res.status, mode });
+        results.push({ route: rel, method, status: res.status, mode, gated: /gate:/.test(chunk) });
       }
     }
 
     const session = results.filter((r) => r.mode === 'session');
     expect(session.length).toBeGreaterThan(40);
-    const leaked = session.filter((r) => !ALLOWED.has(`${r.method} ${r.route}`) && r.status !== 403);
+    // A route behind a feature gate (withRoute `gate:`) answers 404 while its switch is off (kill switch, before any
+    // role check). Their role guards are proven with the switch ON in mcp.owner.oauth.test.ts; here the 404 is accepted
+    // only for exactly these gated routes, so nothing else can hide behind it.
+    const GATED = ['GET oauth/grants', 'POST oauth/grants/[id]/revoke'];
+    expect(
+      session.filter((r) => r.gated).map((r) => `${r.method} ${r.route}`).sort(),
+    ).toEqual([...GATED].sort());
+    const leaked = session.filter(
+      (r) => !ALLOWED.has(`${r.method} ${r.route}`) && r.status !== 403 && !(r.gated && r.status === 404),
+    );
     expect(leaked).toEqual([]);
     const allowed = session.filter((r) => ALLOWED.has(`${r.method} ${r.route}`));
     expect(allowed.map((r) => `${r.method} ${r.route}`).sort()).toEqual([...ALLOWED].sort());
