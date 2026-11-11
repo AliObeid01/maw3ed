@@ -162,3 +162,9 @@ The decision endpoint enforces the same rules and is tested; the page was type-c
   it uses the static client id are as documented by the MCP authorization spec but unconfirmed here.
 - `APP_URL` must equal the host the owner pasted; a `resource` that does not match is rejected (`invalid_target`).
 - The consent page is now exercised in a real browser by `tests/e2e/ownerConsent.real.spec.ts` (Allow and Cancel).
+
+
+## Known trade-offs (final review)
+
+- Refresh grace window: if a thief rotates a stolen refresh token first, the legitimate client's retry inside the 20 s window gets only `invalid_grant` (no revoke), so theft detection is delayed until a later reuse after the window.
+- The connector URL is the public resource URL; the setup and settings pages pass it to the client for every role and `OwnerOnly` hides it client-side. Nothing sensitive is in it.
