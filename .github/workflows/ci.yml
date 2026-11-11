@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   checks:
-    runs-on: ubuntu-24.04 # pinned: ubuntu-latest moved to 26.04 on 11 Nov 2026 and apt DNS failed there (playwright install-deps)
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
       postgres:
@@ -81,7 +81,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [1, 2]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     services:
       postgres:
@@ -127,7 +127,15 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Install system deps only (browser cached)
         if: steps.pw-cache.outputs.cache-hit == 'true'
-        run: pnpm exec playwright install-deps chromium
+        # apt mirrors were unreachable from the runners on 11 Nov 2026 ('Temporary failure resolving azure.archive.ubuntu.com'):
+        # retry, then continue with the libraries already on the runner image (Chrome is preinstalled there). If one were
+        # really missing, the browser launch in the next steps fails loudly.
+        run: |
+          for attempt in 1 2 3; do
+            pnpm exec playwright install-deps chromium && exit 0
+            echo "install-deps failed (attempt $attempt)"; sleep 20
+          done
+          echo "::warning::playwright install-deps failed; continuing with the libraries on the runner image"
       - run: pnpm build
       - name: Public and dashboard specs (mobile)
         run: pnpm exec playwright test --project=mobile --project=dashboard-mobile --shard=${{ matrix.shard }}/2
