@@ -15,10 +15,13 @@ describe('relativeLabel', () => {
     expect(label('2026-11-11T06:00:30Z')).toEqual({ kind: 'minutes', count: 1 });
     expect(label('2026-11-11T06:59:00Z')).toEqual({ kind: 'minutes', count: 59 });
   });
-  it('counts hours from 60 minutes up to 6 hours', () => {
-    expect(label('2026-11-11T07:00:00Z')).toEqual({ kind: 'hours', count: 1 });
-    expect(label('2026-11-11T08:40:00Z')).toEqual({ kind: 'hours', count: 3 });
-    expect(label('2026-11-11T11:59:00Z')).toEqual({ kind: 'hours', count: 6 });
+  it('counts whole hours, rounded DOWN, from 60 minutes up to 6 hours', () => {
+    expect(label('2026-11-11T07:00:00Z')).toEqual({ kind: 'hours', count: 1 }); // 60 min
+    expect(label('2026-11-11T07:01:00Z')).toEqual({ kind: 'hours', count: 1 }); // 61 min
+    expect(label('2026-11-11T07:59:00Z')).toEqual({ kind: 'hours', count: 1 }); // 119 min was "In 2 h" when rounding to nearest
+    expect(label('2026-11-11T08:00:00Z')).toEqual({ kind: 'hours', count: 2 }); // 120 min
+    expect(label('2026-11-11T08:40:00Z')).toEqual({ kind: 'hours', count: 2 }); // 160 min
+    expect(label('2026-11-11T11:59:00Z')).toEqual({ kind: 'hours', count: 5 }); // 359 min
   });
   it('then says today, tomorrow or the weekday and date by the business calendar', () => {
     expect(label('2026-11-11T12:00:00Z')).toEqual({ kind: 'today' }); // 14:00 Beirut
