@@ -16,12 +16,14 @@ const TOKEN_MARK = '[token]';
 
 // Values under keys like these are never sent, whatever they contain.
 const SENSITIVE_KEY =
-  /pass(word|wd)?|secret|authori[sz]ation|cookie|csrf|api[-_]?key|token|session|credential|otp|phone|e-?mail|hold-?expires/i;
+  /pass(word|wd)?|secret|authori[sz]ation|cookie|csrf|api[-_]?key|token|session|credential|otp|phone|e-?mail|hold-?expires|verifier|code[-_]?challenge|consent|redirect[-_]?uri/i;
 
 // `password=hunter2`, `authorization: Bearer abc`, `"secret":"x"` inside a message.
 const KEY_VALUE =
-  /\b(pass(?:word|wd)?|secret|authori[sz]ation|api[-_]?key|cookie|csrf[-_]?token|msisdn)(["']?\s*[=:]\s*)("[^"]*"|'[^']*'|(?:Bearer\s+)?[^\s,;&]+)/gi;
+  /\b(pass(?:word|wd)?|secret|authori[sz]ation|api[-_]?key|cookie|csrf[-_]?token|msisdn|code[-_]?verifier|(?:access|refresh)[-_]?token|authorization[-_]?code|consent)(["']?\s*[=:]\s*)("[^"]*"|'[^']*'|(?:Bearer\s+)?[^\s,;&]+)/gi;
 const BEARER = /\bBearer\s+[A-Za-z0-9._~+/=-]+/g;
+// Owner connector (docs/MCP_OWNER.md): opaque OAuth access and refresh tokens, whatever their length or context.
+const OAUTH_TOKEN = /\bmw_(?:at|rt)_[A-Za-z0-9_-]+/g;
 
 // Unicode local part and domain (Arabic names, IDNs); encoded at signs are decoded first.
 const EMAIL = /[\p{L}\p{N}._%+'-]+@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/gu;
@@ -88,6 +90,7 @@ export function scrubString(input: string): string {
     s = s.replace(PHONE_LINK, `$1${PHONE_MARK}`);
     s = s.replace(KEY_VALUE, `$1$2${REDACTED}`);
     s = s.replace(BEARER, `Bearer ${REDACTED}`);
+    s = s.replace(OAUTH_TOKEN, TOKEN_MARK);
     s = s.replace(EMAIL, EMAIL_MARK);
     s = s.replace(URL_WITH_QUERY, '$1');
     s = s.replace(TOKEN_ROUTE, `$1${TOKEN_MARK}`);
