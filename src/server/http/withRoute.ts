@@ -40,6 +40,11 @@ export type SessionContext = RouteContext & {
 };
 
 export interface RouteConfig {
+  /**
+   * Feature switch evaluated FIRST (before the rate limit, auth and parsing): when it returns false the route answers
+   * 404 like a missing route. Used by the owner connector (`MCP_OWNER_ENABLED`).
+   */
+  gate?: () => boolean;
   auth: AuthMode;
   /** Only meaningful for `session`. Wrong role -> 403. */
   roles?: readonly RoleName[];
@@ -234,6 +239,7 @@ export function withRoute<C extends RouteConfig>(
     };
 
     try {
+      if (config.gate && !config.gate()) throw AppError.notFound();
       // Unknown address: per-IP budgets are skipped (one shared bucket would lock everyone out).
       if (config.rateLimit && ctx.ip !== UNKNOWN_IP && !routeRateLimitDisabled()) {
         const decision = await rateLimiter.consume(config.rateLimit.policy, ctx.ip!);

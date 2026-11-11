@@ -91,6 +91,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // The owner connector consent page: the URL carries the OAuth state and PKCE challenge. No Referer, never cached.
+        source: '/oauth/:path*',
+        headers: [
+          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Cache-Control', value: 'no-store' },
+        ],
+      },
+      {
         // The offer token is a bearer secret (it books a slot) and the page is per-moment (countdown).
         source: '/o/:path*',
         headers: [

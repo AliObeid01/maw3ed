@@ -2781,5 +2781,32 @@
     },
     "fallback": "Prefer to book on the website?",
     "explore": "Explore businesses"
+  },
+  "oauth": {
+    "pageTitle": "Connect Claude",
+    "title": "Claude wants to set up {business}",
+    "intro": "Let Claude help you set up your business by chat. Claude shows you every change first, and nothing is saved until you agree.",
+    "requestedBy": "Requested by {client}",
+    "canTitle": "It can",
+    "can1": "Add services, staff and working hours.",
+    "can2": "Change the category, area, address, time slot, minimum notice and cancellation cutoff.",
+    "cannotTitle": "It cannot",
+    "cannot1": "See your clients or appointments.",
+    "cannot2": "Delete anything.",
+    "cannot3": "Change your plan, logins or payments.",
+    "disconnect": "You can disconnect Claude at any time in Settings.",
+    "allow": "Allow",
+    "cancel": "Cancel",
+    "errors": {
+      "invalidClientTitle": "This connection link is not valid",
+      "invalidClient": "The app that sent you here is not recognised. Go back to Claude and try again.",
+      "invalidRedirectTitle": "This connection link is not valid",
+      "invalidRedirect": "The return address of this request is not allowed. Go back to Claude and try again.",
+      "expiredTitle": "This request expired",
+      "expired": "For your safety the confirmation is only valid for a few minutes. Go back to Claude and connect again.",
+      "notOwnerTitle": "Only the business owner can connect Claude",
+      "notOwner": "You are signed in as a team member of {business}. Ask the owner to connect Claude, or sign in with the owner account.",
+      "back": "Back to my dashboard"
+    }
   }
 }

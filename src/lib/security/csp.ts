@@ -41,10 +41,13 @@ export function buildCsp({
   nonce,
   sentryHost,
   isProd,
+  formActionExtra = [],
 }: {
   nonce: string;
   sentryHost: string | undefined;
   isProd: boolean;
+  /** Extra form-action targets (only the owner consent page: its POST redirects to the OAuth client). */
+  formActionExtra?: readonly string[];
 }): string {
   const directives = [
     `default-src 'self'`,
@@ -59,7 +62,7 @@ export function buildCsp({
     `connect-src 'self'${sentryHost ? ` https://${sentryHost}` : ''}`,
     `object-src 'none'`,
     `base-uri 'self'`,
-    `form-action 'self'`,
+    `form-action 'self'${formActionExtra.map((o) => ` ${o}`).join('')}`,
     `frame-ancestors 'none'`,
     ...(isProd ? ['upgrade-insecure-requests'] : []),
   ];

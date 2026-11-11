@@ -3,6 +3,7 @@ import { isLocale, LOCALE_COOKIE, PATH_HEADER } from '@/i18n/config';
 import { buildCsp, generateNonce, resolveCspMode, sentryHostFromDsn } from '@/lib/security/csp';
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
+const CONSENT_FORM_TARGETS = ['https://claude.ai', 'https://claude.com', 'http://localhost:*', 'http://127.0.0.1:*'];
 
 /**
  * `?lang=en|ar` on any page request sets the `locale` cookie and redirects to the same URL without the
@@ -27,6 +28,9 @@ export function proxy(request: NextRequest) {
       // NEXT_PUBLIC_ values are inlined at BUILD time, so changing the DSN needs a redeploy (rebuild).
       sentryHost: sentryHostFromDsn(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN),
       isProd: process.env.NODE_ENV === 'production',
+      // Chrome applies form-action to the redirect that follows a form POST: the owner consent decision redirects to
+      // the OAuth client (Claude), so that ONE page may send its form there. No other page gets this.
+      formActionExtra: request.nextUrl.pathname === '/oauth/authorize' ? CONSENT_FORM_TARGETS : [],
     });
     const header = mode === 'report-only' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
     forwarded.set('x-nonce', nonce);
