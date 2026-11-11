@@ -3,6 +3,7 @@
 import { CalendarClock, CalendarDays } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { DayNav, WeekStrip } from '@/components/app/DayNav';
 import { HeaderActions } from '@/components/app/HeaderActions';
 import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError } from '@/components/app/states';
@@ -15,13 +16,13 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTile } from '@/components/ui/StatTile';
 import { getToday, type TodayAppointment } from '@/lib/api/dashboard';
 import { useResource } from '@/lib/api/useResource';
-import { isActive, shiftDay, todayIn } from '@/lib/dashboard/agenda';
+import { isActive, todayIn } from '@/lib/dashboard/agenda';
+import { normalizeDay, shiftDayClamped } from '@/lib/dashboard/dayPicker';
 import { errorKey } from '@/lib/setup/errors';
 import { useIsDesktop } from '@/lib/useMediaQuery';
 import { Agenda } from './Agenda';
 import { CalendarGrid } from './CalendarGrid';
 import { NeedsYou } from './SideCards';
-import { DayNav } from './TodayView';
 
 function BarberSkeleton() {
   const label = useTranslations('app.today')('loading');
@@ -52,7 +53,7 @@ export function BarberTodayView() {
   const { viewedDay, setViewedDay, now } = useViewedDay();
   const today = todayIn(timezone, now);
   const day = viewedDay ?? today;
-  const setDay = (next: string) => setViewedDay(next === today ? null : next);
+  const setDay = (next: string) => setViewedDay(normalizeDay(next, today));
   useEffect(() => () => setViewedDay(null), [setViewedDay]);
   const [open, setOpen] = useState<TodayAppointment | null>(null);
 
@@ -84,11 +85,14 @@ export function BarberTodayView() {
     <>
       <HeaderActions>
         <DayNav
-          isToday={isToday}
-          onShift={(delta) => setDay(shiftDay(day, delta))}
+          day={day}
+          today={today}
+          onPick={setDay}
+          onShift={(delta) => setDay(shiftDayClamped(day, delta))}
           onToday={() => setViewedDay(null)}
         />
       </HeaderActions>
+      <WeekStrip day={day} today={today} onPick={setDay} />
 
       {res.error && !data ? (
         <LoadError error={res.error} onRetry={res.reload} />

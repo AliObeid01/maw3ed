@@ -121,6 +121,20 @@ const NextFree = z.object({
   service: NextFreeService,
 });
 
+const OpenStatusDto = z.object({
+  open: z.boolean(),
+  until: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .openapi({ description: 'HH:mm local closing time (open only).' }),
+  opensAt: z
+    .string()
+    .regex(/^\d{2}:\d{2}$/)
+    .optional()
+    .openapi({ description: 'HH:mm local opening time later today (closed only).' }),
+});
+
 export const DirectoryDto = registry.register(
   'Directory',
   z.object({
@@ -153,6 +167,10 @@ export const DirectoryDto = registry.register(
             description:
               'Only with `include=services`. Up to 4 active services, cheapest first, then by name.',
           }),
+        openStatus: OpenStatusDto.optional().openapi({
+          description:
+            'Only with `include=nextFree` / `when`. Whether the business is open right now by its posted weekly hours (union of its staff, in the business zone). Time off and bookings are ignored; derived from public working hours only.',
+        }),
         freeTimes: z.array(z.string().datetime()).max(4).optional().openapi({
           description:
             'Only with `include=nextFree` / `when`. Up to 4 start instants on the first local day that has any.',

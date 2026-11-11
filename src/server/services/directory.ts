@@ -65,6 +65,7 @@ const liveFields = (live: LiveResult | undefined) => ({
     ? { startAt: live.nextFree.startAt.toISOString(), service: live.nextFree.service }
     : null,
   freeTimes: (live?.nextFree?.freeTimes ?? []).slice(0, FREE_TIMES_MAX).map((d) => d.toISOString()),
+  ...(live ? { openStatus: live.openStatus } : {}),
 });
 
 type Flags = ReturnType<typeof includeFlags>;

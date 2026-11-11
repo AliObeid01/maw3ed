@@ -12,6 +12,7 @@ import type { DirectoryBusiness } from '@/lib/api/directory';
 import { getNextFreePanel, PANEL_ROWS } from '@/lib/api/home';
 import { isAreaKey } from '@/lib/business/profile';
 import { formatFreeTime } from '@/lib/home/freeTimes';
+import { useNow } from '@/lib/home/useNow';
 import { bySoonest, relativeLabel, type RelativeLabel } from '@/lib/home/relativeTime';
 
 /** The area select is debounced this long before a new request is sent. */
@@ -79,12 +80,13 @@ function relativeText(rel: RelativeLabel, t: T): string {
 function Row({ business, index }: { business: DirectoryBusiness; index: number }) {
   const t = useTranslations('home.nextFree');
   const locale = useLocale();
+  const now = useNow(); // shared minute clock: "In 15 min" stays right on a page left open
   const categoryLabel = useCategoryLabel();
   const areaLabel = useAreaLabel();
   const zone = business.timezone ?? 'Asia/Beirut';
   const next = business.nextFree;
   const time = next ? formatFreeTime(next.startAt, zone) : null;
-  const rel: RelativeLabel | null = next ? relativeLabel(next.startAt, zone, new Date(), locale) : null;
+  const rel: RelativeLabel | null = next ? relativeLabel(next.startAt, zone, now, locale) : null;
   const relText = rel ? relativeText(rel, t) : null;
   const meta = profileLine(categoryLabel(business.category), business.address ?? areaLabel(business.area));
 

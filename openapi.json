@@ -4633,6 +4633,28 @@
                   "maxItems": 4,
                   "description": "Only with `include=services`. Up to 4 active services, cheapest first, then by name."
                 },
+                "openStatus": {
+                  "type": "object",
+                  "properties": {
+                    "open": {
+                      "type": "boolean"
+                    },
+                    "until": {
+                      "type": "string",
+                      "pattern": "^\\d{2}:\\d{2}$",
+                      "description": "HH:mm local closing time (open only)."
+                    },
+                    "opensAt": {
+                      "type": "string",
+                      "pattern": "^\\d{2}:\\d{2}$",
+                      "description": "HH:mm local opening time later today (closed only)."
+                    }
+                  },
+                  "required": [
+                    "open"
+                  ],
+                  "description": "Only with `include=nextFree` / `when`. Whether the business is open right now by its posted weekly hours (union of its staff, in the business zone). Time off and bookings are ignored; derived from public working hours only."
+                },
                 "freeTimes": {
                   "type": "array",
                   "items": {

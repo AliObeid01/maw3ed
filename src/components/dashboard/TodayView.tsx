@@ -1,8 +1,9 @@
 'use client';
 
-import { CalendarDays, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CalendarDays, Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
+import { DayNav, WeekStrip } from '@/components/app/DayNav';
 import { HeaderActions } from '@/components/app/HeaderActions';
 import { useAppSession } from '@/components/app/SessionContext';
 import { EmptyState, LoadError } from '@/components/app/states';
@@ -11,49 +12,18 @@ import { useViewedDay } from '@/components/app/ViewedDayContext';
 import { usePolling } from '@/components/app/usePolling';
 import { useBookingFormat } from '@/components/booking/useBookingFormat';
 import { ButtonLink } from '@/components/ui/Button';
-import { IconButton } from '@/components/ui/IconButton';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StatTile } from '@/components/ui/StatTile';
 import { useToast } from '@/components/ui/Toast';
 import { getToday, type TodayAppointment } from '@/lib/api/dashboard';
 import { useResource } from '@/lib/api/useResource';
-import { isActive, shiftDay, todayIn } from '@/lib/dashboard/agenda';
+import { isActive, todayIn } from '@/lib/dashboard/agenda';
+import { normalizeDay, shiftDayClamped } from '@/lib/dashboard/dayPicker';
 import { useIsDesktop } from '@/lib/useMediaQuery';
 import { Agenda, StaffFilter } from './Agenda';
 import { AppointmentSheet } from './AppointmentSheet';
 import { CalendarGrid } from './CalendarGrid';
 import { DoThisFirst, NeedsYou, WaitlistActivityCard } from './SideCards';
-
-export function DayNav({
-  isToday,
-  onShift,
-  onToday,
-}: {
-  isToday: boolean;
-  onShift: (delta: number) => void;
-  onToday: () => void;
-}) {
-  const t = useTranslations('app.today.dayNav');
-  return (
-    <div role="group" aria-label={t('label')} className="flex items-center gap-1.5">
-      <IconButton label={t('prev')} onClick={() => onShift(-1)}>
-        <ChevronLeft size={18} aria-hidden="true" className="rtl:-scale-x-100" />
-      </IconButton>
-      <button
-        type="button"
-        onClick={onToday}
-        aria-current={isToday ? 'date' : undefined}
-        disabled={isToday}
-        className="h-11 rounded-btn border border-line bg-surface px-4 text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-canvas disabled:cursor-default disabled:opacity-100 disabled:font-semibold disabled:text-brand"
-      >
-        {t('today')}
-      </button>
-      <IconButton label={t('next')} onClick={() => onShift(1)}>
-        <ChevronRight size={18} aria-hidden="true" className="rtl:-scale-x-100" />
-      </IconButton>
-    </div>
-  );
-}
 
 function TodaySkeleton() {
   const label = useTranslations('app.today')('loading');
@@ -87,7 +57,7 @@ export function TodayView() {
   const { viewedDay, setViewedDay, now } = useViewedDay();
   const today = todayIn(timezone, now);
   const day = viewedDay ?? today;
-  const setDay = (next: string) => setViewedDay(next === today ? null : next);
+  const setDay = (next: string) => setViewedDay(normalizeDay(next, today));
   useEffect(() => () => setViewedDay(null), [setViewedDay]);
   const [staffId, setStaffId] = useState<string>();
   const [open, setOpen] = useState<TodayAppointment | null>(null);
@@ -104,11 +74,14 @@ export function TodayView() {
     <>
       <HeaderActions>
         <DayNav
-          isToday={isToday}
-          onShift={(delta) => setDay(shiftDay(day, delta))}
+          day={day}
+          today={today}
+          onPick={setDay}
+          onShift={(delta) => setDay(shiftDayClamped(day, delta))}
           onToday={() => setViewedDay(null)}
         />
       </HeaderActions>
+      <WeekStrip day={day} today={today} onPick={setDay} />
 
       {res.error && !data ? (
         <LoadError error={res.error} onRetry={res.reload} />

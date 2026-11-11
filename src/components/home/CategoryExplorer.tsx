@@ -4,6 +4,7 @@ import { ArrowRight, CloudOff } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState } from 'react';
 import { CategoryIcon } from '@/components/brand/CategoryIcon';
+import { BusinessCard, CARD_SKELETON_MIN_H } from '@/components/business/BusinessCard';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { ltr } from '@/components/ui/Bidi';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -21,8 +22,9 @@ import {
   type HomeCategory,
 } from '@/lib/home/categories';
 import { dayLabel } from '@/lib/home/freeTimes';
+import { useNow } from '@/lib/home/useNow';
 import { OWNER_START_HREF } from '@/lib/links';
-import { PlaceCard } from './PlaceCard';
+
 
 const CARD_ROW =
   'm-0 flex snap-x snap-mandatory list-none gap-3 overflow-x-auto p-0 pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 lg:grid-cols-3';
@@ -40,7 +42,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
     return (
       <div aria-hidden="true" data-testid="top-skeleton" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[370px] rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn(CARD_SKELETON_MIN_H, 'rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     );
@@ -60,7 +62,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
     <ul data-allow-overflow data-testid="top-places" aria-label={t('cardsLabel', { category: t(`lower.${category}`) })} className={CARD_ROW}>
       {data.businesses.slice(0, 3).map((b, i) => (
         <li key={b.slug} className={cn('grid grid-cols-[minmax(0,1fr)]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')}>
-          <PlaceCard business={b} category={category} headingLevel={4} />
+          <BusinessCard business={b} category={category} headingLevel={4} />
         </li>
       ))}
     </ul>
@@ -68,12 +70,22 @@ function TopPlaces({ category }: { category: HomeCategory }) {
 }
 
 /** "Next free" for the header line: "Today 10:30", "Tomorrow 12:15" or "Mon 09:30". */
-function nextFreeText(next: Entry['nextFree'], locale: string, nf: (key: 'today' | 'tomorrow') => string): string | null {
+function nextFreeText(next: Entry['nextFree'], locale: string, now: Date, nf: (key: 'today' | 'tomorrow') => string): string | null {
   const time = nextFreeTile(next);
   if (!next || !time) return null;
-  const day = dayLabel(next.startAt, next.business.timezone, new Date(), locale);
+  const day = dayLabel(next.startAt, next.business.timezone, now, locale);
   const dayText = day.kind === 'today' ? nf('today') : day.kind === 'tomorrow' ? nf('tomorrow') : day.text;
   return `${dayText} ${time}`;
+}
+
+/** One stat of the category header: a small white tile, muted label over a bold value. */
+function Tile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid min-w-0 gap-0.5 rounded-[14px] border border-divider bg-surface px-3.5 py-2.5">
+      <dt className="truncate text-[12.5px] leading-tight text-muted">{label}</dt>
+      <dd className="m-0 text-[16px] leading-tight font-bold tabular-nums sm:text-[18px]">{value}</dd>
+    </div>
+  );
 }
 
 function Panel({
@@ -94,7 +106,8 @@ function Panel({
   const locale = useLocale();
   const name = t(`names.${category}`);
   const price = entry ? priceLine(entry.fromPrice) : null;
-  const nextValue = entry ? nextFreeText(entry.nextFree, locale, nf) : null;
+  const now = useNow();
+  const nextValue = entry ? nextFreeText(entry.nextFree, locale, now, nf) : null;
 
   return (
     <div
@@ -105,26 +118,26 @@ function Panel({
       data-testid="category-panel"
       className="grid animate-fade-in content-start gap-3.5 motion-reduce:animate-none"
     >
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <h3 className="m-0 text-[22px] leading-tight font-bold tracking-[-0.01em]">{name}</h3>
-          {entry ? (
-            <p data-testid="category-meta" className="m-0 flex flex-wrap gap-x-2.5 text-[14.5px] text-muted">
-              <span>{t('places', { count: entry.places })}</span>
-              {price ? <span>{t('fromShort', { price: ltr(price) })}</span> : null}
-              {nextValue ? <span>{t('nextFreeAt', { time: ltr(nextValue) })}</span> : null}
-            </p>
-          ) : loading ? (
-            <Skeleton aria-hidden="true" className="h-5 w-[260px] max-w-full rounded-tile bg-divider" />
-          ) : null}
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="grid min-w-0 gap-0.5">
+          <h3 className="m-0 text-[24px] leading-tight font-bold tracking-[-0.01em]">{name}</h3>
+          <Link
+            href={`/directory?category=${category}`}
+            className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-brand no-underline hover:underline"
+          >
+            {t('seeAll', { category: t(`lower.${category}`) })}
+            <ArrowRight size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+          </Link>
         </div>
-        <Link
-          href={`/directory?category=${category}`}
-          className="inline-flex min-h-11 items-center gap-1.5 text-[15px] font-semibold text-brand no-underline hover:underline"
-        >
-          {t('seeAll', { category: t(`lower.${category}`) })}
-          <ArrowRight size={18} aria-hidden="true" className="rtl:-scale-x-100" />
-        </Link>
+        {entry ? (
+          <dl data-testid="category-meta" className="m-0 grid w-full auto-cols-fr grid-flow-col gap-2 md:w-auto md:min-w-[420px]">
+            <Tile label={t('tiles.places')} value={String(entry.places)} />
+            {price ? <Tile label={t('tiles.from')} value={ltr(price)} /> : null}
+            {nextValue ? <Tile label={t('tiles.next')} value={ltr(nextValue)} /> : null}
+          </dl>
+        ) : loading ? (
+          <Skeleton aria-hidden="true" className="h-[62px] w-full rounded-[14px] bg-divider md:w-[420px]" />
+        ) : null}
       </div>
 
       {(entry && entry.places > 0) || unavailable ? <TopPlaces category={category} /> : null}
@@ -143,10 +156,10 @@ function ExplorerSkeleton() {
           <Skeleton key={i} className="h-[76px] w-[132px] flex-none rounded-[16px] lg:w-auto lg:flex-1" />
         ))}
       </div>
-      <Skeleton aria-hidden="true" className="h-5 w-[260px] rounded-tile" />
+      <Skeleton aria-hidden="true" className="h-[88px] w-full rounded-tile" />
       <div aria-hidden="true" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[370px] rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn(CARD_SKELETON_MIN_H, 'rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     </div>
@@ -207,7 +220,7 @@ export function CategoryExplorer() {
 
   if (!loaded && !cats.error) {
     return (
-      <div className="mt-[26px] min-h-[560px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:min-h-[540px] lg:p-[26px]">
+      <div className="mt-[26px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:p-[26px]">
         <ExplorerSkeleton />
       </div>
     );
@@ -221,7 +234,7 @@ export function CategoryExplorer() {
   }
 
   return (
-    <div className="mt-[26px] min-h-[560px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:min-h-[540px] lg:p-[26px]">
+    <div className="mt-[26px] rounded-[24px] border-[1.5px] border-divider p-3.5 sm:p-[22px] lg:p-[26px]">
       {cats.error ? (
         <div role="alert" className="mb-4 flex flex-wrap items-center gap-3 rounded-[16px] bg-divider p-4 text-[15px]">
           <CloudOff size={20} aria-hidden="true" className="text-muted" />

@@ -123,7 +123,36 @@
       "myBookings": "حجوزاتي",
       "ownersPage": "نظرة عامة للأعمال"
     },
-    "loadingPage": "جارٍ تحميل الصفحة"
+    "loadingPage": "جارٍ تحميل الصفحة",
+    "businessCard": {
+      "cta": "عرض كل الخدمات والحجز",
+      "ctaAria": "عرض صفحة {name}",
+      "freeToday": "متاح اليوم",
+      "freeTomorrow": "متاح غدًا",
+      "freeOn": "متاح {day}",
+      "timeAria": "{time} لدى {name}، افتح صفحة الحجز",
+      "noFree": "لا أوقات فارغة قريبًا",
+      "open": "مفتوح · حتى {time}",
+      "openNow": "مفتوح الآن",
+      "closedOpens": "مغلق · يفتح {time}",
+      "closedToday": "مغلق اليوم",
+      "servicesLabel": "الخدمات",
+      "more": "+{count} أخرى",
+      "moreAria": "{count} خدمات أخرى لدى {name}، افتح الصفحة",
+      "duration": {
+        "min": "{count} د",
+        "h": "{count} س",
+        "hMin": "{hours} س {minutes} د"
+      },
+      "pill": {
+        "barbers": "حلاق",
+        "hair-salons": "صالون شعر",
+        "dental-clinics": "عيادة أسنان",
+        "beauty-clinics": "عيادة تجميل",
+        "spa-massage": "سبا ومساج",
+        "physiotherapy": "علاج فيزيائي"
+      }
+    }
   },
   "app": {
     "nav": {
@@ -238,7 +267,15 @@
         "label": "اختر اليوم",
         "prev": "اليوم السابق",
         "today": "اليوم",
-        "next": "اليوم التالي"
+        "next": "اليوم التالي",
+        "pick": "اختر يومًا",
+        "pickAria": "{date}، اختر يومًا",
+        "pickerTitle": "اختر تاريخًا",
+        "weekLabel": "أيام هذا الأسبوع",
+        "yesterday": "أمس",
+        "tomorrow": "غدًا",
+        "lastWeek": "الأسبوع الماضي",
+        "nextWeek": "الأسبوع القادم"
       },
       "stats": {
         "appointmentsToday": "مواعيد اليوم",
@@ -1984,16 +2021,6 @@
       "whenNote": "الأماكن التي لديها أوقات متاحة يوم {day}.",
       "noMore": "لا توجد أماكن أخرى.",
       "loading": "جارٍ تحميل الأماكن",
-      "updating": "جارٍ تحديث الأماكن",
-      "viewBook": "عرض واحجز",
-      "viewBookAria": "عرض واحجز لدى {name}",
-      "timeAria": "{time} لدى {name}، افتح صفحة الحجز",
-      "from": "ابتداءً من {price}",
-      "freeTimesFor": "أوقات متاحة لخدمة {service}",
-      "freeTimes": "أوقات متاحة",
-      "dayToday": "اليوم",
-      "dayTomorrow": "غدًا",
-      "noFreeSoon": "لا أوقات فارغة قريبًا",
       "emptyTitle": "لا توجد أماكن مطابقة",
       "emptyBody": "جرّب منطقة أو يومًا أو خدمة أخرى.",
       "emptyBodyWhen": "جرّب يومًا أو منطقة أو خدمة أخرى.",
@@ -2041,10 +2068,6 @@
       "loading": "جارٍ تحميل الأوقات المتاحة",
       "today": "اليوم",
       "tomorrow": "غدًا",
-      "viewPage": "عرض الصفحة",
-      "viewPageAria": "عرض صفحة {name}",
-      "timeAria": "{time}، {name}",
-      "service": "{service} · {duration}",
       "live": "مباشر",
       "rel": {
         "now": "الآن",
@@ -2056,21 +2079,13 @@
       "title": "تصفّح حسب الفئة",
       "subtitle": "اختر فئة لترى الأسعار ومن لديه أقرب وقت متاح.",
       "listLabel": "قائمة الفئات",
-      "stat": "{places} · من {price}",
-      "statNoPrice": "{places}",
-      "places": "{count, plural, =0 {0 أماكن} one {مكان واحد} two {مكانان} few {# أماكن} many {# مكانًا} other {# مكان}}",
       "tiles": {
         "places": "الأماكن",
         "from": "الأسعار من",
         "next": "أقرب وقت متاح"
       },
-      "popular": "خدمات رائجة",
-      "popularPrice": "من {price}",
-      "top": "أبرز الأماكن",
       "seeAll": "عرض كل {category}",
-      "openNow": "من {price}",
       "freeNote": "قد تُحجز الأوقات المتاحة قبل أن تحجز.",
-      "noFree": "لا أوقات متاحة قريبًا",
       "error": {
         "title": "تعذّر تحميل الفئات",
         "body": "تحقق من اتصالك وحاول مجددًا.",
@@ -2093,15 +2108,6 @@
         "spa-massage": "السبا والمساج",
         "physiotherapy": "العلاج الفيزيائي"
       },
-      "desc": {
-        "barbers": "قصّات وتدرّج وتشذيب اللحية والحلاقة.",
-        "hair-salons": "قصّ وتصفيف وصبغة وتسريح.",
-        "dental-clinics": "فحوصات وتنظيف وتبييض وحشوات.",
-        "beauty-clinics": "تنظيف بشرة وليزر ومانيكير وعناية بالبشرة.",
-        "spa-massage": "مساج وحجارة ساخنة وجلسات استرخاء.",
-        "physiotherapy": "تقييم وتأهيل وعلاج رياضي."
-      },
-      "services": "الخدمات",
       "moreSoon": "فئات أخرى قادمة قريبًا.",
       "moreSoonCta": "هل تملك صالونًا أو عيادة؟ أضف عملك.",
       "first": {
@@ -2110,10 +2116,7 @@
         "cta": "كن الأول"
       },
       "loading": "جارٍ تحميل الفئات",
-      "freeTimesFor": "أوقات متاحة لخدمة {service}",
       "fromShort": "من {price}",
-      "nextFreeAt": "أقرب وقت {time}",
-      "seeServices": "عرض كل الخدمات والحجز",
       "cardsLabel": "أبرز الأماكن في {category}"
     },
     "how": {

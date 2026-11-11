@@ -601,7 +601,7 @@ describe('directory?include=services (PR-7b)', () => {
     expect(item.freeTimes.length).toBeGreaterThan(0);
   });
 
-  it('the old include=nextFree response is unchanged: no services key', async () => {
+  it('the old include=nextFree response is unchanged except the additive openStatus: no services key', async () => {
     const b = await makeBusiness(pg, { name: 'Old' });
     const item = bySlug(await live(), b.slug);
     expect(Object.keys(item).sort()).toEqual(
@@ -614,6 +614,7 @@ describe('directory?include=services (PR-7b)', () => {
         'logoUrl',
         'name',
         'nextFree',
+        'openStatus',
         'serviceCount',
         'slug',
         'timezone',
@@ -660,5 +661,30 @@ describe('privacy', () => {
     // A fixture whose own NAME contains those words is data, not a leak: the check looks at keys only.
     await makeBusiness(pg, { name: 'Staff and Client Club' });
     expect(privateKeysIn((await live()).body)).toEqual([]);
+  });
+});
+
+describe('directory?include=nextFree: openStatus (PR-19)', () => {
+  it('is open now until the closing time, from the posted hours, in the business zone', async () => {
+    const b = await makeBusiness(pg, { name: 'Open Mon', staff: [{ hours: hoursFor('09:00', '19:00', [1]) }] });
+    const res = await live();
+    expect(bySlug(res, b.slug).openStatus).toEqual({ open: true, until: '19:00' }); // Monday 10:00 in Beirut
+  });
+
+  it('is closed today for a business without hours on this weekday, and is absent without include=nextFree', async () => {
+    const b = await makeBusiness(pg, { name: 'Tuesdays', staff: [{ hours: hoursFor('09:00', '12:00', [2]) }] });
+    expect(bySlug(await live(), b.slug).openStatus).toEqual({ open: false });
+    expect(bySlug(await plain(), b.slug)).not.toHaveProperty('openStatus');
+  });
+
+  it('adds nothing private: only open, until and opensAt', async () => {
+    await makeBusiness(pg, {
+      name: 'Private Studio',
+      staff: [{ name: 'Zeina Secretname', hours: hoursFor('09:00', '19:00', [1]) }],
+    });
+    const body = (await live()).body as any;
+    expect(Object.keys(body.businesses[0].openStatus).sort()).toEqual(['open', 'until']);
+    expect(JSON.stringify(body)).not.toContain('Zeina');
+    expect(privateKeysIn(body)).toEqual([]);
   });
 });

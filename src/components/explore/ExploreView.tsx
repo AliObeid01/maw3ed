@@ -4,6 +4,7 @@ import { CloudOff, Search, SearchX, SlidersHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { BusinessCard, CARD_SKELETON_MIN_H } from '@/components/business/BusinessCard';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CountBadge } from '@/components/ui/CountBadge';
@@ -25,7 +26,6 @@ import {
 import { useMediaQuery } from '@/lib/useMediaQuery';
 import { OWNER_START_HREF } from '@/lib/links';
 import { FilterControls, type FilterPatch } from './FilterControls';
-import { ResultCard } from './ResultCard';
 import { useExploreResults } from './useExploreResults';
 import { useExploreToday } from './useExploreToday';
 
@@ -57,11 +57,11 @@ export function ExploreSkeleton() {
 function ResultsSkeleton() {
   return (
     <div
-      className="grid grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-3.5"
+      className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
       data-testid="directory-skeleton"
     >
       {Array.from({ length: 6 }, (_, i) => (
-        <Skeleton key={i} className="h-[330px] rounded-[20px]" />
+        <Skeleton key={i} className={`${CARD_SKELETON_MIN_H} rounded-[22px]`} />
       ))}
     </div>
   );
@@ -119,7 +119,7 @@ function Explore() {
   const params = useSearchParams();
   const wide = useMediaQuery('(min-width: 768px)');
   // Today in the Explore calendar (Asia/Beirut, refreshed across midnight): `when` runs from today to today + 28 days.
-  const { today, now } = useExploreToday();
+  const { today } = useExploreToday();
   const filters = useMemo(() => parseFilters((name) => params.get(name), today), [params, today]);
   const { state, submit, retry, loadMore } = useExploreResults(filters);
 
@@ -333,12 +333,14 @@ function Explore() {
             <ul
               aria-label={t('showing', { count: state.items.length })}
               className={
-                'm-0 grid list-none grid-cols-[repeat(auto-fill,minmax(min(340px,100%),1fr))] gap-3.5 p-0 transition-opacity duration-200 ease-out motion-reduce:transition-none' +
+                'm-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ease-out motion-reduce:transition-none' +
                 (stale ? ' opacity-60' : '')
               }
             >
               {state.items.map((b) => (
-                <ResultCard key={b.slug} business={b} now={now} />
+                <li key={b.slug} className="m-0 grid list-none grid-cols-[minmax(0,1fr)]">
+                  <BusinessCard business={b} headingLevel={2} />
+                </li>
               ))}
             </ul>
             <div className="flex flex-col items-center gap-2">

@@ -75,17 +75,19 @@ test.describe('public directory: category and area filters (PR-1)', () => {
     expect(queries.every((q) => !/category=x{41}/.test(q))).toBe(true);
   });
 
-  test('cards show Category · Area and the street address with translated labels', async ({ page }) => {
+  test('cards show the translated category pill and Area · street address (PR-19 card)', async ({ page }) => {
     await mockExplore(page, { all });
     await page.goto('/directory');
     const card = page.getByRole('listitem').filter({ hasText: 'Sidon Barber' });
-    await expect(card).toContainText('Barbers · Sidon');
-    await expect(card).toContainText('Riad El Solh St');
-    await expect(page.getByRole('listitem').filter({ hasText: 'Beirut Salon' })).toContainText('Hair salons · Beirut');
-    // No area: only the category.
+    await expect(card).toContainText('Barber');
+    await expect(card).toContainText('Sidon · Riad El Solh St');
+    const salon = page.getByRole('listitem').filter({ hasText: 'Beirut Salon' });
+    await expect(salon).toContainText('Hair salon');
+    await expect(salon).toContainText('Beirut');
+    // No area and no address: the pill only, no location line.
     const clinic = page.getByRole('listitem').filter({ hasText: 'No Area Clinic' });
-    await expect(clinic).toContainText('Dental clinics');
-    await expect(clinic).not.toContainText('·');
+    await expect(clinic).toContainText('Dental clinic');
+    await expect(clinic.locator('svg.lucide-map-pin')).toHaveCount(0);
   });
 
   test('filters by area, category and text, keeps them in the URL and survives a reload', async ({ page }) => {
@@ -174,7 +176,8 @@ test.describe('public directory: category and area filters (PR-1)', () => {
     await page.goto('/directory');
     await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
     const card = page.getByRole('listitem').filter({ hasText: 'Sidon Barber' });
-    await expect(card).toContainText('الحلاقون · صيدا');
+    await expect(card).toContainText('حلاق'); // the category pill
+    await expect(card).toContainText('صيدا · Riad El Solh St');
     const phoneButton = page.getByRole('button', { name: /^الفلاتر/ });
     if (await phoneButton.isVisible()) await phoneButton.click();
     expect(await pickerText(page, 'الفئة')).toBe('كل الفئات');
@@ -194,13 +197,12 @@ test.describe('public business page: header', () => {
 });
 
 test.describe('public directory', () => {
-  test('lists cards with a View & book link, filters by name and shows the empty search state', async ({ page }) => {
+  test('lists cards with a book link, filters by name and shows the empty search state', async ({ page }) => {
     await mockExplore(page, { all });
     await page.goto('/directory');
     await expect(page.getByRole('heading', { level: 1, name: 'Explore businesses' })).toBeVisible();
     await expect(heading(page, 'Sidon Barber')).toBeVisible();
-    await expect(page.getByRole('listitem').filter({ hasText: 'Sidon Barber' })).toContainText(/from \u2066?10 USD/);
-    await expect(page.getByRole('link', { name: 'View & book at Sidon Barber' })).toHaveAttribute('href', '/b/sidon-barber');
+    await expect(page.getByRole('link', { name: 'View the page of Sidon Barber' })).toHaveAttribute('href', '/b/sidon-barber');
 
     await search(page, 'beirut');
     await expect(heading(page, 'Sidon Barber')).toHaveCount(0);

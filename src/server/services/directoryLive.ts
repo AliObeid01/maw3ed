@@ -4,6 +4,7 @@ import {
   type DirBusiness,
   type NextFree,
 } from '@/server/domain/nextFree';
+import { openStatus, type OpenStatus } from '@/server/domain/openStatus';
 import type { Weekday } from '@/server/domain/slots';
 import { UNKNOWN_IP } from '@/server/http/clientIp';
 import { AppError } from '@/server/http/errors';
@@ -46,9 +47,23 @@ export interface LiveResult {
   name: string;
   timezone: string;
   nextFree: NextFree | null;
+  /** Open now / until, from the posted weekly hours already loaded for the slot engine (no extra query). */
+  openStatus: OpenStatus;
 }
 
 const DAY_MS = 86_400_000;
+
+/**
+ * The working hours that count for "open now": only staff who offer at least one ACTIVE service. A business with
+ * no bookable staff or no active service must not read "Open", because nobody could be booked there.
+ */
+export function bookableStaffHours<H>(
+  staff: readonly { serviceIds: readonly string[]; hours: readonly H[] }[],
+  services: readonly { id: string }[],
+): H[] {
+  const active = new Set(services.map((x) => x.id));
+  return staff.filter((s) => s.serviceIds.some((id) => active.has(id))).flatMap((s) => s.hours);
+}
 
 /**
  * Live "next free" for a BOUNDED set of listed businesses (callers pass at most a page: 12, or 6 per
@@ -99,7 +114,17 @@ export async function liveNextFree(
     );
     return [
       l.business.id,
-      { slug: l.business.slug, name: l.business.name, timezone: l.business.timezone, nextFree },
+      {
+        slug: l.business.slug,
+        name: l.business.name,
+        timezone: l.business.timezone,
+        nextFree,
+        openStatus: openStatus(
+          bookableStaffHours(l.staff, l.services),
+          l.business.timezone,
+          now,
+        ),
+      },
     ] as const;
   });
   return new Map(entries);
