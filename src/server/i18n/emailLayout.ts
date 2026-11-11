@@ -25,9 +25,9 @@ export const EMAIL_COLORS = {
 /** The reverse logo: the 320 px file shown at 160 px (sharp on retina). Served from public/brand. */
 export const EMAIL_LOGO_PATH = '/brand/maw3ed-email-logo-reverse-320w.png';
 /** Cache-busting version of the logo files (same names, new artwork in PR-16b). Bump when the artwork changes; constant, so retried sends stay byte-identical. */
-export const EMAIL_LOGO_VERSION = 2;
+export const EMAIL_LOGO_VERSION = 3;
 export const EMAIL_LOGO_WIDTH = 160;
-export const EMAIL_LOGO_HEIGHT = 46;
+export const EMAIL_LOGO_HEIGHT = 48;
 
 const C = EMAIL_COLORS;
 

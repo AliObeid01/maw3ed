@@ -17,7 +17,7 @@ describe('Logo (PR-16b: calendar-M icon, the 3 as two turquoise arcs)', () => {
     const m = html({ width: 160 });
     expect(attr(m, 'data-logo')).toBe('full');
     expect(attr(m, 'data-tone')).toBe('brand');
-    expect(m).toContain('viewBox="-8 13 453.53 130.04"');
+    expect(m).toContain('viewBox="-8 2 469.53 141.04"');
     expect(m).toContain('<g fill="#0B1938">'); // wordmark
     expect(m).toContain('<rect y="6" width="64" height="58" rx="14" fill="#0B1938"></rect>'); // calendar body, no outline
     expect(m).toContain('fill="#2864F5"');
@@ -42,7 +42,7 @@ describe('Logo (PR-16b: calendar-M icon, the 3 as two turquoise arcs)', () => {
     expect(attr(html({ width: MIN_FULL_LOGO_WIDTH }), 'data-logo')).toBe('full');
     const w = html({ width: 200, variant: 'wordmark' });
     expect(attr(w, 'data-logo')).toBe('wordmark');
-    expect(w).toContain('viewBox="92 24 340 115"');
+    expect(w).toContain('viewBox="108 24 340 115"');
     expect(w).not.toContain('rx="14"'); // no calendar
   });
 
@@ -51,11 +51,11 @@ describe('Logo (PR-16b: calendar-M icon, the 3 as two turquoise arcs)', () => {
     expect(attr(m, 'data-logo')).toBe('icon');
     expect(m).toContain('viewBox="0 0 64 64"');
     expect(attr(m, 'height')).toBe('40');
-    expect(m).not.toContain('translate(94 100.0)'); // no wordmark glyphs
+    expect(m).not.toContain('translate(110 100.0)'); // no wordmark glyphs
   });
 
   it('keeps the size contract: height follows the artwork ratio', () => {
-    expect(attr(html({ width: 200 }), 'height')).toBe(String(Math.round((200 * 130.04) / 453.53)));
+    expect(attr(html({ width: 200 }), 'height')).toBe(String(Math.round((200 * 141.04) / 469.53)));
     expect(attr(html({ width: 80 }), 'height')).toBe(String(Math.round((80 * 115) / 340)));
   });
 
@@ -92,7 +92,7 @@ describe('Logo (PR-16b: calendar-M icon, the 3 as two turquoise arcs)', () => {
       expect(light).toContain(d);
     for (const d of read('design/logo/maw3ed-logo-reverse.svg').match(/ d="([^"]+)"/g) ?? [])
       expect(reverse).toContain(d);
-    expect(read('design/logo/maw3ed-logo-light.svg')).toContain('viewBox="-8 13 453.53 130.04"');
+    expect(read('design/logo/maw3ed-logo-light.svg')).toContain('viewBox="-8 2 469.53 141.04"');
     expect(read('design/logo/maw3ed-logo-reverse.svg')).toContain('<g fill="#FFFFFF">');
   });
 
@@ -152,7 +152,7 @@ describe('web app manifest and icon files', () => {
   });
   it('the email logo files exist for every size, reverse and light, with the logo aspect ratio', async () => {
     for (const tone of ['reverse', 'light'])
-      for (const [w, h] of [[160, 46], [320, 92], [480, 138]])
+      for (const [w, h] of [[160, 48], [320, 96], [480, 144]])
         expect(await png(`public/brand/maw3ed-email-logo-${tone}-${w}w.png`)).toBe(`${w}x${h}`);
   });
 });

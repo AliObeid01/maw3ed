@@ -169,7 +169,7 @@ describe('branded email layout (all kinds)', () => {
         it('has the navy logo band: absolute reverse logo, width/height, alt, display:block, readable alt colours', () => {
           const img = /<img\b[^>]*>/.exec(out.html)![0];
           expect(img).toContain(`src="http://localhost:3000${EMAIL_LOGO_PATH}?v=${EMAIL_LOGO_VERSION}"`);
-          expect(img).toContain('src="http://localhost:3000/brand/maw3ed-email-logo-reverse-320w.png?v=2"');
+          expect(img).toContain('src="http://localhost:3000/brand/maw3ed-email-logo-reverse-320w.png?v=3"');
           expect(img).toContain('width="160"');
           expect(img).toContain(`height="${EMAIL_LOGO_HEIGHT}"`);
           expect(img).toContain('alt="Maw3ed"');
