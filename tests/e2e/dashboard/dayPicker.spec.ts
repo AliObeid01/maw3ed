@@ -33,7 +33,7 @@ test('open the picker, jump back in two taps, Escape restores focus, Today retur
   });
   await page.goto('/app');
   const banner = page.locator('header').first();
-  const trigger = page.getByRole('button', { name: /^Pick a day/ });
+  const trigger = page.getByRole('button', { name: /, pick a day$/ });
   await expect(banner).toContainText(long(0));
 
   // Two taps: the date, then "Last week".
@@ -73,7 +73,7 @@ test('open the picker, jump back in two taps, Escape restores focus, Today retur
   await page.getByRole('button', { name: 'Next month' }).click();
   await page.locator(`[data-ymd="${ymd(0)}"]`).click();
   await expect(banner.getByRole('heading', { level: 1 })).toHaveText(/^Good /);
-  await page.getByRole('button', { name: /^Pick a day/ }).click();
+  await page.getByRole('button', { name: /, pick a day$/ }).click();
   await page.keyboard.press('PageUp');
   await page.keyboard.press('Enter');
   await expect(banner.getByRole('heading', { level: 1 })).toHaveText('Agenda');
@@ -95,7 +95,7 @@ test('phone: the week strip switches the day; 360 px has no overflow', async ({ 
   await strip.locator('[aria-pressed="false"]').first().click();
   await expect(page.locator('header').first().getByRole('heading', { level: 1 })).toHaveText(/^Good |Agenda/);
   await expectNoPageOverflow(page);
-  await page.getByRole('button', { name: /^Pick a day/ }).click();
+  await page.getByRole('button', { name: /, pick a day$/ }).click();
   await expect(page.getByRole('dialog', { name: 'Choose a date' })).toBeVisible();
   await expectNoPageOverflow(page);
 });
@@ -106,7 +106,7 @@ test('Arabic RTL at 360 px: arrows swap, grid mirrors, Latin digits, no overflow
   await mockDashboardApi(page);
   await page.goto('/app');
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
-  await page.getByRole('button', { name: /^اختر يومًا/ }).click();
+  await page.getByRole('button', { name: /، اختر يومًا$/ }).click();
   const dialog = page.getByRole('dialog', { name: 'اختر تاريخًا' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole('grid')).toBeVisible();

@@ -8,6 +8,7 @@ import {
   shiftDayClamped,
   todayKey,
   weekOf,
+  inDayBounds,
 } from '@/lib/dashboard/dayPicker';
 
 const BEIRUT = 'Asia/Beirut';
@@ -118,5 +119,16 @@ describe('weekOf', () => {
       '2027-01-02',
       '2027-01-03',
     ]);
+  });
+});
+
+describe('week chips at the bounds', () => {
+  it('flags the days of the week of 2000-01-01 and 2100-12-31 that fall outside the allowed range', () => {
+    const first = weekOf('2000-01-01'); // Saturday: the week starts on 1999-12-27
+    expect(first.filter((d) => !inDayBounds(d))).toEqual(['1999-12-27', '1999-12-28', '1999-12-29', '1999-12-30', '1999-12-31']);
+    expect(first.filter(inDayBounds)).toEqual(['2000-01-01', '2000-01-02']);
+    const last = weekOf('2100-12-31'); // Friday: the week ends on 2101-01-02
+    expect(last.filter((d) => !inDayBounds(d))).toEqual(['2101-01-01', '2101-01-02']);
+    expect(last.filter(inDayBounds)).toHaveLength(5);
   });
 });

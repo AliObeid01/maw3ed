@@ -7,12 +7,11 @@ import { CalendarPanel } from '@/components/ui/DatePicker';
 import { IconButton } from '@/components/ui/IconButton';
 import { PickerSurface } from '@/components/ui/pickers/PickerSurface';
 import { cn } from '@/lib/cn';
-import { DAY_MAX, DAY_MIN, dayShortcuts, weekOf } from '@/lib/dashboard/dayPicker';
+import { DAY_MAX, DAY_MIN, dayShortcuts, inDayBounds, weekOf } from '@/lib/dashboard/dayPicker';
 
 // Plain UTC dates with Latin digits in both languages: the viewed day is a business-zone date string, so the
 // browser's zone can never move it.
 const SHORT: DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'short' };
-const FULL: DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
 const NO_YEAR: DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' };
 const WEEKDAY: DateTimeFormatOptions = { weekday: 'short' };
 const DATE_NUM: DateTimeFormatOptions = { day: 'numeric' };
@@ -58,7 +57,7 @@ export function DayNav({
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${t('pick')}: ${fmt(day, FULL)}`}
+        aria-label={t('pickAria', { date: fmt(day, SHORT) })}
         onClick={() => setOpen((o) => !o)}
         className={cn(
           'inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-btn border border-line bg-surface px-2.5 text-[15px] font-medium transition-colors duration-200 ease-out hover:bg-canvas sm:flex-none',
@@ -122,6 +121,7 @@ export function WeekStrip({
     <div role="group" aria-label={t('weekLabel')} className="grid grid-cols-7 gap-1 md:hidden">
       {weekOf(day).map((ymd) => {
         const selected = ymd === day;
+        const outside = !inDayBounds(ymd);
         return (
           <button
             key={ymd}
@@ -129,6 +129,8 @@ export function WeekStrip({
             aria-pressed={selected}
             aria-current={ymd === today ? 'date' : undefined}
             aria-label={fmt(ymd, NO_YEAR)}
+            disabled={outside}
+            aria-disabled={outside || undefined}
             onClick={() => onPick(ymd)}
             className={cn(
               'flex min-h-[56px] min-w-0 flex-col items-center justify-center gap-0.5 rounded-btn border text-xs transition-colors duration-150 ease-out',
@@ -136,6 +138,7 @@ export function WeekStrip({
                 ? 'border-brand bg-brand font-semibold text-white'
                 : 'border-line bg-surface text-muted hover:bg-canvas',
               ymd === today && !selected && 'border-brand text-brand',
+              outside && 'cursor-not-allowed opacity-40 hover:bg-surface',
             )}
           >
             <span>{fmt(ymd, WEEKDAY)}</span>

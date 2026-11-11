@@ -10,6 +10,9 @@ import { addDaysYmd, clampYmd, isYmd } from '@/lib/pickers/monthGrid';
 export const DAY_MIN = '2000-01-01';
 export const DAY_MAX = '2100-12-31';
 
+/** Whether the day is inside the allowed range (week chips outside it are disabled). */
+export const inDayBounds = (ymd: string): boolean => ymd >= DAY_MIN && ymd <= DAY_MAX;
+
 export const clampDay = (ymd: string): string => clampYmd(ymd, DAY_MIN, DAY_MAX);
 
 export const shiftDayClamped = (ymd: string, delta: number): string => clampDay(addDaysYmd(ymd, delta));
