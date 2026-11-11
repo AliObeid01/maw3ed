@@ -11,7 +11,8 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import type { DirectoryBusiness } from '@/lib/api/directory';
 import { getNextFreePanel, PANEL_ROWS } from '@/lib/api/home';
 import { isAreaKey } from '@/lib/business/profile';
-import { chipTime } from '@/lib/home/freeTimes';
+import { formatFreeTime } from '@/lib/home/freeTimes';
+import { bySoonest, relativeLabel, type RelativeLabel } from '@/lib/home/relativeTime';
 
 /** The area select is debounced this long before a new request is sent. */
 export const PANEL_DEBOUNCE_MS = 300;
@@ -34,7 +35,11 @@ export function useNextFreePanel(area: string, enabled: boolean) {
       first.current = false;
       getNextFreePanel(area, controller.signal)
         .then((page) => {
-          const items = page.businesses.filter((b) => b.nextFree).slice(0, PANEL_ROWS);
+          // Soonest first across the rows the API returned (it round-robins categories, so later rows can be sooner).
+          const items = bySoonest(
+            page.businesses.filter((b) => b.nextFree),
+            (b) => b.nextFree?.startAt,
+          ).slice(0, PANEL_ROWS);
           setResult({ area, status: items.length > 0 ? 'ready' : 'hidden', items });
         })
         .catch((error: unknown) => {
@@ -51,6 +56,26 @@ export function useNextFreePanel(area: string, enabled: boolean) {
   return { loading: !current, status: current?.status, items: current?.items ?? [] };
 }
 
+type T = ReturnType<typeof useTranslations<'home.nextFree'>>;
+
+/** The relative wording next to the clock time ("Now", "In 15 min", "In 3 h", "Today", "Tomorrow", "Mon 9 Nov"). */
+function relativeText(rel: RelativeLabel, t: T): string {
+  switch (rel.kind) {
+    case 'now':
+      return t('rel.now');
+    case 'minutes':
+      return t('rel.minutes', { count: rel.count });
+    case 'hours':
+      return t('rel.hours', { count: rel.count });
+    case 'today':
+      return t('today');
+    case 'tomorrow':
+      return t('tomorrow');
+    default:
+      return rel.text;
+  }
+}
+
 function Row({ business, index }: { business: DirectoryBusiness; index: number }) {
   const t = useTranslations('home.nextFree');
   const locale = useLocale();
@@ -58,14 +83,9 @@ function Row({ business, index }: { business: DirectoryBusiness; index: number }
   const areaLabel = useAreaLabel();
   const zone = business.timezone ?? 'Asia/Beirut';
   const next = business.nextFree;
-  const chip = next ? chipTime(next.startAt, zone, new Date(), locale) : null;
-  const day = chip
-    ? chip.day.kind === 'today'
-      ? t('today')
-      : chip.day.kind === 'tomorrow'
-        ? t('tomorrow')
-        : chip.day.text
-    : null;
+  const time = next ? formatFreeTime(next.startAt, zone) : null;
+  const rel: RelativeLabel | null = next ? relativeLabel(next.startAt, zone, new Date(), locale) : null;
+  const relText = rel ? relativeText(rel, t) : null;
   const meta = profileLine(categoryLabel(business.category), business.address ?? areaLabel(business.area));
 
   return (
@@ -74,21 +94,23 @@ function Row({ business, index }: { business: DirectoryBusiness; index: number }
         href={`/b/${encodeURIComponent(business.slug)}`}
         className="grid min-h-[72px] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-[14px] px-2.5 py-2 text-ink no-underline transition-colors duration-200 ease-out hover:bg-divider aria-busy:opacity-70 motion-reduce:transition-none"
       >
-        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={46} tone="navy" />
+        <BusinessAvatar name={business.name} logoUrl={business.logoUrl} size={52} tone="navy" />
         <span className="min-w-0">
           <b className="line-clamp-2 block text-[16px] leading-tight font-semibold break-words">
             <Bidi>{business.name}</Bidi>
           </b>
           {meta ? <small className="mt-0.5 block truncate text-[13.5px] text-muted">{meta}</small> : null}
         </span>
-        {chip && day ? (
+        {time && relText ? (
           <span
             data-testid="panel-time"
-            className="inline-flex min-h-9 items-center gap-1.5 rounded-tile border-[1.5px] border-brand-avatar bg-surface px-3 text-[15px] font-semibold whitespace-nowrap text-brand"
+            className="grid min-h-11 content-center justify-items-center rounded-tile border-[1.5px] border-brand-avatar bg-surface px-3 py-1 whitespace-nowrap text-brand"
           >
-            {day}
-            <bdi dir="ltr" className="tabular-nums">
-              {chip.time}
+            <small data-testid="panel-rel" className="text-[12.5px] leading-tight font-medium text-muted">
+              {relText}
+            </small>
+            <bdi dir="ltr" className="text-[16px] leading-tight font-semibold tabular-nums">
+              {time}
             </bdi>
           </span>
         ) : null}
@@ -120,9 +142,21 @@ export function NextFreePanel({ area, onHidden }: { area: string; onHidden: (hid
       data-testid="next-free-panel"
       className="rounded-[28px] bg-brand p-6 text-white"
     >
-      <h2 id="next-free-title" className="m-0 mb-1 text-[22px] font-semibold">
-        {title}
-      </h2>
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id="next-free-title" className="m-0 text-[22px] font-semibold">
+          {title}
+        </h2>
+        <span
+          data-testid="panel-live"
+          className="inline-flex items-center gap-1.5 rounded-pill bg-white/15 px-2.5 py-1 text-[13px] font-semibold text-white"
+        >
+          <span aria-hidden="true" className="relative grid size-2 place-items-center">
+            <span className="absolute inset-0 rounded-full bg-turquoise motion-safe:animate-ping" />
+            <span className="relative size-2 rounded-full bg-turquoise" />
+          </span>
+          {t('live')}
+        </span>
+      </div>
       <p className="m-0 mb-4 text-[15.5px] text-brand-soft">{t('hint')}</p>
       <div className="rounded-[20px] bg-surface p-2.5 text-ink">
         {loading ? (

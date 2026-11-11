@@ -2044,7 +2044,13 @@
       "viewPage": "View page",
       "viewPageAria": "View the page of {name}",
       "timeAria": "{time}, {name}",
-      "service": "{service} · {duration}"
+      "service": "{service} · {duration}",
+      "live": "Live",
+      "rel": {
+        "now": "Now",
+        "minutes": "In {count} min",
+        "hours": "In {count} h"
+      }
     },
     "categories": {
       "title": "Browse by category",
@@ -2104,7 +2110,11 @@
         "cta": "Be the first"
       },
       "loading": "Loading categories",
-      "freeTimesFor": "Free times for {service}"
+      "freeTimesFor": "Free times for {service}",
+      "fromShort": "from {price}",
+      "nextFreeAt": "Next free {time}",
+      "seeServices": "See all services and book",
+      "cardsLabel": "Top places in {category}"
     },
     "how": {
       "kicker": "How it works",

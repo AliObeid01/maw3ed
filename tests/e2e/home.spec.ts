@@ -162,8 +162,8 @@ async function mockHome(page: Page, opts: Opts = {}): Promise<Mock> {
   return seen;
 }
 
-const categoryList = (page: Page) => page.getByRole('navigation', { name: 'Category list' });
-const categoryButton = (page: Page, name: RegExp | string) => categoryList(page).getByRole('button', { name });
+const categoryList = (page: Page) => page.getByRole('tablist', { name: 'Category list' });
+const categoryButton = (page: Page, name: RegExp | string) => categoryList(page).getByRole('tab', { name });
 const panel = (page: Page) => page.getByTestId('category-panel');
 const hero = (page: Page) => page.locator('main > section').first();
 
@@ -221,11 +221,11 @@ test('PR-10b: a place card shows its logo, falls back to initials when the image
   await page.goto('/');
   const abu = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Abu Karam Barbershop' }) });
   await expect(abu.locator('img')).toHaveAttribute('src', logo('abu-karam'));
-  await expect(abu.locator('img')).toHaveAttribute('width', '46');
+  await expect(abu.locator('img')).toHaveAttribute('width', '64');
   const lab = page.getByRole('article').filter({ has: page.getByRole('heading', { name: 'Fade Lab' }) });
   await expect(lab.locator('img')).toHaveCount(0);
   await expect(lab.getByText('FL', { exact: true })).toBeVisible();
-  expect((await lab.getByText('FL', { exact: true }).boundingBox())!.width).toBe(46);
+  expect((await lab.getByText('FL', { exact: true }).boundingBox())!.width).toBe(64);
   await expectNoPageOverflow(page);
 });
 
@@ -311,9 +311,9 @@ test('Next free panel (wide screens): one blue card, one white card, one row per
   await expect(region.getByRole('article')).toHaveCount(0); // rows, not cards
   const abu = rows.filter({ hasText: 'Abu Karam Barbershop' });
   await expect(abu).toContainText('Barbers · Riad El Solh St');
-  await expect(abu.getByTestId('panel-time')).toHaveText('Today10:30');
+  await expect(abu.getByTestId('panel-time')).toHaveText(/^In \d+ min10:30$/);
   await expect(abu.getByRole('link')).toHaveAttribute('href', '/b/abu-karam');
-  await expect(rows.filter({ hasText: 'Dr. Nour Dental Clinic' }).getByTestId('panel-time')).toHaveText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun)09:30$/);
+  await expect(rows.filter({ hasText: 'Dr. Nour Dental Clinic' }).getByTestId('panel-time')).toHaveText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d+ \w{3}09:30$/);
   // 10:30 in New York is 10:30 on that business's clock, whatever the viewer's zone is; no category -> street/area only.
   await expect(rows.filter({ hasText: 'NY Cuts' }).getByTestId('panel-time')).toHaveText('Today10:30');
   // The request: identical for every visitor, fixed order, no cursor.
@@ -372,45 +372,43 @@ test('categories: list with stats, switching panels, popular services, top place
   const seen = await mockHome(page, { directory: [barber(), fade] });
   await page.goto('/');
   // Five categories have places (physiotherapy has none and is hidden), never "other".
-  await expect(categoryList(page).getByRole('button')).toHaveCount(5);
+  await expect(categoryList(page).getByRole('tab')).toHaveCount(5);
   await expect(categoryList(page)).not.toContainText('Other');
-  await expect(categoryButton(page, /Barbers/)).toContainText(/3 places · from .*6 USD/);
-  await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-pressed', 'true');
+  await expect(categoryButton(page, /Barbers/)).toContainText(/from .*6 USD/);
+  await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-selected', 'true');
 
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Barbers' })).toBeVisible();
-  await expect(panel(page)).toContainText('Places');
-  await expect(panel(page)).toContainText('Prices from');
-  await expect(panel(page)).toContainText('Next free');
-  await expect(panel(page)).toContainText('Today 10:30');
-  await expect(panel(page).getByRole('heading', { level: 4, name: 'Popular services' })).toBeVisible(); // 3 places
-  await expect(panel(page).getByRole('link', { name: /Beard trim/ }).first()).toHaveAttribute('href', '/directory?category=barbers&service=Beard+trim');
-  await expect(panel(page).getByRole('link', { name: /Beard trim/ }).first()).toContainText(/from .*12.50 USD/);
+  // One compact header line: places, from price and next free (no stat boxes, no Popular services chips).
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/3 places/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/from .*6 USD/);
+  await expect(panel(page).getByTestId('category-meta')).toContainText(/Next free .?Today 10:30/);
+  await expect(panel(page).getByText('Popular services')).toHaveCount(0);
   const top = panel(page).getByRole('article');
   await expect(top).toHaveCount(2);
-  // Up to three service chips with a "from" price; the fourth is not shown.
+  // Up to three services with a price; the fourth is not shown.
   const chips = top.first().getByTestId('card-services').getByRole('listitem');
   await expect(chips).toHaveCount(3);
   await expect(chips.first()).toContainText('Haircut');
-  await expect(chips.first()).toContainText(/from .*8 USD/);
+  await expect(chips.first()).toContainText(/8 USD/);
   await expect(top.first()).not.toContainText('Hidden fourth');
   // Free times are labelled with the service they belong to.
   const label = (card: ReturnType<typeof top.first>) => card.getByTestId('free-label');
   await expect(label(top.first()).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Haircut⁩?$/);
   await expect(label(top.first()).getByTestId('free-label-day')).toHaveText('Today');
   await expect(label(top.first())).not.toContainText('·'); // no separator dot that could wrap to the start of a line
-  await expect(top.first().getByRole('link', { name: /^\d\d:\d\d, / })).toHaveText(['10:30', '11:30', '14:00', '16:30']);
+  await expect(top.first().getByRole('link', { name: /^\d\d:\d\d, / })).toHaveText(['10:30', '11:30', '14:00']); // up to three time chips
   await expect(label(top.nth(1)).getByTestId('free-label-service')).toHaveText(/^Free times for ⁨?Fade⁩?$/);
   await expect(label(top.nth(1)).getByTestId('free-label-day')).toHaveText('Tomorrow');
   await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveAttribute('href', '/b/abu-karam');
+  await expect(top.first().getByRole('link', { name: 'View the page of Abu Karam Barbershop' })).toHaveText('See all services and book');
   await expect(panel(page).getByRole('link', { name: 'See all barbers' })).toHaveAttribute('href', '/directory?category=barbers');
   await expect(panel(page)).toContainText('Free times can be taken before you book.');
   await expect(page.getByText(/no availability|fully booked/i)).toHaveCount(0);
 
   await categoryButton(page, /Dental clinics/).click();
-  await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-pressed', 'true');
-  await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-pressed', 'false');
+  await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-selected', 'true');
+  await expect(categoryButton(page, /Barbers/)).toHaveAttribute('aria-selected', 'false');
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Dental clinics' })).toBeVisible();
-  await expect(panel(page).getByRole('link', { name: /Check-up/ })).toHaveAttribute('href', '/directory?category=dental-clinics&service=Check-up');
   await expect(panel(page).getByRole('link', { name: 'See all dental clinics' })).toHaveAttribute('href', '/directory?category=dental-clinics');
 
   // One categories request (shared with the hero chips); one directory request per category opened, cached when you
@@ -425,11 +423,54 @@ test('categories: list with stats, switching panels, popular services, top place
   ]);
 });
 
+test('PR-18: category tiles are tabs (arrow keys, roving focus, tabpanel) and the section stays compact', async ({ page }, info) => {
+  await mockHome(page, { directory: [barber(), fade] });
+  await page.goto('/');
+  const tabs = categoryList(page).getByRole('tab');
+  await expect(tabs).toHaveCount(5);
+  await expect(tabs.first()).toHaveAttribute('tabindex', '0');
+  await expect(tabs.nth(1)).toHaveAttribute('tabindex', '-1');
+  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', (await tabs.first().getAttribute('id'))!);
+  await tabs.first().focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(tabs.nth(1)).toBeFocused();
+  await expect(tabs.nth(1)).toHaveAttribute('aria-selected', 'true');
+  await expect(panel(page).getByRole('heading', { level: 3, name: 'Hair salons' })).toBeVisible();
+  await page.keyboard.press('End');
+  await expect(tabs.last()).toHaveAttribute('aria-selected', 'true');
+  await page.keyboard.press('Home');
+  await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
+  for (const tab of await tabs.all()) expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  await expect(panel(page).getByRole('article')).toHaveCount(2);
+  if (info.project.name === 'desktop') {
+    // One row of cards: every card starts at the same height, and the whole section is far shorter than before.
+    const boxes = await panel(page).getByRole('article').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
+    expect(new Set(boxes).size).toBe(1);
+    const section = await categoryList(page).locator('xpath=ancestor::div[contains(@class,"min-h-")][1]').boundingBox();
+    expect(section!.height).toBeLessThan(700);
+  }
+});
+
+test('PR-18: the Next free panel ranks rows by soonest, shows the logo, a relative label and a Live dot', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop', 'the panel is shown from lg');
+  const logo = '/api/public/abu-karam/logo?v=0123456789abcdef';
+  const pixel = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
+  await page.route('**/api/public/*/logo*', (route) => route.fulfill({ status: 200, contentType: 'image/gif', body: pixel }));
+  await mockHome(page, { panel: [dental, barber({ logoUrl: logo })] });
+  await page.goto('/');
+  const region = page.getByTestId('next-free-panel');
+  await expect(region.getByTestId('panel-live')).toHaveText('Live');
+  const rows = region.getByRole('listitem');
+  await expect(rows.first()).toContainText('Abu Karam Barbershop'); // today beats the dentist 5 days away, whatever the API order
+  await expect(rows.first().locator('img')).toHaveAttribute('src', logo);
+  await expect(rows.first().getByTestId('panel-rel')).toHaveText(/^In \d+ min$/);
+});
+
 test('empty categories are hidden, with one quiet line to list a business; no "0 places" anywhere', async ({ page }) => {
   const seen = await mockHome(page);
   await page.goto('/');
   await expect(categoryButton(page, /Barbers/)).toBeVisible();
-  await expect(categoryList(page).getByRole('button', { name: /Physiotherapy/ })).toHaveCount(0);
+  await expect(categoryList(page).getByRole('tab', { name: /Physiotherapy/ })).toHaveCount(0);
   const soon = page.getByTestId('categories-soon');
   await expect(soon).toContainText('More categories are coming soon.');
   await expect(soon.getByRole('link', { name: 'Own a salon or clinic? List your business.' })).toHaveAttribute('href', '/for-business#plans');
@@ -442,23 +483,20 @@ test('empty categories are hidden, with one quiet line to list a business; no "0
 test('the default category is the first one WITH places, and the quiet line is absent when all six are listed', async ({ page }) => {
   await mockHome(page, { places: { 'dental-clinics': 2, physiotherapy: 1 } });
   await page.goto('/');
-  await expect(categoryList(page).getByRole('button')).toHaveCount(2);
-  await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-pressed', 'true');
+  await expect(categoryList(page).getByRole('tab')).toHaveCount(2);
+  await expect(categoryButton(page, /Dental clinics/)).toHaveAttribute('aria-selected', 'true');
   await expect(panel(page).getByRole('heading', { level: 3, name: 'Dental clinics' })).toBeVisible();
-  // 2 places: the heading is plain "Services", not "Popular services".
-  await expect(panel(page).getByRole('heading', { level: 4, name: 'Services', exact: true })).toBeVisible();
-  await expect(panel(page).getByRole('heading', { level: 4, name: 'Popular services' })).toHaveCount(0);
   await categoryButton(page, /Physiotherapy/).click();
-  await expect(panel(page).getByRole('heading', { level: 4, name: 'Services', exact: true })).toBeVisible(); // 1 place
+  await expect(panel(page).getByRole('heading', { level: 3, name: 'Physiotherapy' })).toBeVisible();
 });
 
 test('all six listed: no "coming soon" line', async ({ page }) => {
   await mockHome(page, { places: { barbers: 3, 'hair-salons': 1, 'dental-clinics': 3, 'beauty-clinics': 3, 'spa-massage': 3, physiotherapy: 3 } });
   await page.goto('/');
-  await expect(categoryList(page).getByRole('button')).toHaveCount(6);
+  await expect(categoryList(page).getByRole('tab')).toHaveCount(6);
   await expect(page.getByTestId('categories-soon')).toHaveCount(0);
   await categoryButton(page, /Hair salons/).click();
-  await expect(panel(page).getByRole('heading', { level: 4, name: 'Services', exact: true })).toBeVisible(); // 1 place
+  await expect(panel(page).getByRole('heading', { level: 3, name: 'Hair salons' })).toBeVisible();
 });
 
 test('no category has a place: a friendly "Be the first" block instead of the two-pane, never flashed while loading', async ({ page }) => {
@@ -493,7 +531,7 @@ test('when the API fails the page stays complete, the six static categories are 
   await mockHome(page, { fail: true });
   await page.goto('/');
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-  await expect(categoryList(page).getByRole('button')).toHaveCount(6);
+  await expect(categoryList(page).getByRole('tab')).toHaveCount(6);
   await expect(page.getByRole('alert').first()).toContainText('Could not load the categories');
   await expect(page.getByRole('link', { name: 'See all barbers' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Run a salon, barbershop or clinic?' })).toBeVisible();
@@ -598,8 +636,8 @@ test('Arabic: right to left, mirrored layout, Latin digits, no overflow', async 
   await expect(page.getByRole('heading', { level: 1 })).toContainText('احجز موعدك القادم خلال');
   await expect(page.getByRole('heading', { level: 1 })).toContainText('دقائق');
   await expect(page.getByRole('button', { name: 'بحث' })).toBeVisible();
-  const list = page.getByRole('navigation', { name: 'قائمة الفئات' });
-  await expect(list.getByRole('button')).toHaveCount(5);
+  const list = page.getByRole('tablist', { name: 'قائمة الفئات' });
+  await expect(list.getByRole('tab')).toHaveCount(5);
   await expect(panel(page).getByRole('link', { name: /^\d\d:\d\d، / }).first()).toBeVisible();
   await expect(page.getByTestId('categories-soon')).toContainText('فئات أخرى قادمة قريبًا.');
   await expect(page.getByRole('heading', { level: 2, name: 'هل تدير صالونًا أو محل حلاقة أو عيادة؟' })).toBeVisible();
@@ -607,15 +645,15 @@ test('Arabic: right to left, mirrored layout, Latin digits, no overflow', async 
   expect(text).not.toMatch(/[\u0660-\u0669\u06f0-\u06f9]/); // Latin digits only
   await expectNoPageOverflow(page);
   if (info.project.name === 'desktop') {
-    // The category list sits on the right, the panel on the left.
-    const l = await list.boundingBox();
-    const p = await panel(page).boundingBox();
-    expect(l!.x).toBeGreaterThan(p!.x);
+    // The first category tile sits at the right end of the row, the second to its left.
+    const first = await list.getByRole('tab').nth(0).boundingBox();
+    const second = await list.getByRole('tab').nth(1).boundingBox();
+    expect(first!.x).toBeGreaterThan(second!.x);
     // And the next-free panel mirrors the hero text to the other side.
     const h1 = await page.getByRole('heading', { level: 1 }).boundingBox();
     const nf = await page.getByTestId('next-free-panel').boundingBox();
     expect(nf!.x).toBeLessThan(h1!.x);
-    await expect(page.getByTestId('next-free-panel').getByTestId('panel-time').first()).toContainText(/^(اليوم|غدًا|[^\d]+)\d\d:\d\d$/);
+    await expect(page.getByTestId('next-free-panel').getByTestId('panel-time').first()).toContainText(/^[\u0600-\u06ff][^\n]*\d\d:\d\d$/);
   }
   await expect(page.getByRole('contentinfo')).toContainText('سياسة الخصوصية');
 });
@@ -677,13 +715,13 @@ test('PR-16b: every category in the list has its own svg icon (not mirrored), at
     for (const width of [320, 360, 1440]) {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
-      const list = page.locator('ul').filter({ has: page.locator('svg[data-category]') }).first();
+      const list = page.getByRole('tablist').first();
       await expect(list.locator('svg[data-category]')).toHaveCount(6);
       expect(await list.locator('svg[data-category]').evaluateAll((els) => els.map((e) => e.getAttribute('data-category')))).toEqual(keys);
-      for (const button of await list.getByRole('button').all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+      for (const button of await list.getByRole('tab').all()) expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44);
       for (const icon of await list.locator('svg[data-category]').all()) {
         const box = (await icon.boundingBox())!;
-        expect(box.width).toBeCloseTo(28, 0);
+        expect(box.width).toBeCloseTo(20, 0);
         expect(await icon.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
       }
       await expectNoPageOverflow(page);
