@@ -127,15 +127,17 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - name: Install system deps only (browser cached)
         if: steps.pw-cache.outputs.cache-hit == 'true'
-        # apt mirrors were unreachable from the runners on 11 Nov 2026 ('Temporary failure resolving azure.archive.ubuntu.com'):
-        # retry, then continue with the libraries already on the runner image (Chrome is preinstalled there). If one were
+        # apt mirrors were unreachable from the runners on 11 Nov 2026 (DNS 'Temporary failure resolving
+        # azure.archive.ubuntu.com'; apt then hangs for minutes). Probe first with a short timeout; when unreachable skip
+        # the install and use the libraries already on the runner image (Chrome is preinstalled there). If one were
         # really missing, the browser launch in the next steps fails loudly.
+        timeout-minutes: 8
         run: |
-          for attempt in 1 2 3; do
-            pnpm exec playwright install-deps chromium && exit 0
-            echo "install-deps failed (attempt $attempt)"; sleep 20
-          done
-          echo "::warning::playwright install-deps failed; continuing with the libraries on the runner image"
+          if timeout 15 getent hosts azure.archive.ubuntu.com > /dev/null; then
+            timeout 360 pnpm exec playwright install-deps chromium || echo "::warning::playwright install-deps failed; continuing with the runner libraries"
+          else
+            echo "::warning::apt mirrors unreachable; skipping playwright install-deps (runner libraries are used)"
+          fi
       - run: pnpm build
       - name: Public and dashboard specs (mobile)
         run: pnpm exec playwright test --project=mobile --project=dashboard-mobile --shard=${{ matrix.shard }}/2
