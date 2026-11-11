@@ -129,7 +129,7 @@ export function wellKnown(build: () => unknown) {
       return new Response(null, { status: 405, headers: { ...OAUTH_HEADERS, allow: 'GET, HEAD' } });
     // Public, static metadata: readable by browser based MCP clients; it names no secret and changes only with APP_URL.
     return Response.json(build(), {
-      headers: { 'cache-control': 'public, max-age=300', 'access-control-allow-origin': '*', 'x-content-type-options': 'nosniff' },
+      headers: { 'cache-control': 'public, max-age=60', 'access-control-allow-origin': '*', 'x-content-type-options': 'nosniff' },
     });
   };
   return handler;

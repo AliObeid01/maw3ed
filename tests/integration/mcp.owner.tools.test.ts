@@ -129,8 +129,10 @@ describe('tools/list', () => {
     expect(tools.map((t) => t.name)).toEqual(['get_setup_status', 'preview_setup_changes', 'apply_setup_changes']);
     const by = Object.fromEntries(tools.map((t) => [t.name, t]));
     expect(by.get_setup_status.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
-    expect(by.preview_setup_changes.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
-    expect(by.apply_setup_changes.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
+    expect(by.preview_setup_changes.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
+    expect(by.apply_setup_changes.annotations).toMatchObject({ readOnlyHint: false, destructiveHint: true, idempotentHint: true });
+    expect(by.apply_setup_changes.description).toMatch(/replace/i);
+    expect(by.preview_setup_changes.description).toMatch(/stores a plan/i);
     for (const t of tools) {
       expect(t.title).toBeTruthy();
       expect(t.inputSchema.additionalProperties).toBe(false);

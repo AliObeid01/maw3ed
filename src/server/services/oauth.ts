@@ -343,40 +343,54 @@ async function exchangeCode(form: TokenForm, now: Date): Promise<TokenResponse> 
     throw new OAuthError('invalid_request', 'code, redirect_uri, client_id and code_verifier are required.');
   if (form.resource !== undefined && !resourceMatches(form.resource))
     throw new OAuthError('invalid_target', 'The resource must be this site\'s owner endpoint.');
-  const claim = await oauthRepo.claimCode(sha256Hex(code), now);
-  if (claim.kind === 'replayed') {
+  const hash = sha256Hex(code);
+  const gone = () => new OAuthError('invalid_grant', 'The authorization code is invalid, expired or already used.');
+  const replay = async (grantId: string | null) => {
     // A code that was already exchanged is shown again: assume theft and kill everything issued from it.
-    if (claim.grantId) await oauthRepo.revokeGrant(claim.grantId, 'code_replay', now);
-    logger().warn({ grantId: claim.grantId }, 'oauth authorization code replayed; grant revoked');
-    throw new OAuthError('invalid_grant', 'The authorization code is invalid, expired or already used.');
-  }
-  if (claim.kind === 'invalid')
-    throw new OAuthError('invalid_grant', 'The authorization code is invalid, expired or already used.');
-  const c = claim.code;
-  // The code is already burned: any mismatch below ends this code for good.
+    if (grantId) await oauthRepo.revokeGrant(grantId, 'code_replay', now);
+    logger().warn({ grantId }, 'oauth authorization code replayed; grant revoked');
+    return gone();
+  };
+  const c = await oauthRepo.peekCode(hash);
+  if (!c) throw gone();
+  if (c.usedAt) throw await replay(c.grantId);
+  // Validate BEFORE the claim transaction (it may query other tables; the transaction must use one connection).
+  // Any mismatch burns the code: a guess at the verifier or the redirect gets one try.
+  let problem: OAuthError | null = null;
   const bad = () => new OAuthError('invalid_grant', 'The authorization code does not match this request.');
-  if (c.clientId !== client_id) throw bad();
-  if (c.redirectUri !== redirect_uri) throw bad();
-  if (!verifyPkceS256(code_verifier, c.codeChallenge)) throw bad();
-  const client = await findClient(c.clientId);
-  if (!client) throw bad();
-  if (!(await isOwner(c.businessId, c.userId))) throw bad();
+  if (c.clientId !== client_id || c.redirectUri !== redirect_uri || !verifyPkceS256(code_verifier, c.codeChallenge))
+    problem = bad();
+  else if (form.resource !== undefined && form.resource.replace(/\/+$/, '') !== c.resource)
+    problem = new OAuthError('invalid_target', 'The resource does not match the one this code was issued for.');
+  const client = problem ? null : await findClient(c.clientId);
+  if (!problem && !client) problem = bad();
+  if (!problem && !(await isOwner(c.businessId, c.userId))) problem = bad();
+  if (problem || !client) {
+    await oauthRepo.claimCode(hash, now);
+    throw problem ?? bad();
+  }
   const pair = newPair(now);
-  await oauthRepo.issueGrant(c, client.name, pair.stored);
-  return response(pair, c.scope);
+  const issued = await oauthRepo.claimAndIssue(hash, now, client.name, pair.stored);
+  if (issued.kind === 'replayed') throw await replay(issued.grantId);
+  if (issued.kind === 'invalid') throw gone();
+  return response(pair, issued.scope);
 }
 
 async function refresh(form: TokenForm, now: Date): Promise<TokenResponse> {
   const { refresh_token, client_id } = form;
   if (!refresh_token || !client_id) throw new OAuthError('invalid_request', 'refresh_token and client_id are required.');
   if (tokenKind(refresh_token) !== 'refresh') throw new OAuthError('invalid_grant', 'The refresh token is invalid.');
+  const hash = sha256Hex(refresh_token);
+  const invalid = () => new OAuthError('invalid_grant', 'The refresh token is invalid or expired.');
+  // Checks that read other tables run BEFORE the rotation transaction (it uses a single connection).
+  const known = await oauthRepo.findRefreshGrant(hash);
+  if (!known || known.revoked || known.clientId !== client_id) throw invalid();
+  if (!known.usedAt && !(await isOwner(known.businessId, known.userId))) throw invalid();
   const pair = newPair(now);
-  const result = await oauthRepo.rotateRefresh(
-    sha256Hex(refresh_token),
-    now,
-    pair.stored,
-    async (g) => g.clientId === client_id && (await isOwner(g.businessId, g.userId)),
-  );
+  const result = await oauthRepo.rotateRefresh(hash, now, pair.stored, client_id);
+  if (result.kind === 'grace')
+    // A retry of a refresh whose response was lost (inside the grace window): refused, nothing revoked.
+    throw new OAuthError('invalid_grant', 'The refresh token was just used. Use the newest token you received or sign in again.');
   if (result.kind === 'reuse') {
     // An old (already rotated) refresh token came back: someone holds a stolen copy. Revoke the whole grant.
     await oauthRepo.revokeGrant(result.grantId, 'refresh_reuse', now);

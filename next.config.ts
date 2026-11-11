@@ -91,10 +91,11 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // The owner connector consent page: the URL carries the OAuth state and PKCE challenge. No Referer, never cached.
+        // The owner connector consent page: the URL carries the OAuth state and PKCE challenge, so no Referer leaves the
+        // site and it is never cached. NOT no-referrer: under that policy a form POST carries Origin: null.
         source: '/oauth/:path*',
         headers: [
-          { key: 'Referrer-Policy', value: 'no-referrer' },
+          { key: 'Referrer-Policy', value: 'same-origin' },
           { key: 'Cache-Control', value: 'no-store' },
         ],
       },

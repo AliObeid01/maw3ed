@@ -102,6 +102,9 @@ function getClient(): PrismaClient {
  */
 const txStore = new AsyncLocalStorage<PrismaClient>();
 
+// CAUTION: inside the callback every query runs on the one transaction connection and ROLLS BACK with it. Do not start
+// anything fire-and-forget in here (it would outlive or race the transaction), and note that rate-limiter counters
+// written inside are rolled back on failure too (spend budgets before entering).
 export function runInTransaction<T>(fn: () => Promise<T>, options?: { timeoutMs?: number }): Promise<T> {
   if (txStore.getStore()) return fn(); // already inside one: join it
   return getClient().$transaction((tx) => txStore.run(tx as unknown as PrismaClient, fn), {

@@ -43,6 +43,8 @@ describe('redirect URI allowlist', () => {
     'http://localhost:54321/callback',
     'http://127.0.0.1:8080/oauth/callback',
     'http://localhost:3000/',
+    'http://LOCALHOST:3000/cb',
+    'http://LocalHost:8080/cb',
   ])('allows %s', (uri) => expect(isAllowedRedirectUri(uri)).toBe(true));
 
   it.each([
@@ -59,6 +61,8 @@ describe('redirect URI allowlist', () => {
     'http://localhost:99999/cb',
     'http://localhost:3000@evil.example/cb',
     'http://localhost.evil.example:3000/cb',
+    'http://LOCALHOST.evil.example:3000/cb',
+    'HTTPS://CLAUDE.AI/api/mcp/auth_callback',
     'http://[::1]:3000/cb',
     'http://localhost:3000/cb#frag',
     'https://localhost:3000/cb',

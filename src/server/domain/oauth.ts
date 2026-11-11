@@ -19,7 +19,7 @@ const CLAUDE_CALLBACKS: readonly string[] = [
   'https://claude.com/api/mcp/auth_callback',
 ];
 // Loopback (Claude Code): http, localhost or 127.0.0.1, an explicit port, an absolute path, no userinfo, no fragment.
-const LOOPBACK = /^http:\/\/(?:localhost|127\.0\.0\.1):([1-9]\d{0,4})(\/[A-Za-z0-9\-._~!$&'()*+,;=:@%/?]*)?$/;
+const LOOPBACK = /^http:\/\/(?:[lL][oO][cC][aA][lL][hH][oO][sS][tT]|127\.0\.0\.1):([1-9]\d{0,4})(\/[A-Za-z0-9\-._~!$&'()*+,;=:@%/?]*)?$/;
 
 /** May this redirect URI be registered at all? Exact match for the two Claude callbacks, loopback with a port. */
 export function isAllowedRedirectUri(uri: unknown): boolean {

@@ -125,12 +125,12 @@ async function consent(who: { userId: string; businessId: string }, a: Auth) {
   return signConsentToken(who, check);
 }
 
-async function decide(cookie: string | undefined, token: string, decision: 'allow' | 'deny', origin: string | null = ORIGIN) {
+async function decide(cookie: string | undefined, token: string, decision: 'allow' | 'deny', origin: string | null = ORIGIN, extra: Record<string, string> = {}) {
   return form(
     authorizePost,
     '/api/oauth/authorize',
     { consent: token, decision },
-    { ...(cookie ? { cookie } : {}), ...(origin ? { origin } : {}) },
+    { ...(cookie ? { cookie } : {}), ...(origin ? { origin } : {}), ...extra },
   );
 }
 
@@ -245,6 +245,11 @@ describe('discovery documents and the 401 challenge', () => {
       token_endpoint_auth_methods_supported: ['none'],
       scopes_supported: ['setup'],
     });
+  });
+
+  it('well-known documents are cacheable for 60 seconds only', async () => {
+    for (const h of [asMeta, prMeta, prMetaOwner])
+      expect((await h(new Request(`${ORIGIN}/.well-known/x`))).headers.get('cache-control')).toBe('public, max-age=60');
   });
 
   it('serves the protected resource metadata (both URLs)', async () => {
@@ -422,13 +427,47 @@ describe('POST /api/oauth/authorize (the decision)', () => {
     const m = await memberWithRole(o.businessId, 'STAFF');
     const a = await authParams();
     const token = await consent(o, a);
-    expect((await decide(o.cookie, token, 'allow', null)).status).toBe(403);
-    expect((await decide(o.cookie, token, 'allow', 'https://evil.example')).status).toBe(403);
-    expect((await decide(o.cookie, token, 'allow', 'null')).status).toBe(403);
+    const blocked = async (r: ReturnType<typeof decide>) => {
+      const res = await r;
+      expect(res.status).toBe(303);
+      expect(res.headers.get('location')).toBe('/oauth/authorize?status=blocked');
+    };
+    await blocked(decide(o.cookie, token, 'allow', null));
+    await blocked(decide(o.cookie, token, 'allow', 'https://evil.example'));
+    await blocked(decide(o.cookie, token, 'allow', 'null'));
+    // a real Origin of another site is refused even when Sec-Fetch-Site claims same-origin
+    await blocked(decide(o.cookie, token, 'allow', 'https://evil.example', { 'sec-fetch-site': 'same-origin' }));
     // the owner's signed token submitted with someone else's session
     const stolen = await decide(m.cookie, token, 'allow');
     expect(stolen.headers.get('location')).toBe('/oauth/authorize?status=expired');
     expect(await count(`SELECT count(*) FROM "OAuthAuthorizationCode" WHERE "businessId" = $1`, [o.businessId])).toBe(0);
+  });
+
+  it('browser reality: Origin can be absent or the literal "null" (Referrer-Policy no-referrer); Sec-Fetch-Site same-origin is then accepted', async () => {
+    const o = await newOwner();
+    const cases: [string | null, Record<string, string>, boolean][] = [
+      [ORIGIN, {}, true],
+      [ORIGIN, { 'sec-fetch-site': 'cross-site' }, true],
+      [null, { 'sec-fetch-site': 'same-origin' }, true],
+      ['null', { 'sec-fetch-site': 'same-origin' }, true],
+      ['null', { 'sec-fetch-site': 'cross-site' }, false],
+      ['null', { 'sec-fetch-site': 'same-site' }, false],
+      ['null', { 'sec-fetch-site': 'none' }, false],
+      ['null', {}, false],
+      [null, { 'sec-fetch-site': 'cross-site' }, false],
+      [null, {}, false],
+      ['https://evil.example', { 'sec-fetch-site': 'same-origin' }, false],
+      ['https://evil.example', { 'sec-fetch-site': 'cross-site' }, false],
+    ];
+    for (const [origin, extra, accepted] of cases) {
+      const res = await decide(o.cookie, await consent(o, await authParams()), 'allow', origin, extra);
+      const label = JSON.stringify([origin, extra]);
+      if (accepted) expect(res.status, label).toBe(302);
+      else {
+        expect(res.status, label).toBe(303);
+        expect(res.headers.get('location'), label).toBe('/oauth/authorize?status=blocked');
+      }
+    }
   });
 
   it('CSRF: a tampered, garbage or expired consent token issues nothing', async () => {
@@ -561,6 +600,31 @@ describe('POST /api/oauth/token: authorization_code', () => {
     expect(results.filter((r) => r.status === 200)).toHaveLength(1);
   });
 
+  it('a code exchanged several times at once: one grant, and the losers revoke it as a replay (no window between claim and grant)', async () => {
+    const o = await newOwner();
+    const { auth, code } = await getCode(o);
+    const rs = await Promise.all([exchange(auth, code), exchange(auth, code), exchange(auth, code), exchange(auth, code)]);
+    expect(rs.filter((r) => r.status === 200)).toHaveLength(1);
+    expect(await count(`SELECT count(*) FROM "OAuthGrant" WHERE "businessId" = $1`, [o.businessId])).toBe(1);
+    expect(await count(`SELECT count(*) FROM "OAuthGrant" WHERE "businessId" = $1 AND "revokedReason" = 'code_replay'`, [o.businessId])).toBe(1);
+    const winner = rs.find((r) => r.status === 200)!;
+    expect((await rpc(winner.json.access_token, 'tools/list')).status).toBe(401);
+  });
+
+  it('a resource sent at the token endpoint must equal the one the code was issued for', async () => {
+    const o = await newOwner();
+    const a = await getCode(o);
+    expect((await exchange(a.auth, a.code, { resource: 'https://evil.example/api/mcp/owner' })).json.error).toBe('invalid_target');
+    const b = await getCode(o);
+    expect((await exchange(b.auth, b.code, { resource: `${RESOURCE}/` })).status).toBe(200);
+    // a code issued WITHOUT a resource refuses any resource at the token endpoint
+    const c = await authParams();
+    const check = await checkAuthorizeRequest({ response_type: 'code', client_id: c.clientId, redirect_uri: c.redirectUri, code_challenge: c.challenge, code_challenge_method: 'S256', state: 's', scope: 'setup' });
+    if (check.kind !== 'ok') throw new Error('x');
+    const res = await decide(o.cookie, signConsentToken(o, check), 'allow');
+    expect((await exchange(c, codeOf(res.headers.get('location')), { resource: RESOURCE })).json.error).toBe('invalid_target');
+  });
+
   it('answers 400 in OAuth format for bad requests', async () => {
     const o = await newOwner();
     const { auth, code } = await getCode(o);
@@ -603,10 +667,30 @@ describe('POST /api/oauth/token: refresh_token rotation', () => {
     expect(await count(`SELECT count(*) FROM "OAuthRefreshToken" WHERE "usedAt" IS NULL AND "grantId" = (SELECT "grantId" FROM "OAuthRefreshToken" WHERE "tokenHash" = $1)`, [sha256Hex(r2.json.refresh_token)])).toBe(1);
   });
 
-  it('REUSE of an old refresh token revokes the whole grant (the new tokens die too)', async () => {
+  it('a retry with the just-rotated token inside the 20 s grace window is invalid_grant WITHOUT revoking; the new pair keeps working', async () => {
     const { owner, auth, tokens } = await connect();
     const r1 = await refresh(auth.clientId, tokens.refresh_token);
     expect(r1.status).toBe(200);
+    const retry = await refresh(auth.clientId, tokens.refresh_token);
+    expect(retry.json.error).toBe('invalid_grant');
+    expect((await rpc(r1.json.access_token, 'tools/list')).status).toBe(200);
+    expect((await refresh(auth.clientId, r1.json.refresh_token)).status).toBe(200);
+    expect(await count(`SELECT count(*) FROM "OAuthGrant" WHERE "businessId" = $1 AND "revokedAt" IS NOT NULL`, [owner.businessId])).toBe(0);
+  });
+
+  it('a stolen old token presented by ANOTHER client_id inside the window is not a free pass: invalid_grant, no revoke, no tokens', async () => {
+    const { auth, tokens } = await connect();
+    expect((await refresh(auth.clientId, tokens.refresh_token)).status).toBe(200);
+    const other = await refresh('maw3ed-claude', tokens.refresh_token);
+    expect(other.json.error).toBe('invalid_grant');
+    expect(other.json.access_token).toBeUndefined();
+  });
+
+  it('REUSE of an old refresh token OUTSIDE the grace window revokes the whole grant (the new tokens die too)', async () => {
+    const { owner, auth, tokens } = await connect();
+    const r1 = await refresh(auth.clientId, tokens.refresh_token);
+    expect(r1.status).toBe(200);
+    vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 21_000 });
     const reuse = await refresh(auth.clientId, tokens.refresh_token);
     expect(reuse.status).toBe(400);
     expect(reuse.json.error).toBe('invalid_grant');
@@ -630,6 +714,12 @@ describe('POST /api/oauth/token: refresh_token rotation', () => {
     expect((await form(tokenPost, '/api/oauth/token', { grant_type: 'refresh_token', client_id: auth.clientId })).json.error).toBe('invalid_request');
     vi.useFakeTimers({ toFake: ['Date'], now: Date.now() + 31 * 24 * 3600_000 });
     expect((await refresh(auth.clientId, tokens.refresh_token)).json.error).toBe('invalid_grant');
+  });
+
+  it('many concurrent refreshes do not exhaust the connection pool (owner checks run before the transaction)', async () => {
+    const conns = await Promise.all(Array.from({ length: 8 }, () => connect()));
+    const results = await Promise.all(conns.map((c) => refresh(c.auth.clientId, c.tokens.refresh_token)));
+    expect(results.map((r) => r.status)).toEqual(Array(8).fill(200));
   });
 
   it('a demoted owner cannot refresh', async () => {

@@ -6,6 +6,9 @@ import { db } from './db';
  * everything else is looked up by a secret hash, which IS what decides the tenant.
  */
 
+/** A retry with the refresh token that was rotated away this recently is a lost response, not theft. */
+export const REFRESH_GRACE_MS = 20_000;
+
 export interface ClientRow {
   clientId: string;
   name: string;
@@ -57,6 +60,7 @@ export type ClaimResult =
 export type RotateResult =
   | { kind: 'rotated'; grantId: string; businessId: string; userId: string; clientId: string }
   | { kind: 'reuse'; grantId: string }
+  | { kind: 'grace' }
   | { kind: 'invalid' };
 
 export interface NewTokens {
@@ -110,13 +114,29 @@ export const oauthRepo = {
     return { kind: 'invalid' }; // expired
   },
 
-  /** Create the grant, link the code to it, and store the first token pair, in one transaction. */
-  issueGrant: (
-    code: CodeRow,
+  /** The code row without touching it (validation happens before the claim). */
+  peekCode: (codeHash: string): Promise<CodeRow | null> =>
+    db.oAuthAuthorizationCode.findUnique({ where: { codeHash }, select: codeSelect }),
+
+  /**
+   * Claim the code AND create the grant with its first token pair in ONE transaction, so there is no window in which
+   * the code is used but no grant is linked to it. A second caller blocks on the row lock until the first commits,
+   * then sees a used code WITH its grant: `replayed` (the caller revokes that grant).
+   */
+  claimAndIssue: (
+    codeHash: string,
+    now: Date,
     clientName: string,
     tokens: NewTokens,
-  ): Promise<string> =>
+  ): Promise<{ kind: 'issued'; grantId: string; scope: string } | { kind: 'replayed'; grantId: string | null } | { kind: 'invalid' }> =>
     db.$transaction(async (tx) => {
+      const claimed = await tx.oAuthAuthorizationCode.updateMany({
+        where: { codeHash, usedAt: null, expiresAt: { gt: now } },
+        data: { usedAt: now },
+      });
+      const code = await tx.oAuthAuthorizationCode.findUnique({ where: { codeHash }, select: codeSelect });
+      if (!code) return { kind: 'invalid' as const };
+      if (claimed.count !== 1) return code.usedAt ? { kind: 'replayed' as const, grantId: code.grantId } : { kind: 'invalid' as const };
       const grant = await tx.oAuthGrant.create({
         data: {
           businessId: code.businessId,
@@ -134,20 +154,43 @@ export const oauthRepo = {
       await tx.oAuthRefreshToken.create({
         data: { grantId: grant.id, tokenHash: tokens.refreshHash, expiresAt: tokens.refreshExpiresAt },
       });
-      return grant.id;
+      return { kind: 'issued' as const, grantId: grant.id, scope: code.scope };
     }),
 
   /* ---------------------------------- refresh rotation ---------------------------------- */
+  /** The grant behind a refresh token, read before any transaction (owner checks happen outside it). */
+  async findRefreshGrant(refreshHash: string) {
+    const row = await db.oAuthRefreshToken.findUnique({
+      where: { tokenHash: refreshHash },
+      select: {
+        grantId: true,
+        usedAt: true,
+        grant: { select: { businessId: true, userId: true, clientId: true, revokedAt: true } },
+      },
+    });
+    return row
+      ? {
+          grantId: row.grantId,
+          usedAt: row.usedAt,
+          businessId: row.grant.businessId,
+          userId: row.grant.userId,
+          clientId: row.grant.clientId,
+          revoked: row.grant.revokedAt !== null,
+        }
+      : null;
+  },
+
   /**
-   * Rotate in one transaction: mark the presented refresh token used (only while it is unused, unexpired and its
-   * grant is not revoked), drop the grant's old access tokens and store the next pair. A token that is already used
-   * is `reuse`: the caller revokes the whole grant.
+   * Rotate in one transaction (no other connection is used inside it): mark the presented refresh token used (only
+   * while it is unused, unexpired, of a live grant and of THIS client), drop the grant's old access tokens and store
+   * the next pair. A token that was rotated away less than REFRESH_GRACE_MS ago is `grace` (a retry of a lost
+   * response: refused, nothing revoked); an older one is `reuse` and the caller revokes the whole grant.
    */
   rotateRefresh: (
     refreshHash: string,
     now: Date,
     next: NewTokens,
-    verify: (grant: { businessId: string; userId: string; clientId: string }) => Promise<boolean>,
+    clientId: string,
   ): Promise<RotateResult> =>
     db.$transaction(async (tx): Promise<RotateResult> => {
       const row = await tx.oAuthRefreshToken.findUnique({
@@ -160,16 +203,22 @@ export const oauthRepo = {
           grant: { select: { businessId: true, userId: true, clientId: true, revokedAt: true } },
         },
       });
-      if (!row || row.grant.revokedAt) return { kind: 'invalid' };
-      if (row.usedAt) return { kind: 'reuse', grantId: row.grantId };
+      if (!row || row.grant.revokedAt || row.grant.clientId !== clientId) return { kind: 'invalid' };
+      const spent = (usedAt: Date): RotateResult =>
+        now.getTime() - usedAt.getTime() <= REFRESH_GRACE_MS
+          ? { kind: 'grace' }
+          : { kind: 'reuse', grantId: row.grantId };
+      if (row.usedAt) return spent(row.usedAt);
       if (row.expiresAt <= now) return { kind: 'invalid' };
-      if (!(await verify(row.grant))) return { kind: 'invalid' };
       const claimed = await tx.oAuthRefreshToken.updateMany({
         where: { id: row.id, usedAt: null },
         data: { usedAt: now },
       });
-      // Lost the race to a concurrent refresh with the same token: that is a reuse.
-      if (claimed.count !== 1) return { kind: 'reuse', grantId: row.grantId };
+      if (claimed.count !== 1) {
+        // Lost the race to a concurrent refresh with the same token: same rule as any other spent token.
+        const again = await tx.oAuthRefreshToken.findUnique({ where: { id: row.id }, select: { usedAt: true } });
+        return again?.usedAt ? spent(again.usedAt) : { kind: 'invalid' };
+      }
       await tx.oAuthAccessToken.deleteMany({ where: { grantId: row.grantId } });
       await tx.oAuthAccessToken.create({
         data: { grantId: row.grantId, tokenHash: next.accessHash, expiresAt: next.accessExpiresAt },

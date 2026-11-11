@@ -54,9 +54,10 @@ const TOOLS = [
     name: 'preview_setup_changes',
     title: 'Preview setup changes',
     description:
-      'Checks a proposed setup against the business and shows exactly what would change, without saving anything to the business. Provide only what the owner asked for: profile (category, area, address), settings (slotStepMin, minNoticeMin, cancelCutoffMin), services (name, durationMin, price), staff (name and the service names they offer) and hours (per person: weekdays 0=Sunday to 6=Saturday with start and end times in HH:mm; a weekday that is not listed is closed; hours replace the whole weekly pattern of that person). Do not invent values: ask the owner when something is missing. Services or people that already exist (same name, any letter case) are skipped and never changed. This tool cannot delete anything, and cannot change logins, plan, payments, listing, clients or appointments. It returns a planId; the plan lasts 15 minutes. Show the owner the preview and ask for their explicit approval before calling apply_setup_changes.',
+      'Checks a proposed setup against the business and shows exactly what would change, without saving anything to the business (it only stores a plan for 15 minutes). Provide only what the owner asked for: profile (category, area, address), settings (slotStepMin, minNoticeMin, cancelCutoffMin), services (name, durationMin, price), staff (name and the service names they offer) and hours (per person: weekdays 0=Sunday to 6=Saturday with start and end times in HH:mm; a weekday that is not listed is closed; hours replace the whole weekly pattern of that person). Do not invent values: ask the owner when something is missing. Services or people that already exist (same name, any letter case) are skipped and never changed. This tool cannot delete anything, and cannot change logins, plan, payments, listing, clients or appointments. It returns a planId; the plan lasts 15 minutes. Show the owner the preview and ask for their explicit approval before calling apply_setup_changes.',
     schema: ProposalSchema,
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    // It stores a plan row (business setup data, 15 minutes), so it is not read-only.
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     limit: 'mcpOwnerPreview',
     async run(args, ctx) {
       const data = await ownerSetup.preview(ctx, args);
@@ -72,9 +73,10 @@ const TOOLS = [
     name: 'apply_setup_changes',
     title: 'Apply setup changes',
     description:
-      'Saves a previewed plan, all together or not at all. Call this ONLY after the owner has reviewed the preview from preview_setup_changes in this conversation and explicitly agreed to it. Takes the planId from the preview. Calling it again with the same planId changes nothing and returns the original result. A plan expires after 15 minutes and works only for this connection. If something is wrong the plan is not partly applied: nothing changes. It cannot delete anything.',
+      'Saves a previewed plan, all together or not at all. Call this ONLY after the owner has reviewed the preview from preview_setup_changes in this conversation and explicitly agreed to it. Takes the planId from the preview. Hours replace the whole weekly pattern of the people named. Calling it again with the same planId changes nothing and returns the original result. A plan expires after 15 minutes and works only for this connection. If something is wrong the plan is not partly applied: nothing changes. It cannot delete anything.',
     schema: z.object({ planId: z.string().trim().min(10).max(64) }).strict(),
-    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    // Hours REPLACE a person's weekly pattern, so clients should ask before running it.
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
     limit: 'mcpOwnerApply',
     async run(args, ctx) {
       const out = await ownerSetup.apply(ctx, args.planId);
