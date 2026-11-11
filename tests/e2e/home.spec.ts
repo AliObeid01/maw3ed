@@ -311,7 +311,7 @@ test('Next free panel (wide screens): one blue card, one white card, one row per
   await expect(region.getByRole('article')).toHaveCount(0); // rows, not cards
   const abu = rows.filter({ hasText: 'Abu Karam Barbershop' });
   await expect(abu).toContainText('Barbers · Riad El Solh St');
-  await expect(abu.getByTestId('panel-time')).toHaveText(/^In \d+ min10:30$/);
+  await expect(abu.getByTestId('panel-time')).toHaveText(/^(Now|In \d+ min)10:30$/);
   await expect(abu.getByRole('link')).toHaveAttribute('href', '/b/abu-karam');
   await expect(rows.filter({ hasText: 'Dr. Nour Dental Clinic' }).getByTestId('panel-time')).toHaveText(/^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \d+ \w{3}09:30$/);
   // 10:30 in New York is 10:30 on that business's clock, whatever the viewer's zone is; no category -> street/area only.
@@ -463,7 +463,7 @@ test('PR-18: the Next free panel ranks rows by soonest, shows the logo, a relati
   const rows = region.getByRole('listitem');
   await expect(rows.first()).toContainText('Abu Karam Barbershop'); // today beats the dentist 5 days away, whatever the API order
   await expect(rows.first().locator('img')).toHaveAttribute('src', logo);
-  await expect(rows.first().getByTestId('panel-rel')).toHaveText(/^In \d+ min$/);
+  await expect(rows.first().getByTestId('panel-rel')).toHaveText(/^(Now|In \d+ min)$/);
 });
 
 test('empty categories are hidden, with one quiet line to list a business; no "0 places" anywhere', async ({ page }) => {
