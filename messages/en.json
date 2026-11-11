@@ -136,6 +136,8 @@
       "closedOpens": "Closed · opens {time}",
       "closedToday": "Closed today",
       "servicesLabel": "Services",
+      "more": "+{count} more",
+      "moreAria": "{count} more services at {name}, open the page",
       "duration": {
         "min": "{count} min",
         "h": "{count} h",
@@ -264,7 +266,14 @@
         "label": "Choose day",
         "prev": "Previous day",
         "today": "Today",
-        "next": "Next day"
+        "next": "Next day",
+        "pick": "Pick a day",
+        "pickerTitle": "Choose a date",
+        "weekLabel": "Days of this week",
+        "yesterday": "Yesterday",
+        "tomorrow": "Tomorrow",
+        "lastWeek": "Last week",
+        "nextWeek": "Next week"
       },
       "stats": {
         "appointmentsToday": "Appointments today",

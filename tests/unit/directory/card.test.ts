@@ -42,6 +42,19 @@ describe('cardModel', () => {
     expect(m.services).toHaveLength(3);
     expect(m.services[0]).toEqual({ name: 'S0', price: '1 USD', durationMin: 30 });
   });
+  it('moreCount: services the business has beyond the rows shown (+N more)', () => {
+    const three = Array.from({ length: 3 }, (_, i) => ({ name: `S${i}`, durationMin: 30, price: 5 }));
+    const four = [...three, { name: 'S3', durationMin: 30, price: 5 }];
+    expect(cardModel({ ...base, services: four, serviceCount: 6 }, NOW, 'en').moreCount).toBe(3);
+    expect(cardModel({ ...base, services: four, serviceCount: 4 }, NOW, 'en').moreCount).toBe(1);
+    expect(cardModel({ ...base, services: three, serviceCount: 3 }, NOW, 'en').moreCount).toBe(0);
+    expect(cardModel({ ...base, services: three, serviceCount: 2 }, NOW, 'en').moreCount).toBe(0);
+  });
+  it('moreCount is 0 when the response has no services key', () => {
+    const rest: DirectoryBusiness = { ...base, serviceCount: 9 };
+    delete rest.services;
+    expect(cardModel(rest, NOW, 'en').moreCount).toBe(0);
+  });
   it('no services key (older response) gives no chips', () => {
     const rest: DirectoryBusiness = { ...base };
     delete rest.services;

@@ -136,6 +136,8 @@
       "closedOpens": "مغلق · يفتح {time}",
       "closedToday": "مغلق اليوم",
       "servicesLabel": "الخدمات",
+      "more": "+{count} أخرى",
+      "moreAria": "{count} خدمات أخرى لدى {name}، افتح الصفحة",
       "duration": {
         "min": "{count} د",
         "h": "{count} س",
@@ -264,7 +266,14 @@
         "label": "اختر اليوم",
         "prev": "اليوم السابق",
         "today": "اليوم",
-        "next": "اليوم التالي"
+        "next": "اليوم التالي",
+        "pick": "اختر يومًا",
+        "pickerTitle": "اختر تاريخًا",
+        "weekLabel": "أيام هذا الأسبوع",
+        "yesterday": "أمس",
+        "tomorrow": "غدًا",
+        "lastWeek": "الأسبوع الماضي",
+        "nextWeek": "الأسبوع القادم"
       },
       "stats": {
         "appointmentsToday": "مواعيد اليوم",
