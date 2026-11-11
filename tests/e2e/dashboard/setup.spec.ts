@@ -34,7 +34,8 @@ test.describe('3.4 setup checklist', () => {
     await expect(page.getByText('2 of 6 required steps done')).toBeVisible();
     await expect(page.getByText('5 services added')).toBeVisible();
     // Six required steps are numbered 1 to 6; the directory step is labelled Optional and has no number.
-    const steps = page.getByRole('main').getByRole('listitem');
+    // Scoped to the checklist: the owner connector card (flag on in the e2e server) has its own lists.
+    const steps = page.getByTestId('setup-checklist').getByRole('listitem');
     await expect(steps).toHaveCount(7);
     await expect(steps.nth(5)).toContainText('Invite your receptionist');
     await expect(steps.nth(5)).toContainText('6');

@@ -2,6 +2,7 @@ import { SESSION_ABSOLUTE_TTL_MS } from '@/server/http/cookies';
 import type { Logger } from '@/server/http/logger';
 import { emailTokenRepo } from '@/server/repositories/emailToken.repo';
 import { inviteRepo } from '@/server/repositories/invite.repo';
+import { oauthRepo } from '@/server/repositories/oauth.repo';
 import { rateLimitRepo } from '@/server/repositories/rateLimit.repo';
 import { sessionRepo } from '@/server/repositories/session.repo';
 import { staffLoginRepo } from '@/server/repositories/staffLogin.repo';
@@ -95,6 +96,14 @@ export async function runCleanup(
       if (deleted < size) break;
     }
   }
-  logger.info({ ...result }, 'cleanup finished');
+  // Owner connector (docs/MCP_OWNER.md): expired codes, tokens, long-revoked grants, unused clients, old plans.
+  // Kept out of CleanupResult on purpose (that shape is asserted elsewhere); its count is logged.
+  let mcpOwner = 0;
+  for (let i = 0; i < 20 && deps.elapsedMs() < deps.budgetMs; i++) {
+    const n = await oauthRepo.purge(now, deps.batch);
+    mcpOwner += n;
+    if (n === 0) break;
+  }
+  logger.info({ ...result, mcpOwner }, 'cleanup finished');
   return result;
 }

@@ -62,6 +62,16 @@ test.describe('Explore cards', () => {
     await expect(bad.locator('img')).toHaveCount(0);
     await expect(bad.getByText('BI', { exact: true })).toBeVisible();
     expect((await bad.getByText('BI', { exact: true }).boundingBox())!.width).toBe(64);
+    // A card with a logo and a card with initials line up: the avatar tile and the name start at the same offset from the card top.
+    const offsetOf = async (c: ReturnType<typeof card>, inner: ReturnType<ReturnType<typeof card>['locator']>) => {
+      const cb = (await c.boundingBox())!;
+      const ib = (await inner.boundingBox())!;
+      return Math.round(ib.y - cb.y);
+    };
+    const withLogoTile = abu.locator('img').locator('xpath=..');
+    const initialsTile = bad.getByText('BI', { exact: true });
+    expect(await offsetOf(abu, withLogoTile)).toBe(await offsetOf(bad, initialsTile));
+    expect(await offsetOf(abu, abu.getByRole('heading').first())).toBe(await offsetOf(bad, bad.getByRole('heading').first()));
     // null: initials from the start.
     await expect(card(page, 'Fade Lab').locator('img')).toHaveCount(0);
     await expect(card(page, 'Fade Lab').getByText('FL', { exact: true })).toBeVisible();

@@ -129,6 +129,27 @@ export const RATE_POLICIES = {
   mcpEmailWait: { windowSec: 24 * 60 * MIN, limit: 3 },
   /** get_booking, confirm_booking, cancel_booking, per HMAC of the link token: 20 an hour. */
   mcpLinkToken: { windowSec: 60 * MIN, limit: 20 },
+
+  // ---- OWNER connector (docs/MCP_OWNER.md). Claude's servers share a few egress addresses, so per-ip budgets on the
+  // protocol endpoints are generous (they stop floods, not users); the tight limits are per GRANT (one owner).
+  /** POST /api/oauth/register, per ip. Registration is cheap and anonymous. */
+  oauthRegisterIp: { windowSec: 60 * MIN, limit: 30 },
+  /** POST /api/oauth/token, per ip (many owners can share Claude's egress address). */
+  oauthTokenIp: { windowSec: 10 * MIN, limit: 120 },
+  /** POST /api/oauth/revoke, per ip. */
+  oauthRevokeIp: { windowSec: 10 * MIN, limit: 60 },
+  /** POST /api/oauth/authorize (the consent decision), per ip. */
+  oauthAuthorizeIp: { windowSec: 10 * MIN, limit: 30 },
+  /** GET /oauth/authorize (the consent page render) and the owner grant routes, per ip. */
+  oauthPageIp: { windowSec: 10 * MIN, limit: 120 },
+  /** POST /api/mcp/owner with a missing or invalid token, per ip. Valid callers never spend it. */
+  mcpOwnerBadAuthIp: { windowSec: 10 * MIN, limit: 60 },
+  /** Every authenticated call to /api/mcp/owner, per grant. */
+  mcpOwnerCall: { windowSec: 10 * MIN, limit: 300 },
+  /** preview_setup_changes, per grant: 30 an hour. */
+  mcpOwnerPreview: { windowSec: 60 * MIN, limit: 30 },
+  /** apply_setup_changes, per grant: 10 an hour. */
+  mcpOwnerApply: { windowSec: 60 * MIN, limit: 10 },
 } as const;
 
 /**

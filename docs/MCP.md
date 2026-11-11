@@ -212,7 +212,7 @@ tools under Tool permissions (reads run without prompts; the four writes prompt)
 
 ## Next version
 
-Owner tools through Claude's lazy authentication in the same connector, a Claude directory listing, ChatGPT.
+A Claude directory listing, ChatGPT. Owner tools now exist as a SECOND connector with OAuth sign-in (`/api/mcp/owner`, `MCP_OWNER_ENABLED`), documented in docs/MCP_OWNER.md; it does not change this connector.
 
 ## Entry points (PR-15b)
 

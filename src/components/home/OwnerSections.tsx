@@ -93,3 +93,27 @@ export function SetupSteps() {
     </section>
   );
 }
+
+/**
+ * A quiet line under the five setup steps, shown only while the owner connector is on (the page decides). It names
+ * Claude plainly and shows no connector link: owners find that inside the dashboard after they sign up.
+ */
+export function ClaudeSetupTeaser() {
+  const t = useTranslations('home.owners.claudeTeaser');
+  return (
+    <section aria-labelledby="claude-teaser-title" data-testid="claude-setup-teaser" className="mx-auto max-w-[1200px] px-4 pt-5 md:px-6">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-[16px] border-[1.5px] border-dashed border-divider px-4 py-4 md:px-5 lg:ms-[calc(40%+32px)]">
+        <div className="min-w-0 flex-[1_1_300px]">
+          <h3 id="claude-teaser-title" className="m-0 text-base font-semibold">
+            {t('title')}
+          </h3>
+          <p className="m-0 mt-1 text-[15px] leading-[1.5] text-muted">{t('body')}</p>
+        </div>
+        <Link href={OWNER_START_HREF} className={buttonClasses({ variant: 'secondary', size: 'row', className: 'max-w-full' })}>
+          {t('cta')}
+          <ArrowRight size={18} aria-hidden="true" className="rtl:-scale-x-100" />
+        </Link>
+      </div>
+    </section>
+  );
+}

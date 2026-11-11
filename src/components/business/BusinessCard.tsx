@@ -111,7 +111,8 @@ export function BusinessCard({
         ) : null}
       </div>
 
-      <div className="px-5">
+      {/* flex: the avatar is a flex item, not an inline box. A logo tile (overflow hidden) and an initials tile have different inline baselines, which shifted the whole card content by ~13 px. */}
+      <div className="flex px-5">
         <BusinessAvatar
           name={business.name}
           logoUrl={business.logoUrl}

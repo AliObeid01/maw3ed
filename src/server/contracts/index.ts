@@ -12,5 +12,6 @@ import './directory';
 import './billing';
 import './deposit';
 import './logo';
+import './oauthGrants';
 
 export { buildOpenApiDocument, registry } from './registry';

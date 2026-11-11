@@ -139,6 +139,10 @@ model Business {
   offers        WaitlistOffer[]
   baseline      PilotBaseline?
   payments      Payment[]
+  oauthCodes    OAuthAuthorizationCode[]
+  oauthGrants   OAuthGrant[]
+  mcpPlans      McpPlan[]
+  mcpAudit      McpAuditLog[]
   logo          BusinessLogo?
 
   /// Public directory filters (listed first: only opted-in businesses are read).
@@ -179,6 +183,8 @@ model User {
   sentJobs    ReminderJob[] @relation("ReminderSentBy")
   emailTokens EmailToken[]
   activations ActivationToken[]
+  oauthCodes  OAuthAuthorizationCode[]
+  oauthGrants OAuthGrant[]
 }
 
 enum EmailTokenKind {
@@ -550,4 +556,129 @@ model RateLimitBucket {
 
   @@id([key, windowStart])
   @@index([windowStart])
+}
+
+/// Owner setup assistant (MCP + OAuth 2.1). Hashes only: raw codes and tokens are never stored. See docs/MCP_OWNER.md.
+/// A dynamically registered public OAuth client (RFC 7591). The static client `maw3ed-claude` lives in code, not here.
+model OAuthClient {
+  id           String   @id @default(cuid(2))
+  clientId     String   @unique
+  name         String
+  redirectUris String[]
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+}
+
+/// One authorization code: 60 s, single use (usedAt), bound to client, redirect, PKCE challenge, user and business.
+model OAuthAuthorizationCode {
+  id            String    @id @default(cuid(2))
+  codeHash      String    @unique
+  /// Makes the signed consent form token one-time: the same nonce can never mint a second code.
+  consentNonce  String    @unique
+  clientId      String
+  redirectUri   String
+  codeChallenge String
+  resource      String?
+  scope         String
+  userId        String
+  businessId    String
+  /// Set when the code is exchanged: a later replay of the same code revokes this grant.
+  grantId       String?
+  expiresAt     DateTime  @db.Timestamptz(3)
+  usedAt        DateTime? @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// One connection of one owner's Claude to one business. Revoking it kills every token.
+model OAuthGrant {
+  id            String    @id @default(cuid(2))
+  businessId    String
+  userId        String
+  clientId      String
+  clientName    String
+  scope         String
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3)
+  lastUsedAt    DateTime? @db.Timestamptz(3)
+  revokedAt     DateTime? @db.Timestamptz(3)
+  revokedReason String?
+
+  business      Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessTokens  OAuthAccessToken[]
+  refreshTokens OAuthRefreshToken[]
+  plans         McpPlan[]
+  audit         McpAuditLog[]
+
+  @@index([businessId, revokedAt])
+  @@index([userId])
+}
+
+model OAuthAccessToken {
+  id        String   @id @default(cuid(2))
+  grantId   String
+  tokenHash String   @unique
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  grant OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+/// Rotation: presenting a token marks it used (usedAt) and issues the next one. A used token shown again = theft:
+/// the whole grant is revoked. Hand-written partial unique index: at most one unused refresh token per grant.
+model OAuthRefreshToken {
+  id        String    @id @default(cuid(2))
+  grantId   String
+  tokenHash String    @unique
+  expiresAt DateTime  @db.Timestamptz(3)
+  usedAt    DateTime? @db.Timestamptz(3)
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  grant OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+  @@index([expiresAt])
+}
+
+/// A previewed setup proposal. Business setup data only (names, minutes, prices, hours). Applied at most once.
+model McpPlan {
+  id           String    @id
+  businessId   String
+  grantId      String
+  proposalJson Json
+  proposalHash String
+  resultJson   Json?
+  expiresAt    DateTime  @db.Timestamptz(3)
+  appliedAt    DateTime? @db.Timestamptz(3)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(3)
+
+  business Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  grant    OAuthGrant @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, grantId])
+  @@index([expiresAt])
+}
+
+/// One row per preview/apply: counts and outcome only. No names, no PII, no tokens.
+model McpAuditLog {
+  id         String   @id @default(cuid(2))
+  businessId String
+  grantId    String?
+  tool       String
+  summary    Json
+  outcome    String
+  at         DateTime @default(now()) @db.Timestamptz(3)
+
+  business Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  grant    OAuthGrant? @relation(fields: [grantId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, at])
 }

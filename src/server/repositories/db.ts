@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@/generated/prisma/client';
 import { rootLogger } from '@/server/http/logger';
@@ -95,6 +96,24 @@ function getClient(): PrismaClient {
 }
 
 /**
+ * Unit of work. Inside `runInTransaction` every repository call (they all use `db`) runs on ONE interactive
+ * transaction client and a repository's own `db.$transaction(fn)` joins it. Outside it nothing changes. Used by the
+ * owner setup assistant so a whole plan is applied all-or-nothing THROUGH the same services the dashboard uses.
+ */
+const txStore = new AsyncLocalStorage<PrismaClient>();
+
+// CAUTION: inside the callback every query runs on the one transaction connection and ROLLS BACK with it. Do not start
+// anything fire-and-forget in here (it would outlive or race the transaction), and note that rate-limiter counters
+// written inside are rolled back on failure too (spend budgets before entering).
+export function runInTransaction<T>(fn: () => Promise<T>, options?: { timeoutMs?: number }): Promise<T> {
+  if (txStore.getStore()) return fn(); // already inside one: join it
+  return getClient().$transaction((tx) => txStore.run(tx as unknown as PrismaClient, fn), {
+    timeout: options?.timeoutMs ?? 20_000,
+    maxWait: 5_000,
+  });
+}
+
+/**
  * Created lazily on first use, so importing this module (for example during `next build` or in a
  * preview without database variables) does not need DATABASE_URL; a missing URL still fails with a
  * clear error the first time a query runs.
@@ -104,7 +123,14 @@ export const db: PrismaClient = new Proxy({} as PrismaClient, {
     // `await db` / Promise.resolve(db) probe `then`, and runtimes probe symbols (inspect, toPrimitive):
     // answer those without building a client so they neither need DATABASE_URL nor open a pool.
     if (prop === 'then' || typeof prop === 'symbol') return undefined;
-    const client = getClient();
+    const joined = txStore.getStore();
+    // A repository's own `db.$transaction(fn)` joins the surrounding unit of work instead of opening a second one.
+    if (joined && prop === '$transaction')
+      return (arg: unknown) =>
+        typeof arg === 'function'
+          ? (arg as (tx: PrismaClient) => Promise<unknown>)(joined)
+          : Promise.all(arg as Promise<unknown>[]);
+    const client = joined ?? getClient();
     const value = Reflect.get(client, prop, client) as unknown;
     return typeof value === 'function'
       ? (value as (...args: unknown[]) => unknown).bind(client)
