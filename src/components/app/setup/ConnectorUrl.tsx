@@ -30,7 +30,7 @@ export function useCopy() {
   }
 
   const announcer = (
-    <span role="status" aria-live="polite" className="sr-only" data-testid="connector-copy-status">
+    <span aria-live="polite" aria-atomic="true" className="sr-only" data-testid="connector-copy-status">
       {message}
     </span>
   );
