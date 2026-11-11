@@ -35,11 +35,29 @@ const HEADER_MISMATCH = -32020;
 const UNSUPPORTED_VERSION = -32022;
 const FORBIDDEN_ORIGIN = -32001;
 
+/** What a tool runner receives. `auth` is whatever `authenticate` returned (owner connector only). */
+export type RunTool = (
+  name: string,
+  args: unknown,
+  ctx: { requestId: string; logger: Logger; auth?: unknown },
+) => Promise<ToolResult>;
+
 export interface McpHandlerDeps {
   env: NodeJS.ProcessEnv;
   logger?: Logger;
   /** Test seam; default: the real tool runner. */
-  callTool?: typeof callTool;
+  callTool?: RunTool;
+  /** The kill switch of this endpoint. Default: the public connector's `MCP_ENABLED`. */
+  enabled?: (env: NodeJS.ProcessEnv) => boolean;
+  /** The tools/list answer. Default: the nine public tools. */
+  tools?: () => ReturnType<typeof listTools>;
+  /**
+   * Owner connector: authenticate the request (Bearer token) AFTER the kill switch, method and Origin checks and
+   * BEFORE the body is read. Returns what the tool runner needs, or a Response (401) to send as is.
+   */
+  authenticate?: (req: Request, requestId: string) => Promise<{ auth: unknown } | Response>;
+  /** Label for error reports. */
+  routeName?: string;
 }
 
 type Id = string | number | null;
@@ -132,10 +150,10 @@ async function handle(req: Request, deps: McpHandlerDeps): Promise<Response> {
   const incoming = req.headers.get('x-request-id');
   const requestId = incoming && REQUEST_ID.test(incoming) ? incoming : randomUUID();
   const logger = deps.logger ?? childLogger({ requestId });
-  const run = deps.callTool ?? callTool;
+  const run: RunTool = deps.callTool ?? callTool;
 
   // Kill switch: indistinguishable from a missing route.
-  if (!isAssistantEnabled(env))
+  if (!(deps.enabled ?? isAssistantEnabled)(env))
     return new Response('Not Found', {
       status: 404,
       headers: { ...BASE_HEADERS, 'content-type': 'text/plain; charset=utf-8' },
@@ -150,6 +168,13 @@ async function handle(req: Request, deps: McpHandlerDeps): Promise<Response> {
   const origin = req.headers.get('origin');
   if (origin !== null && !originAllowed(origin, env))
     return rpcError(403, null, FORBIDDEN_ORIGIN, 'This origin is not allowed.', requestId);
+
+  let auth: unknown;
+  if (deps.authenticate) {
+    const outcome = await deps.authenticate(req, requestId);
+    if (outcome instanceof Response) return outcome;
+    auth = outcome.auth;
+  }
 
   if (!/^application\/json\s*(;|$)/i.test((req.headers.get('content-type') ?? '').trim()))
     return rpcError(415, null, INVALID_REQUEST, 'Send the request as application/json.', requestId);
@@ -244,14 +269,14 @@ async function handle(req: Request, deps: McpHandlerDeps): Promise<Response> {
       if (modern) return rpcResult(id, discoverResult(), requestId);
       break;
     case 'tools/list':
-      return done({ tools: listTools(), ...(modern ? { ttlMs: TOOLS_TTL_MS, cacheScope: 'public' } : {}) });
+      return done({ tools: (deps.tools ?? listTools)(),...(modern ? { ttlMs: TOOLS_TTL_MS, cacheScope: 'public' } : {}) });
     case 'tools/call': {
       const name = rpc.params?.name;
       if (typeof name !== 'string' || !name)
         return rpcError(200, id, INVALID_PARAMS, 'tools/call needs a tool name in params.name.', requestId);
       let result: ToolResult;
       try {
-        result = await run(name, rpc.params?.arguments, { requestId, logger });
+        result = await run(name, rpc.params?.arguments, { requestId, logger, auth });
       } catch (error) {
         if (error instanceof UnknownToolError)
           return rpcError(200, id, INVALID_PARAMS, `Unknown tool: ${JSON.stringify(name.slice(0, 80))}.`, requestId);
@@ -272,7 +297,7 @@ export async function handleMcpRequest(
   try {
     return await handle(req, deps);
   } catch (error) {
-    reportError(error, { route: '/api/mcp', method: req.method });
+    reportError(error, { route: deps.routeName ?? '/api/mcp', method: req.method });
     return rpcError(
       500,
       null,

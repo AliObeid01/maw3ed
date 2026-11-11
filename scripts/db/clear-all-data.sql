@@ -30,8 +30,8 @@ SELECT (SELECT count(*) FROM pg_constraint WHERE conname = 'appointment_no_overl
 -- The delete. "Business" and "User" are the two roots; CASCADE also empties every table that points at them
 -- (logos, sessions, memberships, invites, staff, activation tokens, services, hours, time off, clients,
 -- appointments, reminder jobs, waitlist entries and offers, pilot baseline, payments, email tokens).
--- RateLimitBucket has no foreign key, so it is listed explicitly.
-TRUNCATE TABLE "Business", "User", "RateLimitBucket" RESTART IDENTITY CASCADE;
+-- RateLimitBucket and OAuthClient (dynamic OAuth clients of the owner connector) have no foreign key, so they are listed explicitly.
+TRUNCATE TABLE "Business", "User", "RateLimitBucket", "OAuthClient" RESTART IDENTITY CASCADE;
 
 -- Counts AFTER the delete: every app row must be 0, migrations must be unchanged.
 SELECT 'Business'        AS "table", count(*) AS rows FROM "Business"
@@ -54,6 +54,13 @@ UNION ALL SELECT 'WaitlistEntry',   count(*) FROM "WaitlistEntry"
 UNION ALL SELECT 'WaitlistOffer',   count(*) FROM "WaitlistOffer"
 UNION ALL SELECT 'PilotBaseline',   count(*) FROM "PilotBaseline"
 UNION ALL SELECT 'Payment',         count(*) FROM "Payment"
+UNION ALL SELECT 'OAuthClient',     count(*) FROM "OAuthClient"
+UNION ALL SELECT 'OAuthAuthorizationCode', count(*) FROM "OAuthAuthorizationCode"
+UNION ALL SELECT 'OAuthGrant',      count(*) FROM "OAuthGrant"
+UNION ALL SELECT 'OAuthAccessToken', count(*) FROM "OAuthAccessToken"
+UNION ALL SELECT 'OAuthRefreshToken', count(*) FROM "OAuthRefreshToken"
+UNION ALL SELECT 'McpPlan',         count(*) FROM "McpPlan"
+UNION ALL SELECT 'McpAuditLog',     count(*) FROM "McpAuditLog"
 UNION ALL SELECT 'RateLimitBucket', count(*) FROM "RateLimitBucket"
 UNION ALL SELECT '(_prisma_migrations: kept)', count(*) FROM "_prisma_migrations"
 ORDER BY 1;
