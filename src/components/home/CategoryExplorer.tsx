@@ -256,7 +256,7 @@ export function CategoryExplorer() {
                 role="tab"
                 id={tabId(key)}
                 aria-selected={active}
-                aria-controls={`${tabId(key)}-panel`}
+                aria-controls={active ? `${tabId(key)}-panel` : undefined}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setSelected(key)}
                 className={cn(

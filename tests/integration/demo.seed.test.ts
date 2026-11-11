@@ -94,7 +94,7 @@ describe('demo seed, check, browse, remove, re-seed', () => {
     const ids = plan.businesses.map((b) => b.business.id);
     const counts = await countRows(prisma, ids);
     expect(counts.Business).toBe(18);
-    expect(counts.BusinessLogo).toBe(10);
+    expect(counts.BusinessLogo).toBe(15);
     expect(counts.PilotBaseline).toBe(1);
     expect(counts.Payment).toBe(0);
     expect(counts.Appointment).toBe(plan.businesses.reduce((n, b) => n + b.appointments.length, 0));
@@ -160,7 +160,7 @@ describe('demo seed, check, browse, remove, re-seed', () => {
       expect(b.fromPrice).toBeGreaterThan(0);
     }
     const withLogo = all.filter((b) => b.logoUrl).length;
-    expect(withLogo).toBe(10);
+    expect(withLogo).toBe(15);
   });
 
   it('shows the marketplace aggregates: 3 places per category, live next-free times, popular services', async () => {
