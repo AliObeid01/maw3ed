@@ -4,7 +4,7 @@ import { ArrowRight, CloudOff } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useRef, useState } from 'react';
 import { CategoryIcon } from '@/components/brand/CategoryIcon';
-import { BusinessCard } from '@/components/business/BusinessCard';
+import { BusinessCard, CARD_SKELETON_MIN_H } from '@/components/business/BusinessCard';
 import { PendingLink as Link } from '@/components/public/PendingLink';
 import { ltr } from '@/components/ui/Bidi';
 import { buttonClasses } from '@/components/ui/buttonStyles';
@@ -42,7 +42,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
     return (
       <div aria-hidden="true" data-testid="top-skeleton" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[500px] rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn(CARD_SKELETON_MIN_H, 'rounded-[18px] bg-divider', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     );
@@ -159,7 +159,7 @@ function ExplorerSkeleton() {
       <Skeleton aria-hidden="true" className="h-[88px] w-full rounded-tile" />
       <div aria-hidden="true" className="flex gap-3 overflow-hidden md:grid md:grid-cols-2 lg:grid-cols-3">
         {[0, 1, 2].map((i) => (
-          <Skeleton key={i} className={cn('h-[500px] rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
+          <Skeleton key={i} className={cn(CARD_SKELETON_MIN_H, 'rounded-[18px]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')} />
         ))}
       </div>
     </div>

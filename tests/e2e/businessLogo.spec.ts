@@ -50,18 +50,18 @@ test.describe('Explore cards', () => {
     const img = abu.locator('img');
     await expect(img).toHaveAttribute('src', LOGO('abu-karam'));
     await expect(img).toHaveAttribute('alt', '');
-    await expect(img).toHaveAttribute('width', '52');
-    await expect(img).toHaveAttribute('height', '52');
+    await expect(img).toHaveAttribute('width', '64');
+    await expect(img).toHaveAttribute('height', '64');
     await expect(img).toHaveAttribute('decoding', 'async');
     await expect(img).toHaveAttribute('loading', 'lazy');
     await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBe(256);
-    expect((await abu.locator('img').boundingBox())!.width).toBe(50); // 52 px box minus its 1 px border
+    expect((await abu.locator('img').boundingBox())!.width).toBe(58); // 64 px box minus the card avatar's 3 px border on each side
 
-    // 404: the img is gone and the initials tile stands in the same 52 px box.
+    // 404: the img is gone and the initials tile stands in the same 64 px box.
     const bad = card(page, 'Broken Image Barbers');
     await expect(bad.locator('img')).toHaveCount(0);
     await expect(bad.getByText('BI', { exact: true })).toBeVisible();
-    expect((await bad.getByText('BI', { exact: true }).boundingBox())!.width).toBe(52);
+    expect((await bad.getByText('BI', { exact: true }).boundingBox())!.width).toBe(64);
     // null: initials from the start.
     await expect(card(page, 'Fade Lab').locator('img')).toHaveCount(0);
     await expect(card(page, 'Fade Lab').getByText('FL', { exact: true })).toBeVisible();

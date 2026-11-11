@@ -4,7 +4,7 @@ import { CloudOff, Search, SearchX, SlidersHorizontal } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { BusinessCard } from '@/components/business/BusinessCard';
+import { BusinessCard, CARD_SKELETON_MIN_H } from '@/components/business/BusinessCard';
 import { Button, ButtonLink } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { CountBadge } from '@/components/ui/CountBadge';
@@ -61,7 +61,7 @@ function ResultsSkeleton() {
       data-testid="directory-skeleton"
     >
       {Array.from({ length: 6 }, (_, i) => (
-        <Skeleton key={i} className="h-[500px] rounded-[22px]" />
+        <Skeleton key={i} className={`${CARD_SKELETON_MIN_H} rounded-[22px]`} />
       ))}
     </div>
   );

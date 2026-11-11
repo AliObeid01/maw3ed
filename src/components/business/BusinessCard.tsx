@@ -24,13 +24,23 @@ const BANNERS: Record<string, string> = {
   barbers: 'from-navy to-navy-hover',
   'hair-salons': 'from-brand to-electric',
   'dental-clinics': 'from-turquoise to-mint',
-  'beauty-clinics': 'from-cyan to-[#6fd6f7]',
+  'beauty-clinics': 'from-cyan to-cyan-light',
   'spa-massage': 'from-brand-deep to-brand',
   physiotherapy: 'from-electric to-cyan',
 };
 
+/**
+ * The banner dot pattern: white dots fading out towards the bottom. Kept here (not in the global theme, which the
+ * palette test keeps free of gradients). The light cyan below is the `cyan-light` theme token.
+ */
 const DOTS =
   'bg-[radial-gradient(rgb(255_255_255/0.32)_1px,transparent_1.2px)] bg-[length:14px_14px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]';
+
+/**
+ * Height of the loading placeholder for a card (Tailwind needs the literal class). It MUST stay >= the real card
+ * height at every width, or the page jumps when the data arrives. Used by the home row and Explore skeletons.
+ */
+export const CARD_SKELETON_MIN_H = 'h-[500px]';
 
 type Duration = ReturnType<typeof durationParts>;
 
@@ -78,15 +88,15 @@ export function BusinessCard({
         ? t('duration.h', { count: d.count })
         : t('duration.hMin', { hours: d.hours, minutes: d.minutes });
   const status = m.open
-    ? m.open.open && m.open.until
-      ? { open: true, text: t('open', { time: ltr(m.open.until) }) }
+    ? m.open.open
+      ? { open: true, text: m.open.until ? t('open', { time: ltr(m.open.until) }) : t('openNow') }
       : { open: false, text: m.open.opensAt ? t('closedOpens', { time: ltr(m.open.opensAt) }) : t('closedToday') }
     : null;
 
   return (
     <article
       data-testid="business-card"
-      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(11_25_56/0.04)]"
+      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)]"
     >
       <div
         aria-hidden="true"
@@ -106,7 +116,7 @@ export function BusinessCard({
           name={business.name}
           logoUrl={business.logoUrl}
           size={64}
-          className="relative -mt-9 rounded-[18px] border-[3px] border-surface shadow-[0_6px_16px_rgb(11_25_56/0.18)]"
+          className="relative -mt-9 rounded-[18px] border-[3px] border-surface shadow-[0_3px_9px_rgb(0_0_0/0.16)]"
         />
       </div>
 

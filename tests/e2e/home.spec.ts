@@ -451,9 +451,15 @@ test('PR-18: category tiles are tabs (arrow keys, roving focus, tabpanel) and th
     const boxes = await panel(page).getByRole('article').evaluateAll((els) => els.map((e) => Math.round(e.getBoundingClientRect().top)));
     expect(new Set(boxes).size).toBe(1);
     const section = await categoryList(page).locator('xpath=ancestor::div[contains(@class,"rounded-[24px]")][1]').boundingBox();
-    expect(section!.height).toBeLessThan(900); // PR-19: the cards are the taller target design (banner, logo, rows, times, button)
+    // PR-19: the cards are the taller target design (banner, logo, rows, times, button). The section is one card row
+    // plus its header and tiles (a fixed chrome); stacked cards would add a whole card (~500 px) on top of that.
+    const card = await panel(page).getByRole('article').first().boundingBox();
+    expect(section!.height).toBeLessThanOrEqual(card!.height + CHROME_MAX);
   }
 });
+
+/** Most the category section adds around one row of cards (header, tiles, padding), measured plus a small margin. */
+const CHROME_MAX = 370; // measured 349 at 1440 px (section 854.5, card 505.75)
 
 test('PR-18: the Next free panel ranks rows by soonest, shows the logo, a relative label and a Live dot', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop', 'the panel is shown from lg');

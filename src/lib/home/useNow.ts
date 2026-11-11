@@ -56,6 +56,9 @@ export function createClock(periodMs: number, now: () => number = Date.now, doc?
 }
 
 const minute = createClock(60_000);
+// Date.now() at module load is only a safe server snapshot because every card's data is client-fetched, so no
+// time-dependent label is ever server-rendered and hydration cannot mismatch. If cards are ever server-rendered,
+// pass `now` from the server instead. (Left as is: a constant here would show wrong labels on the first client frame.)
 const serverTime = Date.now();
 
 /** The current time as a Date, re-rendering the caller every minute (shared timer, paused in a hidden tab). */
