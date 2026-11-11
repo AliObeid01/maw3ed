@@ -207,13 +207,14 @@ export function DatePicker({
   );
 }
 
-function CalendarPanel({
+export function CalendarPanel({
   id,
   value,
   min,
   max,
   today: todayProp,
   clearable,
+  shortcuts,
   onPick,
 }: {
   id: string;
@@ -222,6 +223,8 @@ function CalendarPanel({
   max?: string;
   today?: string;
   clearable?: boolean;
+  /** Quick jumps shown above the footer (the Today header: yesterday, tomorrow, last week, next week). */
+  shortcuts?: { label: string; ymd: string }[];
   onPick: (ymd: string) => void;
 }) {
   const t = useTranslations('ui.pickers');
@@ -372,6 +375,21 @@ function CalendarPanel({
           </div>
         ))}
       </div>
+      {shortcuts?.length ? (
+        <div className="grid grid-cols-2 gap-1.5 border-t border-line pt-2">
+          {shortcuts.map((s) => (
+            <button
+              key={s.label}
+              type="button"
+              disabled={isDisabledYmd(s.ymd, min, max)}
+              onClick={() => onPick(s.ymd)}
+              className="inline-flex h-11 items-center justify-center rounded-btn border border-line bg-surface px-3 text-sm font-medium transition-colors duration-150 ease-out hover:bg-canvas disabled:cursor-not-allowed disabled:text-subtle disabled:opacity-50"
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      ) : null}
       <div className="flex items-center justify-between gap-2 border-t border-line pt-2">
         <button
           type="button"
