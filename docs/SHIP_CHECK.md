@@ -11,20 +11,20 @@ Sections 1 to 7 below are the ship-check run of 2 Nov 2026 and are kept unchange
 
 | Definition-of-done item | Evidence in the repository | CI run on main |
 |---|---|---|
-| Live at a public URL, CI on every PR | `.github/workflows/ci.yml` (jobs `checks`, `e2e` in two shards; manual `workflow_dispatch`); production `https://maw3edlb.com`, `GET /api/health` | to be filled after the final manual CI run on main |
-| Route handlers, repository layer separate, validation on every route | `src/app/api/**`, `src/server/repositories` (ESLint `import/no-restricted-paths`), `tests/integration/validation.routes.test.ts` | to be filled after the final manual CI run on main |
-| Tenant isolation | `tests/integration/tenant.isolation.test.ts`; cross-tenant 404 inside each route test (owner connector: `tests/integration/mcp.owner.tools.test.ts`) | to be filled after the final manual CI run on main |
-| Owner and Staff roles (and the barber role) | `tests/unit/session.guard.test.ts`, `tests/integration/auth.test.ts`, `tests/integration/team.test.ts` | to be filled after the final manual CI run on main |
-| No double booking | `tests/integration/appointment.overlap.test.ts`, `tests/integration/booking.concurrency.test.ts`, `scripts/db/check-constraints.sql` | to be filled after the final manual CI run on main |
-| No duplicate reminder | `tests/integration/reminders.idempotency.test.ts`, `tests/integration/reminders.hardening.test.ts` | to be filled after the final manual CI run on main |
-| Correct slots across DST | `tests/unit/slots.test.ts`, `tests/unit/directory/openStatus.test.ts` (open status across a DST change) | to be filled after the final manual CI run on main |
-| Comfortable on a phone | Playwright projects `mobile` and `dashboard-mobile` (`tests/e2e/**`), `docs/DESIGN_QA.md`, `docs/DESIGN_QA_ROUND2.md` | to be filled after the final manual CI run on main |
-| Assistant connectors (client and owner) | `tests/integration/mcp.assistant.test.ts`, `tests/integration/mcp.limits.test.ts`, `tests/integration/mcp.owner.oauth.test.ts`, `tests/integration/mcp.owner.tools.test.ts`, `tests/integration/mcp.owner.cleanup.test.ts`, `tests/unit/mcp/*`, `tests/unit/mcpOwner/*`; docs `docs/MCP.md`, `docs/MCP_OWNER.md` | to be filled after the final manual CI run on main |
-| Demo data tooling | `tests/unit/demo/*`, `tests/integration/demo.seed.test.ts`, `docs/DEMO_DATA.md` | to be filled after the final manual CI run on main |
-| Security headers (nonce CSP for scripts; styles still allow `'unsafe-inline'`) | `src/lib/security/csp.ts`, `src/proxy.ts`, `tests/unit/csp.test.ts`, `tests/e2e/securityHeaders.spec.ts`, `scripts/check-security-headers.mjs` | to be filled after the final manual CI run on main |
-| Lint, typecheck, unit, integration, build | `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:int`, `pnpm build` (the `checks` job) | to be filled after the final manual CI run on main |
-| OpenAPI contract in sync | `openapi.json`, `pnpm openapi:check` | to be filled after the final manual CI run on main |
-| i18n keys match (en, ar) | `scripts/i18n/check-keys.mjs` | to be filled after the final manual CI run on main |
+| Live at a public URL, CI on every PR | `.github/workflows/ci.yml` (jobs `checks`, `e2e` in two shards; manual `workflow_dispatch`); production `https://maw3edlb.com`, `GET /api/health` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Route handlers, repository layer separate, validation on every route | `src/app/api/**`, `src/server/repositories` (ESLint `import/no-restricted-paths`), `tests/integration/validation.routes.test.ts` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Tenant isolation | `tests/integration/tenant.isolation.test.ts`; cross-tenant 404 inside each route test (owner connector: `tests/integration/mcp.owner.tools.test.ts`) | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Owner and Staff roles (and the barber role) | `tests/unit/session.guard.test.ts`, `tests/integration/auth.test.ts`, `tests/integration/team.test.ts` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| No double booking | `tests/integration/appointment.overlap.test.ts`, `tests/integration/booking.concurrency.test.ts`, `scripts/db/check-constraints.sql` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| No duplicate reminder | `tests/integration/reminders.idempotency.test.ts`, `tests/integration/reminders.hardening.test.ts` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Correct slots across DST | `tests/unit/slots.test.ts`, `tests/unit/directory/openStatus.test.ts` (open status across a DST change) | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Comfortable on a phone | Playwright projects `mobile` and `dashboard-mobile` (`tests/e2e/**`), `docs/DESIGN_QA.md`, `docs/DESIGN_QA_ROUND2.md` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Assistant connectors (client and owner) | `tests/integration/mcp.assistant.test.ts`, `tests/integration/mcp.limits.test.ts`, `tests/integration/mcp.owner.oauth.test.ts`, `tests/integration/mcp.owner.tools.test.ts`, `tests/integration/mcp.owner.cleanup.test.ts`, `tests/unit/mcp/*`, `tests/unit/mcpOwner/*`; docs `docs/MCP.md`, `docs/MCP_OWNER.md` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Demo data tooling | `tests/unit/demo/*`, `tests/integration/demo.seed.test.ts`, `docs/DEMO_DATA.md` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Security headers (nonce CSP for scripts; styles still allow `'unsafe-inline'`) | `src/lib/security/csp.ts`, `src/proxy.ts`, `tests/unit/csp.test.ts`, `tests/e2e/securityHeaders.spec.ts`, `scripts/check-security-headers.mjs` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| Lint, typecheck, unit, integration, build | `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:int`, `pnpm build` (the `checks` job) | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| OpenAPI contract in sync | `openapi.json`, `pnpm openapi:check` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
+| i18n keys match (en, ar) | `scripts/i18n/check-keys.mjs` | Passed in the final manual CI run on `main` (commit `5b21f07`, 12 Nov 2026: `checks`, `e2e (1/2)`, `e2e (2/2)` all success): https://github.com/AliObeid01/maw3ed/actions/runs/43307142263 |
 | README, FR/NFR one-pager, ERD | `README.md`, `docs/REQUIREMENTS.md`, `docs/DATA_MODEL.md` | not a CI item |
 | 3-minute demo video and 60-second backup | recorded by a human (`docs/HUMAN_TASKS.md`) | not a CI item; still open when this was written |
 
@@ -138,3 +138,23 @@ All 19 models are in the ERD and the entity table with matching relations. Colum
 - Native Arabic review: the owner reported it done and asked for it to be removed from the list.
 - The F15 design-hook warnings (Arial email font, border accent on the rounded card) were ruled on: leave them, known and accepted.
 - F61 (integration tests default `CRON_SECRET`) was fixed in this PR.
+
+
+## Production smoke check (12 Nov 2026, read-only)
+
+Run from a laptop against https://maw3edlb.com with plain requests: no sign-in, no data created. Result:
+
+| Check | Result |
+|---|---|
+| Pages `/`, `/directory`, `/how-it-works`, `/for-business`, `/assistant`, `/my-bookings`, `/privacy`, `/terms`, `/b/cedar-smile-dental-clinic`, `/login`, `/signup` | 200 |
+| Unknown path | 404 |
+| `/pricing?x=1` | 308 to `/for-business?x=1#plans` (query kept) |
+| Security headers on `/` | nonce CSP (`'strict-dynamic'`, styles `'unsafe-inline'`), `X-Frame-Options: DENY`, `Strict-Transport-Security`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` |
+| Public directory API | 18 listed businesses, 3 in each of the 6 categories, 15 with a logo (3 initials on purpose) |
+| Flagship `cedar-smile-dental-clinic` | 6 services, from 25 USD, a next free time, `openStatus` present |
+| Public connector `POST /api/mcp` | `initialize` answers; `tools/list` returns the nine tools |
+| Owner connector `POST /api/mcp/owner` without a token | 401 with `WWW-Authenticate: Bearer resource_metadata=...` |
+| `/.well-known/oauth-protected-resource/api/mcp/owner`, `/.well-known/oauth-authorization-server` | 200; issuer `https://maw3edlb.com`, PKCE `S256`, registration endpoint present |
+| `/oauth/authorize` without parameters | 200 (a page, not an error) |
+
+Not covered by this check: signed-in flows (the owner tested the owner connector with a fresh signup on 11 Nov 2026 and reported that it works), bookings, emails and the Claude client itself. Page download times from the test laptop were unreliable (a file from another host stalled in the same way), so no timings are claimed.
