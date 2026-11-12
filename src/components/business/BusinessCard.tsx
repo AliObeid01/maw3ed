@@ -37,10 +37,12 @@ const DOTS =
   'bg-[radial-gradient(rgb(255_255_255/0.32)_1px,transparent_1.2px)] bg-[length:14px_14px] [mask-image:linear-gradient(to_bottom,black,transparent_85%)]';
 
 /**
- * Height of the loading placeholder for a card (Tailwind needs the literal class). It MUST stay >= the real card
- * height at every width, or the page jumps when the data arrives. Used by the home row and Explore skeletons.
+ * Height of the loading placeholder for a card (Tailwind needs the literal classes). It MUST stay >= the real card
+ * height at every width, or the page jumps when the data arrives. Measured (tests/e2e/cardAlignment.spec.ts, worst-case
+ * content in English and Arabic): tallest real card 647 px in the narrow home carousel at 360 px and 595 px from md up.
+ * Typical cards are 460-565 px. Used by the home row and Explore skeletons.
  */
-export const CARD_SKELETON_MIN_H = 'h-[500px]';
+export const CARD_SKELETON_MIN_H = 'h-[660px] md:h-[600px]';
 
 type Duration = ReturnType<typeof durationParts>;
 
@@ -96,31 +98,31 @@ export function BusinessCard({
   return (
     <article
       data-testid="business-card"
-      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] md:row-span-6 md:grid md:grid-rows-subgrid"
+      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] md:row-span-6 md:grid md:grid-cols-[minmax(0,1fr)] md:grid-rows-subgrid"
     >
       <div className="md:row-start-1">
-      <div
-        aria-hidden="true"
-        className={cn('relative h-[120px] shrink-0 overflow-hidden bg-gradient-to-br text-white', key ? BANNERS[key] : 'from-navy to-navy-hover')}
-      >
-        <div className={cn('absolute inset-0', DOTS)} />
-        <CategoryIcon category={key ?? 'other'} size={112} className="absolute end-3 top-3 opacity-[0.22]" />
-        {pill ? (
-          <span className="absolute start-4 top-4 inline-flex max-w-[60%] items-center truncate rounded-pill bg-navy/45 px-3 py-1 text-[13px] leading-5 font-semibold text-white">
-            {pill}
-          </span>
-        ) : null}
-      </div>
+        <div
+          aria-hidden="true"
+          className={cn('relative h-[120px] shrink-0 overflow-hidden bg-gradient-to-br text-white', key ? BANNERS[key] : 'from-navy to-navy-hover')}
+        >
+          <div className={cn('absolute inset-0', DOTS)} />
+          <CategoryIcon category={key ?? 'other'} size={112} className="absolute end-3 top-3 opacity-[0.22]" />
+          {pill ? (
+            <span className="absolute start-4 top-4 inline-flex max-w-[60%] items-center truncate rounded-pill bg-navy/45 px-3 py-1 text-[13px] leading-5 font-semibold text-white">
+              {pill}
+            </span>
+          ) : null}
+        </div>
 
-      {/* flex: the avatar is a flex item, not an inline box. A logo tile (overflow hidden) and an initials tile have different inline baselines, which shifted the whole card content by ~13 px. */}
-      <div className="flex px-5">
-        <BusinessAvatar
-          name={business.name}
-          logoUrl={business.logoUrl}
-          size={64}
-          className="relative -mt-9 rounded-[18px] border-[3px] border-surface shadow-[0_3px_9px_rgb(0_0_0/0.16)]"
-        />
-      </div>
+        {/* flex: the avatar is a flex item, not an inline box. A logo tile (overflow hidden) and an initials tile have different inline baselines, which shifted the whole card content by ~13 px. */}
+        <div className="flex px-5">
+          <BusinessAvatar
+            name={business.name}
+            logoUrl={business.logoUrl}
+            size={64}
+            className="relative -mt-9 rounded-[18px] border-[3px] border-surface shadow-[0_3px_9px_rgb(0_0_0/0.16)]"
+          />
+        </div>
       </div>
 
       {/* md and up this box disappears (`contents`): its children become rows of the article's grid, which is a subgrid of the card row, so every section starts at the same y in every card of the row. Spacing is margin on the section, never a grid gap. */}
