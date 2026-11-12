@@ -3,7 +3,7 @@
 Claude can't create accounts or hold your credentials. Do these early (Phase 0), then put the values in Vercel env vars,
 GitHub Actions secrets and your local `.env`. Never commit secrets.
 
-## Status as of 30 Oct
+## Status as of 12 Nov 2026 (first written 30 Oct)
 
 Done:
 - [x] Production deployed on https://maw3edlb.com (Vercel, Node 22, Neon `production` branch; every migration applied by the production build; `/api/health` green).
@@ -19,12 +19,19 @@ Open:
 - [x] Manual real-email waitlist check on production with two inboxes (section "Real-email waitlist check on production" below). DONE, confirmed by the owner on 1 Nov.
 - [x] Agree with Sami whether the full recovery flow is required at Checkpoint 1 (scope document). DONE, confirmed by the owner on 1 Nov.
 - [x] Resend: turn click tracking off for the domain (tracking can rewrite the links in emails). It must stay OFF: verify-email, reset-password and invite links carry one-time tokens, and a rewritten or pre-fetched tracking link would break or burn them.
-- [ ] Neon usage check (storage and compute hours on the free plan).
-- [ ] Optional: DMARC TXT record (`_dmarc`).
+- [x] Neon usage check (storage and compute hours on the free plan). DONE, confirmed by the owner on 2 Nov 2026.
+- [x] DMARC TXT record (`_dmarc`). DONE, confirmed by the owner on 2 Nov 2026.
 - [x] Sentry error monitoring: DONE 1 Nov 2026 (EU project, `SENTRY_DSN` and `NEXT_PUBLIC_SENTRY_DSN` as Production-only Vercel variables, test event confirmed with `POST /api/jobs/sentry-test`, alert emails on, Sentry data scrubber and IP storage settings enabled). Still optional: mark the two test issues Resolved; the tunnel (PLAN F41). Readable stack traces (F39, code merged, inert until you add three variables): see "Readable Sentry stack traces" below and the open line right under this list.
 - [ ] Sentry readable stack traces (F39, optional, about 10 minutes): add the three Production-only build variables in Vercel, redeploy and check one test issue. Steps: "Readable Sentry stack traces" below. Until then Sentry shows minified frames (nothing else is affected).
-- [ ] Record the 3-minute demo and the 60-second backup video on 12 Nov.
-- [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`.
+- [ ] Record the 3-minute demo and the 60-second backup video (a human does this; due before the Fri 13 Nov 2026 submission). Use the sentence from `docs/DEMO_DATA.md` as an on-screen label: "Demo data: all businesses, people and results are simulated for demonstration."
+- [ ] Native Arabic review of `messages/ar.json` using the checklist in `docs/ARABIC_REVIEW.md`. Newer strings that nobody native has read yet: the Claude capability panel on `/assistant`, the owner connector card (Setup) and Connected apps (Settings), the OAuth consent page (`/oauth/authorize`, including the blocked state), and the business card strings (Open until, Next free, +N more).
+
+New since the connectors and demo data (11 and 12 Nov 2026):
+- [ ] **Vercel, owner assistant.** In Vercel (Production variables) set `MCP_OWNER_ENABLED=true` and check that `APP_URL` equals the exact public origin, https, no trailing slash (the connector URL, the OAuth metadata and the consent redirect are built from it). Then Redeploy. The Vercel build applies migration `20261111150000_mcp_owner_oauth` (new OAuth tables) by itself; it is additive. Confirm `/.well-known/oauth-authorization-server` answers 200 after the deploy (it answers 404 while the flag is off). `MCP_ENABLED=true` is the separate switch for the client connector.
+- [x] Test the owner connector with a fresh signup: sign up a new business, add the link on the Setup page in Claude, allow on the consent page, preview, apply. The owner did this on 11 Nov 2026 and confirmed it works (manual check, reported by the owner; not an automated test).
+- [ ] **Legal pages.** `src/lib/site.ts` holds the public contact details (the owner's own business details) and the switch `LEGAL_DRAFT`. As of 12 Nov 2026 `LEGAL_DRAFT` is `false`, so the "Draft - under review" notice is hidden on `/privacy` and `/terms`, although no lawyer has reviewed them. Either have a lawyer review both pages (then keep `false`), or set it back to `true` until they have. Check every contact detail in `SITE` is still right and set the social links if wanted (empty means the icon is not shown).
+- [ ] **Demo data.** The simulated businesses are public and bookable. The placeholder owners use `.invalid` addresses (a reserved domain that never resolves) and an unusable password, so nobody can sign in as them and no mail can be delivered; keep it that way. Tell testers to use throwaway email addresses when they book a demo business. If you load or remove the demo data, follow `docs/DEMO_DATA.md` (Neon backup branch first, `demo:remove` then `demo:seed` then `demo:check`).
+- [ ] After this documentation PR merges, run the full pipeline once on main and fill in the run links in `docs/SHIP_CHECK.md`: `gh workflow run ci.yml --ref main`.
 
 | # | Task | Produces | Needed by |
 |---|---|---|---|
@@ -96,7 +103,7 @@ Rollback, in order: (a) Vercel, Production variables: set `CSP_MODE=report-only`
 DATABASE_URL=            # Neon pooled
 DIRECT_URL=              # Neon direct (migrations)
 DATABASE_URL_TEST=       # local docker postgres for integration tests
-APP_URL=                 # https://maw3ed.vercel.app (used in links and emails)
+APP_URL=                 # exact public origin, https, no trailing slash (links, emails, connector URLs)
 SESSION_SECRET=          # 32+ random bytes
 LINK_SECRET=             # 32+ random bytes, HMAC for confirm/cancel/claim/pay links
 CRON_SECRET=             # shared secret for job routes
@@ -106,6 +113,10 @@ EMAIL_PROVIDER=resend    # or "fake" locally
 PAYMENT_PROVIDER=fake    # or "whish"
 SENTRY_DSN=
 CSP_MODE=                # optional: enforce (default) | report-only | off
+NEXT_PUBLIC_APP_URL=      # same origin as APP_URL
+EXPECTED_DB_HOST=        # recommended: production Neon host without -pooler
+MCP_ENABLED=             # "true" turns on the client connector /api/mcp (off otherwise)
+MCP_OWNER_ENABLED=       # "true" turns on the owner setup assistant /api/mcp/owner (off otherwise)
 ```
 Generate secrets with `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`.
 
