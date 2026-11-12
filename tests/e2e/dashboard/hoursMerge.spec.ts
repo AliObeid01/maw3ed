@@ -115,7 +115,9 @@ test.describe('copy this week to other staff', () => {
     await expect(apply).toBeDisabled();
     for (const box of await dialog.getByRole('checkbox').all()) {
       const size = (await box.locator('xpath=ancestor::label').boundingBox())!;
-      expect(size.height).toBeGreaterThanOrEqual(44);
+      // 44 px CSS (min-h-11): the Pixel 5 emulation (device pixel ratio 2.625) can report 43.99997, so allow a half pixel
+      // like the other tap-target checks (43.5).
+      expect(size.height).toBeGreaterThanOrEqual(43.5);
     }
     await expectNoHorizontalOverflow(dialog, 'copy sheet');
 
