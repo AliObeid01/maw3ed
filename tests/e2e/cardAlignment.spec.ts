@@ -28,7 +28,7 @@ const mismatched: Biz[] = [
   biz({ slug: 'f', name: 'Quick Cuts', category: 'barbers', area: 'sidon', address: 'Main St', serviceCount: 3, services: svc(3), freeTimes: times(2), openStatus: { open: true, until: '18:00' } }),
 ];
 
-type Metrics = { top: number; bottom: number; services: number | null; label: number | null; chip: number | null; cta: number };
+type Metrics = { top: number; bottom: number; left: number; right: number; ctaLeft: number; ctaRight: number; services: number | null; label: number | null; chip: number | null; cta: number };
 
 /** Group the cards by row (same top) and read the y of each aligned section. */
 async function rows(page: Page, scope: string) {
@@ -40,6 +40,10 @@ async function rows(page: Page, scope: string) {
       return {
         top: r.top,
         bottom: r.bottom,
+        left: r.left,
+        right: r.right,
+        ctaLeft: (links[links.length - 1] ?? c).getBoundingClientRect().left,
+        ctaRight: (links[links.length - 1] ?? c).getBoundingClientRect().right,
         services: y(c.querySelector('[data-testid="card-services"]')),
         label: y(c.querySelector('[data-testid="free-label"]')),
         chip: y(c.querySelector('[data-testid="free-label"] + ul a')),
@@ -59,6 +63,11 @@ function expectAligned(group: Metrics[]) {
   for (const key of ['services', 'label', 'chip', 'cta'] as const) {
     const ys = group.map((m) => m[key]).filter((v): v is number => v !== null);
     expect(Math.max(...ys) - Math.min(...ys), `${key} y spread`).toBeLessThanOrEqual(1);
+  }
+  // The CTA button stays inside its card (a margin on a full-width button once pushed it past the card edge).
+  for (const m of group) {
+    expect(m.ctaLeft, 'CTA inside card (start)').toBeGreaterThanOrEqual(m.left - 0.5);
+    expect(m.ctaRight, 'CTA inside card (end)').toBeLessThanOrEqual(m.right + 0.5);
   }
   const heights = group.map((m) => m.bottom - m.top);
   expect(Math.max(...heights) - Math.min(...heights), 'card height spread').toBeLessThanOrEqual(1);
