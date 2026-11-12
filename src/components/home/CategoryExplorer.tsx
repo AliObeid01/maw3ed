@@ -27,7 +27,7 @@ import { OWNER_START_HREF } from '@/lib/links';
 
 
 const CARD_ROW =
-  'm-0 flex snap-x snap-mandatory list-none gap-3 overflow-x-auto p-0 pb-2 md:grid md:grid-cols-2 md:overflow-visible md:pb-0 lg:grid-cols-3';
+  'm-0 flex snap-x snap-mandatory list-none gap-3 overflow-x-auto p-0 pb-2 md:grid md:grid-cols-2 md:gap-y-0 md:overflow-visible md:pb-0 lg:grid-cols-3';
 /** Phones: a card is 86 % wide so the next one peeks; md and up the cards fill the grid. */
 const CARD_ITEM = 'w-[86%] max-w-[340px] flex-none snap-start md:w-auto md:max-w-none';
 
@@ -61,7 +61,7 @@ function TopPlaces({ category }: { category: HomeCategory }) {
   return (
     <ul data-allow-overflow data-testid="top-places" aria-label={t('cardsLabel', { category: t(`lower.${category}`) })} className={CARD_ROW}>
       {data.businesses.slice(0, 3).map((b, i) => (
-        <li key={b.slug} className={cn('grid grid-cols-[minmax(0,1fr)]', CARD_ITEM, i === 2 && 'md:max-lg:hidden')}>
+        <li key={b.slug} className={cn('grid grid-cols-[minmax(0,1fr)] md:row-span-6 md:mb-4 md:grid-rows-subgrid', CARD_ITEM, i === 2 && 'md:max-lg:hidden')}>
           <BusinessCard business={b} category={category} headingLevel={4} />
         </li>
       ))}

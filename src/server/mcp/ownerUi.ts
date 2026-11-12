@@ -10,6 +10,15 @@ import { isOwnerConnectorEnabled, ownerResource } from './ownerConfig';
  */
 export type OwnerConnectorInfo = { url: string };
 
+/**
+ * The connector URL for a dashboard page's props: ONLY for the OWNER role (and only when the flag is on). Anyone else
+ * gets undefined, so the URL never enters their RSC payload (OwnerOnly on the client is defence in depth).
+ */
+export async function ownerConnectorUrlFor(role: string): Promise<string | undefined> {
+  if (role !== 'OWNER') return undefined;
+  return (await ownerConnectorInfo())?.url;
+}
+
 export async function ownerConnectorInfo(): Promise<OwnerConnectorInfo | null> {
   if (!isOwnerConnectorEnabled()) return null;
   if (process.env.E2E_FAKE_SESSION === '1' && (await cookies()).get('e2e_mcp_owner')?.value === 'off') return null;

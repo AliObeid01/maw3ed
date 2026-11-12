@@ -60,6 +60,8 @@ const L = {
     on: 'Connected Nov 1, 2026',
     used: 'Last used Nov 10, 2026',
     teaser: 'Prefer to talk?',
+    checkFailed: 'Claude connection: we could not check right now.',
+    retry: 'Retry',
   },
   ar: {
     title: 'الإعداد مع Claude',
@@ -73,6 +75,8 @@ const L = {
     on: 'تم الربط في 1 نوفمبر 2026',
     used: 'آخر استخدام 10 نوفمبر 2026',
     teaser: 'تفضّل الحديث؟',
+    checkFailed: 'اتصال Claude: تعذّر التحقق الآن.',
+    retry: 'إعادة المحاولة',
   },
 } as const;
 
@@ -202,6 +206,58 @@ for (const lang of ['en', 'ar'] as const) {
       await page.goto('/app/settings');
       await expect(page.getByTestId('connected-apps')).toHaveCount(0);
       await expect(page.getByTestId('connected-app')).toHaveCount(0);
+    });
+
+    test('the connector URL is in the server response (HTML + RSC payload) for the owner only', async ({ page }) => {
+      await setup(page, lang, [], { role: 'STAFF' });
+      for (const path of ['/app/setup', '/app/settings']) {
+        const staffHtml = await (await page.request.get(path)).text();
+        expect(staffHtml.length).toBeGreaterThan(1000);
+        expect(staffHtml).not.toContain('/api/mcp/owner');
+        // The RSC flight payload a soft navigation fetches.
+        const staffRsc = await (await page.request.get(path, { headers: { RSC: '1' } })).text();
+        expect(staffRsc).not.toContain('/api/mcp/owner');
+      }
+      await setRole(page, 'OWNER', DASHBOARD);
+      for (const path of ['/app/setup', '/app/settings']) {
+        expect(await (await page.request.get(path)).text()).toContain('/api/mcp/owner');
+      }
+    });
+
+    test('Setup: when the connection check fails, a compact "could not check" row with Retry, not the full card', async ({ page }) => {
+      const grants: Grant[] = [GRANT];
+      let fail = true;
+      await setRole(page, 'OWNER', DASHBOARD);
+      await page.context().addCookies([{ name: 'locale', value: lang, url: DASHBOARD }]);
+      await mockSetupApi(page, {
+        state: defaultState(),
+        override: async (route, method, path) => {
+          if (path === '/api/oauth/grants' && method === 'GET') {
+            if (fail) await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'x' } }) });
+            else await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ grants }) });
+            return true;
+          }
+          return false;
+        },
+      });
+      for (const width of [360, 1440]) {
+        fail = true;
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto('/app/setup');
+        const row = page.getByTestId('owner-connector-error');
+        await expect(row).toBeVisible();
+        await expect(row.getByRole('status')).toHaveText(T.checkFailed);
+        await expect(page.getByTestId('owner-connector')).toHaveCount(0);
+        await expect(page.getByTestId('connector-url')).toHaveCount(0);
+        const retry = row.getByTestId('owner-connector-retry');
+        await expect(retry).toHaveText(T.retry);
+        expect((await retry.boundingBox())!.height).toBeGreaterThanOrEqual(43.5);
+        await expectNoPageOverflow(page);
+        fail = false;
+        await retry.click();
+        await expect(page.getByTestId('owner-connector-connected')).toBeVisible();
+        await expect(page.getByTestId('owner-connector-error')).toHaveCount(0);
+      }
     });
 
     test('/for-business: the teaser under the five steps, no connector link', async ({ page }) => {
