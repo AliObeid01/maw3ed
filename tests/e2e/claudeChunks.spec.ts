@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { JOURNEY_URL } from './helpers/journeyEnv';
 import { mockPublicApi, SLUG } from './helpers/publicMock';
@@ -10,6 +10,11 @@ import { expect, test } from './helpers/test';
 
 const CHUNK_DIR = join(process.cwd(), '.next', 'static', 'chunks');
 
+/** Test ids that only the Claude button and sheet render (src/components/booking/ClaudeButton.tsx). */
+const CLAUDE_MARKERS = ['claude-button', 'claude-prompt', 'claude-copy'] as const;
+/** A translation key that only the booking flow's own code uses (src/components/booking/BookingFlow.tsx). */
+const BOOKING_MARKER = 'heroFactReminders';
+
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);
@@ -17,25 +22,34 @@ function walk(dir: string): string[] {
   });
 }
 
-/** Names of the built chunks that contain the button's own markers (its test ids). */
-function claudeChunks(): string[] {
-  return walk(CHUNK_DIR)
-    .filter((file) => {
-      const text = readFileSync(file, 'utf8');
-      return text.includes('claude-copy') && text.includes('claude-prompt');
-    })
-    .map((file) => file.split(/[\\/]/).pop()!);
+/** Every built chunk once, with its text (read once per worker, so every test sees the same files). */
+let cache: { name: string; text: string }[] | undefined;
+function chunks() {
+  if (!cache) {
+    if (!existsSync(CHUNK_DIR)) throw new Error(`No production build at ${CHUNK_DIR}: run pnpm build first.`);
+    cache = walk(CHUNK_DIR)
+      .sort()
+      .map((file) => ({ name: file.split(/[\\/]/).pop()!, text: readFileSync(file, 'utf8') }));
+  }
+  return cache;
 }
 
+/** Names of the built chunks that hold the Claude button's own markers (ALL of them, so a shared chunk with one id does not count). */
+const claudeChunks = () => chunks().filter((c) => CLAUDE_MARKERS.every((m) => c.text.includes(m))).map((c) => c.name);
+/** Names of the built chunks that hold the booking flow's own code. */
+const bookingChunks = () => chunks().filter((c) => c.text.includes(BOOKING_MARKER)).map((c) => c.name);
+
+/** The file name of a requested script URL (exact match, not a substring of some other file name). */
+const fileOf = (url: string) => decodeURIComponent(new URL(url).pathname.split('/').pop() ?? '');
 
 test('the Claude code is its own chunk(s), not part of the booking page chunks', () => {
-  const chunks = claudeChunks();
-  expect(chunks.length).toBeGreaterThan(0);
+  const claude = claudeChunks();
+  const booking = bookingChunks();
+  expect(claude.length).toBeGreaterThan(0);
+  // The marker for the booking flow must exist somewhere, or the check below proves nothing.
+  expect(booking.length).toBeGreaterThan(0);
   // The chunk holds the Claude sheet only: it must not also contain the booking flow's own code.
-  for (const name of chunks) {
-    const text = readFileSync(join(CHUNK_DIR, name), 'utf8');
-    expect(text.includes('heroFactReminders'), `${name} also holds the booking flow`).toBe(false);
-  }
+  for (const name of claude) expect(booking.includes(name), `${name} also holds the booking flow`).toBe(false);
 });
 
 test('switched on and a listed business: the Claude chunk IS requested (so the next test is not vacuous)', async ({ page }) => {
@@ -45,7 +59,7 @@ test('switched on and a listed business: the Claude chunk IS requested (so the n
   await page.goto(`/b/${SLUG}`);
   await expect(page.getByTestId('claude-button')).toBeVisible();
   const names = claudeChunks();
-  expect(requested.some((u) => names.some((n) => u.includes(n)))).toBe(true);
+  expect(requested.some((u) => names.includes(fileOf(u)))).toBe(true);
 });
 
 test('switched off (journey server): neither the home page nor a listed business page requests the Claude chunk', async ({ page }) => {
@@ -63,6 +77,6 @@ test('switched off (journey server): neither the home page nor a listed business
   const scripts = requested.filter((u) => u.includes('/_next/static/'));
   expect(scripts.length).toBeGreaterThan(3); // the page really loaded its JS
   for (const name of names) {
-    expect(scripts.some((u) => u.includes(name)), `${name} was requested while the connector is off`).toBe(false);
+    expect(scripts.some((u) => fileOf(u) === name), `${name} was requested while the connector is off`).toBe(false);
   }
 });

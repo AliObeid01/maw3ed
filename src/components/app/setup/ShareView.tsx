@@ -20,7 +20,6 @@ import {
 } from '@/lib/setup/clipboard';
 import { shareSeenKey } from '@/lib/setup/steps';
 import { useAppSession } from '../SessionContext';
-
 import { DirectoryCard } from './DirectoryCard';
 import { QrCard } from './QrCard';
 import { LoadError, OwnerOnly } from '../states';

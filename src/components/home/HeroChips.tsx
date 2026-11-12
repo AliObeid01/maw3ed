@@ -54,7 +54,7 @@ function useFitRows(maxRows: number, names: readonly string[]) {
  * The hero's "Popular" row. Phones: ONE line that scrolls sideways with the scrollbar hidden and a soft fade on the
  * scrolling side (the end, so the right in LTR and the left in RTL). sm and up: no scroller, the chips wrap onto at
  * most two rows of reserved height (nothing shifts when the live names arrive); a chip that does not fit is hidden whole.
- * Every chip is shortened with an ellipsis past 220 px and carries its full name in `title`.
+ * Every chip is shortened with an ellipsis past 220 px on phones (280 px from sm up) and carries its full name in `title`.
  */
 export function HeroChips({ label, names }: { label: string; names: readonly string[] }) {
   const ref = useFitRows(CHIP_ROWS, names);
