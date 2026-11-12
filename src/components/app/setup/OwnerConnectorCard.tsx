@@ -2,6 +2,7 @@
 
 import { Check, Copy } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { ClaudeIcon } from '@/components/brand/ClaudeIcon';
 import { Card } from '@/components/ui/Card';
@@ -25,6 +26,40 @@ export function OwnerConnectorCard({ url }: { url: string }) {
   const t = useTranslations('app.ownerConnector.setup');
   const grants = useResource(listGrants, 'grants');
   const { copy, copiedKey, announcer } = useCopy();
+
+  const [retrying, setRetrying] = useState(false);
+
+  if (grants.error || (retrying && grants.loading)) {
+    // Could not check: say so compactly instead of guessing "not connected". Stays mounted while retrying (no jump).
+    return (
+      <Card
+        size="sm"
+        as="section"
+        aria-labelledby="owner-connector-title"
+        data-testid="owner-connector-error"
+        className="flex min-h-[76px] flex-wrap items-center gap-x-4 gap-y-1 p-4"
+      >
+        <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-input bg-brand-soft text-brand">
+          <ClaudeIcon size={22} />
+        </span>
+        <p id="owner-connector-title" role="status" aria-live="polite" className="m-0 min-w-0 flex-[1_1_220px] text-[15px] text-muted">
+          {grants.error ? t('checkFailed') : t('retrying')}
+        </p>
+        <button
+          type="button"
+          data-testid="owner-connector-retry"
+          disabled={grants.loading}
+          onClick={() => {
+            setRetrying(true);
+            grants.reload();
+          }}
+          className="motion-press inline-flex min-h-11 min-w-11 items-center justify-center rounded-input px-3 text-[15px] font-semibold text-brand underline-offset-4 hover:underline disabled:opacity-60"
+        >
+          {t('retry')}
+        </button>
+      </Card>
+    );
+  }
 
   if (grants.loading && !grants.data) return <Skeleton aria-hidden="true" className="h-[120px] rounded-card" />;
 

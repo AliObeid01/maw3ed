@@ -1181,7 +1181,10 @@
         "planNote": "The Free plan has one bookable person; a second staff member needs Pro.",
         "manage": "Manage connections",
         "connectedTitle": "Claude is connected",
-        "connectedBody": "It can set up your services, staff and hours. You can disconnect it at any time."
+        "connectedBody": "It can set up your services, staff and hours. You can disconnect it at any time.",
+        "checkFailed": "Claude connection: we could not check right now.",
+        "retry": "Retry",
+        "retrying": "Checking again"
       },
       "settings": {
         "title": "Connected apps",
