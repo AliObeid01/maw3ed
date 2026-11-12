@@ -61,7 +61,7 @@ Known gaps are listed in the README section "Known limits and next version". The
 
 Run conclusion: success. The e2e (1/2) log shows "195 passed (3.1m)" for the mobile projects and "17 passed" for the dashboard shell at desktop width. URL: https://github.com/AliObeid01/maw3ed/actions/runs/41469419576
 
-Note on what CI covers: the e2e job runs `--project=mobile --project=dashboard-mobile` (sharded 2 ways) plus `shell.spec.ts` on `dashboard-desktop`. The `desktop` public project (187 tests) and the rest of `dashboard-desktop` (202 tests listed, `shell.spec.ts` is the part CI runs) exist but are outside the CI gate; they were not run in this ship-check either.
+Note on what CI covers: the e2e job runs `--project=mobile --project=dashboard-mobile` (sharded 2 ways) plus `shell.spec.ts` on `dashboard-desktop` (shard 1) and `cardAlignment.spec.ts` on the `desktop` project (shard 2, added 12 Nov 2026). The rest of the `desktop` public project (187 tests) and the rest of `dashboard-desktop` (202 tests listed, `shell.spec.ts` is the part CI runs) exist but are outside the CI gate; they were not run in this ship-check either.
 
 ## 2. Production checks (read-only, https://maw3edlb.com, 2 Nov 2026)
 
