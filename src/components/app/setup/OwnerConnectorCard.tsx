@@ -28,8 +28,10 @@ export function OwnerConnectorCard({ url }: { url: string }) {
   const { copy, copiedKey, announcer } = useCopy();
 
   const [retrying, setRetrying] = useState(false);
+  // A Retry is over once loading ends: a later reload (with data on screen) must not swap the card for this row.
+  if (retrying && !grants.loading) setRetrying(false);
 
-  if (grants.error || (retrying && grants.loading)) {
+  if (grants.error || (retrying && grants.loading && !grants.data)) {
     // Could not check: say so compactly instead of guessing "not connected". Stays mounted while retrying (no jump).
     return (
       <Card
@@ -48,12 +50,14 @@ export function OwnerConnectorCard({ url }: { url: string }) {
         <button
           type="button"
           data-testid="owner-connector-retry"
-          disabled={grants.loading}
+          // aria-disabled, not disabled: a disabled button drops keyboard focus; clicks are ignored while a check runs.
+          aria-disabled={grants.loading}
           onClick={() => {
+            if (grants.loading) return;
             setRetrying(true);
             grants.reload();
           }}
-          className="motion-press inline-flex min-h-11 min-w-11 items-center justify-center rounded-input px-3 text-[15px] font-semibold text-brand underline-offset-4 hover:underline disabled:opacity-60"
+          className="motion-press inline-flex min-h-11 min-w-11 items-center justify-center rounded-input px-3 text-[15px] font-semibold text-brand underline-offset-4 hover:underline aria-disabled:opacity-60"
         >
           {t('retry')}
         </button>

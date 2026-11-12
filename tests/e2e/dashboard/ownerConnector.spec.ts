@@ -260,6 +260,48 @@ for (const lang of ['en', 'ar'] as const) {
       }
     });
 
+    test('Setup: Retry keeps keyboard focus while it checks again, then the connected card stays (no swap back)', async ({ page }) => {
+      let phase: 'fail' | 'slow' = 'fail';
+      let release: () => void = () => {};
+      const gate = new Promise<void>((resolve) => (release = resolve));
+      await setRole(page, 'OWNER', DASHBOARD);
+      await page.context().addCookies([{ name: 'locale', value: lang, url: DASHBOARD }]);
+      await mockSetupApi(page, {
+        state: defaultState(),
+        override: async (route, method, path) => {
+          if (path === '/api/oauth/grants' && method === 'GET') {
+            if (phase === 'fail') {
+              await route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({ error: { code: 'INTERNAL', message: 'x' } }) });
+            } else {
+              await gate;
+              await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ grants: [GRANT] }) });
+            }
+            return true;
+          }
+          return false;
+        },
+      });
+      await page.setViewportSize({ width: 360, height: 800 });
+      await page.goto('/app/setup');
+      const row = page.getByTestId('owner-connector-error');
+      const retry = row.getByTestId('owner-connector-retry');
+      await expect(row.getByRole('status')).toHaveText(T.checkFailed);
+      phase = 'slow';
+      await retry.focus();
+      await expect(retry).toBeFocused();
+      await page.keyboard.press('Enter');
+      // Still the compact row, now saying "checking again"; the Retry button kept focus (aria-disabled, not disabled).
+      await expect(row.getByRole('status')).toHaveText(lang === 'en' ? 'Checking again' : 'جارٍ التحقق مجددًا');
+      await expect(retry).toBeFocused();
+      await expect(retry).toHaveAttribute('aria-disabled', 'true');
+      expect(await retry.evaluate((el) => el.hasAttribute('disabled'))).toBe(false); // (Playwright's toBeDisabled would also count aria-disabled)
+      release();
+      await expect(page.getByTestId('owner-connector-connected')).toBeVisible();
+      await expect(page.getByTestId('owner-connector-error')).toHaveCount(0);
+      await expect(page.getByTestId('owner-connector')).toHaveCount(0);
+      await expectNoPageOverflow(page);
+    });
+
     test('/for-business: the teaser under the five steps, no connector link', async ({ page }) => {
       await setup(page, lang, []);
       for (const width of [360, 1440]) {
