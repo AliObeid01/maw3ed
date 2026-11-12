@@ -333,12 +333,12 @@ function Explore() {
             <ul
               aria-label={t('showing', { count: state.items.length })}
               className={
-                'm-0 grid list-none grid-cols-1 gap-4 p-0 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ease-out motion-reduce:transition-none' +
+                'm-0 grid list-none grid-cols-1 gap-4 p-0 md:gap-y-0 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-200 ease-out motion-reduce:transition-none' +
                 (stale ? ' opacity-60' : '')
               }
             >
               {state.items.map((b) => (
-                <li key={b.slug} className="m-0 grid list-none grid-cols-[minmax(0,1fr)]">
+                <li key={b.slug} className="m-0 grid list-none grid-cols-[minmax(0,1fr)] md:row-span-6 md:mb-4 md:grid-rows-subgrid">
                   <BusinessCard business={b} headingLevel={2} />
                 </li>
               ))}

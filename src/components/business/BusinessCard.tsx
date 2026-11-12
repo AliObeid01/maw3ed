@@ -96,8 +96,9 @@ export function BusinessCard({
   return (
     <article
       data-testid="business-card"
-      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)]"
+      className="motion-lift flex h-full flex-col overflow-hidden rounded-[22px] border border-divider bg-surface text-ink shadow-[0_1px_2px_rgb(0_0_0/0.05)] md:row-span-6 md:grid md:grid-rows-subgrid"
     >
+      <div className="md:row-start-1">
       <div
         aria-hidden="true"
         className={cn('relative h-[120px] shrink-0 overflow-hidden bg-gradient-to-br text-white', key ? BANNERS[key] : 'from-navy to-navy-hover')}
@@ -120,15 +121,17 @@ export function BusinessCard({
           className="relative -mt-9 rounded-[18px] border-[3px] border-surface shadow-[0_3px_9px_rgb(0_0_0/0.16)]"
         />
       </div>
+      </div>
 
-      <div className="flex flex-1 flex-col gap-3 px-5 pt-3 pb-5">
-        <div className="grid gap-1">
+      {/* md and up this box disappears (`contents`): its children become rows of the article's grid, which is a subgrid of the card row, so every section starts at the same y in every card of the row. Spacing is margin on the section, never a grid gap. */}
+      <div className="flex flex-1 flex-col gap-3 px-5 pt-3 pb-5 md:contents">
+        <div className="grid gap-1 md:row-start-2 md:px-5 md:pt-3">
           <Heading className="m-0 line-clamp-2 text-[21px] leading-tight font-bold tracking-[-0.01em] break-words">
             <Link href={href} className="text-ink no-underline hover:text-brand hover:underline">
               <Bidi>{business.name}</Bidi>
             </Link>
           </Heading>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-sm text-muted">
+          <div className="grid gap-0.5 text-sm text-muted">
             {meta ? (
               <span className="inline-flex min-w-0 items-center gap-1.5">
                 <MapPin size={15} aria-hidden="true" className="shrink-0" />
@@ -138,7 +141,7 @@ export function BusinessCard({
               </span>
             ) : null}
             {status ? (
-              <span data-testid="open-status" className={cn('inline-flex items-center gap-1.5 font-medium', status.open ? 'text-success' : 'text-muted')}>
+              <span data-testid="open-status" className={cn('inline-flex items-center gap-1.5 justify-self-start font-medium', status.open ? 'text-success' : 'text-muted')}>
                 <span aria-hidden="true" className={cn('size-2 shrink-0 rounded-full', status.open ? 'bg-success' : 'bg-muted/60')} />
                 {status.text}
               </span>
@@ -147,7 +150,7 @@ export function BusinessCard({
         </div>
 
         {m.services.length > 0 ? (
-          <ul data-testid="card-services" aria-label={t('servicesLabel')} className="m-0 grid grid-cols-[minmax(0,1fr)] list-none gap-1.5 border-t border-divider p-0 pt-3">
+          <ul data-testid="card-services" aria-label={t('servicesLabel')} className="m-0 grid grid-cols-[minmax(0,1fr)] list-none gap-1.5 border-t border-divider p-0 pt-3 md:row-start-3 md:mx-5 md:mt-3">
             {m.services.map((s, i) => (
               <li key={`${s.name}|${s.price}|${i}`} className="flex items-baseline justify-between gap-3 text-[15px]">
                 <span className="flex min-w-0 items-baseline gap-1">
@@ -168,13 +171,13 @@ export function BusinessCard({
             href={href}
             data-testid="card-more"
             aria-label={t('moreAria', { count: m.moreCount, name: business.name })}
-            className="-mt-2 inline-flex min-h-11 items-center self-start text-[14px] font-semibold text-brand no-underline hover:underline"
+            className="-mt-2 inline-flex min-h-11 items-center self-start text-[14px] font-semibold text-brand no-underline hover:underline md:row-start-4 md:mx-5 md:mt-1 md:justify-self-start"
           >
             {t('more', { count: m.moreCount })}
           </Link>
         ) : null}
 
-        <div className="grid gap-2 border-t border-divider pt-3">
+        <div className="grid content-start gap-2 border-t border-divider pt-3 md:row-start-5 md:mx-5 md:mt-3">
           {m.times.length > 0 && dayText ? (
             <>
               <p data-testid="free-label" className="m-0 text-[13px] font-semibold text-muted">
@@ -204,7 +207,7 @@ export function BusinessCard({
         <Link
           href={href}
           aria-label={t('ctaAria', { name: business.name })}
-          className={buttonClasses({ variant: 'navy', size: 'md', block: true, className: 'mt-auto h-12 rounded-pill px-4 text-center' })}
+          className={buttonClasses({ variant: 'navy', size: 'md', block: true, className: 'mt-auto h-12 rounded-pill px-4 text-center md:row-start-6 md:mx-5 md:mt-3 md:mb-5 md:w-auto' })}
         >
           {t('cta')}
           <ArrowRight size={18} aria-hidden="true" className="shrink-0 rtl:-scale-x-100" />
