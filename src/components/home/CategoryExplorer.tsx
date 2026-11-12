@@ -25,9 +25,9 @@ import { dayLabel } from '@/lib/home/freeTimes';
 import { useNow } from '@/lib/home/useNow';
 import { OWNER_START_HREF } from '@/lib/links';
 
-
+/** md and up each li carries mb-4 (the space between rows); the list pulls the last one back so it ends with its cards, like its skeleton. */
 const CARD_ROW =
-  'm-0 flex snap-x snap-mandatory list-none gap-3 overflow-x-auto p-0 pb-2 md:grid md:grid-cols-2 md:gap-y-0 md:overflow-visible md:pb-0 lg:grid-cols-3';
+  'm-0 flex snap-x snap-mandatory list-none gap-3 overflow-x-auto p-0 pb-2 md:-mb-4 md:grid md:grid-cols-2 md:gap-y-0 md:overflow-visible md:pb-0 lg:grid-cols-3';
 /** Phones: a card is 86 % wide so the next one peeks; md and up the cards fill the grid. */
 const CARD_ITEM = 'w-[86%] max-w-[340px] flex-none snap-start md:w-auto md:max-w-none';
 

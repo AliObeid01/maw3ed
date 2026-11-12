@@ -13,7 +13,7 @@ email: the demo clients have no email address at all.
 | --- | --- |
 | Businesses (all listed, complete profile) | 18: three in each of barbers, hair salons, dental clinics, beauty clinics, spa and massage, physiotherapy |
 | Areas | Beirut, Sidon, Tripoli, Jounieh, Tyre, Zahle |
-| Logos / initials | 10 businesses have a generated logo, 8 show initials |
+| Logos / initials | 15 of the 18 businesses have a generated logo; 3 show initials on purpose (`logo: false` in `scripts/demo/manifest.ts`), so the app's initials fallback is visible too |
 | Plan | PRO for the 9 businesses with more than one bookable person, FREE for the rest |
 | Staff (first names only), services, working hours | 29 staff, 89 services (3 to 6 each), weekly hours (Sunday closed, Saturday shorter, a lunch split for clinics) |
 | Clients | about 430: 140 at the flagship, 9 to 25 at each other business. Lebanese-style first and last names, valid Lebanese mobile numbers, **no email** |
@@ -192,6 +192,18 @@ the "today" screens show the day that is nearly over; seed in the morning for th
 
 WhatsApp "due" reminders only appear while the clinic has appointments in the next 24 hours (the clinic is closed on Sunday).
 
+## Re-seed (start again with fresh data)
+
+Run the three steps in this order, each dry run first (see the sections above for the flags):
+
+```
+pnpm demo:remove --apply --confirm-host <host>
+pnpm demo:seed   --apply --confirm-host <host>
+pnpm demo:check
+```
+
+The data is anchored to the moment the seeder runs: appointments, "today" and the pilot weeks are generated around that time (or around `--now`). Data seeded days ago therefore looks old, so re-seed shortly before a demo or a video. Re-seeding is also the way to pick up a newer generator (for example the generated logos).
+
 ## Remove everything
 
 ```
@@ -224,7 +236,7 @@ business). After a removal you can seed again.
 * Logos are ORIGINAL vector marks drawn as SVG strings in `logos.ts` (6 category motif families x 3 drawings, 5
   layouts, 18 palettes; one fixed design per business name, no <text>, no fonts, no real brands), rasterised with sharp
   and passed through the app's own `processLogo` (256x256 WebP, metadata stripped, sha256 hash), then stored in
-  `BusinessLogo` exactly as a logo upload does. Existing demo data keeps the old monograms: re-seed to see the new
+  `BusinessLogo` exactly as a logo upload does. Demo data seeded before PR-18 keeps the old monograms: re-seed to see the new
   ones (`pnpm demo:remove` then `pnpm demo:seed`).
 * Tests: `tests/unit/demo/*` (generators, guards, manifest, logos) and `tests/integration/demo.seed.test.ts` (seed, check,
   the real directory, slots, login and pilot report, remove scope, re-seed) on a scratch schema.

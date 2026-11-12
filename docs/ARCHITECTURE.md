@@ -57,6 +57,20 @@ tests/{unit,integration,e2e}
 ## Assistant adapter layer (PR-15a)
 `POST /api/mcp` is the one route outside the `{ error: { code, message } }` envelope: protocol answers are JSON-RPC. It keeps the layering: the route (`src/app/api/mcp/route.ts`) applies the kill switch and delegates to `src/server/mcp/` (protocol parsing and validation, tool definitions, sanitizer), which calls ONE service, `src/server/services/assistant.ts`, which reuses the existing services (directory, slots, `publicBookingService.book`, waitlist, links). Only repositories import Prisma. No per-IP limits (policies `mcp*` are global, per phone and per business). Details: docs/MCP.md.
 
+## Owner setup assistant (PR-20)
+A second MCP endpoint, `POST /api/mcp/owner` (flag `MCP_OWNER_ENABLED`, separate from `MCP_ENABLED`), reuses the protocol layer with an `authenticate` hook that checks an OAuth 2.1 bearer token (`src/server/services/oauth.ts`). The business always comes from the token's grant, never from tool arguments; the owner role is re-verified on every call. The three tools (`get_setup_status`, `preview_setup_changes`, `apply_setup_changes`) go through `src/server/services/ownerSetup.ts`, which calls the dashboard services only; apply claims the stored plan and runs everything in one transaction. New tables are in migration `20261111150000_mcp_owner_oauth`. The OAuth protocol routes speak OAuth wire formats and are outside the `{ error: { code, message } }` envelope and `openapi.json`; the two session routes the UI uses (`GET /api/oauth/grants`, `POST /api/oauth/grants/{id}/revoke`) are registered. The consent page `/oauth/authorize` is a server component with no client JavaScript; the proxy adds the OAuth redirect target to `form-action` for that page only. Full description: [MCP_OWNER.md](MCP_OWNER.md).
+
+## Known limits and next version
+- **CSP styles.** Scripts use a per-request nonce with `'strict-dynamic'`; `style-src` still allows `'unsafe-inline'` (React `style=""` attributes; 13 `style={...}` usages in `src` on 12 Nov 2026). Hardening is a next-version item.
+- **Time format.** Slot and free times are HH:mm; the AM/PM option (PR-9) is not built.
+- **Pro intent** (the "finish your upgrade" banner) is stored in the browser per business, so it does not follow the owner to another device (see "Pro intent without a migration").
+- **Owner assistants beyond setup** (read-only, insights) were not built; any such tool would read client or appointment data and needs its own privacy and security review first.
+- **Connector reach.** Neither connector is listed in a directory; only Claude is supported, not ChatGPT.
+- **Legal.** Privacy and Terms are not lawyer-reviewed.
+- **Directory ranking.** The top places in a category are alphabetical; the PR-10 limits below also apply.
+- **Open status.** "Open until" uses posted weekly hours only: it ignores time off and bookings, and the directory response is cached (`s-maxage=60`, `stale-while-revalidate=300`), so it can be about 6 minutes old.
+- **Arabic.** The strings need a native read (`docs/ARABIC_REVIEW.md`).
+
 ## Engineering heart
 
 ### 1. Slot generation (`domain/slots.ts`)

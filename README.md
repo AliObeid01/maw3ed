@@ -18,12 +18,18 @@ Live: https://maw3edlb.com
 - Accounts: sign up, sign in, owner and staff roles, invites, sessions stored in the database; soft email verification (the owner confirms their address before inviting staff or listing in the directory) and a dashboard banner with a rate-limited **Resend email**; forgot password and reset password by emailed single-use link (revokes every session), and an Account page (`/app/account`, every role) with change password and sign out of other devices; team access: the owner removes a departed member (their sessions for that business end in the same transaction), lists and revokes pending invites, and anyone can sign out their other devices.
 - Pilot report: baseline entry, weekly no-show rate versus baseline with raw counts, CSV export.
 - Deposits (test mode): optional deposit for clients with past no-shows, 15 minute slot hold, pay page.
-- Plans (test mode): Free (one bookable staff member) and Pro, with a test checkout and the plans on `/for-business#plans`.
+- Plans (test mode): Free (one bookable staff member) and Pro at $20 (`PLAN_PRICE` in `src/server/domain/plan.ts`), shown on `/for-business#plans`, with a TEST-mode checkout at `/app/checkout` (no card is taken). The old `/pricing` page was removed: `/pricing` answers a 308 redirect to `/for-business#plans` (`next.config.ts`).
+- Marketplace pages: home `/`, Explore at `/directory` (filters, "Next free" times, an "Open until" status derived from posted weekly hours), a shared business card, and "My bookings on this device" at `/my-bookings` (no account; saved in the browser).
 - Rate limiting shared across serverless instances (Postgres), login throttling, argon2 password hashing.
 
-## Book by chatting (assistant connector)
+## Assistant connectors (MCP)
 
-A client can find and book appointments by chatting with Claude: `POST /api/mcp` is a stateless MCP endpoint (nine tools, the 2026-07-28 and the legacy protocol), added in Claude as a custom connector; `/assistant` explains how. It is OFF unless `MCP_ENABLED=true` is set. See docs/MCP.md.
+Two separate Model Context Protocol endpoints, each OFF unless its own flag is exactly `true` (off means the routes answer 404). Neither is listed in any directory; ChatGPT is not supported.
+
+- **Client connector (find and book).** `POST /api/mcp`, flag `MCP_ENABLED`. A client adds the link in Claude as a custom connector and chats to find a business and book. Nine tools (search, details, free times, prepare, create booking, join waitlist, get, confirm, cancel). Stateless, serves the 2026-07-28 and the legacy protocol. The page `/assistant` explains the steps. Bookings go through the same single booking insert as the website, so the three guarantees still apply. Details: [docs/MCP.md](docs/MCP.md).
+- **Owner setup assistant.** `POST /api/mcp/owner`, flag `MCP_OWNER_ENABLED`. A business owner connects Claude to their own business through OAuth 2.1 with PKCE (consent page `/oauth/authorize`). Three tools: `get_setup_status`, `preview_setup_changes`, `apply_setup_changes`: changes are proposed first and saved only by a separate apply call. It can add services and staff, replace weekly hours, and set category, area, address, slot step, minimum notice and cancellation cutoff. It cannot delete anything and cannot read or return clients, appointments, waitlist or pilot data, plans, or logins. It appears only in the dashboard (Setup page, and Settings > Connected apps where the owner can revoke), never on `/assistant`. Details: [docs/MCP_OWNER.md](docs/MCP_OWNER.md).
+
+Automated tests drive both endpoints with hand-written JSON-RPC clients (`tests/integration/mcp.*.test.ts`, `tests/unit/mcp*/`); they do not run a real Claude conversation. The owner reports having connected the owner assistant in Claude by hand on 11 Nov 2026 with a fresh signup and that it worked; that is a manual check, not a test.
 
 ## Tech stack
 
@@ -95,7 +101,40 @@ Prerequisites: Node 22 (the repo pins it in `.nvmrc` and `engines`), pnpm 11 (`p
 7. Seed demo data (opt-in, local database only): `ALLOW_SEED=1 pnpm db:seed` on macOS, or in PowerShell `$env:ALLOW_SEED=1; pnpm db:seed`. It creates "Studio Nour" and a second business, and prints a password once unless `SEED_USER_PASSWORD` is set.
 8. `pnpm dev` and open http://localhost:3000.
 
-**Demo data (simulated).** `pnpm demo:seed`, `pnpm demo:check` and `pnpm demo:remove` load, verify and remove 18 simulated businesses (a dental-clinic flagship with a pilot report) for demos and videos. They are dry runs by default and write only with `--apply --confirm-host <host>`. Demo data: all businesses, people and results are simulated for demonstration. The owner's step-by-step guide is [docs/DEMO_DATA.md](docs/DEMO_DATA.md).
+## Environment variables
+
+Names only; values are never in the repository (`.env.example` lists the names, CI uses throwaway values). "Prod" is what the production build checks (`scripts/lib/productionEnv.mjs`): a missing required variable fails the build and lists names only.
+
+| Variable | Prod | Purpose |
+|---|---|---|
+| `DATABASE_URL` | required | Pooled Postgres connection used by the app. |
+| `DIRECT_URL` | required | Direct (non-pooled) connection for migrations and the seed; must differ from `DATABASE_URL`. |
+| `DATABASE_URL_TEST` | no | Database for integration tests (they use an isolated `itest` schema). |
+| `APP_URL` | required | Exact public origin, https, no trailing slash (links, emails, the connector URLs). |
+| `NEXT_PUBLIC_APP_URL` | required | The same origin, exposed to the browser. |
+| `LINK_SECRET` | required | HMAC key for signed confirm, cancel, offer, pay and view links; 32+ characters. |
+| `CRON_SECRET` | required | Shared secret for `/api/jobs/*` (`x-cron-secret`); 32+ characters, different from `LINK_SECRET`. |
+| `EMAIL_PROVIDER` | required (`resend`) | `resend` or `fake` (records emails, sends nothing). |
+| `RESEND_API_KEY`, `EMAIL_FROM` | required | Resend credentials and sender address. |
+| `PAYMENT_PROVIDER` | no | `fake` (default; the only implemented provider). |
+| `SESSION_SECRET` | no | Kept for compatibility; sessions are stored in the database. |
+| `EXPECTED_DB_HOST` | recommended | Production database host (no `-pooler`); the build and the demo/seed tools refuse a different host. |
+| `MCP_ENABLED` | no (off) | `true` turns on the client connector `/api/mcp` and its entry points. |
+| `MCP_OWNER_ENABLED` | no (off) | `true` turns on the owner setup assistant, OAuth routes and consent page. |
+| `MCP_ALLOWED_ORIGINS` | no | Extra https Origins allowed on `/api/mcp` (claude.ai, claude.com and `APP_URL` are always allowed). |
+| `CSP_MODE` | no | `enforce` (default), `report-only` or `off`; read per request. |
+| `SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN` | no | Error reporting, inert unless set in a Vercel Production deployment. |
+| `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` | no | Build-time source map upload (all three or none). |
+| `LOG_LEVEL` | no | pino log level. |
+| `ALLOW_SEED`, `ALLOW_SEED_REMOTE`, `SEED_USER_PASSWORD` | never in prod | Opt-ins for `pnpm db:seed`; the production build fails if `ALLOW_SEED` or `ALLOW_SEED_REMOTE` is set. |
+| `E2E_FAKE_SESSION` | never in prod | Test-only sign-in switch for browser tests; the production build fails if it is set. |
+| `DEMO_OWNER_EMAIL`, `DEMO_OWNER_PASSWORD`, `DEMO_OWNER_NAME` | no | Used only by `pnpm demo:seed` and `demo:remove`, set in the terminal for that run. |
+| `DATABASE_POOL_CONNECT_TIMEOUT_MS`, `RATE_LIMIT_DISABLED`, `RATE_LIMIT_TIMEOUT_MS` | no | Test and tuning knobs; `RATE_LIMIT_DISABLED` is ignored in production. |
+| `BUILD_TIMEOUT_MINUTES` | no | Optional build timeout (5 to 40, default 25). |
+
+## Demo data
+
+The repository contains no real customer data. For demos and videos, `pnpm demo:seed`, `pnpm demo:check` and `pnpm demo:remove` load, verify and remove 18 simulated businesses (a dental-clinic flagship with a pilot report). They are dry runs by default and write only with `--apply --confirm-host <host>`. Demo data: all businesses, people and results are simulated for demonstration. Demo clients have no email address, so no email is ever sent for them. The step-by-step guide is [docs/DEMO_DATA.md](docs/DEMO_DATA.md).
 
 ## Commands
 
@@ -123,7 +162,7 @@ Three levels, so feedback is fast and CI is the full verdict:
 
 1. While coding: `pnpm typecheck` plus only the test file or Playwright spec you touched. Integration files run against the local Docker Postgres (about 8 seconds each) in an isolated `itest` schema.
 2. Once before a pull request: lint, typecheck, unit tests, the integration files for the touched area, i18n keys, `openapi:check` if the API changed, and a build.
-3. After the pull request opens: GitHub Actions (`.github/workflows/ci.yml`) runs everything against a throwaway Postgres 16: migrate, lint, typecheck, unit, integration, build, OpenAPI contract and i18n keys, plus a parallel `e2e` job (Playwright, chromium only: public specs and dashboard specs on the mobile projects, `shell.spec.ts` at desktop width; the report is uploaded on failure). The full integration and e2e suites are not run locally: run only the spec you touched.
+3. After the pull request opens: GitHub Actions (`.github/workflows/ci.yml`) runs a `checks` job against a throwaway Postgres 16 (migrate, lint, typecheck, unit, integration, build, OpenAPI contract, i18n keys) and a parallel `e2e` job in two shards (Playwright, chromium: the `mobile` and `dashboard-mobile` projects, plus `shell.spec.ts` at desktop width on shard 1; the report is uploaded on failure). Playwright browsers are cached by Playwright version. When the cache hits, the job probes the Ubuntu apt mirror and skips `playwright install-deps` if it is unreachable (it then uses the libraries on the runner image; a missing library would fail the browser launch loudly). Changes to `docs/**`, `.claude/**` and `*.md` do not trigger CI; a push to `main` runs only `checks` (the e2e shards already ran on the pull request); a manual run (`workflow_dispatch`, for example `gh workflow run ci.yml --ref main`) runs everything. The full integration and e2e suites are not run locally: run only the spec you touched.
 
 E2E specs never depend on the real clock (time of day, midnight in Beirut, CI running in UTC). Every mocked spec freezes the browser clock and derives its dates from `tests/e2e/helpers/clock.ts` (`FIXED_NOW`, default Wed 4 Nov 2026 10:00 Beirut; `clockNow()`, `nowMs()`, `freezeClock(page)`). To check a spec at another time: `E2E_NOW=2026-11-04T23:55:00+02:00 pnpm exec playwright test --project=dashboard-mobile --workers=2 <spec>`. Never call `Date.now()` or `DateTime.now()` in a spec or mock.
 
@@ -164,7 +203,7 @@ Only name, phone (normalised to E.164 with `libphonenumber-js`, default `LB`), e
 
 ## Security headers
 
-Every page gets a per-request nonce-based Content-Security-Policy from `src/proxy.ts` (`script-src 'self' 'nonce-…' 'strict-dynamic'`, no `unsafe-inline` or `unsafe-eval` for scripts in production, `frame-ancestors 'none'`, `connect-src` limited to `'self'` and the Sentry ingest host when a DSN is set). `next.config.ts` adds `X-Content-Type-Options`, `X-Frame-Options: DENY` (the booking page cannot be embedded in another site), `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` on every route; HSTS comes from Vercel. If a page ever breaks because of the policy, set `CSP_MODE=report-only` or `off` (see `docs/HUMAN_TASKS.md`). Check a deployment with `node scripts/check-security-headers.mjs [baseUrl]` (default `https://maw3edlb.com`; add `--no-hsts` for local http): it prints PASS/FAIL per header per URL and exits 1 on any failure.
+Every page gets a per-request nonce-based Content-Security-Policy from `src/proxy.ts` (`script-src 'self' 'nonce-…' 'strict-dynamic'`, no `unsafe-inline` and no `unsafe-eval` for scripts in production (`unsafe-eval` is added in development only), `frame-ancestors 'none'`, `connect-src` limited to `'self'` and the Sentry ingest host when a DSN is set). Styles are less strict: `style-src 'self' 'unsafe-inline'` is still allowed, because React renders `style=""` attributes (13 `style={...}` usages remain in `src`, counted on 12 Nov 2026) and a nonce cannot cover attributes. Removing that is a next-version item. The policy is built in `src/lib/security/csp.ts`; the owner consent page additionally allows its OAuth redirect target in `form-action`. `next.config.ts` adds `X-Content-Type-Options`, `X-Frame-Options: DENY` (the booking page cannot be embedded in another site), `Referrer-Policy`, `Permissions-Policy` and `Cross-Origin-Opener-Policy` on every route; HSTS comes from Vercel. If a page ever breaks because of the policy, set `CSP_MODE=report-only` or `off` (see `docs/HUMAN_TASKS.md`). Check a deployment with `node scripts/check-security-headers.mjs [baseUrl]` (default `https://maw3edlb.com`; add `--no-hsts` for local http): it prints PASS/FAIL per header per URL and exits 1 on any failure.
 
 ## Observability
 
@@ -172,7 +211,7 @@ Errors only, through Sentry (`@sentry/nextjs`), and **off unless** a DSN is set 
 
 ## Payments and deposits (test mode)
 
-Payments are simulated. `PAYMENT_PROVIDER=fake` is the implemented provider; the pay page and the pricing checkout say "test mode" and no card is ever taken. Deposits are off by default. When an owner turns them on in Settings, a public booking by a client who has at least N earlier no-shows at that business (default 1) is held for 15 minutes as `PENDING_PAYMENT` until the client pays on `/pay/{token}`; front-desk bookings never ask for a deposit. Nothing is refunded or credited yet (tracked as follow-up F30).
+Payments are simulated. `PAYMENT_PROVIDER=fake` is the implemented provider; the pay page and the Pro checkout say "test mode" and no card is ever taken. Deposits are off by default. When an owner turns them on in Settings, a public booking by a client who has at least N earlier no-shows at that business (default 1) is held for 15 minutes as `PENDING_PAYMENT` until the client pays on `/pay/{token}`; front-desk bookings never ask for a deposit. Nothing is refunded or credited yet (tracked as follow-up F30).
 
 ## Key decisions
 
@@ -197,8 +236,22 @@ A short list; the full log with reasoning is in [docs/ARCHITECTURE.md](docs/ARCH
 - [docs/ARABIC_REVIEW.md](docs/ARABIC_REVIEW.md): notes for the native Arabic review.
 - [docs/DESIGN_QA.md](docs/DESIGN_QA.md), [docs/DESIGN_QA_ROUND2.md](docs/DESIGN_QA_ROUND2.md): design QA reports.
 - [docs/SCOPE_REVIEW.md](docs/SCOPE_REVIEW.md): scope document, including the five must-work-on-stage items.
-- [docs/SHIP_CHECK.md](docs/SHIP_CHECK.md): final ship-check evidence (2 Nov 2026).
+- [docs/SHIP_CHECK.md](docs/SHIP_CHECK.md): definition-of-done evidence table.
+- [docs/MCP.md](docs/MCP.md), [docs/MCP_OWNER.md](docs/MCP_OWNER.md): the two assistant connectors.
+- [docs/DEMO_DATA.md](docs/DEMO_DATA.md): simulated demo data, run guide.
 - [CLAUDE.md](CLAUDE.md): working rules for the AI assistant that builds this repo.
+
+## Known limits and next version
+
+- Styles still allow `'unsafe-inline'` in the CSP (scripts do not); hardening is planned for the next version.
+- Slot and free times are shown as HH:mm (24-hour); an AM/PM option (planned as PR-9) is not built.
+- The "finish your Pro upgrade" banner is remembered per browser and business, not across devices.
+- The owner assistant only does setup. Further owner assistants (read-only or insights) need a separate privacy and security review before any work.
+- Neither connector is listed in a Claude or other directory, and ChatGPT is not supported.
+- The Privacy and Terms pages have not been reviewed by a lawyer.
+- "Top places" in a category are ordered alphabetically, not by quality.
+- "Open until" is computed from posted weekly hours only: it ignores time off and existing bookings, and it can be about 6 minutes out of date because the directory response is cached (`s-maxage=60`, `stale-while-revalidate=300`).
+- The Arabic strings are machine-assisted and need a native speaker's read (`docs/ARABIC_REVIEW.md`).
 
 ## Status and limitations
 

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import type { Page } from '@playwright/test';
 import { beirut, biz, mockExplore, type Biz } from './helpers/explore';
 import { expect, test } from './helpers/test';
@@ -131,3 +132,88 @@ test('360 px: the home carousel shows one card at a time with the CTA visible', 
   expect(second.x).toBeGreaterThan(box.x + box.width - 1); // the next card is beside it (peeking), not stacked
   expect(Math.abs(second.y - box.y)).toBeLessThanOrEqual(1);
 });
+
+// PR-23: a very long unbroken string (no space to wrap at) must not widen a card: the grid track is minmax(0, 1fr).
+const UNBROKEN_NAME = 'Supercalifragilisticexpialidocious'.repeat(3);
+const UNBROKEN_ADDRESS = 'Averyveryverylongunbrokenstreetnamewithoutanyspacesatall'.repeat(2);
+const unbroken = biz({ slug: 'u', name: UNBROKEN_NAME, category: 'barbers', area: 'beirut', address: UNBROKEN_ADDRESS, serviceCount: 4, services: svc(3), freeTimes: times(3), openStatus: { open: true, until: '20:00' } });
+
+/** Per card: its width, and whether it (or anything inside) pokes out of its own list item. */
+async function overflowOf(page: Page, scope: string) {
+  return page.locator(`${scope} li:has([data-testid="business-card"])`).evaluateAll((items) =>
+    items.map((li) => {
+      const card = li.querySelector('[data-testid="business-card"]')!;
+      const l = li.getBoundingClientRect();
+      const c = card.getBoundingClientRect();
+      return { width: c.width, outside: c.left < l.left - 0.5 || c.right > l.right + 0.5, scrolls: card.scrollWidth > card.clientWidth + 1 };
+    }),
+  );
+}
+
+for (const c of cases) {
+  test(`Explore: an unbroken long name and address do not widen a card or break the row at ${c.name} px`, async ({ page }, info) => {
+    test.skip(info.project.name === 'mobile', 'desktop viewport sizes are set here');
+    await page.setViewportSize({ width: c.width, height: c.height });
+    const row = [mismatched[0]!, unbroken, mismatched[5]!, mismatched[1]!, mismatched[2]!, mismatched[3]!];
+    await mockExplore(page, { all: row });
+    await page.goto('/directory');
+    await expect(page.getByTestId('business-card')).toHaveCount(6);
+    for (const g of await rows(page, 'main')) expectAligned(g);
+    const boxes = await overflowOf(page, 'main');
+    expect(boxes.length).toBe(6);
+    for (const b of boxes) {
+      expect(b.outside, 'card inside its list item').toBe(false);
+      expect(b.scrolls, 'card content does not overflow the card').toBe(false);
+    }
+    const widths = boxes.map((b) => b.width);
+    expect(Math.max(...widths) - Math.min(...widths), 'card width spread').toBeLessThanOrEqual(1);
+  });
+}
+
+// CARD_SKELETON_MIN_H (the loading placeholder) must be >= the tallest real card, or the page jumps when data arrives.
+// The fixtures are the worst case the card can hold: two-line name, an address, the open status, three services, "+N more",
+// three chips, an unbroken 100-character name; in English and Arabic (taller line heights).
+const SKELETON = /h-\[(\d+)px\] md:h-\[(\d+)px\]/.exec(readFileSync('src/components/business/BusinessCard.tsx', 'utf8').split('CARD_SKELETON_MIN_H =')[1] ?? '');
+const SKELETON_PHONE = Number(SKELETON?.[1]);
+const SKELETON_MD = Number(SKELETON?.[2]);
+const worst = biz({ slug: 'w', name: 'The Extraordinarily Long Named Cedar Wellness and Massage Retreat', category: 'barbers', area: 'beirut', address: 'Jal el Dib Highway, Metn, next to the old fuel station', serviceCount: 9, services: svc(3), freeTimes: times(3), openStatus: { open: true, until: '20:00' } });
+const tallest: Biz[] = [worst, unbroken, mismatched[3]!];
+
+for (const locale of ['en', 'ar'] as const) {
+  test(`no real card is taller than its loading skeleton (${locale}, 360 / 768 / 1440, Explore and home)`, async ({ page, context }, info) => {
+    test.skip(info.project.name === 'mobile', 'desktop viewport sizes are set here');
+    expect(SKELETON_PHONE).toBeGreaterThan(0);
+    expect(SKELETON_MD).toBeGreaterThan(0);
+    if (locale === 'ar') await context.addCookies([{ name: 'locale', value: 'ar', url: 'http://localhost:3000' }]);
+    await mockExplore(page, { all: tallest });
+    let max = 0;
+    for (const width of [360, 768, 1440]) {
+      await page.setViewportSize({ width, height: 1000 });
+      for (const [url, scope] of [['/directory', 'main'], ['/', '[data-testid="top-places"]']] as const) {
+        await page.goto(url);
+        await expect(page.locator(`${scope} [data-testid="business-card"]`)).toHaveCount(3);
+        const heights = await page.locator(`${scope} [data-testid="business-card"]`).evaluateAll((cs) => cs.map((c) => c.getBoundingClientRect().height));
+        max = Math.max(max, ...heights);
+        for (const h of heights) expect(h, `card height at ${width} px on ${url}`).toBeLessThanOrEqual(width < 768 ? SKELETON_PHONE : SKELETON_MD);
+      }
+    }
+    console.log(`tallest real card (${locale}): ${max.toFixed(1)} px, skeleton ${SKELETON_PHONE} / ${SKELETON_MD} px`);
+  });
+}
+
+// PR-23: each card's list item carries mb-4 (the space between rows); the home row pulls the last one back, so the loaded
+// row ends with its cards (panel gap 14 px below), exactly like its skeleton, which has no such margin.
+for (const c of cases) {
+  test(`home: nothing extra under the card row at ${c.name} px (same height as the skeleton)`, async ({ page }, info) => {
+    test.skip(info.project.name === 'mobile', 'desktop viewport sizes are set here');
+    await page.setViewportSize({ width: c.width, height: c.height });
+    await mockExplore(page, { all: mismatched.slice(0, 3) });
+    await page.goto('/');
+    const cards = page.getByTestId('top-places').getByTestId('business-card');
+    await expect(cards.first()).toBeVisible();
+    const cardBottom = Math.max(...(await cards.evaluateAll((els) => els.filter((e) => e.getBoundingClientRect().width > 0).map((e) => e.getBoundingClientRect().bottom))));
+    const noteTop = (await page.getByTestId('category-panel').locator('> p').boundingBox())!.y;
+    expect(noteTop - cardBottom, 'gap between the last card and the note (panel gap is 14 px)').toBeLessThanOrEqual(15);
+    expect(noteTop - cardBottom).toBeGreaterThanOrEqual(13);
+  });
+}
