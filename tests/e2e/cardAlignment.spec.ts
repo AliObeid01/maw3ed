@@ -133,7 +133,7 @@ test('360 px: the home carousel shows one card at a time with the CTA visible', 
   expect(Math.abs(second.y - box.y)).toBeLessThanOrEqual(1);
 });
 
-// PR-23: a very long unbroken string (no space to wrap at) must not widen a card: the grid track is minmax(0, 1fr).
+// PR-22: a very long unbroken string (no space to wrap at) must not widen a card: the grid track is minmax(0, 1fr).
 const UNBROKEN_NAME = 'Supercalifragilisticexpialidocious'.repeat(3);
 const UNBROKEN_ADDRESS = 'Averyveryverylongunbrokenstreetnamewithoutanyspacesatall'.repeat(2);
 const unbroken = biz({ slug: 'u', name: UNBROKEN_NAME, category: 'barbers', area: 'beirut', address: UNBROKEN_ADDRESS, serviceCount: 4, services: svc(3), freeTimes: times(3), openStatus: { open: true, until: '20:00' } });
@@ -201,7 +201,7 @@ for (const locale of ['en', 'ar'] as const) {
   });
 }
 
-// PR-23: each card's list item carries mb-4 (the space between rows); the home row pulls the last one back, so the loaded
+// PR-22: each card's list item carries mb-4 (the space between rows); the home row pulls the last one back, so the loaded
 // row ends with its cards (panel gap 14 px below), exactly like its skeleton, which has no such margin.
 for (const c of cases) {
   test(`home: nothing extra under the card row at ${c.name} px (same height as the skeleton)`, async ({ page }, info) => {

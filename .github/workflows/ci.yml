@@ -144,6 +144,11 @@ jobs:
       - name: Dashboard shell at desktop width (shard 1 only)
         if: matrix.shard == 1
         run: pnpm exec playwright test --project=dashboard-desktop tests/e2e/dashboard/shell.spec.ts
+      - name: Card alignment at desktop widths (shard 2 only)
+        if: matrix.shard == 2
+        # These specs set their own desktop viewport and skip on the Pixel 5 `mobile` project, so without this step
+        # the subgrid alignment tests would never run in CI.
+        run: pnpm exec playwright test --project=desktop tests/e2e/cardAlignment.spec.ts
       - name: Upload Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
