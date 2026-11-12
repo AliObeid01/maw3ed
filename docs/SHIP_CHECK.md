@@ -5,6 +5,31 @@
 - Database used locally: the Docker Postgres 16 container `maw3ed-db-1` (localhost:5432, healthy). Integration tests ran in a private schema `itest_ship` of `maw3ed_test`; the migration steps ran on a FRESH scratch database `maw3ed_ship_scratch` (dropped afterwards). Neon, Vercel and Sentry were not touched.
 - Rule followed: every number below comes from a command run in this session. Failures are reported as failures.
 
+## 0. Definition-of-done evidence table for the final submission (written 12 Nov 2026)
+
+Sections 1 to 7 below are the ship-check run of 2 Nov 2026 and are kept unchanged as history (their counts, commit and run ids describe that day only). This table points each definition-of-done item at the files in the repository today (main at `043e04d`, PR #102) and leaves the CI result open on purpose: the owner runs `gh workflow run ci.yml --ref main` after the documentation pull request merges (docs-only changes do not trigger CI by themselves), then fills the last column. No run number below is invented.
+
+| Definition-of-done item | Evidence in the repository | CI run on main |
+|---|---|---|
+| Live at a public URL, CI on every PR | `.github/workflows/ci.yml` (jobs `checks`, `e2e` in two shards; manual `workflow_dispatch`); production `https://maw3edlb.com`, `GET /api/health` | to be filled after the final manual CI run on main |
+| Route handlers, repository layer separate, validation on every route | `src/app/api/**`, `src/server/repositories` (ESLint `import/no-restricted-paths`), `tests/integration/validation.routes.test.ts` | to be filled after the final manual CI run on main |
+| Tenant isolation | `tests/integration/tenant.isolation.test.ts`; cross-tenant 404 inside each route test (owner connector: `tests/integration/mcp.owner.tools.test.ts`) | to be filled after the final manual CI run on main |
+| Owner and Staff roles (and the barber role) | `tests/unit/session.guard.test.ts`, `tests/integration/auth.test.ts`, `tests/integration/team.test.ts` | to be filled after the final manual CI run on main |
+| No double booking | `tests/integration/appointment.overlap.test.ts`, `tests/integration/booking.concurrency.test.ts`, `scripts/db/check-constraints.sql` | to be filled after the final manual CI run on main |
+| No duplicate reminder | `tests/integration/reminders.idempotency.test.ts`, `tests/integration/reminders.hardening.test.ts` | to be filled after the final manual CI run on main |
+| Correct slots across DST | `tests/unit/slots.test.ts`, `tests/unit/directory/openStatus.test.ts` (open status across a DST change) | to be filled after the final manual CI run on main |
+| Comfortable on a phone | Playwright projects `mobile` and `dashboard-mobile` (`tests/e2e/**`), `docs/DESIGN_QA.md`, `docs/DESIGN_QA_ROUND2.md` | to be filled after the final manual CI run on main |
+| Assistant connectors (client and owner) | `tests/integration/mcp.assistant.test.ts`, `tests/integration/mcp.limits.test.ts`, `tests/integration/mcp.owner.oauth.test.ts`, `tests/integration/mcp.owner.tools.test.ts`, `tests/integration/mcp.owner.cleanup.test.ts`, `tests/unit/mcp/*`, `tests/unit/mcpOwner/*`; docs `docs/MCP.md`, `docs/MCP_OWNER.md` | to be filled after the final manual CI run on main |
+| Demo data tooling | `tests/unit/demo/*`, `tests/integration/demo.seed.test.ts`, `docs/DEMO_DATA.md` | to be filled after the final manual CI run on main |
+| Security headers (nonce CSP for scripts; styles still allow `'unsafe-inline'`) | `src/lib/security/csp.ts`, `src/proxy.ts`, `tests/unit/csp.test.ts`, `tests/e2e/securityHeaders.spec.ts`, `scripts/check-security-headers.mjs` | to be filled after the final manual CI run on main |
+| Lint, typecheck, unit, integration, build | `pnpm lint`, `pnpm typecheck`, `pnpm test:unit`, `pnpm test:int`, `pnpm build` (the `checks` job) | to be filled after the final manual CI run on main |
+| OpenAPI contract in sync | `openapi.json`, `pnpm openapi:check` | to be filled after the final manual CI run on main |
+| i18n keys match (en, ar) | `scripts/i18n/check-keys.mjs` | to be filled after the final manual CI run on main |
+| README, FR/NFR one-pager, ERD | `README.md`, `docs/REQUIREMENTS.md`, `docs/DATA_MODEL.md` | not a CI item |
+| 3-minute demo video and 60-second backup | recorded by a human (`docs/HUMAN_TASKS.md`) | not a CI item; still open when this was written |
+
+Known gaps are listed in the README section "Known limits and next version". The line-by-line checks of section 2 (production, 2 Nov) were not repeated on 12 Nov.
+
 ## 1. Pipeline
 
 | Step | Result | Evidence |
